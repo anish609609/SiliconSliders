@@ -229,6 +229,7 @@
       x_up: lerp(s0.x_up, s1.x_up),
       B: lerp(s0.B, s1.B),
       B_over_A: lerp(s0.B_over_A, s1.B_over_A),
+      R_massoud: lerp(s0.R_massoud || 0, s1.R_massoud || 0),
       dxdt: lerp(s0.dxdt, s1.dxdt),
       regime: s0.regime,
       tb: lerp(s0.tb, s1.tb)

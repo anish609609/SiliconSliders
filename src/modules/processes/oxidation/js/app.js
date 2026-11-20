@@ -115,7 +115,7 @@
       fabTradeoff: 'Conservative furnace ramps (5–10 °C/min) guarantee zero slip dislocations and pristine wafers. Rapid Thermal Oxidation (RTO/RTP at 50–150 °C/min) requires specialized edge-ring pyrometry and dynamic multi-zone lamp heating to mitigate slip risk.'
     },
     kpi_oxide: {
-      title: '1. Oxide Thickness (x_ox)',
+      title: 'Oxide Thickness (x_ox)',
       param: 'Total Grown SiO₂ Dielectric Film Thickness',
       effect: 'Instantaneous dielectric thickness calculated using the Deal-Grove model with early-stage Massoud enhancement.',
       formula: 'x_ox² + A · x_ox = B(t + τ)  [+ Massoud: dx/dt = (B / (2x+A)) + C₁·exp(-x/L₁) + C₂·exp(-x/L₂)]',
@@ -123,31 +123,39 @@
       fabTradeoff: 'Sub-2 nm gate dielectrics require dilute, low-temperature oxidation with sub-Ångstrom repeatability to prevent gate leakage tunneling. Thick oxides (300–800 nm) for LOCOS or STI isolation rely on high-temperature steam.'
     },
     kpi_consumed_si: {
-      title: '2. Consumed Silicon (0.44 · x_ox)',
+      title: 'Consumed Silicon (0.44 · x_ox)',
       param: 'Substrate Silicon Consumption & Volumetric Expansion Ratio',
       effect: 'Converts single-crystal substrate silicon into amorphous SiO₂ with 2.27× volumetric expansion.',
       formula: 'x_consumed = (N_ox / N_si) · x_ox = (2.2×10²² / 5.0×10²²) · x_ox ≈ 0.44 · x_ox  (56% expands upward)',
       explanation: 'Because SiO₂ has a larger molecular volume than Si, growing a thickness x_ox consumes 44% of that thickness from the underlying silicon substrate (0.44 × x_ox), while 56% expands upward above the original silicon datum. When Si atoms bond with incoming oxygen/steam molecules, each mole of Si (12.06 cm³/mol) converts into one mole of SiO₂ (27.18 cm³/mol), yielding a 2.27× volume expansion ratio.',
       fabTradeoff: 'The 44% substrate consumption sinks the critical Si/SiO₂ interface deeper into the wafer. In trench isolation (STI) and 3D FinFET corners, the 56% upward expansion induces intense compressive stress that can trigger dislocations if not stress-relieved.'
     },
+    kpi_growth_rate: {
+      title: 'Instantaneous Growth Rate (dx/dt)',
+      param: 'Instantaneous Deal-Grove Reaction & Diffusion Growth Rate: dx/dt (nm/min)',
+      effect: 'Dynamically transitions from surface reaction-limited linear growth (B/A) to diffusion-limited parabolic growth (B / 2x_ox) as oxide thickens.',
+      formula: 'dx/dt = B / (2 · x_ox + A)  [+ Massoud thin-oxide enhancement R_massoud]',
+      explanation: 'The Deal-Grove model unifies both surface reaction and oxidant diffusion kinetics into a single differential rate:\n\n• Linear-Dominant Regime (2 · x_ox < A): When the oxide is thin, oxidant diffusion through the oxide layer is rapid. Growth is governed by the chemical reaction rate at the Si-SiO₂ interface: dx/dt ≈ B/A with activation energy Ea ≈ 2.00 eV. In dry O₂, early-stage growth (<15 nm) also exhibits rapid Massoud thin-oxide enhancement.\n\n• Parabolic-Dominant Regime (2 · x_ox ≥ A): As the oxide thickens, incoming oxidants must diffuse through the existing solid SiO₂ layer. Solid-state diffusion becomes the rate-limiting bottleneck: dx/dt ≈ B / (2 · x_ox) with activation energy Ea ≈ 1.24 eV (Dry O₂) or 0.78 eV (Wet H₂O).\n\n• Standby / N₂ Purge: During furnace ramp-up and cool-down in pure N₂, oxidant partial pressure is 0 atm, yielding dx/dt = 0.000 nm/min.',
+      fabTradeoff: 'Thin gate oxides operate almost entirely in the reaction-limited (linear) and Massoud regimes where precise temperature and oxidant concentration are critical. Thick isolation field oxides (LOCOS/STI) operate deep in the diffusion-limited parabolic regime, where switching from dry O₂ to wet pyrogenic steam provides an orders-of-magnitude faster growth rate due to higher H₂O solubility.'
+    },
     kpi_linear_rate: {
-      title: '3. Linear Rate Constant (B/A)',
+      title: 'Linear Rate Constant (B/A)',
       param: 'Surface Reaction-Rate Limited Regime (Thin Oxides)',
       effect: 'Governs reaction-rate-limited growth when the oxide is thin (dx/dt ≈ B/A).',
       formula: 'B/A = k_s · (C* / N_1) = (B/A)_0 · exp(-E_a / k_B T),  E_a ≈ 2.00 eV',
-      explanation: 'Governs reaction-rate-limited growth when the oxide is thin. Controlled by the chemical reaction speed at the Si / SiO₂ interface (E_a ≈ 2.00 eV), crystal orientation (<111> is ~68% faster than <100>), and oxidant concentration. At short soak times, oxidant molecules easily diffuse through the thin barrier; growth is therefore entirely limited by how fast Si-Si bonds can break and react with oxidant atoms.',
-      fabTradeoff: 'Because E_a is high (2.00 eV), linear growth is extremely temperature-sensitive. <111> orientation provides a 68% faster linear growth rate due to higher surface atomic bond density (11.8 × 10¹⁴ vs 6.78 × 10¹⁴ atoms/cm²).'
+      explanation: 'Governs reaction-rate-limited growth when the oxide is thin. Controlled by the chemical reaction speed at the Si / SiO₂ interface (E_a ≈ 2.00 eV), crystal orientation (<111> is ~68% faster than <100>), and oxidant concentration.',
+      fabTradeoff: 'Because E_a is high (2.00 eV), linear growth is extremely temperature-sensitive.'
     },
     kpi_parabolic_rate: {
-      title: '4. Parabolic Rate Constant (B)',
+      title: 'Parabolic Rate Constant (B)',
       param: 'Oxidant Diffusion-Limited Regime (Thick Oxides)',
       effect: 'Governs diffusion-limited growth as the oxide gets thicker (x_ox ≈ √(B · t)).',
       formula: 'B = 2 · D_eff · (C* / N_1) = B_0 · exp(-E_a / k_B T),  E_a ≈ 1.24 eV (Dry) / 0.78 eV (Wet)',
-      explanation: 'Governs diffusion-limited growth as the oxide gets thicker. Controlled by how fast oxidant molecules can diffuse through the existing SiO₂ barrier to reach the silicon (E_a ≈ 1.24 eV for Dry O₂, 0.78 eV for Wet H₂O). As the oxide thickens, incoming oxidants must travel a longer path through the solid amorphous silica layer, making solid-state diffusion the bottleneck.',
-      fabTradeoff: 'Wet pyrogenic steam has 5–10× higher solid solubility in SiO₂ and lower activation energy (0.78 eV) than dry O₂, resulting in a dramatically larger B value and enabling rapid growth of thick field isolation layers.'
+      explanation: 'Governs diffusion-limited growth as the oxide gets thicker. Controlled by how fast oxidant molecules can diffuse through the existing SiO₂ barrier to reach the silicon.',
+      fabTradeoff: 'Wet pyrogenic steam has 5–10× higher solid solubility in SiO₂ and lower activation energy (0.78 eV) than dry O₂.'
     },
     kpi_thermal_budget: {
-      title: '5. Cumulative Thermal Budget Index',
+      title: 'Cumulative Thermal Budget Index',
       param: 'Cumulative Thermal Exposure Integral: ∫ exp(-E_diff / k_B T(t)) dt',
       effect: 'Quantifies cumulative high-temperature exposure and unwanted dopant redistribution.',
       formula: 'Thermal Budget Index = ∫₀ᵗ [ exp(-E_dopant / k_B T(t)) / exp(-E_dopant / k_B T_ref) ] dt',
@@ -155,7 +163,7 @@
       fabTradeoff: 'Advanced nodes enforce stringent thermal budget limits. Fabs replace long high-temperature furnace soaks with rapid thermal oxidation (RTO) or in-situ steam generation (ISSG) at sub-minute soak times to freeze dopant profiles.'
     },
     kpi_slip_risk: {
-      title: '6. Wafer Slip Risk & Thermal Stress',
+      title: 'Wafer Slip Risk & Thermal Stress',
       param: 'Radial Temperature Gradient & Crystallographic Slip Dislocation Vulnerability',
       effect: 'Predicts whether thermal shear stress across 300 mm wafers exceeds silicon yield strength.',
       formula: 'σ_thermal ≈ [E · α · ΔT_radial] / [1 - ν]  >  CRSS (Critical Resolved Shear Stress)',
@@ -338,6 +346,81 @@
     var currentState = useMemo(function () {
       return OxidationPhysics.interpolateState(trajectory, currentTime);
     }, [trajectory, currentTime]);
+
+    // Dynamic Instantaneous Deal-Grove Growth Rate and Dominant Kinetic Regime
+    var growthRateInfo = useMemo(function () {
+      if (!currentState || currentState.stage !== 'soak' || currentState.P_ox <= 1e-5 || (currentState.dxdt || 0) <= 1e-6) {
+        return {
+          rate: 0.0,
+          rateStr: '0.000',
+          ratePerHourStr: '0.0',
+          regimeType: 'idle',
+          regimeLabel: 'Standby (N₂ Purge)',
+          badgeClass: 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700',
+          subtext: '0.000 nm/min (No Growth)',
+          subtextValue: 'dx/dt = 0.000 nm/min',
+          subtextEa: 'No Growth'
+        };
+      }
+
+      var dxdt = Math.max(0, currentState.dxdt || 0);
+      var x_ox = currentState.x_ox || 0;
+      var B = Math.max(0, currentState.B || 0);
+      var B_over_A = Math.max(0, currentState.B_over_A || 0);
+      var A = (B > 0 && B_over_A > 0) ? (B / B_over_A) : 100.0;
+      var R_massoud = currentState.R_massoud || 0;
+
+      var chemEa = chemistry === 'wet' ? '0.78' : (chemistry === 'issg' ? '1.20' : '1.24');
+
+      // Check Massoud Thin-Oxide regime (Dry O2, early growth where Massoud enhancement is dominant)
+      var isMassoud = (chemistry === 'dry' && x_ox < 15.0 && R_massoud > 0.15 * dxdt);
+
+      // Deal-Grove regime criterion:
+      // Linear-Dominant: 2 * x_ox < A (reaction-limited at Si/SiO2 interface)
+      // Parabolic-Dominant: 2 * x_ox >= A (diffusion-limited through bulk SiO2)
+      var isLinear = (2.0 * x_ox) < A;
+
+      if (isMassoud) {
+        return {
+          rate: dxdt,
+          rateStr: dxdt.toFixed(3),
+          ratePerHourStr: (dxdt * 60).toFixed(1),
+          regimeType: 'massoud',
+          regimeLabel: 'Massoud Thin-Oxide',
+          badgeClass: 'bg-cyan-50 dark:bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-500/40',
+          subtext: 'B/A: ' + B_over_A.toFixed(3) + ' nm/min (Ea ≈ 2.00 eV)',
+          subtextValue: 'B/A: ' + B_over_A.toFixed(3) + ' nm/min',
+          subtextEa: 'Ea ≈ 2.00 eV'
+        };
+      }
+
+      if (isLinear) {
+        return {
+          rate: dxdt,
+          rateStr: dxdt.toFixed(3),
+          ratePerHourStr: (dxdt * 60).toFixed(1),
+          regimeType: 'linear',
+          regimeLabel: 'Linear Dominant (Reaction-Limited)',
+          badgeClass: 'bg-sky-50 dark:bg-sky-500/15 text-sky-700 dark:text-cyan-300 border-sky-300 dark:border-sky-500/40',
+          subtext: 'B/A: ' + B_over_A.toFixed(3) + ' nm/min (Ea ≈ 2.00 eV)',
+          subtextValue: 'B/A: ' + B_over_A.toFixed(3) + ' nm/min',
+          subtextEa: 'Ea ≈ 2.00 eV'
+        };
+      }
+
+      // Parabolic-Dominant (Diffusion-Limited)
+      return {
+        rate: dxdt,
+        rateStr: dxdt.toFixed(3),
+        ratePerHourStr: (dxdt * 60).toFixed(1),
+        regimeType: 'parabolic',
+        regimeLabel: 'Parabolic Dominant (Diffusion-Limited)',
+        badgeClass: 'bg-amber-50 dark:bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-500/40',
+        subtext: 'B: ' + B.toFixed(2) + ' nm²/min (Ea ≈ ' + chemEa + ' eV)',
+        subtextValue: 'B: ' + B.toFixed(2) + ' nm²/min',
+        subtextEa: 'Ea ≈ ' + chemEa + ' eV'
+      };
+    }, [currentState, chemistry]);
 
     // Toggle Play / Pause with automatic restart from 0 if at or near completion
     var handleTogglePlay = useCallback(function () {
@@ -729,13 +812,13 @@
         {/* 3. MAIN WORKSPACE */}
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-4">
           
-          {/* LIVE TELEMETRY KPI STRIP (6 CARDS WITH INFO TOOLTIPS) */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+          {/* LIVE TELEMETRY KPI STRIP (5 DYNAMIC DEAL-GROVE CARDS WITH INFO TOOLTIPS) */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5">
 
             {/* KPI 1: Oxide Thickness */}
-            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150">
+            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1 lg:col-span-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                <span className="truncate">1. Oxide (x_ox)</span>
+                <span className="truncate">OXIDE (X_OX)</span>
                 <button
                   type="button"
                   onClick={function () { setActiveInfoId(activeInfoId === 'kpi_oxide' ? null : 'kpi_oxide'); }}
@@ -753,14 +836,16 @@
               </div>
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
                 <span>Target: <b className="text-slate-700 dark:text-slate-300">{trajectory.final.x_ox.toFixed(2)}nm</b></span>
-                <span className="text-sky-600 dark:text-cyan-400/80 truncate text-[9px]">{currentState ? currentState.regime : 'Deal-Grove'}</span>
+                <span className="text-sky-600 dark:text-cyan-400/80 truncate text-[9px]">
+                  {growthRateInfo.regimeType === 'idle' ? 'Standby' : (growthRateInfo.regimeType === 'linear' ? 'Linear' : (growthRateInfo.regimeType === 'parabolic' ? 'Parabolic' : 'Massoud'))}
+                </span>
               </div>
             </div>
 
             {/* KPI 2: Consumed Silicon */}
-            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150">
+            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1 lg:col-span-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                <span className="truncate">2. Consumed Si</span>
+                <span className="truncate">CONSUMED SI</span>
                 <button
                   type="button"
                   onClick={function () { setActiveInfoId(activeInfoId === 'kpi_consumed_si' ? null : 'kpi_consumed_si'); }}
@@ -782,60 +867,47 @@
               </div>
             </div>
 
-            {/* KPI 3: Linear Rate Constant (B/A) */}
-            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150">
+            {/* KPI 3: Instantaneous Growth Rate dx/dt (Unified Deal-Grove Dynamic Regime) */}
+            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                <span className="truncate">3. Linear (B/A)</span>
+                <span className="truncate">GROWTH RATE (dx/dt)</span>
                 <button
                   type="button"
-                  onClick={function () { setActiveInfoId(activeInfoId === 'kpi_linear_rate' ? null : 'kpi_linear_rate'); }}
+                  onClick={function () { setActiveInfoId(activeInfoId === 'kpi_growth_rate' ? null : 'kpi_growth_rate'); }}
                   className="w-3.5 h-3.5 rounded-full border border-sky-300 dark:border-cyan-500/40 bg-sky-50 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 flex items-center justify-center text-[9px] font-bold hover:bg-sky-100 dark:hover:bg-cyan-500/30 transition-colors flex-shrink-0"
-                  title="Learn about Linear Rate Constant"
+                  title="Learn about Growth Rate & Kinetic Regimes"
                 >
                   <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
-              <div className="my-0.5 flex items-baseline">
-                <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
-                  {currentState ? (currentState.B_over_A || 0).toFixed(3) : '0.000'}
+              <div className="my-0.5 flex items-baseline justify-between">
+                <div className="flex items-baseline">
+                  <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
+                    {growthRateInfo.rateStr}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">nm/min</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                  {growthRateInfo.ratePerHourStr} nm/h
                 </span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">nm/min</span>
               </div>
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                <span>{currentState ? ((currentState.B_over_A || 0) * 60).toFixed(1) : '0.0'} nm/h</span>
-                <span className="text-slate-400 text-[9px]">Ea ≈ 2.00 eV</span>
-              </div>
-            </div>
-
-            {/* KPI 4: Parabolic Rate Constant (B) */}
-            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150">
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                <span className="truncate">4. Parabolic (B)</span>
-                <button
-                  type="button"
-                  onClick={function () { setActiveInfoId(activeInfoId === 'kpi_parabolic_rate' ? null : 'kpi_parabolic_rate'); }}
-                  className="w-3.5 h-3.5 rounded-full border border-sky-300 dark:border-cyan-500/40 bg-sky-50 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 flex items-center justify-center text-[9px] font-bold hover:bg-sky-100 dark:hover:bg-cyan-500/30 transition-colors flex-shrink-0"
-                  title="Learn about Parabolic Rate Constant"
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 gap-1">
+                <span
+                  className={'px-1.5 py-0.2 rounded text-[9px] font-semibold truncate border ' + growthRateInfo.badgeClass}
+                  title={growthRateInfo.regimeLabel}
                 >
-                  <InfoGlyph className="w-2 h-2" />
-                </button>
-              </div>
-              <div className="my-0.5 flex items-baseline">
-                <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
-                  {currentState ? (currentState.B || 0).toFixed(2) : '0.00'}
+                  {growthRateInfo.regimeLabel}
                 </span>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">nm²/min</span>
-              </div>
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                <span>Diff. Barrier</span>
-                <span className="text-slate-400 text-[9px]">Ea ≈ {chemistry === 'wet' ? '0.78' : '1.24'} eV</span>
+                <span className="text-slate-500 dark:text-slate-400 text-[9px] flex-shrink-0 ml-1" title={growthRateInfo.subtext}>
+                  {growthRateInfo.subtext}
+                </span>
               </div>
             </div>
 
-            {/* KPI 5: Thermal Budget Index */}
-            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150">
+            {/* KPI 4: Thermal Budget Index */}
+            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1 lg:col-span-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                <span className="truncate">5. Thermal Budget</span>
+                <span className="truncate">THERMAL BUDGET</span>
                 <button
                   type="button"
                   onClick={function () { setActiveInfoId(activeInfoId === 'kpi_thermal_budget' ? null : 'kpi_thermal_budget'); }}
@@ -857,10 +929,10 @@
               </div>
             </div>
 
-            {/* KPI 6: Wafer Slip Risk */}
-            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150">
+            {/* KPI 5: Wafer Slip Risk */}
+            <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1 lg:col-span-1">
               <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
-                <span className="truncate">6. Wafer Slip</span>
+                <span className="truncate">WAFER SLIP</span>
                 <button
                   type="button"
                   onClick={function () { setActiveInfoId(activeInfoId === 'kpi_slip_risk' ? null : 'kpi_slip_risk'); }}
