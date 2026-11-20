@@ -891,16 +891,17 @@
                   {growthRateInfo.ratePerHourStr} nm/h
                 </span>
               </div>
-              <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 gap-1">
-                <span
-                  className={'px-1.5 py-0.2 rounded text-[9px] font-semibold truncate border ' + growthRateInfo.badgeClass}
-                  title={growthRateInfo.regimeLabel}
-                >
-                  {growthRateInfo.regimeLabel}
-                </span>
-                <span className="text-slate-500 dark:text-slate-400 text-[9px] flex-shrink-0 ml-1" title={growthRateInfo.subtext}>
+              <div className="flex flex-col gap-1 mt-1 font-mono">
+                <div>
+                  <span
+                    className={'px-2 py-0.5 rounded text-[10px] font-semibold inline-block border leading-tight ' + growthRateInfo.badgeClass}
+                  >
+                    {growthRateInfo.regimeLabel}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
                   {growthRateInfo.subtext}
-                </span>
+                </div>
               </div>
             </div>
 
