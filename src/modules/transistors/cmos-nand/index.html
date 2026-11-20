@@ -32,58 +32,64 @@
     </div>
   </div>
 
-  <header id="topbar">
-    <a href="../../../../index.html" class="seg-btn nav-back-link" title="Return to Silicon Sliders" style="text-decoration:none; margin-right:8px; display:inline-flex; align-items:center; gap:4px; font-weight:600; padding:4px 8px; border-radius:4px; font-size:11px; color:var(--text-primary, #f0f6fc); background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);">← Silicon Sliders</a>
-    <div class="tb-brand">
-      <span class="brand-badge">NAND2</span>
-      <div class="brand-text">
-        <span class="brand-title">CMOS 2-Input NAND CAD</span>
-        <span class="brand-eq">OUT = !(A · B)</span>
+  <div id="topbar">
+    <a href="../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
+    <div class="brand"><span class="dot"></span><b>CMOS·VIEWER</b><span>nand2 / rev 01</span></div>
+
+    <div class="seg" id="mode-seg">
+      <button type="button" class="seg-btn active" id="btn-view-layout" data-mode="layout" data-view="layout">PHYSICAL LAYOUT</button>
+      <button type="button" class="seg-btn" id="btn-view-schematic" data-mode="schematic" data-view="schematic">SCHEMATIC</button>
+    </div>
+
+    <div class="in-toggle" aria-label="Input A Logic State">
+      A =
+      <div class="seg" id="input-a-group">
+        <button type="button" class="seg-btn" data-a="0">0</button>
+        <button type="button" class="seg-btn" data-a="1">1</button>
+        <button type="button" class="seg-btn active" data-a="off">OFF</button>
       </div>
     </div>
 
-    <div class="tb-controls">
-      <div class="tb-group" aria-label="View Mode">
-        <div class="seg-ctrl" id="view-mode-group">
-          <button type="button" class="seg-btn active" id="btn-view-layout" data-view="layout">PHYSICAL LAYOUT</button>
-          <button type="button" class="seg-btn" id="btn-view-schematic" data-view="schematic">SCHEMATIC</button>
-        </div>
-      </div>
-
-      <div class="tb-group" aria-label="Input A Logic State">
-        <span class="tb-label">A =</span>
-        <div class="seg-ctrl" id="input-a-group">
-          <button type="button" class="seg-btn" data-a="0">0</button>
-          <button type="button" class="seg-btn" data-a="1">1</button>
-          <button type="button" class="seg-btn active" data-a="off">OFF</button>
-        </div>
-      </div>
-
-      <div class="tb-group" aria-label="Input B Logic State">
-        <span class="tb-label">B =</span>
-        <div class="seg-ctrl" id="input-b-group">
-          <button type="button" class="seg-btn" data-b="0">0</button>
-          <button type="button" class="seg-btn" data-b="1">1</button>
-          <button type="button" class="seg-btn active" data-b="off">OFF</button>
-        </div>
-      </div>
-
-      <div class="tb-group" aria-label="Carrier Flow Mode">
-        <div class="seg-ctrl" id="flow-mode-group">
-          <button type="button" class="seg-btn flow-current active" data-flow="current">CURRENT</button>
-          <button type="button" class="seg-btn flow-electron" data-flow="electron">ELECTRONS</button>
-        </div>
+    <div class="in-toggle" aria-label="Input B Logic State">
+      B =
+      <div class="seg" id="input-b-group">
+        <button type="button" class="seg-btn" data-b="0">0</button>
+        <button type="button" class="seg-btn" data-b="1">1</button>
+        <button type="button" class="seg-btn active" data-b="off">OFF</button>
       </div>
     </div>
 
-    <div class="tb-right">
-      <button type="button" class="tb-btn" id="btn-theme" title="Toggle Dark / Light Mode">LIGHT</button>
-      <button type="button" class="tb-btn tour-btn" id="btn-build-anim" title="Launch 8-Step 3D Fabrication Tour">
-        <span class="tour-btn-inner">▶ PLAY TOUR</span>
+    <div class="seg" id="flow-mode-group" title="Direction convention for the animated flow markers">
+      <button type="button" class="seg-btn flow-current active" data-flow="current">CURRENT</button>
+      <button type="button" class="seg-btn flow-electron" data-flow="electron">ELECTRONS</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="right-cluster">
+      <button type="button" class="tbtn icon-btn" id="btn-theme" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
+        <svg id="theme-icon-sun" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <span id="theme-btn-label">LIGHT</span>
       </button>
-      <button type="button" class="tb-btn" id="btn-reset" title="Reset Camera, Explode, Clip &amp; State">RESET</button>
+      <button type="button" class="tbtn tbtn-play-tour tour-btn" id="btn-build-anim" title="Launch 8-Step 3D Fabrication Tour" aria-label="Play 3D Fabrication Tour">
+        <span class="tour-btn-inner"><span class="play-icon">▶</span> <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span></span>
+      </button>
+      <button type="button" class="tbtn" id="btn-reset" title="Reset Camera, Explode, Clip &amp; State">RESET</button>
     </div>
-  </header>
+  </div>
 
   <main id="workspace">
     <div id="canvas-wrap"></div>
@@ -467,7 +473,19 @@
         <p class="modal-desc">
           Enter your Sarvam AI subscription key for <strong>sarvam-105b-conversations</strong> and <strong>bulbul:v4-flash</strong> streaming audio. Your key stays on this device (`localStorage`) and is only sent to Sarvam AI via `/api/voice-assistant` or direct HTTPS.
         </p>
-        <input type="password" id="va-key-input" placeholder="Paste Sarvam API key (api-subscription-key)..." autocomplete="off" />
+        <div class="va-input-group">
+          <input type="password" id="va-key-input" placeholder="Paste Sarvam API key (api-subscription-key)..." autocomplete="off" />
+          <button type="button" id="va-btn-toggle-key-visibility" class="va-eye-btn" title="Toggle visibility" aria-label="Toggle password visibility">
+            <svg class="eye-icon eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+            <svg class="eye-icon eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+              <line x1="1" y1="1" x2="23" y2="23"></line>
+            </svg>
+          </button>
+        </div>
         <label class="modal-chk">
           <input type="checkbox" id="va-key-session-only" />
           <span>Session-only (clear automatically when tab closes)</span>

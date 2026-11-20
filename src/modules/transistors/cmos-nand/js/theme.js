@@ -94,10 +94,16 @@ function applyTheme(theme) {
   }
   setAllThemeKeys(currentTheme);
 
-  var btn = typeof document !== 'undefined' ? document.getElementById('btn-theme') : null;
+  var btn = typeof document !== 'undefined' ? (document.getElementById('btn-theme') || document.getElementById('btn-theme-toggle')) : null;
   if (btn) {
-    btn.textContent = currentTheme === 'light' ? 'DARK' : 'LIGHT';
+    btn.setAttribute('aria-label', currentTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode');
     btn.title = currentTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+    var label = document.getElementById('theme-btn-label');
+    if (label) {
+      label.textContent = currentTheme === 'light' ? 'DARK' : 'LIGHT';
+    } else {
+      btn.textContent = currentTheme === 'light' ? 'DARK' : 'LIGHT';
+    }
   }
 
   try {

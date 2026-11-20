@@ -476,7 +476,19 @@ function openKeyModal() {
   var modal = document.getElementById('va-key-modal');
   var input = document.getElementById('va-key-input');
   var chk = document.getElementById('va-key-session-only');
-  if (input) input.value = getSarvamApiKey();
+  var eyeBtn = document.getElementById('va-btn-toggle-key-visibility');
+  if (input) {
+    input.value = getSarvamApiKey();
+    input.type = 'password';
+  }
+  if (eyeBtn) {
+    var showIcon = eyeBtn.querySelector('.eye-show');
+    var hideIcon = eyeBtn.querySelector('.eye-hide');
+    if (showIcon && hideIcon) {
+      showIcon.style.display = 'block';
+      hideIcon.style.display = 'none';
+    }
+  }
   if (chk) chk.checked = isSessionOnlyKey();
   if (modal) modal.classList.remove('hidden');
 }
@@ -713,6 +725,27 @@ function initVoiceAssistant() {
   var cancelKeyBtn = document.getElementById('va-key-cancel');
   var keyInput = document.getElementById('va-key-input');
   var sessionChk = document.getElementById('va-key-session-only');
+  var eyeBtn = document.getElementById('va-btn-toggle-key-visibility');
+
+  if (eyeBtn && keyInput) {
+    eyeBtn.addEventListener('click', function () {
+      var showIcon = eyeBtn.querySelector('.eye-show');
+      var hideIcon = eyeBtn.querySelector('.eye-hide');
+      if (keyInput.type === 'password') {
+        keyInput.type = 'text';
+        if (showIcon && hideIcon) {
+          showIcon.style.display = 'none';
+          hideIcon.style.display = 'block';
+        }
+      } else {
+        keyInput.type = 'password';
+        if (showIcon && hideIcon) {
+          showIcon.style.display = 'block';
+          hideIcon.style.display = 'none';
+        }
+      }
+    });
+  }
 
   if (saveKeyBtn) {
     saveKeyBtn.addEventListener('click', function () {

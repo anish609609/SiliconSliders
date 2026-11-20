@@ -430,7 +430,12 @@
       keyModalInput.type = 'password';
     }
     if (keyModalEyeBtn){
-      keyModalEyeBtn.textContent = '👁️';
+      var showIcon = keyModalEyeBtn.querySelector('.eye-show');
+      var hideIcon = keyModalEyeBtn.querySelector('.eye-hide');
+      if (showIcon && hideIcon) {
+        showIcon.style.display = 'block';
+        hideIcon.style.display = 'none';
+      }
     }
     if (keyModalStatusMsg){
       keyModalStatusMsg.style.display = 'none';
@@ -1542,12 +1547,20 @@
 
     if (keyModalEyeBtn && keyModalInput){
       keyModalEyeBtn.addEventListener('click', function(){
+        var showIcon = keyModalEyeBtn.querySelector('.eye-show');
+        var hideIcon = keyModalEyeBtn.querySelector('.eye-hide');
         if (keyModalInput.type === 'password'){
           keyModalInput.type = 'text';
-          keyModalEyeBtn.textContent = '🙈';
+          if (showIcon && hideIcon) {
+            showIcon.style.display = 'none';
+            hideIcon.style.display = 'block';
+          }
         } else {
           keyModalInput.type = 'password';
-          keyModalEyeBtn.textContent = '👁️';
+          if (showIcon && hideIcon) {
+            showIcon.style.display = 'block';
+            hideIcon.style.display = 'none';
+          }
         }
       });
     }

@@ -116,6 +116,18 @@
   .tbtn.active:hover{ box-shadow:0 0 10px rgba(95,217,196,.4); }
   .tbtn.warn.active{ background:var(--warn); border-color:var(--warn); }
 
+  .nav-back-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    text-decoration: none;
+  }
+
   /* ---------- Highlighted 3D Tour Play Button ---------- */
   #btn-build-anim,
   .tbtn-play-tour {
@@ -1498,17 +1510,29 @@
   }
   .va-eye-btn {
     position: absolute;
-    right: 6px;
+    right: 8px;
     background: transparent;
     border: none;
     color: var(--text-dim);
     cursor: pointer;
-    font-size: 13px;
-    padding: 4px;
+    padding: 6px;
     border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    transition: color 0.15s ease, background 0.15s ease;
   }
   .va-eye-btn:hover {
     color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+  }
+  .va-eye-btn svg {
+    display: block;
+    pointer-events: none;
+  }
+  :root[data-theme="light"] .va-eye-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
   }
   .va-field-msg {
     font-size: 11px;
