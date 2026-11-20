@@ -1,0 +1,58 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "cleanUrls": true,
+  "outputDirectory": ".",
+  "redirects": [
+    {
+      "source": "/inverter",
+      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/inverter/",
+      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/nand",
+      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/nand/",
+      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/oxidation",
+      "destination": "/src/modules/processes/oxidation/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/oxidation/",
+      "destination": "/src/modules/processes/oxidation/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/cmos_inverter_CAD",
+      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/cmos_inverter_CAD/",
+      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/CMOS_NAND",
+      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/CMOS_NAND/",
+      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "permanent": false
+    }
+  ]
+}
