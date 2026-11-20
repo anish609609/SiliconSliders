@@ -1,0 +1,152 @@
+/**
+ * Silicon Sliders - Unified Minimalist Design Tokens
+ * Clean, high-contrast, academic theme with robust Dark & Light mode contrast
+ */
+
+:root,
+[data-theme="dark"] {
+  --bg-page: #080b11;
+  --bg-page-subtle: #0d121c;
+  --bg-card: #0f1422;
+  --bg-card-gradient: linear-gradient(180deg, #121828 0%, #0d121e 100%);
+  --bg-card-hover: #151d30;
+  --border-color: #1e2638;
+  --border-hover: #334155;
+  --border-subtle: #161e2e;
+  
+  --text-heading: #f8fafc;
+  --text-body: #94a3b8;
+  --text-muted: #64748b;
+  --text-inverse: #080b11;
+
+  --accent-cyan: #38bdf8;
+  --accent-cyan-dim: #7dd3fc;
+  --accent-cyan-glow: rgba(56, 189, 248, 0.15);
+
+  --accent-gold: #f59e0b;
+  --accent-gold-dim: #fcd34d;
+  --accent-gold-glow: rgba(245, 158, 11, 0.15);
+
+  --accent-emerald: #10b981;
+  --accent-emerald-dim: #6ee7b7;
+  --accent-emerald-glow: rgba(16, 185, 129, 0.15);
+
+  --accent-purple: #a855f7;
+  --accent-purple-dim: #d8b4fe;
+  --accent-purple-glow: rgba(168, 85, 247, 0.15);
+
+  --accent-red: #ef4444;
+
+  --btn-bg: #151c2c;
+  --btn-text: #e2e8f0;
+  --btn-border: #28354c;
+  --btn-hover-bg: #1c263c;
+  --btn-hover-border: #475569;
+  --btn-hover-text: #ffffff;
+
+  --badge-soon-bg: #182030;
+  --badge-soon-text: #94a3b8;
+  --badge-soon-border: #28354d;
+
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+  --card-shadow-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.65);
+
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Monaco, Consolas, monospace;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  
+  --transition-fast: 150ms ease;
+  --transition-normal: 240ms ease;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+}
+
+[data-theme="light"] {
+  --bg-page: #f8fafc;
+  --bg-page-subtle: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-card-gradient: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --bg-card-hover: #f1f5f9;
+  --border-color: #e2e8f0;
+  --border-hover: #cbd5e1;
+  --border-subtle: #f1f5f9;
+
+  --text-heading: #0f172a;
+  --text-body: #475569;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  --accent-cyan: #0284c7;
+  --accent-cyan-dim: #0369a1;
+  --accent-cyan-glow: rgba(2, 132, 199, 0.12);
+
+  --accent-gold: #d97706;
+  --accent-gold-dim: #b45309;
+  --accent-gold-glow: rgba(217, 119, 6, 0.12);
+
+  --accent-emerald: #059669;
+  --accent-emerald-dim: #047857;
+  --accent-emerald-glow: rgba(5, 150, 105, 0.12);
+
+  --accent-purple: #7c3aed;
+  --accent-purple-dim: #6d28d9;
+  --accent-purple-glow: rgba(124, 58, 237, 0.12);
+
+  --accent-red: #dc2626;
+
+  --btn-bg: #ffffff;
+  --btn-text: #0f172a;
+  --btn-border: #cbd5e1;
+  --btn-hover-bg: #f8fafc;
+  --btn-hover-border: #94a3b8;
+  --btn-hover-text: #0f172a;
+
+  --badge-soon-bg: #f1f5f9;
+  --badge-soon-text: #475569;
+  --badge-soon-border: #cbd5e1;
+
+  --card-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.06);
+  --card-shadow-hover: 0 12px 28px -4px rgba(15, 23, 42, 0.12);
+}
+
+/* Global resets for clean layout */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-page);
+  color: var(--text-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+ul, ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+}

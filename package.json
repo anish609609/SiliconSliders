@@ -1,0 +1,24 @@
+{
+  "name": "silicon-sliders",
+  "version": "1.0.0",
+  "description": "Interactive 3D Semiconductor CAD, Fab Process Simulations & MEMS Sensors Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "semiconductor",
+    "cmos",
+    "cad",
+    "vlsi",
+    "deal-grove",
+    "oxidation",
+    "mems",
+    "threejs",
+    "eda",
+    "silicon"
+  ],
+  "author": "Raydurg Anish",
+  "license": "MIT"
+}

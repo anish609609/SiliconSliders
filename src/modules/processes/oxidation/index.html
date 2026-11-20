@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thermal Oxidation Chamber Simulator — Silicon Sliders</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <!-- Theme Initialization (Instant sync with Silicon Sliders unified theme) -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('silicon_sliders_theme') ||
+                localStorage.getItem('cmos_viewer_theme') ||
+                localStorage.getItem('cmos_nand_viewer_theme');
+        if (t === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+          document.documentElement.classList.add('dark');
+          document.documentElement.classList.remove('light');
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"IBM Plex Mono"', 'monospace'],
+            sans: ['Inter', 'sans-serif']
+          },
+          colors: {
+            slate: {
+              850: '#151d2e',
+              900: '#0d121c',
+              950: '#080b11'
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Simulator Styles -->
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- React 18 & ReactDOM 18 & Babel Standalone -->
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.24.0/babel.min.js"></script>
+
+  <!-- Simulation Engines -->
+  <script src="js/physics.js"></script>
+  <script src="js/canvas-wafer.js"></script>
+  <script src="js/charts.js"></script>
+</head>
+<body class="bg-slate-100 dark:bg-[#080b11] text-slate-800 dark:text-slate-100 font-sans antialiased selection:bg-cyan-500 selection:text-slate-950 transition-colors duration-150">
+  <div id="root">
+    <div class="min-h-screen flex items-center justify-center text-slate-500 font-mono text-sm">
+      Initializing Thermal Oxidation Chamber Simulator...
+    </div>
+  </div>
+
+  <!-- Main React Application -->
+  <script type="text/babel" src="js/app.js"></script>
+</body>
+</html>

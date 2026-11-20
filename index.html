@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Silicon Sliders — Bridging Semiconductor Theory with Interactive Sliders and Visuals</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('silicon_sliders_theme') ||
+                localStorage.getItem('cmos_viewer_theme') ||
+                localStorage.getItem('cmos_nand_viewer_theme');
+        if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        else document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (_) {}
+    })();
+  </script>
+
+  <link rel="stylesheet" href="src/shared/css/design-tokens.css?v=3" />
+  <link rel="stylesheet" href="src/shared/css/home.css?v=3" />
+</head>
+<body>
+
+  <!-- Site Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">
+        <span class="brand-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="20" rx="4" ry="4"></rect>
+            <line x1="8" y1="2" x2="8" y2="22"></line>
+            <line x1="16" y1="2" x2="16" y2="22"></line>
+            <line x1="2" y1="8" x2="22" y2="8"></line>
+            <line x1="2" y1="16" x2="22" y2="16"></line>
+          </svg>
+        </span>
+        <span class="brand-title">Silicon Sliders</span>
+      </a>
+
+      <button id="btn-theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme" title="Toggle Light / Dark Mode">
+        <svg id="theme-icon-sun" class="theme-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="theme-icon-moon" class="theme-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <span id="theme-toggle-label">Light</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="container">
+    <section class="hero">
+      <div class="hero-tag">
+        <span class="dot-live"></span>
+        <span>Interactive Microelectronics CAD</span>
+      </div>
+
+      <h1 class="hero-title">
+        Bridging <span class="text-accent-cyan">Semiconductor Theory</span> with <span class="text-accent-gold">Interactive Sliders</span> &amp; <span class="text-accent-emerald">3D Visuals</span>
+      </h1>
+
+      <p class="hero-subtitle">
+        Slide through <span class="text-highlight">transistor layers</span>, <span class="text-highlight">bias states</span>, and <span class="text-highlight">fabrication physics</span> in real time.
+      </p>
+    </section>
+
+    <!-- Three Core Modules Grid -->
+    <section class="cards-section">
+      <div class="cards-grid">
+
+        <!-- 1. Device & Logic CAD -->
+        <article class="card card-cad">
+          <div class="card-top">
+            <div class="card-header-glyph-row">
+              <div class="card-glyph glyph-cyan">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                  <rect x="9" y="9" width="6" height="6"></rect>
+                  <line x1="9" y1="1" x2="9" y2="4"></line>
+                  <line x1="15" y1="1" x2="15" y2="4"></line>
+                  <line x1="9" y1="20" x2="9" y2="23"></line>
+                  <line x1="15" y1="20" x2="15" y2="23"></line>
+                  <line x1="20" y1="9" x2="23" y2="9"></line>
+                  <line x1="20" y1="14" x2="23" y2="14"></line>
+                  <line x1="1" y1="9" x2="4" y2="9"></line>
+                  <line x1="1" y1="14" x2="4" y2="14"></line>
+                </svg>
+              </div>
+              <span class="badge-pill badge-cyan"><span class="dot-live"></span>ACTIVE 3D CAD</span>
+            </div>
+            <div class="card-header-row">
+              <h2 class="card-title text-cyan">Device &amp; Logic CAD</h2>
+            </div>
+            <p class="card-desc">
+              Interactive 3D physical layouts and schematics for <span class="text-cyan-dim">CMOS Inverters</span>, <span class="text-cyan-dim">NAND gates</span>, and upcoming <span class="text-cyan-dim">FinFET / GAA</span> structures.
+            </p>
+          </div>
+          <div class="card-actions">
+            <a href="src/modules/transistors/cmos-inverter/index.html" class="card-btn card-btn-cyan">
+              <span>CMOS Inverter</span>
+            </a>
+            <a href="src/modules/transistors/cmos-nand/index.html" class="card-btn card-btn-cyan">
+              <span>CMOS NAND2</span>
+            </a>
+          </div>
+        </article>
+
+        <!-- 2. Process Engineering Lab -->
+        <article class="card card-process">
+          <div class="card-top">
+            <div class="card-header-glyph-row">
+              <div class="card-glyph glyph-gold">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2v8"></path>
+                  <path d="m4.93 10.93 1.41 1.41"></path>
+                  <path d="M2 18h2"></path>
+                  <path d="M20 18h2"></path>
+                  <path d="m19.07 10.93-1.41 1.41"></path>
+                  <path d="M22 22H2"></path>
+                  <path d="m8 22 4-10 4 10"></path>
+                </svg>
+              </div>
+              <span class="badge-pill badge-gold"><span class="dot-live"></span>FAB LAB</span>
+            </div>
+            <div class="card-header-row">
+              <h2 class="card-title text-gold">Process Engineering Lab</h2>
+            </div>
+            <p class="card-desc">
+              Interactive visualizations of <span class="text-gold-dim">semiconductor fabrication steps</span>, <span class="text-gold-dim">Deal-Grove oxidation kinetics</span>, and doping profiles.
+            </p>
+          </div>
+          <div class="card-actions">
+            <a href="src/modules/processes/oxidation/index.html" class="card-btn card-btn-gold">
+              <span>Thermal Oxidation (Deal-Grove)</span>
+            </a>
+          </div>
+        </article>
+
+        <!-- 3. MEMS Microsystems -->
+        <article class="card card-mems card-disabled">
+          <div class="card-top">
+            <div class="card-header-glyph-row">
+              <div class="card-glyph glyph-purple">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                  <line x1="6" y1="12" x2="18" y2="12"></line>
+                  <circle cx="12" cy="12" r="2"></circle>
+                </svg>
+              </div>
+              <span class="badge-pill badge-purple">COMING SOON</span>
+            </div>
+            <div class="card-header-row">
+              <h2 class="card-title text-purple">MEMS Microsystems</h2>
+            </div>
+            <p class="card-desc">
+              Micro-electromechanical systems, <span class="text-purple-dim">cantilever dynamics</span>, and sensor physics.
+            </p>
+          </div>
+          <div class="card-placeholder-box">
+            <span>In active development</span>
+          </div>
+        </article>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- Clean Minimal Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <span class="footer-copyright">© 2026 Silicon Sliders. All rights reserved.</span>
+      <nav class="footer-nav">
+        <a href="README.md" class="footer-link">Documentation</a>
+        <a href="https://github.com/anish609609" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script src="src/shared/js/home.js?v=3"></script>
+</body>
+</html>

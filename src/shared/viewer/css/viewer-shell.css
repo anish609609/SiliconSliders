@@ -1,0 +1,145 @@
+/**
+ * Silicon Sliders - Unified 3D Viewer Shell Stylesheet
+ * High-contrast, theme-synced styling for Topbar, Drawers, HUDs and Controls
+ */
+
+/* Unified Theme Contrast Variables */
+:root,
+[data-theme="dark"] {
+  --v-bg-base: #07090e;
+  --v-bg-panel: rgba(13, 17, 25, 0.88);
+  --v-bg-panel-solid: #0f141f;
+  --v-bg-input: #151c2c;
+  --v-border: rgba(255, 255, 255, 0.12);
+  --v-border-strong: rgba(255, 255, 255, 0.22);
+  --v-text-primary: #f0f6fc;
+  --v-text-secondary: #94a3b8;
+  --v-text-tertiary: #64748b;
+  --v-accent-cyan: #00e5ff;
+  --v-accent-gold: #ffcf4d;
+  --v-accent-green: #10b981;
+  --v-slider-track: #1e293b;
+  --v-btn-hover: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --v-bg-base: #f8fafc;
+  --v-bg-panel: rgba(255, 255, 255, 0.94);
+  --v-bg-panel-solid: #ffffff;
+  --v-bg-input: #f1f5f9;
+  --v-border: #cbd5e1;
+  --v-border-strong: #94a3b8;
+  --v-text-primary: #0f172a;
+  --v-text-secondary: #334155;
+  --v-text-tertiary: #64748b;
+  --v-accent-cyan: #0284c7;
+  --v-accent-gold: #d97706;
+  --v-accent-green: #059669;
+  --v-slider-track: #e2e8f0;
+  --v-btn-hover: rgba(0, 0, 0, 0.05);
+}
+
+/* Subtle Back-Navigation Link */
+.nav-back-link {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v-text-secondary) !important;
+  text-decoration: none !important;
+  background: var(--v-btn-hover);
+  border: 1px solid var(--v-border);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 12px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.nav-back-link:hover {
+  color: var(--v-text-primary) !important;
+  border-color: var(--v-border-strong);
+  background: var(--v-bg-input);
+  transform: translateX(-1px);
+}
+
+/* Segmented Control Buttons (Layout, Flow, Logic States) */
+.seg-btn, .seg button {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--v-text-secondary);
+  background: transparent;
+  border: none;
+  padding: 4px 9px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.seg-btn:hover, .seg button:hover {
+  color: var(--v-text-primary);
+  background: var(--v-btn-hover);
+}
+
+.seg-btn.active, .seg button.active {
+  color: var(--v-text-primary);
+  background: var(--v-bg-input);
+  border: 1px solid var(--v-border);
+  font-weight: 600;
+}
+
+/* Theme Toggle Button in Viewer */
+.tbtn.theme-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--v-border);
+  background: var(--v-bg-input);
+  color: var(--v-text-primary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tbtn.theme-toggle-btn:hover {
+  border-color: var(--v-border-strong);
+}
+
+/* Shared Dimensions Table Styling */
+.dims-table-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--v-border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+
+.dims-table-row .k {
+  color: var(--v-text-secondary);
+}
+
+.dims-table-row .v {
+  color: var(--v-text-primary);
+  font-weight: 600;
+}
+
+.dims-table-row .note {
+  font-size: 10px;
+  color: var(--v-text-tertiary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Range Sliders for Explode & Scrub */
+input[type="range"] {
+  accent-color: var(--v-accent-cyan);
+}
