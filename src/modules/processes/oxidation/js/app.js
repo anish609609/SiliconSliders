@@ -190,6 +190,27 @@
     return p.toFixed(1) + ' atm';
   }
 
+  // Pure SVG Info Glyph that avoids mobile OS emoji rendering (e.g. iOS blue emoji box)
+  function InfoGlyph(props) {
+    var cls = (props && props.className) || 'w-2.5 h-2.5';
+    return (
+      <svg
+        className={cls}
+        viewBox="0 0 14 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+        style={{ pointerEvents: 'none' }}
+      >
+        <line x1="7" y1="6.2" x2="7" y2="11" />
+        <circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none" />
+      </svg>
+    );
+  }
+
   function SimulatorApp() {
     // 1. Simulation Parameters
     var [chemistry, setChemistry] = useState('dry');          // 'dry' | 'wet' | 'issg'
@@ -680,7 +701,7 @@
         {/* 3. MAIN WORKSPACE */}
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 flex flex-col gap-4">
           
-          {/* LIVE TELEMETRY KPI STRIP (6 CARDS WITH ℹ INFO TOOLTIPS) */}
+          {/* LIVE TELEMETRY KPI STRIP (6 CARDS WITH INFO TOOLTIPS) */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
 
             {/* KPI 1: Oxide Thickness */}
@@ -693,7 +714,7 @@
                   className="w-3.5 h-3.5 rounded-full border border-sky-300 dark:border-cyan-500/40 bg-sky-50 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 flex items-center justify-center text-[9px] font-bold hover:bg-sky-100 dark:hover:bg-cyan-500/30 transition-colors flex-shrink-0"
                   title="Learn about Oxide Thickness"
                 >
-                  ℹ
+                  <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
               <div className="my-0.5 flex items-baseline">
@@ -718,7 +739,7 @@
                   className="w-3.5 h-3.5 rounded-full border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 flex items-center justify-center text-[9px] font-bold hover:bg-amber-100 dark:hover:bg-amber-500/30 transition-colors flex-shrink-0"
                   title="Learn about Consumed Silicon"
                 >
-                  ℹ
+                  <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
               <div className="my-0.5 flex items-baseline">
@@ -743,7 +764,7 @@
                   className="w-3.5 h-3.5 rounded-full border border-sky-300 dark:border-cyan-500/40 bg-sky-50 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 flex items-center justify-center text-[9px] font-bold hover:bg-sky-100 dark:hover:bg-cyan-500/30 transition-colors flex-shrink-0"
                   title="Learn about Linear Rate Constant"
                 >
-                  ℹ
+                  <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
               <div className="my-0.5 flex items-baseline">
@@ -768,7 +789,7 @@
                   className="w-3.5 h-3.5 rounded-full border border-sky-300 dark:border-cyan-500/40 bg-sky-50 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 flex items-center justify-center text-[9px] font-bold hover:bg-sky-100 dark:hover:bg-cyan-500/30 transition-colors flex-shrink-0"
                   title="Learn about Parabolic Rate Constant"
                 >
-                  ℹ
+                  <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
               <div className="my-0.5 flex items-baseline">
@@ -793,7 +814,7 @@
                   className="w-3.5 h-3.5 rounded-full border border-purple-300 dark:border-purple-500/40 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 flex items-center justify-center text-[9px] font-bold hover:bg-purple-100 dark:hover:bg-purple-500/30 transition-colors flex-shrink-0"
                   title="Learn about Thermal Budget Index"
                 >
-                  ℹ
+                  <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
               <div className="my-0.5 flex items-baseline">
@@ -818,7 +839,7 @@
                   className="w-3.5 h-3.5 rounded-full border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300 flex items-center justify-center text-[9px] font-bold hover:bg-red-100 dark:hover:bg-red-500/30 transition-colors flex-shrink-0"
                   title="Learn about Wafer Slip Risk"
                 >
-                  ℹ
+                  <InfoGlyph className="w-2 h-2" />
                 </button>
               </div>
               <div className="my-0.5">
@@ -1049,8 +1070,12 @@
               <h2 className="font-mono font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-300 flex items-center gap-2">
                 <span>Chamber Parameters & Kinetic Controls</span>
               </h2>
-              <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                Click any <span className="text-sky-600 dark:text-cyan-400 font-bold border border-sky-400 dark:border-cyan-500/40 rounded-full px-1.5 py-0.5 text-[10px]">ℹ</span> for physical mechanisms & fab trade-offs
+              <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <span>Click any</span>
+                <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full border border-sky-400 dark:border-cyan-500/40 text-sky-600 dark:text-cyan-400">
+                  <InfoGlyph className="w-2 h-2" />
+                </span>
+                <span>for physical mechanisms &amp; fab trade-offs</span>
               </div>
             </div>
 
@@ -1072,7 +1097,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Peak Temperature info"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">{tempPeak} °C</span>
@@ -1112,7 +1137,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Soak Time info"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">{soakTime} min</span>
@@ -1152,7 +1177,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Pressure info"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">{formatPressure(pressure)}</span>
@@ -1194,7 +1219,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Oxidant concentration info"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">{oxidantConc}% {chemConfig.shortLabel} / {100 - oxidantConc}% N₂</span>
@@ -1233,7 +1258,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Ramp Rate info"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">
@@ -1277,7 +1302,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Chemistry physical details"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">{chemistry === 'dry' ? 'Dry O₂' : (chemistry === 'wet' ? 'Wet H₂O' : 'ISSG Radical')}</span>
@@ -1333,7 +1358,7 @@
                       className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Orientation details"
                     >
-                      ℹ
+                      <InfoGlyph className="w-2.5 h-2.5" />
                     </button>
                   </div>
                   <span className="param-value text-xs">&lt;{orientation}&gt;</span>
@@ -1433,8 +1458,10 @@
               
               {/* Fixed Header */}
               <div className="flex-shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-[#0a0e17]/90 backdrop-blur-md">
-                <div className="flex items-center gap-2 font-mono">
-                  <span className="text-sky-600 dark:text-cyan-400 text-base">ℹ</span>
+                <div className="flex items-center gap-2.5 font-mono">
+                  <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border border-sky-400 dark:border-cyan-400/50 bg-sky-50 dark:bg-cyan-500/10 text-sky-600 dark:text-cyan-400 flex-shrink-0">
+                    <InfoGlyph className="w-3 h-3" />
+                  </span>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 uppercase tracking-wide">
                     {SLIDER_INFOS[activeInfoId].title}
                   </h3>
