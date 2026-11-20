@@ -310,7 +310,8 @@
     var [activeInfoId, setActiveInfoId] = useState(null);     // Open slider/KPI info popup id
     var [isTheoryOpen, setIsTheoryOpen] = useState(false);
 
-    // 3. Canvas References
+    // 3. Canvas & Section References
+    var waferSectionRef = useRef(null);
     var waferCanvasRef = useRef(null);
     var chartTopRef = useRef(null);
     var chartBottomRef = useRef(null);
@@ -338,7 +339,23 @@
       return OxidationPhysics.interpolateState(trajectory, currentTime);
     }, [trajectory, currentTime]);
 
-    // Apply Recipe Preset
+    // Toggle Play / Pause with automatic restart from 0 if at or near completion
+    var handleTogglePlay = useCallback(function () {
+      setIsPlaying(function (playing) {
+        if (!playing) {
+          setCurrentTime(function (t) {
+            if (trajectory && t >= trajectory.t_total - 0.05) {
+              return 0.0;
+            }
+            return t;
+          });
+          return true;
+        }
+        return false;
+      });
+    }, [trajectory]);
+
+    // Apply Recipe Preset & Auto-Scroll to Wafer Cross-Section Animation
     var handleApplyPreset = useCallback(function (presetKey) {
       var p = PRESETS[presetKey];
       if (!p) return;
@@ -353,6 +370,13 @@
       setInitialOxide(p.initialOxide !== undefined ? p.initialOxide : 1.0);
       setCurrentTime(0.0);
       setIsPlaying(true);
+
+      // Smoothly navigate the user view to the Wafer Cross-Section animation
+      setTimeout(function () {
+        if (waferSectionRef.current) {
+          waferSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 50);
     }, []);
 
     // Active Chemistry Configuration (colors, glows, labels, diffusivity)
@@ -463,6 +487,10 @@
             var next = prev + dtSimMin;
             if (next >= trajectory.t_total) {
               setIsPlaying(false);
+              // Briefly display completed final state, then auto-rewind to start so user can replay immediately
+              setTimeout(function () {
+                setCurrentTime(0.0);
+              }, 450);
               return trajectory.t_total;
             }
             return next;
@@ -493,7 +521,7 @@
       function handleKeyDown(e) {
         if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
           e.preventDefault();
-          setIsPlaying(function (p) { return !p; });
+          handleTogglePlay();
         }
         if (e.code === 'Escape') {
           setActiveInfoId(null);
@@ -502,7 +530,7 @@
       }
       window.addEventListener('keydown', handleKeyDown);
       return function () { window.removeEventListener('keydown', handleKeyDown); };
-    }, []);
+    }, [handleTogglePlay]);
 
     // Stage Status Badge Content
     var stageBadge = useMemo(function () {
@@ -617,7 +645,7 @@
             <div className="flex items-center space-x-1.5 sm:space-x-2">
               <button
                 type="button"
-                onClick={function () { setIsPlaying(function (p) { return !p; }); }}
+                onClick={handleTogglePlay}
                 className={
                   'px-3 sm:px-3.5 py-1.5 rounded font-bold tracking-wider flex items-center gap-1.5 transition-all text-xs ' +
                   (isPlaying
@@ -858,52 +886,60 @@
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
 
             {/* Left Column (5 Cols) — Animated Wafer Cross-Section Canvas */}
-            <div className="lg:col-span-5 flex flex-col bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-lg transition-colors duration-150">
+            <div
+              ref={waferSectionRef}
+              id="wafer-cross-section"
+              className="lg:col-span-5 flex flex-col bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-lg transition-colors duration-150 scroll-mt-20"
+            >
               
-              <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between gap-1.5 text-xs font-mono">
-                <div className="flex items-center gap-2">
+              <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-col gap-1.5 text-xs font-mono">
+                <div className="flex items-center justify-between gap-2">
                   <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-                    Wafer Cross-Section & Reaction Front
+                    Wafer Cross-Section &amp; Reaction Front
                   </span>
                 </div>
-                <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Volumetric: <span className="text-sky-600 dark:text-cyan-400 font-semibold">56% Up</span> / <span className="text-amber-600 dark:text-amber-400 font-semibold">44% Down</span>
+                <div className="flex items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <span>Volumetric:</span>
+                    <span className="text-sky-600 dark:text-cyan-400 font-semibold">56% Up</span>
+                    <span>/</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">44% Down</span>
+                  </div>
+
+                  {/* Interactive Zoom Controls (Moved beside Volumetric instead of overlaying canvas) */}
+                  <div className="flex items-center bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-slate-700/80 rounded-md shadow-sm overflow-hidden text-xs font-mono select-none">
+                    <button
+                      type="button"
+                      onClick={handleZoomOut}
+                      title="Zoom Out (−)"
+                      className="w-5 h-5 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition font-bold text-xs"
+                      aria-label="Zoom out"
+                    >
+                      −
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetZoom}
+                      title="Click to reset zoom to 100%"
+                      className="px-1.5 h-5 flex items-center justify-center text-[10px] font-bold border-x border-slate-200 dark:border-slate-700 text-sky-600 dark:text-cyan-400 bg-slate-50 dark:bg-slate-900/60 hover:text-sky-700 dark:hover:text-cyan-300 transition"
+                    >
+                      {Math.round(zoomLevel * 100)}%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleZoomIn}
+                      title="Zoom In (+)"
+                      className="w-5 h-5 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition font-bold text-xs"
+                      aria-label="Zoom in"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              {/* Wafer Canvas - Compact, Sleek Height with High-Contrast Zoom Controls */}
+              {/* Wafer Canvas - Compact, Sleek Height without Overlays */}
               <div className="relative flex-1 h-[225px] min-h-[220px] bg-slate-100 dark:bg-[#0a0e17] overflow-hidden cursor-crosshair">
-                
-                {/* High-Contrast Interactive Zoom Controls (Top Right) */}
-                <div className="absolute top-2.5 right-2.5 z-20 flex items-center bg-white/95 dark:bg-[#0f172a]/95 border border-slate-300 dark:border-slate-700/80 rounded-md shadow-md backdrop-blur-sm overflow-hidden text-xs font-mono select-none">
-                  <button
-                    type="button"
-                    onClick={handleZoomOut}
-                    title="Zoom Out"
-                    className="w-6 h-6 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition font-bold text-sm"
-                    aria-label="Zoom out"
-                  >
-                    −
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResetZoom}
-                    title="Click to reset zoom to 100%"
-                    className="px-2 h-6 flex items-center justify-center text-[11px] font-bold border-x border-slate-200 dark:border-slate-700 text-sky-600 dark:text-cyan-400 bg-slate-50 dark:bg-slate-900/60 hover:text-sky-700 dark:hover:text-cyan-300 transition"
-                  >
-                    {Math.round(zoomLevel * 100)}%
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleZoomIn}
-                    title="Zoom In"
-                    className="w-6 h-6 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition font-bold text-sm"
-                    aria-label="Zoom in"
-                  >
-                    +
-                  </button>
-                </div>
-
                 <canvas
                   ref={waferCanvasRef}
                   className="w-full h-full block"
