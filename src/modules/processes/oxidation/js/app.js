@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Thermal Oxidation Chamber Simulator
+ * SiliconSliders - Thermal Oxidation Chamber Simulator
  * Main React Application Component with Interactive Hover Point Concentration,
  * Slider Explanatory Info Modals/Popovers, and Next Process Steps Navigation.
  */
@@ -495,29 +495,41 @@
       return { label: 'Stage 3: N₂ Anneal & Cool-Down', color: 'purple', pulse: false };
     }, [currentState]);
 
+    var isLight = theme === 'light';
+    var paramColors = {
+      temp: isLight ? '#EA580C' : '#FB923C',
+      time: isLight ? '#059669' : '#34D399',
+      pressure: isLight ? '#7C3AED' : '#A78BFA',
+      dilution: isLight ? '#0284C7' : '#38BDF8',
+      ramprate: isLight ? '#E11D48' : '#FB7185',
+      chemistry: isLight ? '#2563EB' : '#60A5FA',
+      orientation: isLight ? '#CA8A04' : '#FACC15'
+    };
+
     return (
       <div className="min-h-screen bg-slate-100 dark:bg-[#080b11] text-slate-800 dark:text-slate-200 flex flex-col font-sans selection:bg-cyan-500/30 selection:text-cyan-800 dark:selection:text-cyan-200 transition-colors duration-150">
 
         {/* 1. HEADER BAR */}
-        <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0d121c]/95 backdrop-blur-md sticky top-0 z-40 px-4 py-2.5 transition-colors duration-150">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+        <header className="border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-[#0d121c]/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-4 py-2 sm:py-2.5 transition-colors duration-150">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
             
             {/* Left Brand + Title */}
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
               <a
                 href="../../../../index.html"
-                className="text-xs font-mono text-slate-600 dark:text-slate-400 hover:text-sky-600 dark:hover:text-cyan-400 px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800 hover:border-sky-400 dark:hover:border-cyan-500/50 bg-slate-50 dark:bg-transparent transition-colors flex items-center gap-1.5"
+                className="text-xs font-mono text-slate-700 dark:text-slate-300 hover:text-sky-600 dark:hover:text-cyan-400 px-2 sm:px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800 hover:border-sky-400 dark:hover:border-cyan-500/50 bg-slate-50 dark:bg-transparent transition-colors flex items-center gap-1.5 flex-shrink-0"
+                title="Return to SiliconSliders Home"
               >
                 <span>←</span>
-                <span>Silicon Sliders</span>
+                <span className="font-bold text-slate-900 dark:text-slate-100">Silicon</span><span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Sliders</span>
               </a>
-              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800" />
-              <div className="flex items-center gap-2">
-                <h1 className="font-mono font-bold text-sm tracking-wide text-slate-900 dark:text-slate-100 uppercase">
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="font-mono font-bold text-xs sm:text-sm tracking-wide text-slate-900 dark:text-slate-100 uppercase truncate">
                   Thermal Oxidation Chamber Simulator
                 </h1>
               </div>
-              <div className="hidden sm:inline-flex">
+              <div className="hidden md:inline-flex flex-shrink-0">
                 <span
                   className={
                     'px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold tracking-wide border ' +
@@ -534,26 +546,27 @@
             </div>
 
             {/* Right Actions: Theory Modal & Theme Toggle */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-shrink-0">
               <button
                 type="button"
                 onClick={function () { setIsTheoryOpen(true); }}
-                className="px-3 py-1.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-700 dark:hover:text-cyan-300 hover:border-sky-400 dark:hover:border-cyan-500/50 transition-all flex items-center gap-1.5 shadow-sm"
+                className="px-2.5 sm:px-3 py-1.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-700 dark:hover:text-cyan-300 hover:border-sky-400 dark:hover:border-cyan-500/50 transition-all flex items-center gap-1.5 shadow-sm"
                 title="Theory & Industry Reference"
               >
                 <span>📐</span>
-                <span>Theory & Physical Models</span>
+                <span className="hidden sm:inline">Theory & Physical Models</span>
+                <span className="sm:hidden">Theory</span>
               </button>
 
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="px-2.5 py-1.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-700 dark:hover:text-cyan-300 hover:border-sky-400 dark:hover:border-cyan-500/50 transition-all flex items-center gap-1.5 shadow-sm"
+                className="w-8 h-8 flex items-center justify-center text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-sky-700 dark:hover:text-cyan-300 hover:border-sky-400 dark:hover:border-cyan-500/50 transition-all shadow-sm"
                 title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 aria-label="Toggle theme"
               >
                 {theme === 'dark' ? (
-                  <svg className="w-3.5 h-3.5 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="12" cy="12" r="5"></circle>
                     <line x1="12" y1="1" x2="12" y2="3"></line>
                     <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -565,11 +578,10 @@
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                   </svg>
                 ) : (
-                  <svg className="w-3.5 h-3.5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg className="w-4 h-4 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                   </svg>
                 )}
-                <span>{theme === 'dark' ? 'LIGHT' : 'DARK'}</span>
               </button>
             </div>
 
@@ -577,16 +589,16 @@
         </header>
 
         {/* 2. PLAYBACK TRANSPORT BAR */}
-        <section className="border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0a0e17] px-4 py-2 transition-colors duration-150">
-          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
+        <section className="border-b border-slate-200 dark:border-slate-800/80 bg-white dark:bg-[#0a0e17] px-3 sm:px-4 py-2 sm:py-2.5 transition-colors duration-150">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 text-xs font-mono">
             
             {/* Left Controls: Play/Pause, Reset, Speed Multipliers */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1.5 sm:space-x-2">
               <button
                 type="button"
                 onClick={function () { setIsPlaying(function (p) { return !p; }); }}
                 className={
-                  'px-3.5 py-1.5 rounded font-bold tracking-wider flex items-center gap-1.5 transition-all ' +
+                  'px-3 sm:px-3.5 py-1.5 rounded font-bold tracking-wider flex items-center gap-1.5 transition-all text-xs ' +
                   (isPlaying
                     ? 'bg-amber-500 text-slate-950 hover:bg-amber-400'
                     : 'bg-sky-500 dark:bg-cyan-500 text-white dark:text-slate-950 hover:bg-sky-400 dark:hover:bg-cyan-400 shadow-sm dark:shadow-[0_0_12px_rgba(56,189,248,0.35)]')
@@ -601,13 +613,13 @@
                   setIsPlaying(false);
                   setCurrentTime(0.0);
                 }}
-                className="px-2.5 py-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-transparent transition-colors"
+                className="px-2 sm:px-2.5 py-1.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-transparent transition-colors text-xs"
                 title="Reset simulation to t = 0 min"
               >
                 ↺ Reset
               </button>
 
-              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-0.5 sm:mx-1" />
 
               <span className="text-slate-500 dark:text-slate-400 text-[11px] hidden sm:inline">SPEED:</span>
               {[1, 10, 60].map(function (spd) {
@@ -618,7 +630,7 @@
                     type="button"
                     onClick={function () { setPlaybackSpeed(spd); }}
                     className={
-                      'px-2 py-1 rounded text-xs transition-colors ' +
+                      'px-1.5 sm:px-2 py-1 rounded text-xs transition-colors ' +
                       (isActive
                         ? 'bg-sky-100 dark:bg-slate-700 text-sky-800 dark:text-cyan-300 font-bold border border-sky-300 dark:border-cyan-500/50'
                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200')
@@ -630,9 +642,21 @@
               })}
             </div>
 
-            {/* Middle Scrubber Track */}
-            <div className="flex-1 min-w-[200px] flex items-center space-x-3 px-2">
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">0 min</span>
+            {/* Right Live Timestamp Readout (Inline with controls on mobile) */}
+            <div className="flex items-center space-x-1.5 sm:space-x-2 text-slate-700 dark:text-slate-300 ml-auto sm:ml-0 order-2 sm:order-3">
+              <span className="text-sky-600 dark:text-cyan-400 font-bold text-sm">
+                {currentTime.toFixed(1)}
+              </span>
+              <span className="text-slate-400">/</span>
+              <span>{trajectory.t_total.toFixed(1)} min</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[11px] hidden sm:inline">
+                ({Math.round((currentTime / (trajectory.t_total || 1)) * 100)}%)
+              </span>
+            </div>
+
+            {/* Middle Scrubber Track (Full width row on mobile, inline on desktop) */}
+            <div className="w-full sm:flex-1 order-3 sm:order-2 flex items-center space-x-2 sm:space-x-3 px-1 sm:px-2">
+              <span className="text-slate-500 dark:text-slate-400 text-[11px] flex-shrink-0">0 min</span>
               <input
                 type="range"
                 min="0"
@@ -643,22 +667,10 @@
                   setCurrentTime(Number(e.target.value));
                   setActivePreset(null);
                 }}
-                className="flex-1 cursor-pointer accent-cyan-400"
+                className="flex-1 cursor-pointer scrub-slider"
               />
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400 text-[11px] flex-shrink-0">
                 {trajectory.t_total ? trajectory.t_total.toFixed(0) : 0} min
-              </span>
-            </div>
-
-            {/* Right Live Timestamp Readout */}
-            <div className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
-              <span className="text-sky-600 dark:text-cyan-400 font-bold text-sm">
-                {currentTime.toFixed(1)}
-              </span>
-              <span className="text-slate-400">/</span>
-              <span>{trajectory.t_total.toFixed(1)} min</span>
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                ({Math.round((currentTime / (trajectory.t_total || 1)) * 100)}%)
               </span>
             </div>
 
@@ -827,7 +839,7 @@
             {/* Left Column (5 Cols) — Animated Wafer Cross-Section Canvas */}
             <div className="lg:col-span-5 flex flex-col bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-lg transition-colors duration-150">
               
-              <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex items-center justify-between text-xs font-mono">
+              <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between gap-1.5 text-xs font-mono">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
                     Wafer Cross-Section & Reaction Front
@@ -964,7 +976,7 @@
               </div>
 
               {/* Bottom Chart: Chamber Gas Kinetics & MFC Flushing */}
-              <div className="flex-1 bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-lg flex flex-col">
+              <div className="flex-1 min-h-fit bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-lg flex flex-col">
                 <div className="px-3.5 py-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between text-xs font-mono gap-2">
                   <div className="flex items-center gap-3">
                     <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
@@ -990,7 +1002,7 @@
                     </span>
                   </div>
                 </div>
-                <div className="relative flex-1 h-[145px] min-h-[140px] bg-white dark:bg-[#0a0d14] cursor-crosshair">
+                <div className="relative h-[145px] min-h-[140px] bg-white dark:bg-[#0a0d14] cursor-crosshair">
                   <canvas
                     ref={chartBottomRef}
                     className="w-full h-full block"
@@ -998,15 +1010,15 @@
                   />
                 </div>
                 {/* Active MFC Indicators with Comfortable Breathing Room */}
-                <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between text-[11px] font-mono gap-2.5">
-                  <div className="flex flex-wrap items-center gap-3.5">
-                    <span className="flex items-center gap-1.5">
+                <div className="mt-1 px-4 py-3 sm:py-3.5 pb-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between text-[11px] font-mono gap-3">
+                  <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                    <span className="flex items-center gap-1.5 whitespace-nowrap">
                       <span className="text-slate-500 dark:text-slate-400">MFC-1 (N₂ Purge):</span>
                       <span className={'px-2 py-0.5 rounded text-[10px] font-bold tracking-wider inline-flex items-center ' + (currentState && currentState.C_n2 > 0.05 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400')}>
                         {currentState && currentState.C_n2 > 0.05 ? 'ACTIVE' : 'IDLE'}
                       </span>
                     </span>
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 whitespace-nowrap">
                       <span className="text-slate-500 dark:text-slate-400">MFC-2 ({chemConfig.shortLabel}):</span>
                       <span
                         className="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider inline-flex items-center transition-all"
@@ -1020,7 +1032,7 @@
                       </span>
                     </span>
                   </div>
-                  <div className="text-slate-500 dark:text-slate-400">
+                  <div className="text-slate-500 dark:text-slate-400 whitespace-nowrap">
                     P_ox: <span className="font-mono font-semibold" style={{ color: chemConfig.color }}>{currentState ? (currentState.P_ox < 0.02 ? (currentState.P_ox * 760).toFixed(1) + ' Torr' : currentState.P_ox.toFixed(3) + ' atm') : '0.000 atm'}</span>
                   </div>
                 </div>
@@ -1047,20 +1059,23 @@
               {/* TOP ROW: SLIDERS 1, 2, 3 */}
 
               {/* Slider 1: Peak Temperature */}
-              <div className="flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-2">
+              <div
+                className="kinetic-param-card param-card-temp flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-2"
+                style={{ '--param-color': paramColors.temp }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-700 dark:text-slate-300 font-semibold">PEAK TEMP (T_peak)</span>
+                    <span className="param-title">PEAK TEMP (T_peak)</span>
                     <button
                       type="button"
                       onClick={function () { setActiveInfoId(activeInfoId === 'tempPeak' ? null : 'tempPeak'); }}
-                      className="w-4 h-4 rounded-full border border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-300 flex items-center justify-center text-[10px] font-bold hover:bg-amber-500/30 transition-colors"
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Peak Temperature info"
                     >
                       ℹ
                     </button>
                   </div>
-                  <span className="text-amber-600 dark:text-amber-400 font-bold">{tempPeak} °C</span>
+                  <span className="param-value text-xs">{tempPeak} °C</span>
                 </div>
                 <input
                   type="range"
@@ -1072,9 +1087,10 @@
                     setTempPeak(Number(e.target.value));
                     setActivePreset(null);
                   }}
-                  className="w-full mt-2 accent-amber-500 dark:accent-amber-400 cursor-pointer"
+                  className="kinetic-slider"
+                  style={{ '--param-color': paramColors.temp, '--val-pct': (((tempPeak - 700) / 450) * 100).toFixed(1) + '%' }}
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <div className="flex justify-between text-[10px] font-mono param-ticks mt-0.5">
                   <span>700 °C</span>
                   <span>850 °C</span>
                   <span>1000 °C</span>
@@ -1082,21 +1098,24 @@
                 </div>
               </div>
 
-              {/* Slider 2: Soak Time (Cyan) */}
-              <div className="flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-2">
+              {/* Slider 2: Soak Time */}
+              <div
+                className="kinetic-param-card param-card-time flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-2"
+                style={{ '--param-color': paramColors.time }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-700 dark:text-slate-300 font-semibold">SOAK TIME (t_soak)</span>
+                    <span className="param-title">SOAK TIME (t_soak)</span>
                     <button
                       type="button"
                       onClick={function () { setActiveInfoId(activeInfoId === 'soakTime' ? null : 'soakTime'); }}
-                      className="w-4 h-4 rounded-full border border-cyan-500/50 bg-cyan-500/10 text-cyan-600 dark:text-cyan-300 flex items-center justify-center text-[10px] font-bold hover:bg-cyan-500/30 transition-colors"
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Soak Time info"
                     >
                       ℹ
                     </button>
                   </div>
-                  <span className="text-cyan-600 dark:text-cyan-400 font-bold">{soakTime} min</span>
+                  <span className="param-value text-xs">{soakTime} min</span>
                 </div>
                 <input
                   type="range"
@@ -1108,9 +1127,10 @@
                     setSoakTime(Number(e.target.value));
                     setActivePreset(null);
                   }}
-                  className="w-full mt-2 accent-cyan-600 dark:accent-cyan-400 cursor-pointer"
+                  className="kinetic-slider"
+                  style={{ '--param-color': paramColors.time, '--val-pct': (((soakTime - 0.5) / 179.5) * 100).toFixed(1) + '%' }}
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <div className="flex justify-between text-[10px] font-mono param-ticks mt-0.5">
                   <span>0.5 min</span>
                   <span>45 min</span>
                   <span>90 min</span>
@@ -1118,21 +1138,24 @@
                 </div>
               </div>
 
-              {/* Slider 3: Chamber Pressure (Purple) */}
-              <div className="flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-2">
+              {/* Slider 3: Chamber Pressure (Logarithmic) */}
+              <div
+                className="kinetic-param-card param-card-pressure flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-2"
+                style={{ '--param-color': paramColors.pressure }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-700 dark:text-slate-300 font-semibold">CHAMBER PRESSURE</span>
+                    <span className="param-title">CHAMBER PRESSURE</span>
                     <button
                       type="button"
                       onClick={function () { setActiveInfoId(activeInfoId === 'pressure' ? null : 'pressure'); }}
-                      className="w-4 h-4 rounded-full border border-purple-500/50 bg-purple-500/10 text-purple-600 dark:text-purple-300 flex items-center justify-center text-[10px] font-bold hover:bg-purple-500/30 transition-colors"
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Pressure info"
                     >
                       ℹ
                     </button>
                   </div>
-                  <span className="text-purple-600 dark:text-purple-400 font-bold">{formatPressure(pressure)}</span>
+                  <span className="param-value text-xs">{formatPressure(pressure)}</span>
                 </div>
                 <input
                   type="range"
@@ -1144,9 +1167,10 @@
                     setPressure(sliderValToPressure(e.target.value));
                     setActivePreset(null);
                   }}
-                  className="w-full mt-2 accent-purple-600 dark:accent-purple-400 cursor-pointer"
+                  className="kinetic-slider"
+                  style={{ '--param-color': paramColors.pressure, '--val-pct': ((pressureToSliderVal(pressure) / 1000) * 100).toFixed(1) + '%' }}
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <div className="flex justify-between text-[10px] font-mono param-ticks mt-0.5">
                   <span>5 mTorr</span>
                   <span>0.01 atm</span>
                   <span>1.0 atm</span>
@@ -1156,21 +1180,24 @@
 
               {/* SECOND ROW: SLIDERS 4 & 5 */}
 
-              {/* Slider 4: Oxidant Conc. / N2 Dilution (Emerald) */}
-              <div className="flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-3">
+              {/* Slider 4: Oxidant Conc. / N2 Dilution */}
+              <div
+                className="kinetic-param-card param-card-dilution flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-3"
+                style={{ '--param-color': paramColors.dilution }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-700 dark:text-slate-300 font-semibold">OXIDANT CONC / DILUTION</span>
+                    <span className="param-title">OXIDANT CONC / DILUTION</span>
                     <button
                       type="button"
                       onClick={function () { setActiveInfoId(activeInfoId === 'oxidantConc' ? null : 'oxidantConc'); }}
-                      className="w-4 h-4 rounded-full border border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 flex items-center justify-center text-[10px] font-bold hover:bg-emerald-500/30 transition-colors"
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Oxidant concentration info"
                     >
                       ℹ
                     </button>
                   </div>
-                  <span className="font-bold transition-colors" style={{ color: chemConfig.color }}>{oxidantConc}% {chemConfig.shortLabel} / {100 - oxidantConc}% N₂</span>
+                  <span className="param-value text-xs">{oxidantConc}% {chemConfig.shortLabel} / {100 - oxidantConc}% N₂</span>
                 </div>
                 <input
                   type="range"
@@ -1182,33 +1209,34 @@
                     setOxidantConc(Number(e.target.value));
                     setActivePreset(null);
                   }}
-                  className="w-full mt-2 accent-emerald-600 dark:accent-emerald-400 cursor-pointer"
+                  className="kinetic-slider"
+                  style={{ '--param-color': paramColors.dilution, '--val-pct': (((oxidantConc - 10) / 90) * 100).toFixed(1) + '%' }}
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <div className="flex justify-between text-[10px] font-mono param-ticks mt-0.5">
                   <span>10% (Dilute)</span>
                   <span>50%</span>
                   <span>100% (Pure)</span>
                 </div>
               </div>
 
-              {/* Slider 5: Temperature Ramp Rate (Rose) */}
-              <div className="flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-3">
+              {/* Slider 5: Temperature Ramp Rate */}
+              <div
+                className="kinetic-param-card param-card-ramprate flex flex-col gap-1 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-3"
+                style={{ '--param-color': paramColors.ramprate }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-slate-700 dark:text-slate-300 font-semibold">TEMPERATURE RAMP RATE</span>
+                    <span className="param-title">TEMPERATURE RAMP RATE</span>
                     <button
                       type="button"
                       onClick={function () { setActiveInfoId(activeInfoId === 'rampRate' ? null : 'rampRate'); }}
-                      className="w-4 h-4 rounded-full border border-rose-500/50 bg-rose-500/10 text-rose-600 dark:text-rose-300 flex items-center justify-center text-[10px] font-bold hover:bg-rose-500/30 transition-colors"
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
                       title="Ramp Rate info"
                     >
                       ℹ
                     </button>
                   </div>
-                  <span className={
-                    'font-bold ' +
-                    (rampRate <= 20 ? 'text-emerald-600 dark:text-emerald-400' : (rampRate <= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'))
-                  }>
+                  <span className="param-value text-xs">
                     {rampRate} °C/min {rampRate > 50 ? '(RTP Mode)' : ''}
                   </span>
                 </div>
@@ -1222,9 +1250,10 @@
                     setRampRate(Number(e.target.value));
                     setActivePreset(null);
                   }}
-                  className="w-full mt-2 accent-rose-600 dark:accent-rose-400 cursor-pointer"
+                  className="kinetic-slider"
+                  style={{ '--param-color': paramColors.ramprate, '--val-pct': (((rampRate - 5) / 145) * 100).toFixed(1) + '%' }}
                 />
-                <div className="flex justify-between text-[10px] font-mono text-slate-400 mt-0.5">
+                <div className="flex justify-between text-[10px] font-mono param-ticks mt-0.5">
                   <span>5 °C/min (Safe)</span>
                   <span>25 °C/min (Elevated)</span>
                   <span>100 °C/min (RTO)</span>
@@ -1235,26 +1264,31 @@
               {/* BOTTOM ROW: SELECTORS (Chemistry & Crystal Orientation) */}
 
               {/* Selector 1: Oxidant Chemistry Toggle */}
-              <div className="flex flex-col gap-1.5 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-3">
+              <div
+                className="kinetic-param-card param-card-chemistry flex flex-col gap-1.5 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-3"
+                style={{ '--param-color': paramColors.chemistry }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-700 dark:text-slate-300 font-semibold">OXIDANT CHEMISTRY</span>
-                  <button
-                    type="button"
-                    onClick={function () { setActiveInfoId(activeInfoId === 'chemistry' ? null : 'chemistry'); }}
-                    className="w-4 h-4 rounded-full border border-sky-500/50 dark:border-cyan-500/50 bg-sky-500/10 dark:bg-cyan-500/10 text-sky-600 dark:text-cyan-300 flex items-center justify-center text-[10px] font-bold hover:bg-sky-500/30 dark:hover:bg-cyan-500/30 transition-colors"
-                    title="Chemistry physical details"
-                  >
-                    ℹ
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <span className="param-title">OXIDANT CHEMISTRY</span>
+                    <button
+                      type="button"
+                      onClick={function () { setActiveInfoId(activeInfoId === 'chemistry' ? null : 'chemistry'); }}
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                      title="Chemistry physical details"
+                    >
+                      ℹ
+                    </button>
+                  </div>
+                  <span className="param-value text-xs">{chemistry === 'dry' ? 'Dry O₂' : (chemistry === 'wet' ? 'Wet H₂O' : 'ISSG Radical')}</span>
                 </div>
-                <div className="grid grid-cols-3 gap-1 mt-1">
+                <div className="grid grid-cols-3 gap-1.5 mt-1">
                   {[
-                    { id: 'dry', label: 'Dry O₂', color: '#0284c7', darkColor: '#22d3ee' },
-                    { id: 'wet', label: 'Wet H₂O', color: '#059669', darkColor: '#10b981' },
-                    { id: 'issg', label: 'ISSG Radical', color: '#7c3aed', darkColor: '#c084fc' }
+                    { id: 'dry', label: 'Dry O₂' },
+                    { id: 'wet', label: 'Wet H₂O' },
+                    { id: 'issg', label: 'ISSG Radical' }
                   ].map(function (item) {
                     var isAct = chemistry === item.id;
-                    var activeColor = theme === 'light' ? item.color : item.darkColor;
                     return (
                       <button
                         key={item.id}
@@ -1265,14 +1299,14 @@
                         }}
                         style={
                           isAct
-                            ? { backgroundColor: activeColor, color: '#ffffff', borderColor: activeColor, fontWeight: 700 }
+                            ? { backgroundColor: 'var(--param-color)', borderColor: 'var(--param-color)' }
                             : {}
                         }
                         className={
-                          'py-1 text-xs font-mono rounded border transition-all text-center ' +
+                          'py-1.5 px-1.5 text-xs font-mono rounded-md border transition-all text-center ' +
                           (isAct
-                            ? 'shadow-sm'
-                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-300 dark:border-slate-800 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-700')
+                            ? 'shadow-sm text-white dark:text-slate-950 font-bold'
+                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-300 dark:border-slate-800 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-700 font-normal')
                         }
                       >
                         {item.label}
@@ -1280,25 +1314,31 @@
                     );
                   })}
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                <span className="text-[10px] font-mono param-helper-text mt-0.5">
                   {chemistry === 'dry' ? 'High breakdown field, slow growth for gate oxides' : (chemistry === 'wet' ? 'Rapid pyrogenic growth for field/LOCOS isolation' : 'Low-P radical oxidation for atomic thin layers')}
                 </span>
               </div>
 
               {/* Selector 2: Crystal Orientation Toggle */}
-              <div className="flex flex-col gap-1.5 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg border border-slate-200 dark:border-slate-800/60 lg:col-span-3">
+              <div
+                className="kinetic-param-card param-card-orientation flex flex-col gap-1.5 bg-slate-50 dark:bg-[#0a0e17] p-2.5 rounded-lg lg:col-span-3"
+                style={{ '--param-color': paramColors.orientation }}
+              >
                 <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="text-slate-700 dark:text-slate-300 font-semibold">CRYSTAL ORIENTATION</span>
-                  <button
-                    type="button"
-                    onClick={function () { setActiveInfoId(activeInfoId === 'orientation' ? null : 'orientation'); }}
-                    className="w-4 h-4 rounded-full border border-sky-500/50 dark:border-cyan-500/50 bg-sky-500/10 dark:bg-cyan-500/10 text-sky-600 dark:text-cyan-300 flex items-center justify-center text-[10px] font-bold hover:bg-sky-500/30 dark:hover:bg-cyan-500/30 transition-colors"
-                    title="Orientation details"
-                  >
-                    ℹ
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    <span className="param-title">CRYSTAL ORIENTATION</span>
+                    <button
+                      type="button"
+                      onClick={function () { setActiveInfoId(activeInfoId === 'orientation' ? null : 'orientation'); }}
+                      className="param-info-btn w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                      title="Orientation details"
+                    >
+                      ℹ
+                    </button>
+                  </div>
+                  <span className="param-value text-xs">&lt;{orientation}&gt;</span>
                 </div>
-                <div className="grid grid-cols-2 gap-1 mt-1">
+                <div className="grid grid-cols-2 gap-1.5 mt-1">
                   {[
                     { id: '100', label: '<100> (Standard)' },
                     { id: '111', label: '<111> (+68% B/A)' }
@@ -1312,11 +1352,16 @@
                           setOrientation(item.id);
                           setActivePreset(null);
                         }}
+                        style={
+                          isAct
+                            ? { backgroundColor: 'var(--param-color)', borderColor: 'var(--param-color)' }
+                            : {}
+                        }
                         className={
-                          'py-1 text-xs font-mono rounded border transition-all text-center ' +
+                          'py-1.5 px-2 text-xs font-mono rounded-md border transition-all text-center ' +
                           (isAct
-                            ? 'bg-sky-500 dark:bg-cyan-500 text-white dark:text-slate-950 font-bold border-sky-500 dark:border-cyan-400 shadow-sm'
-                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-300 dark:border-slate-800 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-700')
+                            ? 'shadow-sm text-white dark:text-slate-950 font-bold'
+                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-400 border-slate-300 dark:border-slate-800 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-400 dark:hover:border-slate-700 font-normal')
                         }
                       >
                         {item.label}
@@ -1324,7 +1369,7 @@
                     );
                   })}
                 </div>
-                <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mt-0.5">
+                <span className="text-[10px] font-mono param-helper-text mt-0.5">
                   {orientation === '100' ? 'Minimum interface trap density (D_it ~ 10¹⁰ cm⁻²)' : 'Higher surface atomic density (11.8 × 10¹⁴ atoms/cm²)'}
                 </span>
               </div>

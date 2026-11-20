@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Silicon Sliders — Bridging Semiconductor Theory with Interactive Sliders and Visuals</title>
+  <title>SiliconSliders — Bridging Semiconductor Theory with Interactive Sliders and Visuals</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,21 +29,14 @@
   <!-- Site Header -->
   <header class="site-header">
     <div class="container header-inner">
-      <a href="index.html" class="brand">
-        <span class="brand-icon">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="20" rx="4" ry="4"></rect>
-            <line x1="8" y1="2" x2="8" y2="22"></line>
-            <line x1="16" y1="2" x2="16" y2="22"></line>
-            <line x1="2" y1="8" x2="22" y2="8"></line>
-            <line x1="2" y1="16" x2="22" y2="16"></line>
-          </svg>
+      <a href="index.html" class="brand" aria-label="SiliconSliders Home">
+        <span class="brand-title">
+          <span class="brand-text-silicon">Silicon</span><span class="brand-text-sliders">Sliders</span>
         </span>
-        <span class="brand-title">Silicon Sliders</span>
       </a>
 
       <button id="btn-theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme" title="Toggle Light / Dark Mode">
-        <svg id="theme-icon-sun" class="theme-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;">
+        <svg id="theme-icon-sun" class="theme-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
           <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -54,10 +47,9 @@
           <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
         </svg>
-        <svg id="theme-icon-moon" class="theme-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+        <svg id="theme-icon-moon" class="theme-toggle-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <span id="theme-toggle-label">Light</span>
       </button>
     </div>
   </header>
@@ -67,7 +59,7 @@
     <section class="hero">
       <div class="hero-tag">
         <span class="dot-live"></span>
-        <span>Interactive Microelectronics CAD</span>
+        <span>Where Theory Meets Silicon</span>
       </div>
 
       <h1 class="hero-title">
@@ -75,7 +67,7 @@
       </h1>
 
       <p class="hero-subtitle">
-        Slide through <span class="text-highlight">transistor layers</span>, <span class="text-highlight">bias states</span>, and <span class="text-highlight">fabrication physics</span> in real time.
+        Slide through <span class="text-highlight">transistor layers</span>, <span class="text-highlight">fabrication physics</span>, and<span class="text-highlight"> MEMS sensor</span> mechanics in real time.
       </p>
     </section>
 
@@ -104,7 +96,7 @@
               <span class="badge-pill badge-cyan"><span class="dot-live"></span>ACTIVE 3D CAD</span>
             </div>
             <div class="card-header-row">
-              <h2 class="card-title text-cyan">Device &amp; Logic CAD</h2>
+              <h2 class="card-title text-cyan">Solid-State Device CAD</h2>
             </div>
             <p class="card-desc">
               Interactive 3D physical layouts and schematics for <span class="text-cyan-dim">CMOS Inverters</span>, <span class="text-cyan-dim">NAND gates</span>, and upcoming <span class="text-cyan-dim">FinFET / GAA</span> structures.
@@ -146,7 +138,7 @@
           </div>
           <div class="card-actions">
             <a href="src/modules/processes/oxidation/index.html" class="card-btn card-btn-gold">
-              <span>Thermal Oxidation (Deal-Grove)</span>
+              <span>Thermal Oxidation</span>
             </a>
           </div>
         </article>
@@ -177,16 +169,22 @@
         </article>
 
       </div>
+
+      <!-- Open-Source Contribution Call-to-Action -->
+      <div class="contribute-cta">
+        <p class="contribute-text">
+          Don't just play with the sliders. Got an idea? <span class="contribute-highlight">Build one</span> — <a href="https://github.com/anish609609/SiliconSliders" target="_blank" rel="noopener noreferrer" class="contribute-link">Contribute on GitHub</a>
+        </p>
+      </div>
     </section>
   </main>
 
   <!-- Clean Minimal Footer -->
   <footer class="site-footer">
     <div class="container footer-inner">
-      <span class="footer-copyright">© 2026 Silicon Sliders. All rights reserved.</span>
+      <span class="footer-copyright">© 2026 SiliconSliders. All rights reserved.</span>
       <nav class="footer-nav">
-        <a href="README.md" class="footer-link">Documentation</a>
-        <a href="https://github.com/anish609609" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
+        <a href="https://github.com/anish609609/SiliconSliders" target="_blank" rel="noopener noreferrer" class="footer-link">GitHub</a>
       </nav>
     </div>
   </footer>

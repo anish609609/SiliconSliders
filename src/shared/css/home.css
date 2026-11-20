@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Academic Interactive Homepage Stylesheet
+ * SiliconSliders - Academic Interactive Homepage Stylesheet
  * High-contrast, clean curves, elegant semiconductor color accents & 3D Die Slab Visual
  */
 
@@ -33,58 +33,56 @@
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 12px;
   text-decoration: none;
-}
-
-.brand-icon {
-  width: 24px;
-  height: 24px;
-  color: var(--accent-cyan);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
 }
 
 .brand-title {
   font-family: var(--font-mono);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.025em;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.brand-text-silicon {
   color: var(--text-heading);
+  transition: color var(--transition-fast);
 }
 
-.brand-divider {
-  color: var(--border-hover);
-  font-size: 14px;
+[data-theme="light"] .brand-text-silicon {
+  color: #0f172a;
 }
 
-.brand-chip {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
+[data-theme="dark"] .brand-text-silicon {
+  color: #f8fafc;
 }
 
-/* Theme Toggle Button - Rock Solid Sizing */
+.brand-text-sliders {
+  background: linear-gradient(135deg, #2563eb 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: 800;
+}
+
+/* Theme Toggle Button - Sleek Icon-Only Sizing */
 .theme-toggle-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   background: var(--btn-bg);
   border: 1px solid var(--btn-border);
   color: var(--btn-text);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  padding: 7px 14px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
   line-height: 1;
-  white-space: nowrap;
   flex-shrink: 0;
 }
 
@@ -92,11 +90,12 @@
   background: var(--btn-hover-bg);
   border-color: var(--btn-hover-border);
   color: var(--btn-hover-text);
+  transform: scale(1.04);
 }
 
 .theme-toggle-icon {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   stroke: currentColor;
   flex-shrink: 0;
   display: inline-block;
@@ -416,6 +415,61 @@
   color: var(--text-muted);
 }
 
+/* Open-Source Contribution Call-to-Action */
+.contribute-cta {
+  margin-top: 56px;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.contribute-text {
+  font-family: var(--font-sans);
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: #94a3b8; /* Dark mode muted neutral */
+  margin: 0;
+  transition: color var(--transition-fast);
+}
+
+[data-theme="light"] .contribute-text {
+  color: #64748b; /* Light mode muted neutral */
+}
+
+.contribute-highlight {
+  color: #f8fafc; /* Dark mode high contrast */
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+
+[data-theme="light"] .contribute-highlight {
+  color: #0f172a; /* Light mode high contrast */
+}
+
+.contribute-link {
+  color: #38bdf8; /* Dark mode semiconductor cyan accent */
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+[data-theme="light"] .contribute-link {
+  color: #0284c7; /* Light mode semiconductor blue/cyan accent */
+}
+
+.contribute-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+[data-theme="dark"] .contribute-link:hover {
+  color: #7dd3fc;
+}
+
+[data-theme="light"] .contribute-link:hover {
+  color: #0369a1;
+}
+
 /* Site Footer */
 .site-footer {
   border-top: 1px solid var(--border-color);
@@ -465,5 +519,50 @@
   }
   .hero {
     padding: 44px 0 28px;
+  }
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 16px;
+  }
+  .header-inner {
+    height: 56px;
+  }
+  .brand-title {
+    font-size: 16px;
+  }
+  .hero {
+    padding: 36px 0 22px;
+  }
+  .hero-title {
+    font-size: clamp(24px, 6.8vw, 32px);
+    line-height: 1.22;
+  }
+  .hero-subtitle {
+    font-size: 14.5px;
+  }
+  .card {
+    padding: 20px 16px;
+  }
+  .card-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .contribute-cta {
+    margin-top: 36px;
+    padding: 0 8px;
+  }
+  .contribute-text {
+    font-size: 13.5px;
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Animated Wafer Cross-Section Canvas Renderer
+ * SiliconSliders - Animated Wafer Cross-Section Canvas Renderer
  * Physically Accurate Deal-Grove Particle Kinetics (Elastic N₂ Bounce vs. Fickian Oxidant Diffusion),
  * Dynamic Color Coding by Chemistry (Dry Cyan, Wet Emerald, ISSG Violet/Amber),
  * Interface Consumption Sparks, Pressure Dynamics, and Interactive Zoom & Inspection.

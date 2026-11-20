@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Thermal Oxidation Chamber Simulator Stylesheet
+ * SiliconSliders - Thermal Oxidation Chamber Simulator Stylesheet
  * High-contrast semiconductor fab dashboard aesthetic with Light & Dark mode support
  */
 
@@ -15,6 +15,16 @@ html.dark,
   --text-muted: #94a3b8;
   --accent-cyan: #38bdf8;
   --accent-amber: #f59e0b;
+
+  /* Primary Blue Kinetic Accent Variables (Dark Mode) */
+  --primary-blue: #38bdf8;
+  --primary-blue-hover: #0ea5e9;
+  --slider-track-bg: #1e293b;
+  --slider-track-fill: #38bdf8;
+  --slider-thumb-bg: #38bdf8;
+  --slider-thumb-border: #080b11;
+  --slider-thumb-glow: rgba(56, 189, 248, 0.45);
+  --param-value-color: #38bdf8;
 }
 
 html.light,
@@ -26,6 +36,16 @@ html.light,
   --text-muted: #64748b;
   --accent-cyan: #0284c7;
   --accent-amber: #d97706;
+
+  /* Primary Blue Kinetic Accent Variables (Light Mode) */
+  --primary-blue: #0284c7;
+  --primary-blue-hover: #0369a1;
+  --slider-track-bg: #e2e8f0;
+  --slider-track-fill: #0284c7;
+  --slider-thumb-bg: #0284c7;
+  --slider-thumb-border: #ffffff;
+  --slider-thumb-glow: rgba(2, 132, 199, 0.35);
+  --param-value-color: #0284c7;
 }
 
 * {
@@ -39,129 +59,252 @@ html, body {
   overflow-x: hidden;
 }
 
-/* Custom Range Slider Styling */
+/* Base Range Slider Settings */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  background: #1e293b;
   outline: none;
-  border-radius: 9999px;
-  height: 6px;
-  transition: all 0.15s ease;
+  touch-action: pan-y;
+  cursor: pointer;
 }
 
-html.light input[type="range"] {
-  background: #e2e8f0;
+/* ==========================================================================
+   Kinetic Parameter Cards - Per-Parameter Distinct Color Themes
+   ========================================================================== */
+
+/* Dark Mode Default Colors */
+.param-card-temp {
+  --param-color: #FB923C;
+}
+.param-card-time {
+  --param-color: #34D399;
+}
+.param-card-pressure {
+  --param-color: #A78BFA;
+}
+.param-card-dilution {
+  --param-color: #38BDF8;
+}
+.param-card-ramprate {
+  --param-color: #FB7185;
+}
+.param-card-chemistry {
+  --param-color: #60A5FA;
+}
+.param-card-orientation {
+  --param-color: #FACC15;
 }
 
-input[type="range"]::-webkit-slider-thumb {
+/* Light Mode Overrides */
+html.light .param-card-temp,
+[data-theme="light"] .param-card-temp {
+  --param-color: #EA580C;
+}
+html.light .param-card-time,
+[data-theme="light"] .param-card-time {
+  --param-color: #059669;
+}
+html.light .param-card-pressure,
+[data-theme="light"] .param-card-pressure {
+  --param-color: #7C3AED;
+}
+html.light .param-card-dilution,
+[data-theme="light"] .param-card-dilution {
+  --param-color: #0284C7;
+}
+html.light .param-card-ramprate,
+[data-theme="light"] .param-card-ramprate {
+  --param-color: #E11D48;
+}
+html.light .param-card-chemistry,
+[data-theme="light"] .param-card-chemistry {
+  --param-color: #2563EB;
+}
+html.light .param-card-orientation,
+[data-theme="light"] .param-card-orientation {
+  --param-color: #CA8A04;
+}
+
+/* Kinetic Parameter Card Container */
+.kinetic-param-card {
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--param-color, #38bdf8) 22%, transparent);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.kinetic-param-card:hover {
+  border-color: color-mix(in srgb, var(--param-color, #38bdf8) 45%, transparent);
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--param-color, #38bdf8) 8%, transparent);
+}
+
+/* Title & Info Button inside Parameter Card */
+.kinetic-param-card .param-title {
+  color: var(--param-color);
+  font-weight: 600;
+}
+
+.kinetic-param-card .param-info-btn {
+  color: var(--param-color);
+  border: 1px solid color-mix(in srgb, var(--param-color) 35%, transparent);
+  background-color: color-mix(in srgb, var(--param-color) 12%, transparent);
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.kinetic-param-card .param-info-btn:hover {
+  background-color: color-mix(in srgb, var(--param-color) 25%, transparent);
+  border-color: color-mix(in srgb, var(--param-color) 65%, transparent);
+  transform: scale(1.08);
+}
+
+/* Live Numeric Readout */
+.kinetic-param-card .param-value {
+  color: var(--param-color);
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+/* Scale Ticks & Helper Subtext (65-70% opacity of param-color) */
+.kinetic-param-card .param-ticks,
+.kinetic-param-card .param-helper-text {
+  color: color-mix(in srgb, var(--param-color) 68%, transparent);
+}
+
+/* Fallback for older engines */
+@supports not (color: color-mix(in srgb, red 50%, white)) {
+  .kinetic-param-card .param-ticks,
+  .kinetic-param-card .param-helper-text {
+    color: var(--param-color);
+    opacity: 0.68;
+  }
+}
+
+/* ==========================================================================
+   Sleeker, Smaller Kinetic Control Sliders (4px Track, 14px Thumb, Touch Target)
+   ========================================================================== */
+input[type="range"].kinetic-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #38bdf8;
+  width: 100%;
+  height: 20px;
+  padding: 8px 0;
+  box-sizing: content-box;
+  background: transparent;
+  outline: none;
   cursor: pointer;
-  border: 2px solid #080b11;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-  transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  touch-action: pan-y;
+  margin: 2px 0;
 }
 
-html.light input[type="range"]::-webkit-slider-thumb {
-  background: #0284c7;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 0 14px rgba(56, 189, 248, 0.8);
-}
-
-html.light input[type="range"]::-webkit-slider-thumb:hover {
-  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.6);
-}
-
-input[type="range"]::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #38bdf8;
+/* WebKit Track: 4px height, rounded, filled left in --param-color, right in muted bg */
+input[type="range"].kinetic-slider::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    var(--param-color, var(--slider-track-fill)) 0%,
+    var(--param-color, var(--slider-track-fill)) var(--val-pct, 50%),
+    var(--slider-track-bg) var(--val-pct, 50%),
+    var(--slider-track-bg) 100%
+  );
+  border: none;
   cursor: pointer;
-  border: 2px solid #080b11;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-  transition: transform 0.15s ease, background 0.15s ease;
 }
 
-html.light input[type="range"]::-moz-range-thumb {
-  background: #0284c7;
-  border: 2px solid #ffffff;
+/* WebKit Thumb: 14px circle, 2px surface border, soft glow, expands to 16px on hover/active */
+input[type="range"].kinetic-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--param-color, var(--slider-thumb-bg));
+  cursor: pointer;
+  border: 2px solid var(--slider-thumb-border);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--param-color, #38bdf8) 50%, transparent);
+  margin-top: -5px; /* (4px track - 14px thumb) / 2 = -5px to vertically center */
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Distinct Accent Colors for Sliders */
-/* Amber (Peak Temp) */
-input[type="range"].accent-amber-400::-webkit-slider-thumb,
-input[type="range"].accent-amber-500::-webkit-slider-thumb {
-  background: #f59e0b;
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
-}
-html.light input[type="range"].accent-amber-400::-webkit-slider-thumb,
-html.light input[type="range"].accent-amber-500::-webkit-slider-thumb {
-  background: #d97706;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.4);
+input[type="range"].kinetic-slider::-webkit-slider-thumb:hover,
+input[type="range"].kinetic-slider::-webkit-slider-thumb:active {
+  transform: scale(1.143); /* Scales 14px to 16px */
+  box-shadow: 0 0 12px color-mix(in srgb, var(--param-color, #38bdf8) 75%, transparent);
 }
 
-/* Cyan (Soak Time) */
-input[type="range"].accent-cyan-400::-webkit-slider-thumb,
-input[type="range"].accent-cyan-600::-webkit-slider-thumb {
-  background: #38bdf8;
-  box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
-}
-html.light input[type="range"].accent-cyan-400::-webkit-slider-thumb,
-html.light input[type="range"].accent-cyan-600::-webkit-slider-thumb {
-  background: #0284c7;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+/* Firefox Track & Progress */
+input[type="range"].kinetic-slider::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  border-radius: 9999px;
+  background-color: var(--slider-track-bg);
+  border: none;
+  cursor: pointer;
 }
 
-/* Purple (Pressure) */
-input[type="range"].accent-purple-400::-webkit-slider-thumb,
-input[type="range"].accent-purple-600::-webkit-slider-thumb {
-  background: #c084fc;
-  box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
-}
-html.light input[type="range"].accent-purple-400::-webkit-slider-thumb,
-html.light input[type="range"].accent-purple-600::-webkit-slider-thumb {
-  background: #7c3aed;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+input[type="range"].kinetic-slider::-moz-range-progress {
+  height: 4px;
+  border-radius: 9999px;
+  background-color: var(--param-color, var(--slider-track-fill));
 }
 
-/* Emerald (Oxidant Conc / Dilution) */
-input[type="range"].accent-emerald-400::-webkit-slider-thumb,
-input[type="range"].accent-emerald-600::-webkit-slider-thumb {
-  background: #34d399;
-  box-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
-}
-html.light input[type="range"].accent-emerald-400::-webkit-slider-thumb,
-html.light input[type="range"].accent-emerald-600::-webkit-slider-thumb {
-  background: #059669;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.4);
+/* Firefox Thumb */
+input[type="range"].kinetic-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--param-color, var(--slider-thumb-bg));
+  cursor: pointer;
+  border: 2px solid var(--slider-thumb-border);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--param-color, #38bdf8) 50%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Rose (Ramp Rate) */
-input[type="range"].accent-rose-400::-webkit-slider-thumb,
-input[type="range"].accent-rose-600::-webkit-slider-thumb {
-  background: #fb7185;
-  box-shadow: 0 0 10px rgba(251, 113, 133, 0.5);
+input[type="range"].kinetic-slider::-moz-range-thumb:hover,
+input[type="range"].kinetic-slider::-moz-range-thumb:active {
+  transform: scale(1.143); /* Scales 14px to 16px */
+  box-shadow: 0 0 12px color-mix(in srgb, var(--param-color, #38bdf8) 75%, transparent);
 }
-html.light input[type="range"].accent-rose-400::-webkit-slider-thumb,
-html.light input[type="range"].accent-rose-600::-webkit-slider-thumb {
-  background: #e11d48;
-  border: 2px solid #ffffff;
-  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.4);
+
+/* Playback Scrubber Slider */
+input[type="range"].scrub-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: var(--slider-track-bg);
+  outline: none;
+  touch-action: pan-y;
+  cursor: pointer;
+}
+
+input[type="range"].scrub-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--slider-thumb-bg);
+  border: 2px solid var(--slider-thumb-border);
+  box-shadow: 0 0 8px var(--slider-thumb-glow);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].scrub-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+input[type="range"].scrub-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--slider-thumb-bg);
+  border: 2px solid var(--slider-thumb-border);
+  box-shadow: 0 0 8px var(--slider-thumb-glow);
+  cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
 /* Scrollbars */
@@ -233,4 +376,15 @@ html.light .modal-backdrop {
 
 .modal-dialog {
   animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Mobile Responsive Optimizations down to 360px */
+@media (max-width: 640px) {
+  .modal-backdrop {
+    padding: 0.5rem;
+  }
+  .modal-dialog {
+    max-height: 92vh;
+    border-radius: 1rem;
+  }
 }

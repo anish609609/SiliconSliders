@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Minimalist Homepage Logic
+ * SiliconSliders - Minimalist Homepage Logic
  * Theme persistence (Light / Dark) synchronized with 3D CAD modules
  */
 

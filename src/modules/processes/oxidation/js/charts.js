@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Time-Aligned Dual Charts for Thermal Oxidation
+ * SiliconSliders - Time-Aligned Dual Charts for Thermal Oxidation
  * Top Chart: Oxide Thickness x_ox(t) (nm) & Chamber Temperature T(t) (°C)
  * Bottom Chart: Chamber Gas Concentrations (N₂ & Active Oxidant) & MFC Sequencing
  * Precision DPR auto-sync, integer monospace typography, zero text collisions.

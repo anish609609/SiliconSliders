@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Thermal Oxidation Chamber Simulator Physics Engine
+ * SiliconSliders - Thermal Oxidation Chamber Simulator Physics Engine
  * Exact Deal-Grove Model + Massoud Thin-Oxide Enhancement + CSTR Gas Switching Kinetics
  */
 

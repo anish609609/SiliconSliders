@@ -1,5 +1,5 @@
 /**
- * Silicon Sliders - Deal-Grove Thermal Oxidation Simulator
+ * SiliconSliders - Deal-Grove Thermal Oxidation Simulator
  * Accurate physical kinetics, wafer cross-section canvas & Deal-Grove curve plotting
  */
 

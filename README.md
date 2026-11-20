@@ -158,7 +158,3 @@ The Silicon Sliders architecture is engineered to make adding new devices, proce
 ## 📄 License & Attribution
 
 This project is open-source under the [MIT License](LICENSE).
-
-Developed by **Raydurg Anish**  
-- Portfolio: [raydurg-anish-portfolio](https://raydurg-anish-portfolio-amta50oot-anish609609s-projects.vercel.app/)  
-- GitHub: [@anish609609](https://github.com/anish609609)
