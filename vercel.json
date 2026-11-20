@@ -1,8 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
   "cleanUrls": true,
-  "outputDirectory": ".",
+  "trailingSlash": false,
   "redirects": [
     {
       "source": "/inverter",

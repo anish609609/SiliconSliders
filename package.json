@@ -2,9 +2,7 @@
   "name": "silicon-sliders",
   "version": "1.0.0",
   "description": "Interactive 3D Semiconductor CAD, Fab Process Simulations & MEMS Sensors Platform",
-  "main": "server.js",
   "scripts": {
-    "build": "echo 'Static build ready'",
     "start": "node server.js",
     "dev": "node server.js"
   },
