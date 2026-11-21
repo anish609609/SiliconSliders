@@ -97,4 +97,9 @@ function applyTheme(theme, savePreference){
     var hlHex = cssVar('--highlight');
     if (hlHex) HIGHLIGHT_COLOR.set(hlHex);
   }
+
+  // 4. Redraw IV graph in active theme
+  if (typeof applyLogicState === 'function'){
+    applyLogicState();
+  }
 }

@@ -7,6 +7,7 @@
  * - Shallow P-SDE / LDD extensions flanking gate channel
  * - Ultra-thin interfacial SiO2 + High-k HfO2 gate dielectric stack
  * - Polysilicon / Metal gate electrode runner
+ * - Gate sidewall spacers (Si3N4)
  * - N+ Well tap diffusion (tied to VDD)
  * - Tungsten CVD contact via plugs
  * - Metal-1 interconnects for Source (S/VDD), Drain (D/OUT), Gate (G), and Well (B/VDD)
@@ -184,7 +185,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
 // ---------------------------------------------------------------------------
 // LAYER GROUPS & ORDER
 // ---------------------------------------------------------------------------
-var LAYER_ORDER = ['substrate', 'well', 'active', 'oxide', 'highk', 'poly', 'contact', 'metal'];
+var LAYER_ORDER = ['substrate', 'well', 'active', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'contact', 'metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -199,6 +200,12 @@ var selectable = [];
 function reg(mesh, id, layerKey) {
   mesh.userData.id = id;
   mesh.userData.layer = layerKey;
+  if (mesh.isGroup) {
+    mesh.traverse(function(child) {
+      child.userData.id = id;
+      child.userData.layer = layerKey;
+    });
+  }
   selectable.push(mesh);
   groups[layerKey].add(mesh);
   return mesh;
@@ -221,13 +228,13 @@ function box(w, h, d, colorVar, opts) {
   return m;
 }
 
-function cylinder(rt, rb, h, seg, colorVar, opts) {
+function cylinder(rt, rb, h, seg, colorHexOrVar, opts) {
   opts = opts || {};
-  var col = colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar;
+  var col = (typeof colorHexOrVar === 'string' && colorHexOrVar.indexOf('--') === 0) ? cssVar(colorHexOrVar) : colorHexOrVar;
   var mat = new THREE.MeshStandardMaterial({
     color: col,
     roughness: opts.roughness !== undefined ? opts.roughness : 0.25,
-    metalness: opts.metalness !== undefined ? opts.metalness : 0.65
+    metalness: opts.metalness !== undefined ? opts.metalness : 0.95
   });
   var m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
   m.castShadow = true;
@@ -236,30 +243,30 @@ function cylinder(rt, rb, h, seg, colorVar, opts) {
 }
 
 // ---------------------------------------------------------------------------
-// GEOMETRY ELEVATION COORDINATES (Y Stack)
+// GEOMETRY ELEVATION COORDINATES (Y Stack - Elevated Cleanly Above Grid at Y=0)
 // ---------------------------------------------------------------------------
 var Y = {
-  subBot: -3.4,
-  subTop: 0.0,
-  wellBot: -2.4,
-  wellTop: 0.0,
-  actBot: -1.2,
-  actTop: 0.0,
-  sdeBot: -0.5,
-  sdeTop: 0.0,
-  oxBot: 0.0,
-  oxTop: 0.18,
-  hkBot: 0.18,
-  hkTop: 0.42,
-  polyBot: 0.42,
-  polyTop: 1.45,
-  ctBot: 0.0,
-  ctTop: 2.15,
-  m1Bot: 2.15,
-  m1Top: 2.85
+  subBot: 0.0,
+  subTop: 3.0,
+  wellBot: 0.6,
+  wellTop: 3.0,
+  actBot: 1.8,
+  actTop: 3.0,
+  sdeBot: 2.5,
+  sdeTop: 3.0,
+  oxBot: 3.0,
+  oxTop: 3.18,
+  hkBot: 3.18,
+  hkTop: 3.42,
+  polyBot: 3.42,
+  polyTop: 4.45,
+  ctBot: 3.0,
+  ctTop: 5.15,
+  m1Bot: 5.15,
+  m1Top: 5.85
 };
 
-// 1. P-SUBSTRATE BASE SLAB
+// 1. P-SUBSTRATE BASE SLAB (Bottom seated at y=0, grid lines at y=-0.02 never clip)
 var subMesh = box(24, Y.subTop - Y.subBot, 22, '--c-substrate', { roughness: 0.85, metalness: 0.05 });
 subMesh.position.set(0, (Y.subTop + Y.subBot) / 2, 0);
 reg(subMesh, 'psub', 'substrate');
@@ -321,7 +328,7 @@ var sdeSrcMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-p', {
   outlineColor: '#f0b47a'
 });
 sdeSrcMesh.position.set(sdeSrcX, (Y.sdeTop + Y.sdeBot) / 2, 0);
-reg(sdeSrcMesh, 'sdeSrc', 'active');
+reg(sdeSrcMesh, 'sdeSrc', 'sde');
 
 var sdeDrnMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-p', {
   peakV: 0.12,
@@ -331,24 +338,99 @@ var sdeDrnMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-p', {
   outlineColor: '#f0b47a'
 });
 sdeDrnMesh.position.set(sdeDrnX, (Y.sdeTop + Y.sdeBot) / 2, 0);
-reg(sdeDrnMesh, 'sdeDrn', 'active');
+reg(sdeDrnMesh, 'sdeDrn', 'sde');
 
-// Dynamic Inversion Channel Indicator (lights up when VG = 0V / ON)
-var chanGeom = new THREE.BoxGeometry(2.0, 0.18, actD);
+// ---------------------------------------------------------------------------
+// 5. CONTINUOUS 3D HOLE INVERSION CHANNEL & PINCH-OFF REGION
+// ---------------------------------------------------------------------------
+var chanGeom = new THREE.BoxGeometry(2.0, 0.18, actD, 32, 1, 2);
 var chanMat = new THREE.MeshStandardMaterial({
-  color: new THREE.Color(0xff7733),
-  emissive: new THREE.Color(0xcc4400),
-  emissiveIntensity: 0.65,
+  color: 0xf43f5e,
+  emissive: 0xbe123c,
+  emissiveIntensity: 0.45,
   transparent: true,
-  opacity: 0.85,
-  roughness: 0.3,
-  metalness: 0.1
+  opacity: 0.75,
+  roughness: 0.22,
+  metalness: 0.15
 });
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
-channelMesh.position.set(0, -0.09, 0);
+channelMesh.position.set(0, 2.91, 0);
 reg(channelMesh, 'channel', 'active');
 
-// 5. N-WELL TAP (N+ OHMIC CONTACT TO VDD)
+// Dedicated pinch-off space-charge gap mesh visible during Saturation (VSD >= VSG - |VTH,p|)
+var pinchGeom = new THREE.BoxGeometry(0.8, 0.16, actD, 12, 1, 2);
+var pinchMat = new THREE.MeshStandardMaterial({
+  color: 0xf59e0b,
+  emissive: 0xd97706,
+  emissiveIntensity: 0.50,
+  transparent: true,
+  opacity: 0.50,
+  roughness: 0.25,
+  metalness: 0.20
+});
+var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
+pinchMesh.position.set(0.6, 2.92, 0);
+pinchMesh.visible = false;
+groups['active'].add(pinchMesh);
+
+// Function to dynamically deform channel thickness and taper based on PMOS physics
+window.updateChannelGeometry = function(vsg, vsd, isd, region, deltaL) {
+  var vth = 0.40;
+  var vov = Math.max(0, vsg - vth);
+
+  if (region === 'CUTOFF' || vov <= 0.001) {
+    channelMesh.visible = false;
+    pinchMesh.visible = false;
+    return;
+  }
+
+  channelMesh.visible = true;
+
+  // Base channel length along X is 2.0 (from -1.0 to +1.0)
+  var pos = chanGeom.attributes.position;
+  var maxH = 0.18;
+  var pinchX = (region === 'SATURATION') ? Math.max(-0.2, 1.0 - (deltaL || 0.4)) : 1.0;
+
+  for (var i = 0; i < pos.count; i++) {
+    var u = (pos.getX(i) + 1.0) / 2.0;
+
+    var thickness = 0;
+    if (region === 'LINEAR') {
+      var localV = u * vsd;
+      var localCharge = Math.max(0.08, (vov - localV) / Math.max(0.1, vov));
+      thickness = maxH * (0.35 + 0.65 * localCharge);
+    } else {
+      if (pos.getX(i) <= pinchX) {
+        var fracToPinch = (pos.getX(i) + 1.0) / (pinchX + 1.0);
+        thickness = maxH * Math.pow(Math.max(0.04, 1.0 - fracToPinch * 0.95), 0.7);
+      } else {
+        thickness = 0.01;
+      }
+    }
+
+    var origSignY = pos.getY(i) >= 0 ? 1 : -1;
+    pos.setY(i, (origSignY * thickness) / 2);
+  }
+
+  pos.needsUpdate = true;
+  chanGeom.computeVertexNormals();
+
+  var intensityNorm = Math.min(1.0, isd / 0.5);
+  chanMat.opacity = 0.35 + 0.55 * intensityNorm;
+  chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
+
+  if (region === 'SATURATION') {
+    pinchMesh.visible = true;
+    var gapW = Math.max(0.15, 1.0 - pinchX);
+    pinchMesh.scale.x = gapW / 0.8;
+    pinchMesh.position.x = pinchX + gapW / 2;
+    pinchMat.opacity = 0.30 + 0.40 * Math.min(1.0, (vsd - vov) / 0.8);
+  } else {
+    pinchMesh.visible = false;
+  }
+};
+
+// 6. N-WELL TAP (N+ OHMIC CONTACT TO VDD)
 var tapW = 2.4, tapD = 2.4;
 var tapMesh = gaussianDopingMesh(tapW, actH, tapD, '--c-well', {
   peakV: 0.18,
@@ -360,107 +442,134 @@ var tapMesh = gaussianDopingMesh(tapW, actH, tapD, '--c-well', {
 tapMesh.position.set(-6.5, (Y.actTop + Y.actBot) / 2, 6.2);
 reg(tapMesh, 'welltap', 'active');
 
-// 6. GATE DIELECTRIC STACK (SiO2 + High-k HfO2)
+// ---------------------------------------------------------------------------
+// 7. GATE DIELECTRIC STACK (SiO2 + High-k HfO2) - PRESERVE BLUE SiO2
+// ---------------------------------------------------------------------------
 var gateL = 2.0;
 var gateW = 9.8;
 
+// Interfacial Gate Oxide (SiO2) - PRESERVED IN BLUE PALETTE
 var oxMesh = box(gateL, Y.oxTop - Y.oxBot, gateW, '--c-oxide', {
   transparent: true,
-  opacity: 0.88,
-  roughness: 0.25,
+  opacity: 0.85,
+  roughness: 0.15,
   metalness: 0.05
 });
 oxMesh.position.set(0, (Y.oxTop + Y.oxBot) / 2, 0);
 reg(oxMesh, 'oxide', 'oxide');
 
+// High-k Dielectric (HfO2) - Translucent high-permittivity purple
 var hkMesh = box(gateL, Y.hkTop - Y.hkBot, gateW, '--c-highk', {
   transparent: true,
-  opacity: 0.88,
-  roughness: 0.25,
-  metalness: 0.15
+  opacity: 0.82,
+  roughness: 0.14,
+  metalness: 0.12
 });
 hkMesh.position.set(0, (Y.hkTop + Y.hkBot) / 2, 0);
 reg(hkMesh, 'highk', 'highk');
 
-// 7. POLYSILICON / METAL GATE RUNNER
+// ---------------------------------------------------------------------------
+// 8. POLYSILICON / METAL GATE RUNNER (HKMG - Crisp & Lustrous, not burnt!)
+// ---------------------------------------------------------------------------
 var polyRunnerLength = 13.4;
-var polyMesh = box(gateL, Y.polyTop - Y.polyBot, polyRunnerLength, '--c-poly', {
-  roughness: 0.35,
-  metalness: 0.25
+var polyColor = new THREE.Color(cssVar('--c-poly') || '#d8503c');
+var polyMat = new THREE.MeshStandardMaterial({
+  color: polyColor,
+  roughness: 0.24,
+  metalness: 0.35,
+  emissive: new THREE.Color(0x38120e),
+  emissiveIntensity: 0.18
 });
+var polyGeom = new THREE.BoxGeometry(gateL, Y.polyTop - Y.polyBot, polyRunnerLength);
+var polyMesh = new THREE.Mesh(polyGeom, polyMat);
+polyMesh.castShadow = true;
+polyMesh.receiveShadow = true;
 polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2, 1.2);
 reg(polyMesh, 'poly', 'poly');
 
-// Gate Spacers
-var spacerW = 0.45;
+// Sleek, modern crystalline Si3N4 sidewall spacers (crisp translucent dielectric)
+var spacerW = 0.20;
 var spacerMat = new THREE.MeshStandardMaterial({
-  color: 0x8a9ba8,
-  roughness: 0.6,
-  metalness: 0.1,
+  color: 0x67e8f9,
+  roughness: 0.30,
+  metalness: 0.08,
   transparent: true,
-  opacity: 0.75
+  opacity: 0.72
 });
+var spacerGroup = new THREE.Group();
 var leftSpacer = new THREE.Mesh(new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD), spacerMat);
 leftSpacer.position.set(-gateL / 2 - spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
-groups['poly'].add(leftSpacer);
+leftSpacer.userData.id = 'spacer';
+leftSpacer.userData.layer = 'spacer';
+spacerGroup.add(leftSpacer);
 
 var rightSpacer = new THREE.Mesh(new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD), spacerMat);
 rightSpacer.position.set(gateL / 2 + spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
-groups['poly'].add(rightSpacer);
+rightSpacer.userData.id = 'spacer';
+rightSpacer.userData.layer = 'spacer';
+spacerGroup.add(rightSpacer);
 
-// 8. TUNGSTEN CONTACT VIA PLUGS
-var ctRadius = 0.45;
+reg(spacerGroup, 'spacer', 'spacer');
+
+// ---------------------------------------------------------------------------
+// 9. TUNGSTEN CONTACT VIA PLUGS (Pure CVD Tungsten)
+// ---------------------------------------------------------------------------
+var ctRadius = 0.30;
+var ctRadiusBot = 0.24;
 var ctH = Y.ctTop - Y.ctBot;
 
 // Source Contact
-var srcCt = cylinder(ctRadius, ctRadius * 0.92, ctH, 20, '--c-contact');
+var srcCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 srcCt.position.set(srcX, (Y.ctTop + Y.ctBot) / 2, 0);
 reg(srcCt, 'contact', 'contact');
 
 // Drain Contact
-var drnCt = cylinder(ctRadius, ctRadius * 0.92, ctH, 20, '--c-contact');
+var drnCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 drnCt.position.set(drnX, (Y.ctTop + Y.ctBot) / 2, 0);
 reg(drnCt, 'contact', 'contact');
 
 // Gate Contact
 var gateCtH = Y.ctTop - Y.polyTop;
-var gateCt = cylinder(ctRadius, ctRadius * 0.92, gateCtH, 20, '--c-contact');
+var gateCt = cylinder(ctRadius, ctRadiusBot, gateCtH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 gateCt.position.set(0, (Y.ctTop + Y.polyTop) / 2, 6.2);
 reg(gateCt, 'contact', 'contact');
 
 // N-Well Tap Contact
-var wellCt = cylinder(ctRadius, ctRadius * 0.92, ctH, 20, '--c-contact');
+var wellCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 wellCt.position.set(-6.5, (Y.ctTop + Y.ctBot) / 2, 6.2);
 reg(wellCt, 'contact', 'contact');
 
-// 9. METAL-1 INTERCONNECT PADS
+// ---------------------------------------------------------------------------
+// 10. METAL-1 INTERCONNECT PADS
+// ---------------------------------------------------------------------------
 var m1H = Y.m1Top - Y.m1Bot;
 var m1Y = (Y.m1Top + Y.m1Bot) / 2;
 
 // Source Pad (S / VDD)
-var srcPad = box(3.4, m1H, 3.4, '#cf8a4a', { roughness: 0.25, metalness: 0.65 });
+var srcPad = box(3.4, m1H, 3.4, '#cf8a4a', { roughness: 0.20, metalness: 0.90 });
 srcPad.position.set(srcX, m1Y, 0);
 reg(srcPad, 'srcRail', 'metal');
 
 // Drain Pad (D / OUT)
-var drnPad = box(3.4, m1H, 3.4, '#e6a23c', { roughness: 0.25, metalness: 0.65 });
+var drnPad = box(3.4, m1H, 3.4, '#e6a23c', { roughness: 0.20, metalness: 0.90 });
 drnPad.position.set(drnX, m1Y, 0);
 reg(drnPad, 'drnRail', 'metal');
 
 // Gate Pad (G / VG)
-var gatePad = box(2.6, m1H, 2.6, '#e6c94a', { roughness: 0.25, metalness: 0.65 });
+var gatePad = box(2.6, m1H, 2.6, '#e6c94a', { roughness: 0.20, metalness: 0.90 });
 gatePad.position.set(0, m1Y, 6.2);
 reg(gatePad, 'gateRail', 'metal');
 
 // N-Well Tap Pad (B / VDD)
-var wellPad = box(2.6, m1H, 2.6, '#3f8f6f', { roughness: 0.25, metalness: 0.65 });
+var wellPad = box(2.6, m1H, 2.6, '#3f8f6f', { roughness: 0.20, metalness: 0.90 });
 wellPad.position.set(-6.5, m1Y, 6.2);
 reg(wellPad, 'wellRail', 'metal');
 
 // ---------------------------------------------------------------------------
-// 3D FLOATING TEXT LABELS WITH DEPTH TESTING
+// 3D TERMINAL CALLOUTS (WITH LEADER LINES & ANCHOR DOTS)
 // ---------------------------------------------------------------------------
 var labelSprites = [];
+var labelCalloutGroups = [];
 
 function makeTextSprite(text, colorHex, opts) {
   opts = opts || {};
@@ -470,7 +579,7 @@ function makeTextSprite(text, colorHex, opts) {
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = opts.bg || 'rgba(10, 16, 26, 0.88)';
+  ctx.fillStyle = opts.bg || 'rgba(10, 16, 26, 0.90)';
   ctx.strokeStyle = colorHex;
   ctx.lineWidth = 4;
   var r = 16;
@@ -506,22 +615,64 @@ function makeTextSprite(text, colorHex, opts) {
   return sprite;
 }
 
-function addLabel(text, colorHex, x, y, z) {
-  var s = makeTextSprite(text, colorHex);
-  s.position.set(x, y, z);
-  scene.add(s);
-  labelSprites.push(s);
-  return s;
+function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
+  var group = new THREE.Group();
+
+  // Thin vertical leader line
+  var lineGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0, 0, 0),
+    new THREE.Vector3(offset.x, offset.y, offset.z)
+  ]);
+  var lineMat = new THREE.LineBasicMaterial({
+    color: new THREE.Color(colorHex),
+    transparent: true,
+    opacity: 0.60,
+    linewidth: 1.5
+  });
+  var line = new THREE.Line(lineGeo, lineMat);
+  group.add(line);
+
+  // Anchor dot on the metal pad
+  var dotGeo = new THREE.SphereGeometry(0.08, 8, 8);
+  var dotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colorHex) });
+  var dot = new THREE.Mesh(dotGeo, dotMat);
+  group.add(dot);
+
+  // Text sprite badge
+  var sprite = makeTextSprite(text, colorHex);
+  sprite.position.set(offset.x, offset.y, offset.z);
+  group.add(sprite);
+  labelSprites.push(sprite);
+
+  group.position.set(padX, padY, padZ);
+  group.userData.isTerminalTag = true;
+  group.name = 'callout_' + text.replace(/[^a-zA-Z0-9]/g, '_');
+  labelCalloutGroups.push(group);
+  return group;
 }
 
-addLabel('SOURCE (S / VDD)', '#cf8a4a', srcX, Y.m1Top + 0.9, 0);
-addLabel('DRAIN (D / OUT)', '#e6a23c', drnX, Y.m1Top + 0.9, 0);
-addLabel('GATE (G / VG)', '#e6c94a', 0, Y.m1Top + 0.9, 6.2);
-addLabel('N-WELL (VDD)', '#3f8f6f', -6.5, Y.m1Top + 0.9, 6.2);
-addLabel('Wp ≈ 2x Wn', '#ffffff', 0, Y.polyTop + 0.8, -1.0);
+// Spatially distributed terminal callouts attached to groups['metal']
+var srcCallout = createTerminalCallout('SOURCE (S / VDD)', '#cf8a4a', srcX, Y.m1Top, 0, { x: -1.2, y: 1.6, z: -2.0 });
+groups['metal'].add(srcCallout);
+
+var drnCallout = createTerminalCallout('DRAIN (D / OUT)', '#e6a23c', drnX, Y.m1Top, 0, { x: 1.2, y: 1.6, z: -2.0 });
+groups['metal'].add(drnCallout);
+
+var gateCallout = createTerminalCallout('GATE (G / VG)', '#e6c94a', 0, Y.m1Top, 6.2, { x: 0, y: 1.6, z: 2.2 });
+groups['metal'].add(gateCallout);
+
+var wellCallout = createTerminalCallout('N-WELL (B / VDD)', '#3f8f6f', -6.5, Y.m1Top, 6.2, { x: -1.4, y: 1.6, z: 1.4 });
+groups['metal'].add(wellCallout);
+
+// PMOS width & gate length callout attached to groups['poly']
+var polyLengthCallout = createTerminalCallout('Wp ≈ 2Wn · L=28nm', '#ffffff', 0, Y.polyTop, 0, { x: 0, y: 1.2, z: -5.2 });
+groups['poly'].add(polyLengthCallout);
 
 function toggleLabels(visible) {
   labelSprites.forEach(function(s) {
     s.visible = visible;
+  });
+  labelCalloutGroups.forEach(function(g) {
+    g.visible = visible;
   });
 }

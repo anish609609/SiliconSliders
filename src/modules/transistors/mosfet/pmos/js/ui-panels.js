@@ -26,8 +26,9 @@ var TREE = [
       { label: 'INTERFACIAL SiO2', id: 'oxide' },
       { label: 'HIGH-K HfO2', id: 'highk' }
     ]},
-    { label: 'GATE ELECTRODE', children: [
-      { label: 'POLYSILICON RUNNER', id: 'poly' }
+    { label: 'GATE ELECTRODE & SPACERS', children: [
+      { label: 'POLYSILICON RUNNER', id: 'poly' },
+      { label: 'GATE SIDEWALL SPACERS (Si3N4)', id: 'spacer' }
     ]},
     { label: 'CONTACTS (TUNGSTEN)', children: [
       { label: 'SOURCE CONTACT (W)', id: 'contact' },
@@ -59,6 +60,7 @@ function idToInfo(id) {
     oxide: 'oxide',
     highk: 'highk',
     poly: 'poly',
+    spacer: 'spacer',
     contact: 'contact',
     metal: 'metal',
     welltap: 'welltap',
@@ -116,9 +118,11 @@ var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
   { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)' },
+  { key: 'sde',       name: 'EXTENSIONS (P-SDE / LDD)', color: 'var(--c-sde-p)' },
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)' },
+  { key: 'spacer',    name: 'GATE SPACERS (Si3N4)', color: '#67e8f9' },
   { key: 'contact',   name: 'CONTACTS (TUNGSTEN W)', color: 'var(--c-contact)' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECTS', color: 'var(--c-metal)' }
 ];

@@ -1,8 +1,9 @@
 /**
  * flow.js - PMOS CAD Viewer
  * Dynamic 3D carrier flow & conventional current simulation:
- * - Carrier flow: Holes (h+, magenta/rose) stream from P+ Source (at VDD) through channel to P+ Drain (OUT).
- * - Current flow: Conventional current (ISD, gold/amber) flows from Source to Drain.
+ * - Ultra-fine quantum hole particles (radius 0.042) streaming from Source (at VDD) to Drain (OUT).
+ * - Dynamic particle velocity, count, and path directly coupled to PMOS ISD and operating region.
+ * - Saturation pinch-off acceleration across space-charge depletion field.
  * - Dynamic path updates when layers are exploded.
  */
 
@@ -15,48 +16,85 @@ scene.add(flowGroup);
 var flowCurves = [];
 var flowMarkers = [];
 
-var markerGeom = new THREE.SphereGeometry(0.18, 12, 12);
-var holeMat = new THREE.MeshBasicMaterial({ color: 0xff4fbf });    // Magenta/rose for holes (h+)
-var currentMat = new THREE.MeshBasicMaterial({ color: 0xffcf4d }); // Amber for conventional current
+// Fine, small particle sphere geometry (very small fine particles, not bowling balls)
+var markerGeom = new THREE.SphereGeometry(0.042, 8, 8);
+var holeMat = new THREE.MeshBasicMaterial({ color: 0xff4fbf });    // Magenta/rose for mobile holes (h+)
+var currentMat = new THREE.MeshBasicMaterial({ color: 0xffcf4d }); // Warm amber for conventional current (ISD)
 
-function rebuildFlowCurves() {
+function createFlowCurve(points) {
+  return new THREE.CatmullRomCurve3(points);
+}
+
+function rebuildFlowCurves(optIsd, optRegion, optDeltaL) {
+  // Clear old markers
   while (flowGroup.children.length > 0) {
     flowGroup.remove(flowGroup.children[0]);
   }
   flowCurves = [];
   flowMarkers = [];
 
-  // PMOS is OFF when currentIn === 1 (high gate voltage)
-  if (flowMode === 'off' || currentIn === 1) {
+  var state = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : {
+    isd: (typeof optIsd === 'number' ? optIsd : 0.15),
+    region: optRegion || 'SATURATION',
+    deltaL: optDeltaL || 0.4
+  };
+
+  var isd = (typeof optIsd === 'number') ? optIsd : (state.isd !== undefined ? state.isd : state.ids);
+  var region = optRegion || state.region;
+  var deltaL = (typeof optDeltaL === 'number') ? optDeltaL : state.deltaL;
+
+  if (flowMode === 'off' || region === 'CUTOFF' || isd <= 0.0001) {
+    flowGroup.visible = false;
     var caption = document.getElementById('flow-caption');
     if (caption) {
-      caption.textContent = currentIn === 1 ? 'CHANNEL CUTOFF: VG = 1.0V keeps PMOS channel pinched off.' : 'FLOW: OFF';
+      if (flowMode === 'off') {
+        caption.textContent = 'CARRIER FLOW: OFF (Simulation Paused)';
+      } else {
+        caption.textContent = 'CUTOFF REGION (VSG < |VTH,p|): Zero hole inversion layer; conduction carriers quenched.';
+      }
+      caption.classList.add('visible');
     }
     return;
   }
 
+  flowGroup.visible = true;
+
+  // Active layer explosion offset
   var actOffset = groups['active'] ? groups['active'].position : new THREE.Vector3();
   var isCarrier = flowMode === 'carrier';
 
-  // Construct 4 parallel flow paths across the wider PMOS gate (Z: -3.0, -1.0, 1.0, 3.0)
-  [-3.0, -1.0, 1.0, 3.0].forEach(function(zOff) {
-    var pts = [];
-    // Both holes and conventional current flow from Source (at VDD, left) to Drain (right)
-    pts.push(new THREE.Vector3(-4.5 + actOffset.x, -0.4 + actOffset.y, zOff + actOffset.z));
-    pts.push(new THREE.Vector3(-1.8 + actOffset.x, -0.2 + actOffset.y, zOff + actOffset.z));
-    pts.push(new THREE.Vector3(0.0 + actOffset.x, -0.08 + actOffset.y, zOff + actOffset.z));
-    pts.push(new THREE.Vector3(1.8 + actOffset.x, -0.2 + actOffset.y, zOff + actOffset.z));
-    pts.push(new THREE.Vector3(4.5 + actOffset.x, -0.4 + actOffset.y, zOff + actOffset.z));
+  // Base speed directly driven by calculated drain current ISD
+  var currentNorm = Math.min(1.0, Math.max(0.05, isd / 0.5));
+  var baseSpeed = 0.0035 + 0.014 * currentNorm;
 
-    var curve = new THREE.CatmullRomCurve3(pts);
+  // Saturation pinch-off location
+  var pinchX = (region === 'SATURATION') ? Math.max(-0.2, 1.0 - deltaL) : 1.0;
+
+  // 5 parallel tracks along wider PMOS transistor width Z (-3.2 to +3.2)
+  var zTracks = [-3.2, -1.6, 0.0, 1.6, 3.2];
+  var particlesPerTrack = Math.round(7 + 7 * currentNorm);
+
+  zTracks.forEach(function(zOff) {
+    var pts = [];
+    // Mobile holes (h+) drift from Source (+VDD, left) to Drain (OUT, right)
+    // Conventional current (ISD) also flows from Source (+VDD) to Drain (OUT)
+    pts.push(new THREE.Vector3(-4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
+    pts.push(new THREE.Vector3(-1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
+    pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
+    pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
+    pts.push(new THREE.Vector3(1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
+    pts.push(new THREE.Vector3(4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
+
+    var curve = createFlowCurve(pts);
     flowCurves.push(curve);
 
-    for (var i = 0; i < 9; i++) {
+    for (var i = 0; i < particlesPerTrack; i++) {
       var m = new THREE.Mesh(markerGeom, isCarrier ? holeMat : currentMat);
       m.userData = {
         curve: curve,
-        progress: (i / 9) + Math.random() * 0.05,
-        speed: 0.005 + Math.random() * 0.002 // Slightly slower speed reflects lower hole mobility μp
+        progress: (i / particlesPerTrack) + Math.random() * 0.04,
+        speed: baseSpeed * (0.88 + Math.random() * 0.24),
+        isSaturation: region === 'SATURATION'
       };
       flowGroup.add(m);
       flowMarkers.push(m);
@@ -66,20 +104,37 @@ function rebuildFlowCurves() {
   var captionEl = document.getElementById('flow-caption');
   if (captionEl) {
     if (isCarrier) {
-      captionEl.textContent = 'CARRIER FLOW: Mobile holes (h+) drift from Source (P+ at VDD) through channel to Drain (P+ at OUT).';
+      if (region === 'LINEAR') {
+        captionEl.textContent = 'HOLE DRIFT (LINEAR REGION): Mobile holes (h⁺) drift continuously from Source (+VDD) through inverted P-channel to Drain.';
+      } else {
+        captionEl.textContent = 'HOLE DRIFT (SATURATION REGION): Holes stream through P-channel, then accelerate across pinch-off depletion field into Drain.';
+      }
     } else {
-      captionEl.textContent = 'CONVENTIONAL CURRENT: Positive charge flow (ISD) pulls output node up towards VDD.';
+      captionEl.textContent = 'CONVENTIONAL CURRENT (ISD): Positive charge flow pulls output load node towards VDD.';
     }
+    captionEl.classList.add('visible');
   }
 }
 
+function stepFlowMarkers(dt) {
+  updateFlowMarkers(dt);
+}
+
 function updateFlowMarkers() {
-  if (flowMode === 'off' || currentIn === 1 || !flowMarkers.length) return;
+  if (flowMode === 'off' || !flowMarkers.length || !flowGroup.visible) return;
 
   for (var i = 0; i < flowMarkers.length; i++) {
     var m = flowMarkers[i];
-    m.userData.progress += m.userData.speed;
+    var currentSpeed = m.userData.speed;
+
+    // Acceleration across pinch-off space-charge region in Saturation
+    if (m.userData.isSaturation && m.userData.progress >= 0.55 && m.userData.progress <= 0.85) {
+      currentSpeed *= 2.4;
+    }
+
+    m.userData.progress += currentSpeed;
     if (m.userData.progress > 1.0) m.userData.progress -= 1.0;
+
     var pt = m.userData.curve.getPointAt(m.userData.progress);
     if (pt) m.position.copy(pt);
   }

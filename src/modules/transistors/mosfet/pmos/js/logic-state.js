@@ -1,80 +1,506 @@
 /**
  * logic-state.js - PMOS CAD Viewer
- * Electrical state machine for discrete PMOS transistor (Active-Low):
- * Toggles Gate voltage VG between 0V (ON / Inversion), 1.0V (OFF / Cutoff), and Floating High-Z.
- * Updates 3D hole channel luminescence and the HUD status telemetry badge.
+ * Continuous PMOS Operating-Region Physics Engine & Live ISD-VSD Graph:
+ * - Delineates Cutoff (VSG < |VTH,p|), Linear/Triode (VSD < VSG - |VTH,p|), and Saturation (VSD >= VSG - |VTH,p|).
+ * - Computes hole current ISD with channel-length modulation lambda.
+ * - Live interactive ISD vs VSD graph renderer with active operating point dot and pinch-off locus.
+ * - Two-way coupled to 3D P-channel taper/pinch-off and fine hole carrier flow.
  */
 
-var currentIn = 0; // Default to ON (VG = 0V) for PMOS active-low conduction
-var stateBadge = document.getElementById('state-badge');
-var inSeg = document.getElementById('in-seg');
+// PMOS Physical Constants (28nm High-Performance HKMG node illustrative model)
+var VTH_P = 0.40;         // Threshold voltage magnitude |VTH,p| (V)
+var KP_PRIME = 0.80;      // Conduction parameter kp' = mu_p * Cox * (Wp/L) (mA/V^2)
+var LAMBDA_P = 0.08;      // Channel-length modulation parameter (1/V)
+var NOMINAL_L = 28.0;     // Gate length (nm)
+var MODEL_L = 2.0;        // 3D coordinate length along X
 
-function applyLogicState() {
-  var badgeVg = document.getElementById('badge-vg') || document.getElementById('badge-in');
-  var badgeState = document.getElementById('badge-state') || document.getElementById('badge-pmos');
-  var badgeChan = document.getElementById('badge-chan') || document.getElementById('badge-nmos');
-  var badgeIsd = document.getElementById('badge-isd') || document.getElementById('badge-out');
+// Active continuous bias states
+var currentVsg = 1.00;    // Source-to-Gate bias |VGS| (0.00V to 1.80V)
+var currentVsd = 0.80;    // Source-to-Drain bias |VDS| (0.00V to 1.80V)
+var currentIn = 0;        // Backward-compatibility flag (0 = ON, 1 = OFF/Cutoff)
 
-  var isOn = currentIn === 0;
-  var isFloating = currentIn === 'off';
+// Public accessor for other modules (e.g. flow.js)
+window.getMosfetPhysicsState = function() {
+  var vov = Math.max(0, currentVsg - VTH_P);
+  var vsdSat = vov;
+  var region = 'CUTOFF';
+  var isd = 0.0;
+  var deltaL = 0.0;
 
-  if (isFloating) {
-    if (badgeVg) { badgeVg.textContent = 'FLOATING'; badgeVg.className = 'v floating'; }
-    if (badgeState) { badgeState.textContent = 'HIGH-Z / UNBIASED'; badgeState.className = 'v warn'; }
-    if (badgeChan) { badgeChan.textContent = 'WEAK INVERSION'; badgeChan.className = 'v warn'; }
-    if (badgeIsd) { badgeIsd.textContent = '≈ 0 (LEAKAGE)'; badgeIsd.className = 'v floating'; }
-
-    if (typeof channelMesh !== 'undefined' && channelMesh && channelMesh.material) {
-      channelMesh.material.opacity = 0.15;
-      channelMesh.material.emissiveIntensity = 0.05;
-    }
-  } else if (isOn) {
-    // PMOS is ON when VG = 0V (VGS = -1.0V)
-    if (badgeVg) { badgeVg.textContent = '0.0 V (LOW)'; badgeVg.className = 'v on'; }
-    if (badgeState) { badgeState.textContent = 'ON (INVERSION)'; badgeState.className = 'v on'; }
-    if (badgeChan) { badgeChan.textContent = 'HOLE INVERSION LAYER'; badgeChan.className = 'v on'; }
-    if (badgeIsd) { badgeIsd.textContent = 'PULL-UP TO VDD (ISD > 0)'; badgeIsd.className = 'v on'; }
-
-    if (typeof channelMesh !== 'undefined' && channelMesh && channelMesh.material) {
-      channelMesh.material.opacity = 0.85;
-      channelMesh.material.emissiveIntensity = 0.65;
-    }
+  if (vov <= 0.001) {
+    region = 'CUTOFF';
+    isd = 0.0;
+  } else if (currentVsd < vsdSat) {
+    region = 'LINEAR';
+    isd = KP_PRIME * (vov * currentVsd - 0.5 * currentVsd * currentVsd) * (1.0 + LAMBDA_P * currentVsd);
   } else {
-    // PMOS is OFF when VG = 1.0V (VGS = 0V)
-    if (badgeVg) { badgeVg.textContent = '1.0 V (VDD)'; badgeVg.className = 'v off'; }
-    if (badgeState) { badgeState.textContent = 'OFF (CUTOFF)'; badgeState.className = 'v off'; }
-    if (badgeChan) { badgeChan.textContent = 'DEPLETION LAYER'; badgeChan.className = 'v off'; }
-    if (badgeIsd) { badgeIsd.textContent = '0.0 µA (CUTOFF)'; badgeIsd.className = 'v off'; }
+    region = 'SATURATION';
+    var vsdDiff = currentVsd - vsdSat;
+    isd = 0.5 * KP_PRIME * vov * vov * (1.0 + LAMBDA_P * vsdDiff);
+    deltaL = MODEL_L * Math.min(0.38, 0.22 * Math.sqrt(Math.max(0, vsdDiff)));
+  }
 
-    if (typeof channelMesh !== 'undefined' && channelMesh && channelMesh.material) {
-      channelMesh.material.opacity = 0.08;
-      channelMesh.material.emissiveIntensity = 0.0;
+  var leff = NOMINAL_L * (1.0 - (deltaL / MODEL_L));
+
+  return {
+    vsg: currentVsg,
+    vsd: currentVsd,
+    vgs: -currentVsg,
+    vds: -currentVsd,
+    vth: VTH_P,
+    vov: vov,
+    vsdSat: vsdSat,
+    isd: Math.max(0, isd),
+    ids: Math.max(0, isd),
+    region: region,
+    deltaL: deltaL,
+    leff: leff
+  };
+};
+
+// ---------------------------------------------------------------------------
+// APPLY STATE: Drives Topbar, Graph, 3D Channel, Telemetry & Hole Carrier Flow
+// ---------------------------------------------------------------------------
+function applyLogicState() {
+  var phys = window.getMosfetPhysicsState();
+  var vsg = phys.vsg;
+  var vsd = phys.vsd;
+  var vov = phys.vov;
+  var isd = phys.isd;
+  var region = phys.region;
+  var deltaL = phys.deltaL;
+  var leff = phys.leff;
+
+  currentIn = (region === 'CUTOFF') ? 1 : 0;
+
+  // 1. Update Topbar Sliders & Value Readouts
+  var vsgSlider = document.getElementById('vsg-slider');
+  var vsgVal = document.getElementById('vsg-val');
+  if (vsgSlider && Math.abs(parseFloat(vsgSlider.value) - vsg) > 0.01) vsgSlider.value = vsg.toFixed(2);
+  if (vsgVal) vsgVal.textContent = vsg.toFixed(2) + 'V';
+
+  var vsdSlider = document.getElementById('vsd-slider');
+  var vsdVal = document.getElementById('vsd-val');
+  if (vsdSlider && Math.abs(parseFloat(vsdSlider.value) - vsd) > 0.01) vsdSlider.value = vsd.toFixed(2);
+  if (vsdVal) vsdVal.textContent = vsd.toFixed(2) + 'V';
+
+  // 2. Update Topbar Region Badge & Presets
+  var regionBadge = document.getElementById('region-badge');
+  if (regionBadge) {
+    regionBadge.textContent = region === 'LINEAR' ? 'LINEAR / TRIODE' : region;
+    regionBadge.className = 'region-badge-pill ' + region.toLowerCase();
+  }
+
+  document.querySelectorAll('#region-preset-seg button').forEach(function(b) {
+    var p = b.dataset.preset;
+    b.classList.toggle('active', (region === 'CUTOFF' && p === 'cutoff') ||
+                                 (region === 'LINEAR' && p === 'linear') ||
+                                 (region === 'SATURATION' && p === 'saturation'));
+  });
+
+  // 3. Update HUD Graph Pill & Readouts
+  var hudRegionPill = document.getElementById('iv-hud-region-pill');
+  if (hudRegionPill) {
+    hudRegionPill.textContent = region === 'LINEAR' ? 'LINEAR' : region;
+    hudRegionPill.className = 'region-pill ' + region.toLowerCase();
+  }
+
+  var ivVsg = document.getElementById('iv-vsg-readout') || document.getElementById('iv-vgs-readout');
+  if (ivVsg) ivVsg.textContent = vsg.toFixed(2) + ' V';
+  var ivVsd = document.getElementById('iv-vsd-readout') || document.getElementById('iv-vds-readout');
+  if (ivVsd) ivVsd.textContent = vsd.toFixed(2) + ' V';
+  var ivVov = document.getElementById('iv-vov-readout');
+  if (ivVov) ivVov.textContent = vov.toFixed(2) + ' V';
+  var ivIsd = document.getElementById('iv-isd-readout') || document.getElementById('iv-ids-readout');
+  if (ivIsd) ivIsd.textContent = (isd >= 0.01 ? isd.toFixed(2) : '≈ 0') + ' mA';
+  var ivLeff = document.getElementById('iv-leff-readout');
+  if (ivLeff) ivLeff.textContent = leff.toFixed(1) + ' nm';
+
+  var ivStateDesc = document.getElementById('iv-state-desc');
+  if (ivStateDesc) {
+    if (region === 'CUTOFF') {
+      ivStateDesc.textContent = 'Channel quenched · Subthreshold state';
+    } else if (region === 'LINEAR') {
+      ivStateDesc.textContent = 'Continuous P-channel · Ohmic hole drift';
+    } else {
+      ivStateDesc.textContent = 'Pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm · High-field sweep';
     }
   }
 
-  // Update SVG schematic indicators if present
-  var schVg = document.getElementById('sch-vg-val');
-  if (schVg) schVg.textContent = isFloating ? 'FLT' : (isOn ? '0.0V' : '1.0V');
-  var schChan = document.getElementById('sch-channel-state');
-  if (schChan) schChan.textContent = isFloating ? 'HIGH-Z' : (isOn ? 'ON (INVERTED)' : 'OFF (CUTOFF)');
+  document.querySelectorAll('#isd-vsd-hud .iv-preset-btn, #ids-vds-hud .iv-preset-btn').forEach(function(btn) {
+    var p = btn.dataset.preset;
+    btn.classList.toggle('active', (region === 'CUTOFF' && p === 'cutoff') ||
+                                   (region === 'LINEAR' && p === 'linear') ||
+                                   (region === 'SATURATION' && p === 'saturation'));
+  });
 
-  if (typeof rebuildFlowCurves === 'function') {
-    rebuildFlowCurves();
+  // 4. Update HUD Status Telemetry Badge
+  var badgeVsg = document.getElementById('badge-vsg') || document.getElementById('badge-vg');
+  var badgeState = document.getElementById('badge-state');
+  var badgeChan = document.getElementById('badge-chan');
+  var badgeIsd = document.getElementById('badge-isd');
+
+  if (badgeVsg) {
+    badgeVsg.textContent = vsg.toFixed(2) + ' V (' + (vsg <= VTH_P ? 'VSG < |VTH|' : 'VSG > |VTH|') + ')';
+    badgeVsg.className = 'v ' + (region === 'CUTOFF' ? 'off' : 'on');
+  }
+  if (badgeState) {
+    badgeState.textContent = region;
+    badgeState.className = 'v ' + (region === 'CUTOFF' ? 'off' : (region === 'SATURATION' ? 'on' : 'warn'));
+  }
+  if (badgeChan) {
+    if (region === 'CUTOFF') {
+      badgeChan.textContent = 'DEPLETED / NO CHANNEL';
+      badgeChan.className = 'v off';
+    } else if (region === 'LINEAR') {
+      badgeChan.textContent = 'INVERTED P-CHANNEL (CONTINUOUS)';
+      badgeChan.className = 'v on';
+    } else {
+      badgeChan.textContent = 'PINCHED-OFF (Leff=' + leff.toFixed(1) + 'nm)';
+      badgeChan.className = 'v warn';
+    }
+  }
+  if (badgeIsd) {
+    badgeIsd.textContent = (isd >= 0.01 ? isd.toFixed(2) + ' mA' : '0.00 mA (CUTOFF)');
+    badgeIsd.className = 'v ' + (isd >= 0.01 ? 'on' : 'off');
   }
 
+  // 5. Update 2D SVG Schematic Indicators
+  var schVg = document.getElementById('sch-vg-val') || document.getElementById('sch-vsg-val');
+  if (schVg) schVg.textContent = (1.0 - vsg).toFixed(2) + 'V';
+  var schChan = document.getElementById('sch-channel-state');
+  if (schChan) {
+    schChan.textContent = region === 'CUTOFF' ? 'OFF (CUTOFF)' : (region === 'LINEAR' ? 'ON (TRIODE)' : 'ON (SAT)');
+  }
+
+  // 6. Dynamically Deform 3D Inversion Channel in Real-Time
+  if (typeof window.updateChannelGeometry === 'function') {
+    window.updateChannelGeometry(vsg, vsd, isd, region, deltaL);
+  }
+
+  // 7. Redraw Live ISD-VSD Graph
+  drawIsdVsdGraph(vsg, vsd, isd, region);
+
+  // 8. Rebuild Fine Hole Carrier Flow Simulation
+  if (typeof rebuildFlowCurves === 'function') {
+    rebuildFlowCurves(isd, region, deltaL);
+  }
+
+  // 9. Update Context for AI Voice Assistant
   if (typeof lastSelectedId !== 'undefined' && lastSelectedId && typeof window.updateVoiceAssistantContext === 'function') {
     window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
   }
 }
 
-if (inSeg) {
-  inSeg.querySelectorAll('button').forEach(function(b) {
-    b.addEventListener('click', function() {
-      var v = b.dataset.in;
-      currentIn = v === 'off' ? 'off' : parseInt(v, 10);
-      inSeg.querySelectorAll('button').forEach(function(btn) { btn.classList.remove('active'); });
-      b.classList.add('active');
+// ---------------------------------------------------------------------------
+// LIVE ISD vs VSD CHARACTERISTIC GRAPH RENDERER
+// ---------------------------------------------------------------------------
+function drawIsdVsdGraph(activeVsg, activeVsd, activeIsd, activeRegion) {
+  var canvas = document.getElementById('iv-canvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  var W = rect.width || 300;
+  var H = rect.height || 160;
+
+  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+  }
+
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+  // Palette
+  var bgColor = isLight ? '#f8fafc' : '#080c12';
+  var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+  var axisColor = isLight ? '#94a3b8' : '#232b38';
+  var textColor = isLight ? '#64748b' : '#64748b';
+  var dimmedCurveColor = isLight ? 'rgba(219,39,119,0.22)' : 'rgba(255,79,191,0.20)';
+  var activeCurveColor = isLight ? '#db2777' : '#ff4fbf';
+  var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
+  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#ff4fbf' : '#cf8a4a');
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Margins
+  var padL = 36;
+  var padR = 14;
+  var padT = 14;
+  var padB = 24;
+  var plotW = W - padL - padR;
+  var plotH = H - padT - padB;
+
+  var vsdMax = 1.8;
+  var isdMax = 0.95; // mA
+
+  function toX(v) { return padL + (v / vsdMax) * plotW; }
+  function toY(i) { return padT + plotH - (i / isdMax) * plotH; }
+
+  // Draw Grid Lines & Tick Labels
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  ctx.fillStyle = textColor;
+  ctx.font = '9px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'center';
+
+  // VSD ticks: 0, 0.6, 1.2, 1.8
+  [0, 0.6, 1.2, 1.8].forEach(function(v) {
+    var x = toX(v);
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillText(v.toFixed(1), x, padT + plotH + 13);
+  });
+  ctx.fillText('V_SD (V)', padL + plotW / 2, padT + plotH + 22);
+
+  // ISD ticks: 0, 0.2, 0.4, 0.6, 0.8
+  ctx.textAlign = 'right';
+  [0, 0.2, 0.4, 0.6, 0.8].forEach(function(i) {
+    var y = toY(i);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    ctx.fillText(i.toFixed(1), padL - 6, y + 3);
+  });
+
+  ctx.save();
+  ctx.translate(11, padT + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('I_SD (mA)', 0, 0);
+  ctx.restore();
+
+  // Draw Pinch-off Parabolic Boundary Curve: VSD = VSG - |VTH,p| => ISD = 0.5 * KP * VSD^2
+  ctx.strokeStyle = pinchOffColor;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath();
+  var startedPinch = false;
+  for (var v = 0; v <= vsdMax; v += 0.05) {
+    var iBoundary = 0.5 * KP_PRIME * v * v;
+    if (iBoundary > isdMax) break;
+    var px = toX(v);
+    var py = toY(iBoundary);
+    if (!startedPinch) { ctx.moveTo(px, py); startedPinch = true; }
+    else { ctx.lineTo(px, py); }
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Labels for Linear and Saturation regions
+  ctx.font = '8px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? 'rgba(207,138,74,0.7)' : 'rgba(207,138,74,0.55)';
+  ctx.textAlign = 'left';
+  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 16);
+  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.7)' : 'rgba(255,79,191,0.55)';
+  ctx.textAlign = 'right';
+  ctx.fillText('SATURATION', padL + plotW - 8, padT + 16);
+
+  // Family of VSG Curves: 0.6V, 0.9V, 1.2V, 1.5V
+  var vsgFamily = [0.60, 0.90, 1.20, 1.50];
+  vsgFamily.forEach(function(curveVsg) {
+    var vovFamily = Math.max(0, curveVsg - VTH_P);
+    if (vovFamily <= 0.01) return;
+
+    var isCloseToActive = Math.abs(curveVsg - activeVsg) < 0.06;
+    if (isCloseToActive) return; // Will draw highlighted active curve separately
+
+    ctx.strokeStyle = dimmedCurveColor;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    var started = false;
+
+    for (var v = 0; v <= vsdMax; v += 0.05) {
+      var iCalc = 0;
+      if (v < vovFamily) {
+        iCalc = KP_PRIME * (vovFamily * v - 0.5 * v * v) * (1.0 + LAMBDA_P * v);
+      } else {
+        iCalc = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (v - vovFamily));
+      }
+      var cx = toX(v);
+      var cy = toY(Math.min(isdMax, iCalc));
+      if (!started) { ctx.moveTo(cx, cy); started = true; }
+      else { ctx.lineTo(cx, cy); }
+    }
+    ctx.stroke();
+
+    // Curve label
+    var endI = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (vsdMax - vovFamily));
+    if (endI < isdMax) {
+      ctx.fillStyle = textColor;
+      ctx.font = '7.5px "IBM Plex Mono", monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(curveVsg.toFixed(1) + 'V', toX(vsdMax) - 2, toY(endI) - 3);
+    }
+  });
+
+  // Active Highlighted VSG Curve
+  var activeVov = Math.max(0, activeVsg - VTH_P);
+  if (activeVov > 0.001) {
+    ctx.strokeStyle = activeCurveColor;
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    var startedActive = false;
+
+    for (var v = 0; v <= vsdMax; v += 0.04) {
+      var iCalc = 0;
+      if (v < activeVov) {
+        iCalc = KP_PRIME * (activeVov * v - 0.5 * v * v) * (1.0 + LAMBDA_P * v);
+      } else {
+        iCalc = 0.5 * KP_PRIME * activeVov * activeVov * (1.0 + LAMBDA_P * (v - activeVov));
+      }
+      var cx = toX(v);
+      var cy = toY(Math.min(isdMax, iCalc));
+      if (!startedActive) { ctx.moveTo(cx, cy); startedActive = true; }
+      else { ctx.lineTo(cx, cy); }
+    }
+    ctx.stroke();
+  }
+
+  // Crosshairs from Axes to Operating Point
+  var dotX = toX(activeVsd);
+  var dotY = toY(Math.min(isdMax, activeIsd));
+
+  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+
+  // Horizontal line to Y axis
+  ctx.beginPath();
+  ctx.moveTo(padL, dotY);
+  ctx.lineTo(dotX, dotY);
+  ctx.stroke();
+
+  // Vertical line to X axis
+  ctx.beginPath();
+  ctx.moveTo(dotX, padT + plotH);
+  ctx.lineTo(dotX, dotY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Active Operating Point Dot
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 7, 0, Math.PI * 2);
+  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.25)' : 'rgba(255,79,191,0.30)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, 4.5, 0, Math.PI * 2);
+  ctx.fillStyle = dotColor;
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+// ---------------------------------------------------------------------------
+// INTERACTIVE EVENT LISTENERS & INITIALIZATION
+// ---------------------------------------------------------------------------
+function initLogicStateControls() {
+  // Topbar VSG Slider
+  var vsgSlider = document.getElementById('vsg-slider');
+  if (vsgSlider) {
+    vsgSlider.addEventListener('input', function(e) {
+      currentVsg = parseFloat(e.target.value);
       applyLogicState();
     });
+  }
+
+  // Topbar VSD Slider
+  var vsdSlider = document.getElementById('vsd-slider');
+  if (vsdSlider) {
+    vsdSlider.addEventListener('input', function(e) {
+      currentVsd = parseFloat(e.target.value);
+      applyLogicState();
+    });
+  }
+
+  // Preset Buttons (Topbar & HUD)
+  function applyPreset(preset) {
+    if (preset === 'cutoff') {
+      currentVsg = 0.00;
+      currentVsd = 0.80;
+    } else if (preset === 'linear') {
+      currentVsg = 1.00;
+      currentVsd = 0.30;
+    } else if (preset === 'saturation') {
+      currentVsg = 1.00;
+      currentVsd = 0.80;
+    }
+    applyLogicState();
+  }
+
+  document.querySelectorAll('[data-preset]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      applyPreset(btn.dataset.preset);
+    });
   });
+
+  // Interactive Graph Canvas: Drag or Click to modulate VSD
+  var canvas = document.getElementById('iv-canvas');
+  if (canvas) {
+    var isDragging = false;
+
+    function handleGraphPointer(e) {
+      var rect = canvas.getBoundingClientRect();
+      var padL = 36, padR = 14;
+      var padT = 14, padB = 24;
+      var plotW = rect.width - padL - padR;
+      var plotH = rect.height - padT - padB;
+
+      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      var clickX = clientX - rect.left - padL;
+      var clickY = clientY - rect.top - padT;
+
+      var normX = Math.max(0, Math.min(1.0, clickX / plotW));
+
+      currentVsd = Math.round(normX * 1.8 * 20) / 20; // 0.05V step
+      applyLogicState();
+    }
+
+    canvas.addEventListener('mousedown', function(e) {
+      isDragging = true;
+      handleGraphPointer(e);
+    });
+    window.addEventListener('mousemove', function(e) {
+      if (isDragging) handleGraphPointer(e);
+    });
+    window.addEventListener('mouseup', function() {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('touchstart', function(e) {
+      isDragging = true;
+      handleGraphPointer(e);
+      e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchmove', function(e) {
+      if (isDragging) {
+        handleGraphPointer(e);
+        e.preventDefault();
+      }
+    }, { passive: false });
+    window.addEventListener('touchend', function() {
+      isDragging = false;
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLogicStateControls);
+} else {
+  initLogicStateControls();
 }

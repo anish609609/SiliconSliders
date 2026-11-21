@@ -12,6 +12,7 @@ var LEGEND = [
   { key: 'oxide',     name: 'GATE OXIDE (INTERFACIAL SiO2)', color: 'var(--c-oxide)', desc: 'Ultra-thin chemical oxide layer (~0.6 nm) passivating silicon surface to minimize Dit interface defect states.' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling without direct tunneling leakage.' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)', desc: 'Gate electrode controlling electrostatic potential across the channel to induce hole inversion.' },
+  { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep P+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
   { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion, well tap, and poly layers to the first metal interconnect.' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/VDD), Drain (D/OUT), Gate (G/VG), and N-Well Tap (B/VDD) terminals.' },
   { key: 'src',       name: 'SOURCE TERMINAL (S / VDD)', color: '#cf8a4a', desc: 'Supplies carrier holes into the channel; tied to positive supply rail VDD (1.0V).' },
@@ -70,11 +71,11 @@ var INFO = {
     doping: 'P-type, lightly doped — Na ≈ 1×10¹⁸ cm⁻³'
   },
   channel: {
-    title: 'HOLE INVERSION CHANNEL',
-    fn: 'Sub-gate silicon interface inside the N-Well.',
-    role: 'When VG < VDD - |VTP| (e.g. VG = 0V), negative VGS bends energy bands upward, accumulating mobile holes into an inversion layer.',
+    title: 'HOLE INVERSION CHANNEL REGION',
+    fn: 'Sub-gate silicon interface inside the N-Well where electrostatic band bending and hole transport occur.',
+    role: 'When VSG > |VTH,p| (0.40V), negative gate-to-channel potential induces an accumulation of mobile holes (p-channel inversion). In Linear/Triode (VSD < VSG - |VTH,p|), channel is continuous from Source to Drain. In Saturation (VSD ≥ VSG - |VTH,p|), channel pinches off near the drain (effective length Leff = L - ΔL) and mobile holes accelerate across the space-charge depletion field.',
     conn: 'Conductive p-type bridge between P+ Source and P+ Drain.',
-    rel: 'Controlled by the High-k gate stack immediately above it.',
+    rel: 'Modulated dynamically by gate overdrive (VOV = VSG - |VTH,p|) and drain bias (VSD).',
     doping: 'N-Well bulk background (Nd ≈ 1×10¹⁷ cm⁻³) with threshold adjust implant'
   },
   oxide: {
@@ -100,6 +101,14 @@ var INFO = {
     conn: 'Tungsten Via → Metal-1 Gate Pad (VG Input)',
     rel: 'Workfunction tuned specifically for PMOS band alignment near valence band edge (Ev).',
     doping: 'P+ doped polysilicon or workfunction metal (e.g. TiN/Pt)'
+  },
+  spacer: {
+    title: 'GATE SIDEWALL SPACERS (Si3N4)',
+    fn: 'Silicon nitride (Si3N4) dielectric spacers formed on the vertical sidewalls of the gate stack.',
+    role: 'Acts as a self-aligned offset hardmask for the heavy P+ source/drain deep ion implants, protecting the shallow P-SDE / LDD extensions underneath. Prevents source/drain silicide from shorting to the gate electrode and reduces gate-to-drain parasitic overlap capacitance (Cgd).',
+    conn: 'Dielectric insulator flanking gate electrode and gate dielectric.',
+    rel: 'Deposited conformally by LPCVD/PECVD and anisotropically reactive-ion etched (RIE) back with zero lateral mask.',
+    doping: 'Dielectric insulator — Silicon Nitride (Si3N4, k ≈ 7.5)'
   },
   contact: {
     title: 'TUNGSTEN CONTACT PLUG (W-VIA)',
@@ -140,11 +149,11 @@ var INFO = {
     rel: 'Current flows from Source to Drain when channel is active.'
   },
   gateRail: {
-    title: 'GATE INPUT PAD (VG)',
-    fn: 'Metal-1 terminal pad supplying active-low gate voltage VG.',
-    role: 'Toggles between 0V (ON / Inversion) and VDD (OFF / Cutoff).',
+    title: 'GATE INPUT PAD (G / VG / VSG)',
+    fn: 'Metal-1 terminal pad supplying continuous input gate bias VSG (0.00V to 1.80V) where VG = VDD - VSG.',
+    role: 'Controls channel inversion: Cutoff when VSG < |VTH,p| (0.40V), Linear/Triode when VSD < VSG - |VTH,p|, and Saturation when VSD ≥ VSG - |VTH,p|.',
     conn: 'Drives gate electrode via tungsten contact plug.',
-    rel: 'Active-low control input.'
+    rel: 'Purely capacitive terminal — draws near-zero DC steady-state current.'
   },
   wellRail: {
     title: 'N-WELL BODY TERMINAL (B / VDD)',

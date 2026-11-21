@@ -1,167 +1,243 @@
 /**
  * build-anim.js - PMOS CAD Viewer
- * Step-by-step IC fabrication process sequence animation with audio narration support:
- * 1. P-Substrate bulk silicon wafer preparation
- * 2. Deep N-Well tub ion implantation & thermal drive-in
- * 3. Active area lithography & STI trench isolation
- * 4. High-k gate dielectric stack (Interfacial SiO2 + High-k HfO2 ALD)
- * 5. Polysilicon / Metal gate deposition & anisotropic etching
- * 6. Low-energy self-aligned P-SDE / LDD ion implantation
- * 7. Gate spacer deposition & heavy P+ Source/Drain implant + N+ Well tap
- * 8. Interlayer Dielectric (ILD) & Tungsten contact via fill
- * 9. Metal-1 metallization & CMP planarization
+ * Step-by-step drop-down IC fabrication process sequence animation:
+ * 1. P-Substrate (Bulk)
+ * 2. Deep N-Well Tub
+ * 3. Gate Dielectric Stack (SiO2 / HfO2)
+ * 4. Polysilicon / Metal Gate
+ * 5. Shallow P-SDE / LDD Extensions & Gate Sidewall Spacers (Si3N4)
+ * 6. Heavily Doped P+ Source/Drain & N+ Well Tap (VDD)
+ * 7. Tungsten (W) Contacts
+ * 8. Metal-1 Interconnects
  */
 
 var FAB_STEPS = [
   {
     step: 1,
     title: 'P-Substrate Preparation',
-    desc: 'Starts with a p-type single-crystal silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) with (100) crystal orientation.',
+    desc: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) provides mechanical support and the bulk semiconductor body.',
     layers: ['substrate'],
-    narration: 'We begin with a single-crystal P-type silicon wafer that provides mechanical support and the base substrate.'
+    newLayers: ['substrate'],
+    narration: 'We begin with a single-crystal P-type silicon wafer lightly doped with boron, providing mechanical structure and bulk holes.'
   },
   {
     step: 2,
-    title: 'N-Well Tub Implantation',
-    desc: 'Phosphorus retrograde ion implantation and high-temperature thermal drive-in form the deep N-Well tub (Nd ≈ 1×10¹⁷ cm⁻³).',
+    title: 'Deep N-Well Tub Formation',
+    desc: 'High-energy phosphorus ion implantation and thermal drive-in create the deep N-Well tub (Nd ≈ 1×10¹⁷ cm⁻³) to host the PMOS device.',
     layers: ['substrate', 'well'],
-    narration: 'A deep N-well tub is formed by phosphorus implantation and drive-in diffusion to isolate the PMOS transistor from the p-substrate.'
+    newLayers: ['well'],
+    narration: 'A deep N-well tub is formed by phosphorus implantation and drive-in diffusion to isolate the PMOS transistor and provide the n-type channel body.'
   },
   {
     step: 3,
-    title: 'High-k Gate Dielectric Stack',
-    desc: 'Ultra-thin chemical SiO2 interfacial layer (~0.6 nm) is grown, followed by Atomic Layer Deposition (ALD) of high-permittivity HfO2 (k ≈ 25).',
+    title: 'Gate Dielectric Stack (SiO2 / HfO2)',
+    desc: 'Ultra-thin interfacial SiO2 (~0.6 nm) passivates interface traps, capped by ALD High-k HfO2 (k ≈ 25) to provide high capacitance without tunneling leakage.',
     layers: ['substrate', 'well', 'oxide', 'highk'],
-    narration: 'An interfacial oxide and high-k hafnium dioxide dielectric stack are deposited to enable strong capacitive coupling without gate leakage.'
+    newLayers: ['oxide', 'highk'],
+    narration: 'An interfacial silicon dioxide layer passivates surface traps, capped by hafnium dioxide to eliminate gate tunneling leakage.'
   },
   {
     step: 4,
-    title: 'Gate Electrode Patterning',
-    desc: 'Workfunction-tuned metal gate or polysilicon is deposited and dry-etched, sized with Wp ≈ 2x Wn to compensate for hole mobility.',
+    title: 'Polysilicon / Metal Gate Electrode',
+    desc: 'Workfunction-tuned gate electrode deposited and patterned by anisotropic dry etching, sized with Wp ≈ 2x Wn to compensate for hole mobility.',
     layers: ['substrate', 'well', 'oxide', 'highk', 'poly'],
-    narration: 'The gate electrode is patterned across the wide N-well channel, sized wider than NMOS to account for lower hole mobility.'
+    newLayers: ['poly'],
+    narration: 'Polysilicon is deposited and dry-etched to form the conductive gate electrode runner crossing the N-well channel.'
   },
   {
     step: 5,
-    title: 'P-SDE / LDD Extension Implant',
-    desc: 'Shallow, low-energy boron (BF2) ion implantation forms self-aligned P-extensions (Na ≈ 1×10¹⁸ cm⁻³) flanking gate edges.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'active'],
-    narration: 'Shallow lightly doped extensions are implanted self-aligned to the gate to curb peak electric fields and short-channel effects.'
+    title: 'Shallow Extensions (P-SDE) & Spacers (Si3N4)',
+    desc: 'Low-energy boron (BF2) implantation creates shallow P-SDE extensions, flanked by conformal Si3N4 sidewall spacers to self-align deep source/drain implants.',
+    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer'],
+    newLayers: ['sde', 'spacer'],
+    narration: 'Shallow lightly doped boron extensions curb peak lateral electric fields, flanked by silicon nitride sidewall spacers to self-align deep implants.'
   },
   {
     step: 6,
-    title: 'Spacers & Heavy P+ S/D + Well Tap',
-    desc: 'Si3N4 sidewall spacers mask the heavy P+ Source/Drain boron implant (Na ≈ 1×10²⁰ cm⁻³) and N+ Well tap implant.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'active'],
-    narration: 'Dielectric spacers mask deep P-plus source and drain implants, alongside the N-plus ohmic well tap.'
+    title: 'Heavy P+ Source/Drain & N+ Well Tap',
+    desc: 'High-dose boron implantation forms heavily doped P+ Source/Drain regions (Na ≈ 1×10²⁰ cm⁻³) and arsenic creates the N+ well tap to tie the body to VDD.',
+    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
+    newLayers: ['active'],
+    narration: 'Deep self-aligned boron implantation forms low-resistance P-plus Source and Drain terminals alongside the N-plus well tap.'
   },
   {
     step: 7,
-    title: 'ILD & Tungsten Contact Vias',
-    desc: 'Interlayer dielectric (ILD SiO2) is deposited, contact vias are etched, and filled with CVD Tungsten (W) with TiN barrier.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'active', 'contact'],
-    narration: 'Tungsten contact plugs are filled and polished, creating low-resistance vertical connections.'
+    title: 'Tungsten (W) Contacts',
+    desc: 'Interlayer dielectric (ILD) is deposited, contact vias are plasma etched, and CVD Tungsten plugs with TiN barrier liners are polished flush via CMP.',
+    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
+    newLayers: ['contact'],
+    narration: 'Tungsten contact plugs are deposited and planarized, providing low-resistance vertical vias to the active and gate regions.'
   },
   {
     step: 8,
     title: 'Metal-1 Interconnect Routing',
-    desc: 'First copper/aluminum interconnect layer is patterned into Source (S/VDD), Drain (D/OUT), Gate (G), and Well (B/VDD) terminals.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'active', 'contact', 'metal'],
-    narration: 'Metal-1 copper runners are deposited, completing the PMOS transistor with terminals for source, drain, gate, and N-well body.'
+    desc: 'First copper interconnect layer patterned into Source (S/VDD), Drain (D/OUT), Gate (G/VG), and Well (B/VDD) pads, completing the discrete PMOS transistor.',
+    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
+    newLayers: ['metal'],
+    narration: 'Metal-1 copper runners are patterned, completing the discrete PMOS transistor with terminals for source, drain, gate, and N-well body.'
   }
 ];
 
 var currentFabStep = FAB_STEPS.length;
 var isFabPlaying = false;
 var fabPlayInterval = null;
+var dropOffsets = {};
 
-function applyFabStep(stepNum) {
+LAYER_ORDER.forEach(function(k) {
+  dropOffsets[k] = 0;
+});
+
+function applyFabStep(stepNum, shouldAnimateDrop) {
   currentFabStep = Math.max(1, Math.min(FAB_STEPS.length, stepNum));
   var stepData = FAB_STEPS[currentFabStep - 1];
 
   LAYER_ORDER.forEach(function(layerKey) {
-    if (groups[layerKey]) {
-      groups[layerKey].visible = stepData.layers.indexOf(layerKey) !== -1;
+    if (!groups[layerKey]) return;
+    var isIncluded = stepData.layers.indexOf(layerKey) !== -1;
+    var isNew = stepData.newLayers && stepData.newLayers.indexOf(layerKey) !== -1;
+
+    groups[layerKey].visible = isIncluded;
+
+    if (!isIncluded) {
+      dropOffsets[layerKey] = 0;
+      groups[layerKey].position.y = 0;
+    } else if (shouldAnimateDrop && isNew) {
+      dropOffsets[layerKey] = 12.0;
+      groups[layerKey].position.y = 12.0;
+    } else {
+      dropOffsets[layerKey] = 0;
+      groups[layerKey].position.y = 0;
     }
   });
 
+  // Sync left panel layer checkboxes
   document.querySelectorAll('#layers-body input').forEach(function(cb) {
     var lk = cb.dataset.layer;
     cb.checked = stepData.layers.indexOf(lk) !== -1;
   });
 
-  var stepNumEl = document.getElementById('fab-step-num');
-  if (stepNumEl) stepNumEl.textContent = currentFabStep + ' / ' + FAB_STEPS.length;
-  var titleEl = document.getElementById('fab-step-title');
+  // Update Top-Center Tour Banner
+  var banner = document.getElementById('tour-banner');
+  if (banner) {
+    banner.style.display = 'flex';
+  }
+  var badgeEl = document.getElementById('tb-step-badge');
+  if (badgeEl) badgeEl.textContent = 'STEP ' + currentFabStep + ' OF ' + FAB_STEPS.length;
+  var titleEl = document.getElementById('tb-step-title');
   if (titleEl) titleEl.textContent = stepData.title;
-  var descEl = document.getElementById('fab-step-desc');
+  var descEl = document.getElementById('tb-step-desc');
   if (descEl) descEl.textContent = stepData.desc;
-
-  var progressEl = document.getElementById('fab-progress-bar');
+  var progressEl = document.getElementById('tb-progress-fill');
   if (progressEl) progressEl.style.width = ((currentFabStep / FAB_STEPS.length) * 100) + '%';
 }
 
-function stopBuildAnimation() {
+function updateBuildAnimation(dt) {
+  if (!dt) return;
+  LAYER_ORDER.forEach(function(key) {
+    if (dropOffsets[key] > 0.001) {
+      dropOffsets[key] = Math.max(0, dropOffsets[key] - dt * 24.0);
+      if (groups[key]) {
+        groups[key].position.y = dropOffsets[key];
+      }
+    } else if (dropOffsets[key] !== 0) {
+      dropOffsets[key] = 0;
+      if (groups[key]) {
+        groups[key].position.y = 0;
+      }
+    }
+  });
+}
+
+function stopBuildAnimation(restoreAll) {
   if (fabPlayInterval) {
     clearInterval(fabPlayInterval);
     fabPlayInterval = null;
   }
   isFabPlaying = false;
-  var playBtn = document.getElementById('btn-fab-play');
-  if (playBtn) playBtn.innerHTML = '▶ Play Sequence';
+
+  var topbarTourBtn = document.getElementById('btn-build-anim');
+  if (topbarTourBtn) {
+    topbarTourBtn.classList.remove('active');
+    var label = topbarTourBtn.querySelector('.play-label');
+    if (label) label.textContent = 'PLAY';
+  }
+
+  var pauseBtn = document.getElementById('tb-btn-pause');
+  if (pauseBtn) pauseBtn.textContent = '▶';
+
+  if (restoreAll) {
+    currentFabStep = FAB_STEPS.length;
+    LAYER_ORDER.forEach(function(layerKey) {
+      dropOffsets[layerKey] = 0;
+      if (groups[layerKey]) {
+        groups[layerKey].visible = true;
+        groups[layerKey].position.y = 0;
+      }
+    });
+    document.querySelectorAll('#layers-body input').forEach(function(cb) {
+      cb.checked = true;
+    });
+    var banner = document.getElementById('tour-banner');
+    if (banner) banner.style.display = 'none';
+  }
 }
 
 function startBuildAnimation() {
-  stopBuildAnimation();
+  if (fabPlayInterval) clearInterval(fabPlayInterval);
   isFabPlaying = true;
-  var playBtn = document.getElementById('btn-fab-play');
-  if (playBtn) playBtn.innerHTML = '⏸ Pause Sequence';
 
+  var topbarTourBtn = document.getElementById('btn-build-anim');
+  if (topbarTourBtn) {
+    topbarTourBtn.classList.add('active');
+    var label = topbarTourBtn.querySelector('.play-label');
+    if (label) label.textContent = 'PAUSE';
+  }
+
+  var pauseBtn = document.getElementById('tb-btn-pause');
+  if (pauseBtn) pauseBtn.textContent = '⏸';
+
+  // If tour was at the end, restart from step 1
   if (currentFabStep >= FAB_STEPS.length) {
-    applyFabStep(1);
+    applyFabStep(1, true);
+  } else {
+    applyFabStep(currentFabStep, true);
   }
 
   fabPlayInterval = setInterval(function() {
     if (currentFabStep < FAB_STEPS.length) {
-      applyFabStep(currentFabStep + 1);
+      applyFabStep(currentFabStep + 1, true);
     } else {
-      stopBuildAnimation();
+      stopBuildAnimation(false);
     }
   }, 2400);
 }
 
-function updateBuildAnimation() {
-  // Hook for per-frame animation
-}
-
-var btnFabPlay = document.getElementById('btn-fab-play');
-if (btnFabPlay) {
-  btnFabPlay.addEventListener('click', function() {
-    if (isFabPlaying) stopBuildAnimation();
-    else startBuildAnimation();
+// Event Listeners for Tour Controls
+var btnBuildAnim = document.getElementById('btn-build-anim');
+if (btnBuildAnim) {
+  btnBuildAnim.addEventListener('click', function() {
+    if (isFabPlaying) {
+      stopBuildAnimation(false);
+    } else {
+      startBuildAnimation();
+    }
   });
 }
 
-var btnFabNext = document.getElementById('btn-fab-next');
-if (btnFabNext) {
-  btnFabNext.addEventListener('click', function() {
-    stopBuildAnimation();
-    if (currentFabStep < FAB_STEPS.length) applyFabStep(currentFabStep + 1);
+var tbBtnPause = document.getElementById('tb-btn-pause');
+if (tbBtnPause) {
+  tbBtnPause.addEventListener('click', function() {
+    if (isFabPlaying) {
+      stopBuildAnimation(false);
+    } else {
+      startBuildAnimation();
+    }
   });
 }
 
-var btnFabPrev = document.getElementById('btn-fab-prev');
-if (btnFabPrev) {
-  btnFabPrev.addEventListener('click', function() {
-    stopBuildAnimation();
-    if (currentFabStep > 1) applyFabStep(currentFabStep - 1);
-  });
-}
-
-var btnFabReset = document.getElementById('btn-fab-reset');
-if (btnFabReset) {
-  btnFabReset.addEventListener('click', function() {
-    stopBuildAnimation();
-    applyFabStep(FAB_STEPS.length);
+var tbBtnClose = document.getElementById('tb-btn-close');
+if (tbBtnClose) {
+  tbBtnClose.addEventListener('click', function() {
+    stopBuildAnimation(true);
   });
 }
