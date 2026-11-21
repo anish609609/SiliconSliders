@@ -11,6 +11,7 @@ var LEGEND = [
   { key: 'oxide',     name: 'GATE OXIDE (INTERFACIAL SiO2)', color: 'var(--c-oxide)', desc: 'Ultra-thin chemical oxide layer (~0.6 nm) passivating the silicon interface to minimize interface trap states (Dit).' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling while eliminating quantum mechanical direct-tunneling leakage.' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)', desc: 'Gate electrode controlling electrostatic potential across the channel to induce electron inversion.' },
+  { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep N+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
   { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion and poly layers to the first metal interconnect.' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body Tap (B/GND) terminals.' },
   { key: 'src',       name: 'SOURCE TERMINAL (S)', color: '#4a92c9', desc: 'Supplies carrier electrons into the channel; typically tied to circuit ground (0V).' },
@@ -62,10 +63,10 @@ var INFO = {
   },
   channel: {
     title: 'INVERSION CHANNEL REGION',
-    fn: 'Sub-gate silicon interface where electrostatic band bending occurs.',
-    role: 'When VGS > VTH, electrostatic surface potential reaches 2φF, turning the p-type surface into an n-type inversion layer of electrons.',
+    fn: 'Sub-gate silicon interface where electrostatic band bending and carrier transport occur.',
+    role: 'When VGS > VTH (0.40V), surface potential reaches 2φF creating an n-type electron inversion channel. In Linear/Triode (VDS < VGS - VTH), channel is continuous from Source to Drain. In Saturation (VDS ≥ VGS - VTH), channel pinches off near the drain (effective length Leff = L - ΔL) and electrons are accelerated across the high-field space-charge depletion region.',
     conn: 'Conductive bridge between Source and Drain.',
-    rel: 'Controlled by the High-k gate stack immediately above it.',
+    rel: 'Modulated dynamically by gate overdrive (VOV = VGS - VTH) and drain bias (VDS).',
     doping: 'P-substrate bulk with channel-stop threshold adjust implant (Na ≈ 5×10¹⁷ cm⁻³)'
   },
   oxide: {
@@ -91,6 +92,14 @@ var INFO = {
     conn: 'Tungsten Via → Metal-1 Gate Pad (VGS Input)',
     rel: 'Defines the physical gate length L; masks the self-aligned S/D implants.',
     doping: 'Heavily N+ doped polysilicon or workfunction-tuned TiN/TaN metal gate'
+  },
+  spacer: {
+    title: 'GATE SIDEWALL SPACERS (Si3N4)',
+    fn: 'Silicon nitride (Si3N4) dielectric spacers formed on the vertical sidewalls of the gate stack.',
+    role: 'Acts as a self-aligned offset hardmask for the heavy N+ source/drain deep ion implants, protecting the shallow N-SDE / LDD extensions underneath. Prevents source/drain silicide from shorting to the gate electrode and reduces gate-to-drain parasitic overlap capacitance (Cgd).',
+    conn: 'Dielectric insulator flanking gate electrode and gate dielectric.',
+    rel: 'Deposited conformally by LPCVD/PECVD and anisotropically reactive-ion etched (RIE) back with zero lateral mask.',
+    doping: 'Dielectric insulator — Silicon Nitride (Si3N4, k ≈ 7.5)'
   },
   contact: {
     title: 'TUNGSTEN CONTACT PLUG (W-VIA)',
@@ -132,8 +141,8 @@ var INFO = {
   },
   gateRail: {
     title: 'GATE INPUT PAD (VGS)',
-    fn: 'Metal-1 terminal pad supplying input gate voltage VGS.',
-    role: 'Toggles between 0V (OFF / Cutoff) and 1.0V (ON / Inversion).',
+    fn: 'Metal-1 terminal pad supplying continuous input gate bias VGS (0.00V to 1.80V).',
+    role: 'Controls channel inversion: Cutoff when VGS < VTH (0.40V), Linear/Triode when VDS < VGS - VTH, and Saturation when VDS ≥ VGS - VTH.',
     conn: 'Drives gate electrode via tungsten contact plug.',
     rel: 'Purely capacitive terminal — draws near-zero DC steady-state current.'
   },

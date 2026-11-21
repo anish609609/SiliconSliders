@@ -31,21 +31,13 @@
 
   <div id="topbar">
     <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
-    <div class="brand"><span class="dot"></span><b>NMOS·VIEWER</b><span>discrete / n-mosfet</span></div>
+    <div class="brand"><span class="dot"></span><b>NMOS·VIEWER</b></div>
 
     <div class="seg" id="mode-seg">
       <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
       <button data-mode="schematic">SCHEMATIC</button>
     </div>
 
-    <div class="in-toggle">
-      V<sub>GS</sub> =
-      <div class="seg" id="in-seg">
-        <button data-in="0">0</button>
-        <button data-in="1" class="active">1</button>
-        <button data-in="off">OFF</button>
-      </div>
-    </div>
     <div class="seg" id="flow-seg" title="Conduction Flow Simulation: Carrier Drift (e-) vs. Conventional Current (ID)">
       <button data-flow="carrier" class="active">ELECTRONS</button>
       <button data-flow="current">CURRENT</button>
@@ -196,50 +188,169 @@
         <div class="pop-arrow"></div>
       </div>
 
-      <div class="hud" id="axis-indicator">
-        <div><b>X</b> — Source · Drain axis (Length L)</div>
-        <div><b>Y</b> — Process layer stack</div>
-        <div><b>Z</b> — Transistor gate width (Width W)</div>
+      <!-- Clean Top-Left Status & Axis Information Stack (Zero Collision) -->
+      <div class="hud-top-left-stack" id="top-left-hud">
+        <div class="hud-item" id="crumb">NMOS TRANSISTOR <span id="crumb-sel"></span></div>
+        <div class="hud-item" id="flow-caption">CARRIER FLOW: Electrons (e-) drift from Source (N+) through inversion channel to Drain (N+).</div>
+        <div class="hud-item" id="axis-indicator">
+          <div><b>X</b> — Source · Drain axis (Length L)</div>
+          <div><b>Y</b> — Process layer stack</div>
+          <div><b>Z</b> — Transistor gate width (Width W)</div>
+        </div>
       </div>
 
-      <div class="hud" id="crumb">NMOS TRANSISTOR <span id="crumb-sel"></span></div>
-
-      <div class="hud" id="flow-caption">CARRIER FLOW: Electrons (e-) drift from Source (N+) through inversion channel to Drain (N+).</div>
+      <!-- Top-Center Step Explanation Banner for Drop-Down Fabrication Tour -->
+      <div id="tour-banner" class="tour-banner" style="display: none;">
+        <div class="tb-header">
+          <div class="tb-badge-group">
+            <span class="tb-badge" id="tb-step-badge">STEP 1 OF 7</span>
+            <b class="tb-title" id="tb-step-title">P-Substrate Preparation</b>
+          </div>
+          <div class="tb-controls">
+            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour">⏸</button>
+            <button id="tb-btn-close" class="tb-btn" title="Close tour">✕</button>
+          </div>
+        </div>
+        <div class="tb-desc" id="tb-step-desc">
+          Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) provides mechanical support and the bulk semiconductor body.
+        </div>
+        <div class="tb-progress-track">
+          <div class="tb-progress-fill" id="tb-progress-fill"></div>
+        </div>
+      </div>
 
       <div class="hud" id="note">
         Vertical dimensions are exaggerated for visualization; this is a conceptual NMOS layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are not design-rule compliant — topology and functional relationships are physically meaningful.
       </div>
 
-      <button class="hud interactive" id="status-toggle">STATUS</button>
+      <!-- Integrated Docked Right-Hand Panel (Tabs: Physics & Graph vs. View Controls) -->
+      <div class="hud interactive" id="docked-panel">
+        <div class="dp-header">
+          <div class="dp-tabs">
+            <button class="dp-tab-btn active" data-tab="physics" id="tab-btn-physics" title="Transistor Operating Bias, Presets & live IV Graph">
+              <span>PHYSICS &amp; GRAPH</span>
+            </button>
+            <button class="dp-tab-btn" data-tab="view" id="tab-btn-view" title="3D Layer Explode & Section Scrub">
+              <span>VIEW CONTROLS</span>
+            </button>
+          </div>
+          <button class="dp-collapse-btn" id="dp-collapse-btn" title="Collapse / Expand Panel">▾</button>
+        </div>
 
-      <div class="hud" id="state-badge">
-        <div class="row"><span class="l">V_GS</span><span class="v on" id="badge-vgs">1.0 V (HIGH)</span></div>
-        <div class="row"><span class="l">STATE</span><span class="v on" id="badge-state">ON (INVERSION)</span></div>
-        <div class="row"><span class="l">CHANNEL</span><span class="v on" id="badge-chan">CONDUCTION CHANNEL</span></div>
-        <div class="row"><span class="l">I_DS</span><span class="v on" id="badge-ids">CONDUCTING (IDS &gt; 0)</span></div>
-        <div class="disclaimer">N-channel MOSFET physics simulation · Subthreshold slope &amp; velocity saturation modeled.</div>
+        <div class="dp-body" id="dp-body">
+          <!-- TAB 1: PHYSICS & GRAPH -->
+          <div class="dp-tab-content active" id="tab-content-physics">
+            <!-- Region Presets -->
+            <div class="dp-section">
+              <div class="dp-section-header">
+                <span class="dp-section-title">OPERATING REGION</span>
+                <span class="region-pill saturation" id="iv-hud-region-pill">SATURATION</span>
+              </div>
+              <div class="seg dp-presets" id="region-preset-seg">
+                <button data-preset="cutoff" class="dp-preset-btn" title="VGS = 0V (Cutoff Region)">CUTOFF</button>
+                <button data-preset="linear" class="dp-preset-btn" title="VGS = 1.0V, VDS = 0.3V (Linear Region)">LINEAR</button>
+                <button data-preset="saturation" class="dp-preset-btn active" title="VGS = 1.0V, VDS = 0.8V (Saturation Region)">SATURATION</button>
+              </div>
+            </div>
+
+            <!-- Voltage Bias Sliders (VGS & VDS) -->
+            <div class="dp-section dp-bias-controls">
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
+                  <span class="dp-slider-val" id="vgs-val">1.00V</span>
+                </div>
+                <input type="range" id="vgs-slider" min="0" max="1.8" step="0.05" value="1.00" title="Gate-to-Source Voltage VGS">
+              </div>
+
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
+                  <span class="dp-slider-val" id="vds-val">0.80V</span>
+                </div>
+                <input type="range" id="vds-slider" min="0" max="1.8" step="0.05" value="0.80" title="Drain-to-Source Voltage VDS">
+              </div>
+            </div>
+
+            <!-- Live IDS vs VDS Graph -->
+            <div class="dp-section">
+              <div class="iv-canvas-wrap">
+                <canvas id="iv-canvas" width="296" height="150"></canvas>
+                <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>DS</sub>, I<sub>DS</sub>)</div>
+              </div>
+            </div>
+
+            <!-- Telemetry & Readouts -->
+            <div class="dp-section dp-readouts">
+              <div class="iv-row">
+                <span class="iv-k">V<sub>GS</sub></span><span class="iv-v" id="iv-vgs-readout">1.00 V</span>
+                <span class="iv-k">V<sub>DS</sub></span><span class="iv-v" id="iv-vds-readout">0.80 V</span>
+                <span class="iv-k">V<sub>TH</sub></span><span class="iv-v">0.40 V</span>
+              </div>
+              <div class="iv-row">
+                <span class="iv-k">V<sub>OV</sub></span><span class="iv-v" id="iv-vov-readout">0.60 V</span>
+                <span class="iv-k">I<sub>DS</sub></span><span class="iv-v" id="iv-ids-readout">0.20 mA</span>
+                <span class="iv-k">L<sub>eff</sub></span><span class="iv-v" id="iv-leff-readout">26.8 nm</span>
+              </div>
+              <div class="iv-row iv-state-row">
+                <span class="iv-k">STATE:</span>
+                <span class="iv-v-state" id="iv-state-desc">Pinch-off · High-field drift</span>
+              </div>
+            </div>
+
+            <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
+            <div style="display:none;" id="state-badge">
+              <span id="badge-vgs"></span><span id="badge-state"></span><span id="badge-chan"></span><span id="badge-ids"></span><span id="region-badge"></span>
+            </div>
+          </div>
+
+          <!-- TAB 2: VIEW CONTROLS -->
+          <div class="dp-tab-content" id="tab-content-view">
+            <!-- Explode Sliders -->
+            <div class="dp-section">
+              <div class="vh-section-title">EXPLODE LAYERS</div>
+              <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
+              <input type="range" id="explode-x-slider" min="0" max="100" value="0">
+              <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
+              <input type="range" id="explode-y-slider" min="0" max="100" value="1">
+              <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
+              <input type="range" id="explode-z-slider" min="0" max="100" value="0">
+            </div>
+
+            <div class="vh-sep"></div>
+
+            <!-- Section Scrub Sliders -->
+            <div class="dp-section">
+              <div class="vh-section-title">SECTION SCRUB (CLIPPING)</div>
+              <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
+              <input type="range" id="scrub-x-slider" min="-1250" max="3500" value="3500">
+              <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
+              <input type="range" id="scrub-y-slider" min="-100" max="5000" value="5000">
+              <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
+              <input type="range" id="scrub-z-slider" min="-1800" max="3500" value="3500">
+            </div>
+
+            <div class="vh-sep"></div>
+
+            <!-- 3D Floating Labels Checkbox -->
+            <div class="dp-section dp-labels-toggle-row">
+              <label class="dp-checkbox-label">
+                <input type="checkbox" id="toggle-labels" checked>
+                <span>Show 3D Floating Labels</span>
+              </label>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="hud interactive" id="view-hud">
-        <div class="vh-title" id="view-hud-toggle"><span>VIEW CONTROLS</span><span class="chev" id="view-hud-chev">▾</span></div>
-        <div class="vh-body" id="view-hud-body">
-          <div class="vh-section-title">EXPLODE</div>
-          <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
-          <input type="range" id="explode-x-slider" min="0" max="100" value="0">
-          <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
-          <input type="range" id="explode-y-slider" min="0" max="100" value="1">
-          <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
-          <input type="range" id="explode-z-slider" min="0" max="100" value="0">
-
-          <div class="vh-sep"></div>
-
-          <div class="vh-section-title">SCRUB</div>
-          <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
-          <input type="range" id="scrub-x-slider" min="-1250" max="3500" value="3500">
-          <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
-          <input type="range" id="scrub-y-slider" min="-100" max="5000" value="5000">
-          <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
-          <input type="range" id="scrub-z-slider" min="-1800" max="3500" value="3500">
+            <!-- 3D Floating Labels Checkbox -->
+            <div class="dp-section dp-labels-toggle-row">
+              <label class="dp-checkbox-label">
+                <input type="checkbox" id="toggle-labels" checked>
+                <span>Show 3D Floating Labels</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 

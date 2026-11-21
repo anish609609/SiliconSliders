@@ -1,127 +1,182 @@
 /**
  * build-anim.js - NMOS CAD Viewer
- * Step-by-step IC fabrication process sequence animation with audio narration support:
- * 1. P-Substrate bulk silicon wafer preparation
- * 2. Active area lithography & STI isolation
- * 3. Gate dielectric stack (Interfacial SiO2 + High-k HfO2 ALD)
- * 4. Polysilicon / Metal gate deposition & anisotropic etching
- * 5. Low-energy self-aligned N-SDE / LDD ion implantation
- * 6. Gate spacer deposition & heavy N+ Source/Drain implant
- * 7. Interlayer Dielectric (ILD) & Tungsten contact via fill
- * 8. Metal-1 metallization & CMP planarization
+ * Step-by-step drop-down IC fabrication process sequence animation:
+ * 1. P-Substrate (Bulk)
+ * 2. Interfacial Gate Oxide (SiO2) & High-k Dielectric (HfO2)
+ * 3. Polysilicon / Metal Gate
+ * 4. Shallow N-SDE / LDD Extensions & Gate Sidewall Spacers (Si3N4)
+ * 5. Heavily Doped N+ Source/Drain & P+ Body Tap
+ * 6. Tungsten (W) Contacts
+ * 7. Metal-1 Interconnects
  */
 
 var FAB_STEPS = [
   {
     step: 1,
     title: 'P-Substrate Preparation',
-    desc: 'Starts with a p-type single-crystal silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) with (100) crystal orientation.',
+    desc: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) provides mechanical support and the bulk semiconductor body.',
     layers: ['substrate'],
+    newLayers: ['substrate'],
     narration: 'We start with a single-crystal P-type silicon wafer lightly doped with boron, providing mechanical structure and bulk holes.'
   },
   {
     step: 2,
-    title: 'Active Area & Body Tap',
-    desc: 'Thermal oxidation, Si3N4 pad masking, and shallow trench isolation (STI) define the active transistor region and P+ body tap.',
-    layers: ['substrate'],
-    narration: 'Shallow trench isolation planarizes the field oxide, defining the active silicon window and substrate ground tap.'
-  },
-  {
-    step: 3,
-    title: 'High-k Gate Dielectric Stack',
-    desc: 'Ultra-thin chemical SiO2 interfacial layer (~0.6 nm) is grown, followed by Atomic Layer Deposition (ALD) of high-permittivity HfO2 (k ≈ 25).',
+    title: 'Gate Dielectric Stack (SiO2 / HfO2)',
+    desc: 'Ultra-thin interfacial SiO2 (~0.6 nm) passivates surface states, capped by ALD High-k HfO2 (k ≈ 25) to provide high gate capacitance without tunneling leakage.',
     layers: ['substrate', 'oxide', 'highk'],
+    newLayers: ['oxide', 'highk'],
     narration: 'An atomically thin interfacial silicon dioxide layer passivates interface traps, capped by hafnium dioxide to eliminate gate tunneling leakage.'
   },
   {
-    step: 4,
-    title: 'Gate Electrode Patterning',
-    desc: 'Polysilicon or workfunction metal is deposited by CVD and etched via reactive ion etching (RIE) to define gate length L.',
+    step: 3,
+    title: 'Polysilicon / Metal Gate',
+    desc: 'Workfunction-tuned gate electrode deposited and patterned by anisotropic dry etching to establish physical gate length L.',
     layers: ['substrate', 'oxide', 'highk', 'poly'],
+    newLayers: ['poly'],
     narration: 'Polysilicon is deposited and dry-etched to form the conductive gate electrode runner directly crossing the channel.'
   },
   {
+    step: 4,
+    title: 'Shallow Extensions (N-SDE) & Spacers (Si3N4)',
+    desc: 'Low-energy self-aligned N-SDE / LDD implant reduces peak lateral electric field. Conformal Si3N4 sidewall spacers mask subsequent deep implants.',
+    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer'],
+    newLayers: ['sde', 'spacer'],
+    narration: 'Lightly doped extensions curb peak lateral electric fields, flanked by silicon nitride sidewall spacers to self-align deep implants.'
+  },
+  {
     step: 5,
-    title: 'N-SDE / LDD Extension Implant',
-    desc: 'Shallow, low-energy arsenic/phosphorus ion implantation creates self-aligned N-extensions (Nd ≈ 1×10¹⁸ cm⁻³) flanking gate edges.',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'active'],
-    narration: 'Lightly doped source and drain extensions are implanted self-aligned to the gate to curb peak lateral electric fields and hot carrier injection.'
+    title: 'Heavy N+ Source/Drain & P+ Body Tap',
+    desc: 'High-dose ion implantation forms heavily doped N+ Source/Drain regions (Nd ≈ 1×10²⁰ cm⁻³) and P+ ohmic body tap, followed by rapid thermal annealing (RTA).',
+    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
+    newLayers: ['active'],
+    narration: 'Deep self-aligned arsenic implantation forms low-resistance N-plus Source and Drain terminals alongside the P-plus body tap.'
   },
   {
     step: 6,
-    title: 'Spacers & Heavy N+ S/D Implant',
-    desc: 'Si3N4 sidewall spacers are deposited and etched. Heavy N+ implantation (Nd ≈ 1×10²⁰ cm⁻³) forms low-resistance Source and Drain regions.',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'active'],
-    narration: 'Dielectric sidewall spacers are formed, masking the deep, heavily doped N-plus source and drain implants.'
-  },
-  {
-    step: 7,
-    title: 'ILD & Tungsten Contact Vias',
-    desc: 'Interlayer dielectric (ILD SiO2) is deposited, contact holes are etched, and filled with CVD Tungsten (W) with TiN barrier.',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'active', 'contact'],
+    title: 'Tungsten (W) Contacts',
+    desc: 'Interlayer dielectric (ILD) is deposited, contact vias are plasma etched, and CVD Tungsten plugs with TiN barrier liners are polished flush via CMP.',
+    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
+    newLayers: ['contact'],
     narration: 'Tungsten contact plugs are deposited and planarized, providing low-resistance vertical vias to the active and gate regions.'
   },
   {
-    step: 8,
-    title: 'Metal-1 Interconnect Routing',
-    desc: 'First copper/aluminum interconnect layer is deposited and patterned into Source (S), Drain (D), Gate (G), and Body (B) terminals.',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'active', 'contact', 'metal'],
+    step: 7,
+    title: 'Metal-1 Interconnects',
+    desc: 'First metallization layer patterned into Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body (B/GND) pads, completing the discrete NMOS transistor.',
+    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
+    newLayers: ['metal'],
     narration: 'Metal-1 copper runners are patterned, completing the discrete NMOS transistor with terminals for source, drain, gate, and body.'
   }
 ];
 
-var currentFabStep = FAB_STEPS.length; // Default to fully completed layout
+var currentFabStep = FAB_STEPS.length;
 var isFabPlaying = false;
 var fabPlayInterval = null;
+var dropOffsets = {};
 
-function applyFabStep(stepNum) {
+LAYER_ORDER.forEach(function(k) {
+  dropOffsets[k] = 0;
+});
+
+function applyFabStep(stepNum, shouldAnimateDrop) {
   currentFabStep = Math.max(1, Math.min(FAB_STEPS.length, stepNum));
   var stepData = FAB_STEPS[currentFabStep - 1];
 
   LAYER_ORDER.forEach(function(layerKey) {
-    if (groups[layerKey]) {
-      groups[layerKey].visible = stepData.layers.indexOf(layerKey) !== -1;
+    if (!groups[layerKey]) return;
+    var isIncluded = stepData.layers.indexOf(layerKey) !== -1;
+    var isNew = stepData.newLayers && stepData.newLayers.indexOf(layerKey) !== -1;
+
+    groups[layerKey].visible = isIncluded;
+
+    if (!isIncluded) {
+      dropOffsets[layerKey] = 0;
+      groups[layerKey].position.y = 0;
+    } else if (shouldAnimateDrop && isNew) {
+      dropOffsets[layerKey] = 12.0;
+      groups[layerKey].position.y = 12.0;
+    } else {
+      dropOffsets[layerKey] = 0;
+      groups[layerKey].position.y = 0;
     }
   });
 
-  // Update layer checkboxes
+  // Sync left panel layer checkboxes
   document.querySelectorAll('#layers-body input').forEach(function(cb) {
     var lk = cb.dataset.layer;
     cb.checked = stepData.layers.indexOf(lk) !== -1;
   });
 
-  var stepNumEl = document.getElementById('fab-step-num');
-  if (stepNumEl) stepNumEl.textContent = currentFabStep + ' / ' + FAB_STEPS.length;
-  var titleEl = document.getElementById('fab-step-title');
+  // Update Top-Center Tour Banner
+  var banner = document.getElementById('tour-banner');
+  if (banner) {
+    banner.style.display = 'flex';
+  }
+  var badgeEl = document.getElementById('tb-step-badge');
+  if (badgeEl) badgeEl.textContent = 'STEP ' + currentFabStep + ' OF ' + FAB_STEPS.length;
+  var titleEl = document.getElementById('tb-step-title');
   if (titleEl) titleEl.textContent = stepData.title;
-  var descEl = document.getElementById('fab-step-desc');
+  var descEl = document.getElementById('tb-step-desc');
   if (descEl) descEl.textContent = stepData.desc;
-
-  var progressEl = document.getElementById('fab-progress-bar');
+  var progressEl = document.getElementById('tb-progress-fill');
   if (progressEl) progressEl.style.width = ((currentFabStep / FAB_STEPS.length) * 100) + '%';
 }
 
-function stopBuildAnimation() {
+function updateBuildAnimation(dt) {
+  if (!dt) return;
+  LAYER_ORDER.forEach(function(key) {
+    if (dropOffsets[key] > 0.001) {
+      dropOffsets[key] = Math.max(0, dropOffsets[key] - dt * 24.0);
+      if (groups[key]) {
+        groups[key].position.y = dropOffsets[key];
+      }
+    } else if (dropOffsets[key] !== 0) {
+      dropOffsets[key] = 0;
+      if (groups[key]) {
+        groups[key].position.y = 0;
+      }
+    }
+  });
+}
+
+function stopBuildAnimation(restoreAll) {
   if (fabPlayInterval) {
     clearInterval(fabPlayInterval);
     fabPlayInterval = null;
   }
   isFabPlaying = false;
-  var playBtn = document.getElementById('btn-fab-play');
-  if (playBtn) playBtn.innerHTML = '▶ Play Sequence';
+
   var topbarTourBtn = document.getElementById('btn-build-anim');
   if (topbarTourBtn) {
     topbarTourBtn.classList.remove('active');
     var label = topbarTourBtn.querySelector('.play-label');
     if (label) label.textContent = 'PLAY';
   }
+
+  var pauseBtn = document.getElementById('tb-btn-pause');
+  if (pauseBtn) pauseBtn.textContent = '▶';
+
+  if (restoreAll) {
+    currentFabStep = FAB_STEPS.length;
+    LAYER_ORDER.forEach(function(layerKey) {
+      dropOffsets[layerKey] = 0;
+      if (groups[layerKey]) {
+        groups[layerKey].visible = true;
+        groups[layerKey].position.y = 0;
+      }
+    });
+    document.querySelectorAll('#layers-body input').forEach(function(cb) {
+      cb.checked = true;
+    });
+    var banner = document.getElementById('tour-banner');
+    if (banner) banner.style.display = 'none';
+  }
 }
 
 function startBuildAnimation() {
-  stopBuildAnimation();
+  if (fabPlayInterval) clearInterval(fabPlayInterval);
   isFabPlaying = true;
-  var playBtn = document.getElementById('btn-fab-play');
-  if (playBtn) playBtn.innerHTML = '⏸ Pause Sequence';
+
   var topbarTourBtn = document.getElementById('btn-build-anim');
   if (topbarTourBtn) {
     topbarTourBtn.classList.add('active');
@@ -129,59 +184,51 @@ function startBuildAnimation() {
     if (label) label.textContent = 'PAUSE';
   }
 
+  var pauseBtn = document.getElementById('tb-btn-pause');
+  if (pauseBtn) pauseBtn.textContent = '⏸';
+
+  // If tour was at the end, restart from step 1
   if (currentFabStep >= FAB_STEPS.length) {
-    applyFabStep(1);
+    applyFabStep(1, true);
+  } else {
+    applyFabStep(currentFabStep, true);
   }
 
   fabPlayInterval = setInterval(function() {
     if (currentFabStep < FAB_STEPS.length) {
-      applyFabStep(currentFabStep + 1);
+      applyFabStep(currentFabStep + 1, true);
     } else {
-      stopBuildAnimation();
+      stopBuildAnimation(false);
     }
   }, 2400);
 }
 
-function updateBuildAnimation() {
-  // Hook for per-frame animation if needed
-}
-
-var btnFabPlay = document.getElementById('btn-fab-play');
-if (btnFabPlay) {
-  btnFabPlay.addEventListener('click', function() {
-    if (isFabPlaying) stopBuildAnimation();
-    else startBuildAnimation();
-  });
-}
-
+// Event Listeners for Tour Controls
 var btnBuildAnim = document.getElementById('btn-build-anim');
 if (btnBuildAnim) {
   btnBuildAnim.addEventListener('click', function() {
-    if (isFabPlaying) stopBuildAnimation();
-    else startBuildAnimation();
+    if (isFabPlaying) {
+      stopBuildAnimation(false);
+    } else {
+      startBuildAnimation();
+    }
   });
 }
 
-var btnFabNext = document.getElementById('btn-fab-next');
-if (btnFabNext) {
-  btnFabNext.addEventListener('click', function() {
-    stopBuildAnimation();
-    if (currentFabStep < FAB_STEPS.length) applyFabStep(currentFabStep + 1);
+var tbBtnPause = document.getElementById('tb-btn-pause');
+if (tbBtnPause) {
+  tbBtnPause.addEventListener('click', function() {
+    if (isFabPlaying) {
+      stopBuildAnimation(false);
+    } else {
+      startBuildAnimation();
+    }
   });
 }
 
-var btnFabPrev = document.getElementById('btn-fab-prev');
-if (btnFabPrev) {
-  btnFabPrev.addEventListener('click', function() {
-    stopBuildAnimation();
-    if (currentFabStep > 1) applyFabStep(currentFabStep - 1);
-  });
-}
-
-var btnFabReset = document.getElementById('btn-fab-reset');
-if (btnFabReset) {
-  btnFabReset.addEventListener('click', function() {
-    stopBuildAnimation();
-    applyFabStep(FAB_STEPS.length);
+var tbBtnClose = document.getElementById('tb-btn-close');
+if (tbBtnClose) {
+  tbBtnClose.addEventListener('click', function() {
+    stopBuildAnimation(true);
   });
 }

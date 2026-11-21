@@ -72,7 +72,13 @@ renderDimsTable();
 // Which λ-rules apply to each clickable id — shown inline in the inspector
 // popup whenever that component is selected.
 var DIM_MAP = {
-  poly:['gateLength','gateWidth','polyThickness'], pmosOxide:['oxideThickness'], nmosOxide:['oxideThickness'],
+  poly:['gateLength','gateWidth','polyThickness'],
+  spacer:['gateLength','polyThickness'],
+  oxide:['oxideThickness'],
+  highk:['oxideThickness'],
+  sdeSrc:['gateLength','gateWidth','activeDepth'],
+  sdeDrn:['gateLength','gateWidth','activeDepth'],
+  pmosOxide:['oxideThickness'], nmosOxide:['oxideThickness'],
   pmosHighk:['oxideThickness'], nmosHighk:['oxideThickness'],
   pmos:['gateLength','gateWidth','sdLength','polyThickness'], nmos:['gateLength','gateWidth','sdLength','polyThickness'],
   pmosSrc:['sdLength','gateWidth','activeDepth'], pmosDrn:['sdLength','gateWidth','activeDepth'],

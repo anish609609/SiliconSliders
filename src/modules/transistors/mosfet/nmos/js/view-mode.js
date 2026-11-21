@@ -26,6 +26,19 @@ function setViewMode(mode) {
     canvasHost.style.visibility = mode === 'schematic' ? 'hidden' : 'visible';
   }
 
+  var flowCap = document.getElementById('flow-caption');
+  if (flowCap) {
+    flowCap.style.display = mode === 'schematic' ? 'none' : '';
+  }
+  var axisInd = document.getElementById('axis-indicator');
+  if (axisInd) {
+    axisInd.style.display = mode === 'schematic' ? 'none' : '';
+  }
+  var noteEl = document.getElementById('note');
+  if (noteEl) {
+    noteEl.style.display = mode === 'schematic' ? 'none' : '';
+  }
+
   if (mode === 'schematic') {
     if (typeof hidePopover === 'function') hidePopover();
   } else {
@@ -57,29 +70,29 @@ var btnPresetSide = document.getElementById('btn-preset-side');
 
 if (btnPresetIso) {
   btnPresetIso.addEventListener('click', function() {
-    activeCamera.position.set(16, 14, 20);
-    controls.target.set(0, 0, 0);
+    activeCamera.position.set(16, 17, 20);
+    controls.target.set(-0.5, 3.2, 0);
     controls.update();
   });
 }
 if (btnPresetTop) {
   btnPresetTop.addEventListener('click', function() {
-    activeCamera.position.set(0, 36, 0.01);
-    controls.target.set(0, 0, 0);
+    activeCamera.position.set(-0.5, 42, 0.01);
+    controls.target.set(-0.5, 3.2, 0);
     controls.update();
   });
 }
 if (btnPresetFront) {
   btnPresetFront.addEventListener('click', function() {
-    activeCamera.position.set(0, 2, 30);
-    controls.target.set(0, 0, 0);
+    activeCamera.position.set(-0.5, 5.2, 30);
+    controls.target.set(-0.5, 3.2, 0);
     controls.update();
   });
 }
 if (btnPresetSide) {
   btnPresetSide.addEventListener('click', function() {
-    activeCamera.position.set(30, 2, 0);
-    controls.target.set(0, 0, 0);
+    activeCamera.position.set(30, 5.2, 0);
+    controls.target.set(-0.5, 3.2, 0);
     controls.update();
   });
 }

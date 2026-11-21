@@ -26,39 +26,56 @@ if (rightToggleBtn && rightPanel) {
   });
 }
 
+var dockedPanel = document.getElementById('docked-panel');
 var viewHud = document.getElementById('view-hud');
 function updateViewHudPosition() {
   var launcher = document.getElementById('va-launcher-btn');
   var vaWidget = document.getElementById('voice-assistant-widget');
+  var ivHud = document.getElementById('ids-vds-hud');
   if (rightPanel && rightPanel.classList.contains('open')) {
     var w = rightPanel.getBoundingClientRect().width;
+    if (dockedPanel) dockedPanel.style.right = (w + 14) + 'px';
     if (viewHud) viewHud.style.right = (w + 14) + 'px';
     if (launcher) launcher.style.right = (w + 14) + 'px';
     if (vaWidget) vaWidget.style.right = (w + 14) + 'px';
+    if (ivHud) ivHud.style.right = (w + 14) + 'px';
   } else {
+    if (dockedPanel) dockedPanel.style.right = '';
     if (viewHud) viewHud.style.right = '';
     if (launcher) launcher.style.right = '';
     if (vaWidget) vaWidget.style.right = '';
+    if (ivHud) ivHud.style.right = '';
   }
 }
 window.addEventListener('resize', updateViewHudPosition);
 
-var statusToggle = document.getElementById('status-toggle');
-if (statusToggle && stateBadge) {
-  statusToggle.addEventListener('click', function() {
-    stateBadge.classList.toggle('mobile-open');
-  });
-}
+// Docked Panel Tabs & Collapse Controls
+var dpTabs = document.querySelectorAll('.dp-tab-btn');
+var dpContents = document.querySelectorAll('.dp-tab-content');
+var dpCollapseBtn = document.getElementById('dp-collapse-btn');
+var dpBody = document.getElementById('dp-body');
 
-var viewHudToggle = document.getElementById('view-hud-toggle');
-if (viewHudToggle) {
-  viewHudToggle.addEventListener('click', function() {
-    var body = document.getElementById('view-hud-body');
-    var chev = document.getElementById('view-hud-chev');
-    if (body) {
-      var collapsed = body.classList.toggle('collapsed');
-      if (chev) chev.classList.toggle('closed', collapsed);
+dpTabs.forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    var target = tab.dataset.tab;
+    dpTabs.forEach(function(t) { t.classList.toggle('active', t === tab); });
+    dpContents.forEach(function(c) {
+      c.classList.toggle('active', c.id === 'tab-content-' + target);
+    });
+    if (dpBody && dpBody.classList.contains('collapsed')) {
+      dpBody.classList.remove('collapsed');
+      if (dpCollapseBtn) dpCollapseBtn.textContent = '▾';
     }
+    if (target === 'physics' && typeof applyLogicState === 'function') {
+      setTimeout(applyLogicState, 10);
+    }
+  });
+});
+
+if (dpCollapseBtn && dpBody) {
+  dpCollapseBtn.addEventListener('click', function() {
+    var collapsed = dpBody.classList.toggle('collapsed');
+    dpCollapseBtn.textContent = collapsed ? '▸' : '▾';
   });
 }
 
@@ -66,17 +83,23 @@ if (viewHudToggle) {
 // RESET TO DEFAULT
 // =====================================================================
 function resetAll() {
-  if (typeof stopBuildAnimation === 'function') stopBuildAnimation();
+  if (typeof stopBuildAnimation === 'function') stopBuildAnimation(true);
+  var tourBanner = document.getElementById('tour-banner');
+  if (tourBanner) tourBanner.style.display = 'none';
+
   if (typeof activeCamera !== 'undefined' && typeof controls !== 'undefined') {
-    activeCamera.position.set(16, 14, 20);
-    controls.target.set(0, 0, 0);
+    activeCamera.position.copy(INITIAL_POS);
+    controls.target.copy(INITIAL_TARGET);
     controls.update();
   }
 
   if (typeof applyExplode === 'function') applyExplode(0, 0, 0);
   if (typeof resetScrub === 'function') resetScrub();
 
+  currentVgs = 1.00;
+  currentVds = 0.80;
   currentIn = 1;
+  var inSeg = document.getElementById('in-seg');
   if (inSeg) {
     inSeg.querySelectorAll('button').forEach(function(b) {
       b.classList.toggle('active', b.dataset.in === '1');
@@ -84,6 +107,7 @@ function resetAll() {
   }
 
   flowMode = 'carrier';
+  var flowSeg = document.getElementById('flow-seg');
   if (flowSeg) {
     flowSeg.querySelectorAll('button').forEach(function(b) {
       b.classList.toggle('active', b.dataset.flow === 'carrier');
@@ -108,7 +132,8 @@ function resetAll() {
 // Bootstrap
 resize();
 if (typeof initTheme === 'function') initTheme();
-if (stateBadge) stateBadge.classList.add('visible');
+var sb = document.getElementById('state-badge');
+if (sb) sb.classList.add('visible');
 resetAll();
 
 requestAnimationFrame(function() {

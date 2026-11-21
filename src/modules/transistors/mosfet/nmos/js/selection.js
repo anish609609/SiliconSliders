@@ -9,14 +9,33 @@
 var selectedMeshes = [];
 var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta — kept far from the well's teal-green and every layer color so selection is unambiguous
 
+function applyEmissive(obj, color, intensity) {
+  if (!obj) return;
+  if (obj.isMesh && obj.material && obj.material.emissive) {
+    if (color !== null) {
+      if (obj.userData.baseEmissive === undefined) {
+        obj.userData.baseEmissive = obj.material.emissive.getHex();
+        obj.userData.baseEmissiveIntensity = obj.material.emissiveIntensity || 0;
+      }
+      obj.material.emissive.copy(color);
+      obj.material.emissiveIntensity = intensity;
+    } else {
+      var baseHex = (typeof obj.userData.baseEmissive === 'number') ? obj.userData.baseEmissive : 0;
+      var baseIntensity = (typeof obj.userData.baseEmissiveIntensity === 'number') ? obj.userData.baseEmissiveIntensity : 0;
+      obj.material.emissive.setHex(baseHex);
+      obj.material.emissiveIntensity = baseIntensity;
+    }
+  }
+  if (obj.children && obj.children.length) {
+    obj.children.forEach(function(child) {
+      applyEmissive(child, color, intensity);
+    });
+  }
+}
+
 function clearSelection(){
   selectedMeshes.forEach(function(m){
-    if (m && m.material && m.material.emissive){
-      var baseHex = (typeof m.userData.baseEmissive === 'number') ? m.userData.baseEmissive : 0;
-      var baseIntensity = (typeof m.userData.baseEmissiveIntensity === 'number') ? m.userData.baseEmissiveIntensity : 0;
-      m.material.emissive.setHex(baseHex);
-      m.material.emissiveIntensity = baseIntensity;
-    }
+    applyEmissive(m, null, 0);
   });
   selectedMeshes = [];
   lastSelectedId = null;
@@ -30,10 +49,7 @@ function clearSelection(){
 function highlightMeshes(meshes){
   clearSelection();
   meshes.forEach(function(m){
-    if (m && m.material && m.material.emissive){
-      m.material.emissive = HIGHLIGHT_COLOR.clone();
-      m.material.emissiveIntensity = 0.55;
-    }
+    applyEmissive(m, HIGHLIGHT_COLOR, 0.55);
     selectedMeshes.push(m);
   });
 }
@@ -113,8 +129,8 @@ document.getElementById('pop-close').addEventListener('click', function(e){
 function selectById(id){
   var meshes = meshesForId(id);
   if (!meshes.length) return;
-  lastSelectedId = id;
   highlightMeshes(meshes);
+  lastSelectedId = id;
   var info = idToInfo(id);
   showInspector(id, info);
   showPopoverFor(meshes, id, info);
@@ -180,15 +196,44 @@ renderer.domElement.addEventListener('click', function(e){
   var rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
+
+  scene.updateMatrixWorld(true);
   raycaster.setFromCamera(pointer, activeCamera);
-  var hits = raycaster.intersectObjects(selectable, false).filter(function(h){ return h.object.visible !== false && h.object.parent.visible; });
+
+  var hits = raycaster.intersectObjects(selectable, true).filter(function(h){
+    var cur = h.object;
+    while (cur) {
+      if (cur.visible === false) return false;
+      cur = cur.parent;
+    }
+    if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
+    return true;
+  });
+
+  hits.sort(function(a, b){ return a.distance - b.distance; });
+
   if (hits.length){
-    var m = hits[0].object;
-    selectById(m.userData.id);
-  } else {
-    clearSelection();
-    hidePopover();
-    document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
-    document.getElementById('crumb-sel').textContent = '';
+    var targetId = null;
+    for (var i = 0; i < hits.length; i++) {
+      var cur = hits[i].object;
+      while (cur && !targetId) {
+        if (cur.userData && cur.userData.id) {
+          targetId = cur.userData.id;
+          break;
+        }
+        if (cur === scene) break;
+        cur = cur.parent;
+      }
+      if (targetId) break;
+    }
+    if (targetId) {
+      selectById(targetId);
+      return;
+    }
   }
+
+  clearSelection();
+  hidePopover();
+  document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
+  document.getElementById('crumb-sel').textContent = '';
 });

@@ -42,6 +42,8 @@ function applyExplode(pctX, pctY, pctZ){
     groups[key].position.z = idx * EXPLODE_GAP * fz;
   });
 
+  scene.updateMatrixWorld(true);
+
   if (explodeXVal) explodeXVal.textContent = Math.round(explodeX) + '%';
   if (explodeYVal) explodeYVal.textContent = Math.round(explodeY) + '%';
   if (explodeZVal) explodeZVal.textContent = Math.round(explodeZ) + '%';
