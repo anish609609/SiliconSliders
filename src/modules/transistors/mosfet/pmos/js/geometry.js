@@ -51,63 +51,348 @@ function getBrushedMetalTexture() {
 }
 
 // ---------------------------------------------------------------------------
-// 3D GAUSSIAN DOPING MESH BUILDER (Clean Solid Matte Semiconductor Finish)
+// GAUSSIAN DOPING DEPTH & SURFACE TEXTURE GENERATOR
 // ---------------------------------------------------------------------------
-function gaussianDopingMesh(w, h, d, colorVar, opts) {
+// In ion implantation and thermal drive-in diffusion, dopant concentration
+// follows an exponential Gaussian depth distribution:
+//   N(y) = Npeak * exp( -((y - Rp)^2) / (2 * sigma^2) )
+// where Rp is the projected range and sigma is the depth straggle.
+// Near mask boundaries, lateral straggle (x_lat ~ 0.7-0.8 xj) rounds the junction.
+//
+// gaussianDepthTexture() paints a UV map:
+//   U (horizontal) = angular / perimeter position around the doped region
+//   V (vertical)   = normalized depth into silicon (0 = surface, 1 = junction depth)
+//   Iso-concentration contour lines mark equal-concentration shells at
+//   0.85, 0.60, 0.35, 0.15, and 0.05 of peak concentration.
+// ---------------------------------------------------------------------------
+var gaussTexCache = {};
+function gaussianDepthTexture(colorVarOrHex, peakV, sigmaV, opts) {
   opts = opts || {};
-  var straggle = opts.straggle !== undefined ? opts.straggle : 0.22;
-  var cornerR  = opts.cornerR !== undefined ? opts.cornerR : 0.35;
+  var rawColor = colorVarOrHex.indexOf('--') === 0 ? cssVar(colorVarOrHex) : colorVarOrHex;
+  var key = [rawColor, peakV, sigmaV, opts.isoLines || 5].join('|');
+  if (gaussTexCache[key]) return gaussTexCache[key];
 
-  var geom = new THREE.BoxGeometry(w, h, d, 8, 8, 8);
-  var pos = geom.attributes.position;
+  var TW = 512, TH = 256;
+  var c = document.createElement('canvas');
+  c.width = TW;
+  c.height = TH;
+  var ctx = c.getContext('2d');
+  var img = ctx.createImageData(TW, TH);
+  var data = img.data;
+
+  // Parse color to RGB
+  var tc = new THREE.Color(rawColor);
+  var r0 = Math.round(tc.r * 255);
+  var g0 = Math.round(tc.g * 255);
+  var b0 = Math.round(tc.b * 255);
+
+  var nIso = opts.isoLines !== undefined ? opts.isoLines : 5;
+
+  for (var py = 0; py < TH; py++) {
+    var v = py / (TH - 1); // 0 at surface, 1 at bottom junction
+    var dv = (v - peakV) / sigmaV;
+    var gDepth = Math.exp(-0.5 * dv * dv);
+
+    for (var px = 0; px < TW; px++) {
+      var u = px / (TW - 1);
+      // Slight periodic ripple across perimeter to give subtle crystal texture
+      var uMod = 0.94 + 0.06 * Math.cos(u * Math.PI * 4);
+      var conc = Math.min(1.0, gDepth * uMod);
+
+      var idx = (py * TW + px) * 4;
+      // Core is luminous; fades into base silicon at junction
+      data[idx]     = Math.min(255, Math.round(r0 * (0.65 + 0.45 * conc) + 40 * conc));
+      data[idx + 1] = Math.min(255, Math.round(g0 * (0.65 + 0.45 * conc) + 40 * conc));
+      data[idx + 2] = Math.min(255, Math.round(b0 * (0.65 + 0.45 * conc) + 40 * conc));
+      data[idx + 3] = Math.round(180 + 75 * conc);
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+
+  // Draw crisp iso-concentration contour lines along depth
+  var isoRatios = [0.85, 0.60, 0.35, 0.15, 0.05].slice(0, nIso);
+  isoRatios.forEach(function(ratio, i) {
+    var dv = Math.sqrt(-2.0 * Math.log(ratio)) * sigmaV;
+    var alpha = 0.70 - i * 0.10;
+    ctx.strokeStyle = 'rgba(255,255,255,' + alpha.toFixed(2) + ')';
+    ctx.lineWidth = 1.4;
+
+    var vUp = peakV - dv;
+    if (vUp >= 0 && vUp <= 1) {
+      var yUp = vUp * (TH - 1);
+      ctx.beginPath();
+      ctx.moveTo(0, yUp);
+      ctx.lineTo(TW, yUp);
+      ctx.stroke();
+    }
+    var vDn = peakV + dv;
+    if (vDn >= 0 && vDn <= 1) {
+      var yDn = vDn * (TH - 1);
+      ctx.beginPath();
+      ctx.moveTo(0, yDn);
+      ctx.lineTo(TW, yDn);
+      ctx.stroke();
+    }
+  });
+
+  // Top wafer interface line (dashed)
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(0, 2);
+  ctx.lineTo(TW, 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  var tex = new THREE.CanvasTexture(c);
+  tex.minFilter = tex.magFilter = THREE.LinearFilter;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.ClampToEdgeWrapping;
+  gaussTexCache[key] = tex;
+  return tex;
+}
+
+// ---------------------------------------------------------------------------
+// 3D GAUSSIAN CURVED TUB GEOMETRY
+// ---------------------------------------------------------------------------
+// Real diffused wells and ion-implanted regions are NOT sharp rectangular boxes:
+// 1. Due to lateral straggle and isotropic thermal diffusion, dopants expand
+//    under the mask edges, creating rounded quarter-cylinder/quarter-sphere shoulders.
+// 2. The metallurgical junction curves smoothly upward at the edges and bottom,
+//    forming a curved "tub" (for wells) or "trough" (for source/drain).
+// 3. This constructs a 3D BufferGeometry with smoothly rounded corners, curved sidewalls,
+//    a flat wafer-surface top cap, and a curved junction bottom.
+// ---------------------------------------------------------------------------
+function createGaussianTubGeometry(w, h, d, opts) {
+  opts = opts || {};
+  var nLayers = opts.nLayers || 20;
+  var nPerim = opts.nPerim || 48;
+  var straggle = opts.straggle !== undefined ? opts.straggle : 0.18;
+  var cornerR = opts.cornerR !== undefined ? opts.cornerR : Math.min(w, d) * 0.22;
+  cornerR = Math.min(cornerR, (w / 2) * 0.95, (d / 2) * 0.95);
+
+  var positions = [];
+  var uvs = [];
+  var indices = [];
+
   var halfW = w / 2;
   var halfD = d / 2;
 
-  for (var i = 0; i < pos.count; i++) {
-    var px = pos.getX(i);
-    var py = pos.getY(i);
-    var pz = pos.getZ(i);
+  function getRoundedRectPoint(hx, hz, cr, theta) {
+    var cos = Math.cos(theta);
+    var sin = Math.sin(theta);
+    var sx = Math.max(0, hx - cr);
+    var sz = Math.max(0, hz - cr);
+    var qx = cos >= 0 ? 1 : -1;
+    var qz = sin >= 0 ? 1 : -1;
+    var cCos = Math.abs(cos);
+    var cSin = Math.abs(sin);
+    var len = Math.hypot(cCos, cSin) || 1;
+    return [
+      qx * (sx + cr * (cCos / len)),
+      qz * (sz + cr * (cSin / len))
+    ];
+  }
 
-    var depthFrac = (h / 2 - py) / h;
-    var latStraggle = Math.sin(depthFrac * Math.PI) * straggle;
-    var signX = px >= 0 ? 1 : -1;
-    var signZ = pz >= 0 ? 1 : -1;
-    var offX = Math.abs(px) - (halfW - cornerR);
-    var offZ = Math.abs(pz) - (halfD - cornerR);
+  // Stacked rings from eta = 0 (top surface, y = +h/2) to eta = 1 (bottom apex, y = -h/2)
+  for (var i = 0; i <= nLayers; i++) {
+    var eta = i / nLayers;
+    var rFactor = Math.sqrt(Math.max(0, 1.0 - eta * eta));
+    var curHx = halfW * (1.0 - straggle * (1.0 - rFactor));
+    var curHz = halfD * (1.0 - straggle * (1.0 - rFactor));
+    var curCr = cornerR * (0.35 + 0.65 * rFactor);
+    var y = h * 0.5 - h * eta;
 
-    if (offX > 0 && offZ > 0) {
-      var r = Math.sqrt(offX * offX + offZ * offZ);
-      var angle = Math.atan2(offZ, offX);
-      var newR = Math.min(cornerR, r) + latStraggle * 0.4;
-      pos.setX(i, signX * (halfW - cornerR + Math.cos(angle) * newR));
-      pos.setZ(i, signZ * (halfD - cornerR + Math.sin(angle) * newR));
-    } else {
-      if (Math.abs(px) > halfW * 0.7) pos.setX(i, px + signX * latStraggle);
-      if (Math.abs(pz) > halfD * 0.7) pos.setZ(i, pz + signZ * latStraggle);
+    for (var j = 0; j < nPerim; j++) {
+      var theta = (j / nPerim) * Math.PI * 2;
+      var pt = getRoundedRectPoint(curHx, curHz, curCr, theta);
+      positions.push(pt[0], y, pt[1]);
+      uvs.push(j / nPerim, eta);
     }
   }
-  geom.computeVertexNormals();
+
+  // Wall indices between rings
+  for (var i = 0; i < nLayers; i++) {
+    var ring1 = i * nPerim;
+    var ring2 = (i + 1) * nPerim;
+    for (var j = 0; j < nPerim; j++) {
+      var nextJ = (j + 1) % nPerim;
+      var a = ring1 + j;
+      var b = ring2 + j;
+      var c = ring2 + nextJ;
+      var d = ring1 + nextJ;
+
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  // Bottom cap: smoothly rounded bottom apex at y = -h/2
+  var bottomCenterIdx = positions.length / 3;
+  positions.push(0, -h * 0.5, 0);
+  uvs.push(0.5, 1.0);
+  var lastRingStart = nLayers * nPerim;
+  for (var j = 0; j < nPerim; j++) {
+    var nextJ = (j + 1) % nPerim;
+    indices.push(bottomCenterIdx, lastRingStart + nextJ, lastRingStart + j);
+  }
+
+  // Top surface cap at y = +h/2 (wafer surface)
+  var topCenterIdx = positions.length / 3;
+  positions.push(0, h * 0.5, 0);
+  uvs.push(0.5, 0.0);
+  for (var j = 0; j < nPerim; j++) {
+    var nextJ = (j + 1) % nPerim;
+    indices.push(topCenterIdx, j, nextJ);
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ---------------------------------------------------------------------------
+// GAUSSIAN DOPING MESH BUILDER
+// ---------------------------------------------------------------------------
+// Creates a first-class THREE.Mesh with:
+// - Realistic 3D curved Gaussian tub geometry
+// - Gaussian concentration depth gradient texture
+// - 3D iso-concentration contour wire loops
+// - Inner high-concentration volumetric core
+// - Full MeshStandardMaterial with translucent depth-layer finish
+// ---------------------------------------------------------------------------
+function gaussianDopingMesh(w, h, d, colorVar, opts) {
+  opts = opts || {};
+  var peakV = opts.peakV !== undefined ? opts.peakV : 0.25;
+  var sigmaV = opts.sigmaV !== undefined ? opts.sigmaV : 0.25;
+
+  var geo = createGaussianTubGeometry(w, h, d, opts);
+  var tex = gaussianDepthTexture(colorVar, peakV, sigmaV, opts);
 
   var rawColor = colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar;
   var baseColor = new THREE.Color(rawColor);
   var mat = new THREE.MeshStandardMaterial({
     color: baseColor,
+    map: tex,
     roughness: opts.roughness !== undefined ? opts.roughness : 0.50,
     metalness: opts.metalness !== undefined ? opts.metalness : 0.15,
-    transparent: false,
-    opacity: 1.0,
-    depthWrite: true,
+    transparent: true,
+    opacity: opts.opacity !== undefined ? opts.opacity : 0.88,
+    side: THREE.DoubleSide,
+    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.0,
+    polygonOffsetUnits: -1.0,
     emissive: 0x000000,
     emissiveIntensity: 0
   });
 
-  var mesh = new THREE.Mesh(geom, mat);
+  var mesh = new THREE.Mesh(geo, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
-  mesh.userData.colorVar = colorVar;
   mesh.userData.baseEmissive = 0x000000;
   mesh.userData.baseEmissiveIntensity = 0;
+  mesh.userData.isGaussianDoping = true;
+  mesh.userData.colorVar = colorVar;
+  mesh.userData.outlineColor = opts.outlineColor;
   mesh.renderOrder = opts.renderOrder !== undefined ? opts.renderOrder : 3;
+
+  // Add 3D Iso-concentration Contour Wire Loops at depths eta = 0.25, 0.50, 0.75
+  var contourEtas = [0.25, 0.50, 0.75];
+  var nPerim = opts.nPerim || 48;
+  var cornerR = opts.cornerR !== undefined ? opts.cornerR : Math.min(w, d) * 0.22;
+  var straggle = opts.straggle !== undefined ? opts.straggle : 0.18;
+  cornerR = Math.min(cornerR, (w / 2) * 0.95, (d / 2) * 0.95);
+  var halfW = w / 2;
+  var halfD = d / 2;
+
+  function getRoundedRectPt(hx, hz, cr, theta) {
+    var cos = Math.cos(theta);
+    var sin = Math.sin(theta);
+    var sx = Math.max(0, hx - cr);
+    var sz = Math.max(0, hz - cr);
+    var qx = cos >= 0 ? 1 : -1;
+    var qz = sin >= 0 ? 1 : -1;
+    var cCos = Math.abs(cos);
+    var cSin = Math.abs(sin);
+    var len = Math.hypot(cCos, cSin) || 1;
+    return new THREE.Vector3(
+      qx * (sx + cr * (cCos / len)),
+      0,
+      qz * (sz + cr * (cSin / len))
+    );
+  }
+
+  contourEtas.forEach(function(eta, idx) {
+    var rFactor = Math.sqrt(Math.max(0, 1.0 - eta * eta));
+    var curHx = halfW * (1.0 - straggle * (1.0 - rFactor));
+    var curHz = halfD * (1.0 - straggle * (1.0 - rFactor));
+    var curCr = cornerR * (0.35 + 0.65 * rFactor);
+    var y = h * 0.5 - h * eta;
+
+    var pts = [];
+    for (var j = 0; j < nPerim; j++) {
+      var theta = (j / nPerim) * Math.PI * 2;
+      var p = getRoundedRectPt(curHx, curHz, curCr, theta);
+      p.y = y;
+      pts.push(p);
+    }
+    var lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+    var lineMat = new THREE.LineBasicMaterial({
+      color: opts.outlineColor ? new THREE.Color(opts.outlineColor) : baseColor.clone().offsetHSL(0, 0.1, 0.2),
+      transparent: true,
+      opacity: 0.70 - idx * 0.15,
+      depthWrite: false
+    });
+    var loop = new THREE.LineLoop(lineGeo, lineMat);
+    loop.raycast = function() {}; // Keep clicks focused on parent mesh
+    mesh.add(loop);
+  });
+
+  // Top surface perimeter boundary line
+  var topPts = [];
+  for (var j = 0; j < nPerim; j++) {
+    var theta = (j / nPerim) * Math.PI * 2;
+    var p = getRoundedRectPt(halfW, halfD, cornerR, theta);
+    p.y = h * 0.5 + 0.005;
+    topPts.push(p);
+  }
+  var topGeo = new THREE.BufferGeometry().setFromPoints(topPts);
+  var topMat = new THREE.LineBasicMaterial({
+    color: opts.outlineColor ? new THREE.Color(opts.outlineColor) : baseColor,
+    transparent: true,
+    opacity: 0.85,
+    depthWrite: false
+  });
+  var topLoop = new THREE.LineLoop(topGeo, topMat);
+  topLoop.raycast = function() {};
+  mesh.add(topLoop);
+
+  // High-concentration internal core for volumetric glow
+  var coreH = h * 0.60;
+  var coreW = w * 0.70;
+  var coreD = d * 0.70;
+  var coreGeo = createGaussianTubGeometry(coreW, coreH, coreD, {
+    nLayers: 12,
+    nPerim: 32,
+    straggle: straggle * 1.2,
+    cornerR: cornerR * 0.7
+  });
+  var coreMat = new THREE.MeshBasicMaterial({
+    color: baseColor,
+    transparent: true,
+    opacity: 0.30,
+    depthWrite: false,
+    side: THREE.DoubleSide
+  });
+  var coreMesh = new THREE.Mesh(coreGeo, coreMat);
+  coreMesh.position.y = (h * 0.5) - (coreH * 0.5) - (h * (peakV * 0.5));
+  coreMesh.raycast = function() {};
+  mesh.add(coreMesh);
 
   return mesh;
 }
@@ -218,10 +503,13 @@ var wellW = 18.0;
 var wellD = 16.0;
 var wellH = Y.wellTop - Y.wellBot;
 var wellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-well', {
-  straggle: 0.24,
-  cornerR: 0.6,
-  roughness: 0.50,
-  metalness: 0.15,
+  peakV: 0.35,      // Retrograde implant peak sits ~35% down into the well
+  sigmaV: 0.28,     // Broad Gaussian with high thermal straggle
+  straggle: 0.08,   // Controlled lateral straggle ensuring active is fully enclosed at all depths
+  cornerR: 0.50,    // Smooth rounded corner radius
+  opacity: 0.85,
+  outlineColor: '#5fd9c4',
+  depthWrite: false,
   renderOrder: 2
 });
 wellMesh.position.set(0, (Y.wellTop + Y.wellBot) / 2, 0);
@@ -236,16 +524,26 @@ var srcX = -4.2;
 var drnX = 4.2;
 
 var srcMesh = gaussianDopingMesh(actW, actH, actD, '--c-active-p', {
-  straggle: 0.22,
-  cornerR: 0.35,
+  peakV: 0.15,      // Peak close to surface (~20 nm projected range)
+  sigmaV: 0.22,     // Tight sigma for abrupt shallow junction
+  straggle: 0.16,   // Lateral straggle under gate edge
+  cornerR: 0.5,
+  outlineColor: '#f0b877',
+  opacity: 0.88,
+  depthWrite: false,
   renderOrder: 3
 });
 srcMesh.position.set(srcX, (Y.actTop + Y.actBot) / 2, 0);
 reg(srcMesh, 'pmosSrc', 'active');
 
 var drnMesh = gaussianDopingMesh(actW, actH, actD, '--c-active-p', {
-  straggle: 0.22,
-  cornerR: 0.35,
+  peakV: 0.15,
+  sigmaV: 0.22,
+  straggle: 0.16,
+  cornerR: 0.5,
+  outlineColor: '#f0b877',
+  opacity: 0.88,
+  depthWrite: false,
   renderOrder: 3
 });
 drnMesh.position.set(drnX, (Y.actTop + Y.actBot) / 2, 0);
@@ -258,16 +556,26 @@ var sdeSrcX = -1.55;
 var sdeDrnX = 1.55;
 
 var sdeSrcMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-p', {
-  straggle: 0.15,
-  cornerR: 0.20,
+  peakV: 0.10,
+  sigmaV: 0.28,
+  straggle: 0.12,
+  cornerR: 0.25,
+  opacity: 0.72,
+  outlineColor: '#fcd34d',
+  depthWrite: false,
   renderOrder: 4
 });
 sdeSrcMesh.position.set(sdeSrcX, (Y.sdeTop + Y.sdeBot) / 2, 0);
 reg(sdeSrcMesh, 'sdeSrc', 'sde');
 
 var sdeDrnMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-p', {
-  straggle: 0.15,
-  cornerR: 0.20,
+  peakV: 0.10,
+  sigmaV: 0.28,
+  straggle: 0.12,
+  cornerR: 0.25,
+  opacity: 0.72,
+  outlineColor: '#fcd34d',
+  depthWrite: false,
   renderOrder: 4
 });
 sdeDrnMesh.position.set(sdeDrnX, (Y.sdeTop + Y.sdeBot) / 2, 0);
@@ -281,11 +589,12 @@ var chanMat = new THREE.MeshStandardMaterial({
   color: 0xf43f5e,
   emissive: 0xbe123c,
   emissiveIntensity: 0.45,
-  transparent: false,
-  opacity: 1.0,
-  depthWrite: true,
+  transparent: true,
+  opacity: 0.80,
+  depthWrite: false,
   roughness: 0.50,
-  metalness: 0.15
+  metalness: 0.15,
+  side: THREE.DoubleSide
 });
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
 channelMesh.position.set(0, 2.919, 0);
@@ -298,11 +607,12 @@ var pinchMat = new THREE.MeshStandardMaterial({
   color: 0xf59e0b,
   emissive: 0xd97706,
   emissiveIntensity: 0.50,
-  transparent: false,
-  opacity: 1.0,
-  depthWrite: true,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
   roughness: 0.50,
-  metalness: 0.15
+  metalness: 0.15,
+  side: THREE.DoubleSide
 });
 var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
 pinchMesh.position.set(0.6, 2.929, 0);
@@ -369,8 +679,13 @@ window.updateChannelGeometry = function(vsg, vsd, isd, region, deltaL) {
 // 6. N-WELL TAP (N+ OHMIC CONTACT TO VDD)
 var tapW = 2.4, tapD = 2.4;
 var tapMesh = gaussianDopingMesh(tapW, actH, tapD, '--c-well', {
+  peakV: 0.18,
+  sigmaV: 0.24,
   straggle: 0.20,
-  cornerR: 0.30,
+  cornerR: 0.3,
+  outlineColor: '#8fe6c8',
+  opacity: 0.85,
+  depthWrite: false,
   renderOrder: 3
 });
 tapMesh.position.set(-6.5, (Y.actTop + Y.actBot) / 2, 6.2);
@@ -589,7 +904,16 @@ function updateMaterialsTheme() {
   selectable.forEach(function(m) {
     if (m && m.userData && m.userData.colorVar && m.material && m.material.color) {
       var hex = cssVar(m.userData.colorVar);
-      if (hex) m.material.color.set(hex);
+      if (hex) {
+        m.material.color.set(hex);
+        if (m.children) {
+          m.children.forEach(function(child) {
+            if (child.isMesh && child.material && child.material.color) {
+              child.material.color.set(hex);
+            }
+          });
+        }
+      }
     } else if (m && m.isGroup) {
       m.traverse(function(child) {
         if (child.isMesh && child.userData && child.userData.colorVar && child.material && child.material.color) {
