@@ -32,7 +32,7 @@ window.getMosfetPhysicsState = function() {
     ids = 0.0;
   } else if (currentVds < vdsSat) {
     region = 'LINEAR';
-    ids = KN_PRIME * (vov * currentVds - 0.5 * currentVds * currentVds) * (1.0 + LAMBDA * currentVds);
+    ids = KN_PRIME * (vov * currentVds - 0.5 * currentVds * currentVds);
   } else {
     region = 'SATURATION';
     var vdsDiff = currentVds - vdsSat;
@@ -302,29 +302,51 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.textAlign = 'right';
   ctx.fillText('SATURATION', padL + plotW - 6, padT + 16);
 
-  // Helper to compute IDS(VDS) for a given VGS
+  // Helper to compute IDS(VDS) for a given VGS (Continuous at pinch-off VDS = VOV)
   function calcIds(testVgs, testVds) {
     var vov = Math.max(0, testVgs - VTH);
     if (vov <= 0.001) return 0;
     var vdsSat = vov;
     if (testVds < vdsSat) {
-      return KN_PRIME * (vov * testVds - 0.5 * testVds * testVds) * (1.0 + LAMBDA * testVds);
+      return KN_PRIME * (vov * testVds - 0.5 * testVds * testVds);
     } else {
       return 0.5 * KN_PRIME * vov * vov * (1.0 + LAMBDA * (testVds - vdsSat));
     }
   }
 
+  // Generates curve sampling coordinates that strictly include the boundary point v = vov
+  function getSamplePoints(vov, maxV, baseStep) {
+    var pts = [];
+    for (var v = 0; v <= maxV + 0.0001; v += baseStep) {
+      pts.push(Math.min(maxV, v));
+    }
+    if (vov > 0.001 && vov < maxV) {
+      pts.push(vov);
+    }
+    pts.sort(function(a, b) { return a - b; });
+    var unique = [pts[0]];
+    for (var i = 1; i < pts.length; i++) {
+      if (pts[i] - unique[unique.length - 1] > 0.002) {
+        unique.push(pts[i]);
+      }
+    }
+    return unique;
+  }
+
   // Draw Family of VGS Curves
   var vgsFamily = [0.4, 0.7, 1.0, 1.3, 1.6];
   vgsFamily.forEach(function(fVgs) {
+    var fVov = Math.max(0, fVgs - VTH);
+    var pts = getSamplePoints(fVov, vdsMax, 0.04);
     ctx.strokeStyle = dimmedCurveColor;
     ctx.lineWidth = 1.1;
     ctx.beginPath();
-    for (var v = 0; v <= vdsMax; v += 0.04) {
+    for (var idx = 0; idx < pts.length; idx++) {
+      var v = pts[idx];
       var i = calcIds(fVgs, v);
       var px = toX(v);
       var py = toY(i);
-      if (v === 0) ctx.moveTo(px, py);
+      if (idx === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
     }
     ctx.stroke();
@@ -340,14 +362,17 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   });
 
   // Draw Highlighted Active VGS Curve
+  var activeVov = Math.max(0, activeVgs - VTH);
+  var activePts = getSamplePoints(activeVov, vdsMax, 0.03);
   ctx.strokeStyle = activeCurveColor;
   ctx.lineWidth = 2.4;
   ctx.beginPath();
-  for (var v = 0; v <= vdsMax; v += 0.03) {
+  for (var idx = 0; idx < activePts.length; idx++) {
+    var v = activePts[idx];
     var i = calcIds(activeVgs, v);
     var px = toX(v);
     var py = toY(i);
-    if (v === 0) ctx.moveTo(px, py);
+    if (idx === 0) ctx.moveTo(px, py);
     else ctx.lineTo(px, py);
   }
   ctx.stroke();

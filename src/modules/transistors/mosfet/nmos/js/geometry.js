@@ -142,7 +142,10 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
     metalness: 0.10,
     transparent: true,
     opacity: 0.92,
-    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true
+    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
   });
 
   var mesh = new THREE.Mesh(geom, mat);
@@ -243,25 +246,25 @@ function cylinder(rt, rb, h, seg, colorHexOrVar, opts) {
 }
 
 // ---------------------------------------------------------------------------
-// GEOMETRY ELEVATION COORDINATES (Y Stack - Elevated Cleanly Above Grid at Y=0)
+// GEOMETRY ELEVATION COORDINATES (Y Stack - Progressive Micro-Offsets to Eliminate Z-Fighting)
 // ---------------------------------------------------------------------------
 var Y = {
   subBot: 0.0,
   subTop: 3.0,
-  actBot: 1.8,
-  actTop: 3.0,
-  sdeBot: 2.5,
-  sdeTop: 3.0,
-  oxBot: 3.0,
-  oxTop: 3.18,
-  hkBot: 3.18,
-  hkTop: 3.42,
-  polyBot: 3.42,
-  polyTop: 4.45,
-  ctBot: 3.0,
-  ctTop: 5.15,
-  m1Bot: 5.15,
-  m1Top: 5.85
+  actBot: 1.804,
+  actTop: 3.004,
+  sdeBot: 2.508,
+  sdeTop: 3.008,
+  oxBot: 3.008,
+  oxTop: 3.188,
+  hkBot: 3.188,
+  hkTop: 3.428,
+  polyBot: 3.428,
+  polyTop: 4.458,
+  ctBot: 3.008,
+  ctTop: 5.158,
+  m1Bot: 5.158,
+  m1Top: 5.858
 };
 
 // 1. P-SUBSTRATE BASE SLAB (Matching CMOS Inverter Palette)
@@ -336,10 +339,13 @@ var chanMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.75,
   roughness: 0.20,
-  metalness: 0.15
+  metalness: 0.15,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1
 });
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
-channelMesh.position.set(0, 2.91, 0);
+channelMesh.position.set(0, 2.918, 0);
 reg(channelMesh, 'channel', 'active');
 
 // Dedicated pinch-off space-charge gap mesh visible during Saturation (VDS >= VGS - VTH)
@@ -351,10 +357,13 @@ var pinchMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.50,
   roughness: 0.25,
-  metalness: 0.20
+  metalness: 0.20,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1
 });
 var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
-pinchMesh.position.set(0.6, 2.92, 0);
+pinchMesh.position.set(0.6, 2.928, 0);
 pinchMesh.visible = false;
 groups['active'].add(pinchMesh);
 
@@ -516,20 +525,20 @@ var ctH = Y.ctTop - Y.ctBot;
 // Subtle tapered CVD Tungsten plugs (color 0x4a4d54, metalness 0.95, roughness 0.25)
 var srcCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { metalness: 0.95, roughness: 0.25 });
 srcCt.position.set(srcX, (Y.ctTop + Y.ctBot) / 2, 0);
-reg(srcCt, 'contact', 'contact');
+reg(srcCt, 'nmosSrcCt', 'contact');
 
 var drnCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { metalness: 0.95, roughness: 0.25 });
 drnCt.position.set(drnX, (Y.ctTop + Y.ctBot) / 2, 0);
-reg(drnCt, 'contact', 'contact');
+reg(drnCt, 'nmosDrnCt', 'contact');
 
 var gateCtH = Y.ctTop - Y.polyTop;
 var gateCt = cylinder(ctRadius, ctRadiusBot, gateCtH, 20, 0x4a4d54, { metalness: 0.95, roughness: 0.25 });
 gateCt.position.set(0, (Y.ctTop + Y.polyTop) / 2, 5.2);
-reg(gateCt, 'contact', 'contact');
+reg(gateCt, 'polyCt', 'contact');
 
 var subCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { metalness: 0.95, roughness: 0.25 });
 subCt.position.set(-6.5, (Y.ctTop + Y.ctBot) / 2, 6.2);
-reg(subCt, 'contact', 'contact');
+reg(subCt, 'subtapCt', 'contact');
 
 // ---------------------------------------------------------------------------
 // 9. METAL-1 INTERCONNECT PADS (Flat metallic ribbons, matching CMOS palette)

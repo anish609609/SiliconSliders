@@ -256,8 +256,8 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
     side: THREE.DoubleSide,
     depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : false,
     polygonOffset: true,
-    polygonOffsetFactor: 1.0,
-    polygonOffsetUnits: 1.0,
+    polygonOffsetFactor: -1.0,
+    polygonOffsetUnits: -1.0,
     emissive: 0x000000,
     emissiveIntensity: 0
   });

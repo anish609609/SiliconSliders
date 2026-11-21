@@ -141,6 +141,14 @@ function selectById(id){
   if (typeof window.updateVoiceAssistantContext === 'function'){
     window.updateVoiceAssistantContext(id, info);
   }
+
+  // Auto-collapse PHYSICS & GRAPH / VIEW CONTROLS dock on component selection
+  var dpBody = document.getElementById('dp-body');
+  var dpCollapseBtn = document.getElementById('dp-collapse-btn');
+  if (dpBody && !dpBody.classList.contains('collapsed')) {
+    dpBody.classList.add('collapsed');
+    if (dpCollapseBtn) dpCollapseBtn.textContent = '▸';
+  }
 }
 
 // raycaster click — hitting the model selects + anchors the popover;

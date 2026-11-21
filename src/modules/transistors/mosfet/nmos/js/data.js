@@ -102,11 +102,43 @@ var INFO = {
     doping: 'Dielectric insulator — Silicon Nitride (Si3N4, k ≈ 7.5)'
   },
   contact: {
-    title: 'TUNGSTEN CONTACT PLUG (W-VIA)',
-    fn: 'Chemical Vapor Deposition (CVD) Tungsten via plug with Ti/TiN barrier liner.',
-    role: 'Low-resistance vertical interconnect bridging silicon/poly to Metal-1.',
-    conn: 'Active Diffusion / Poly ↔ Metal-1',
+    title: 'TUNGSTEN CONTACT PLUGS (W-VIA)',
+    fn: 'Chemical Vapor Deposition (CVD) Tungsten via plugs with Ti/TiN barrier liners.',
+    role: 'Low-resistance vertical interconnects bridging silicon/poly to Metal-1.',
+    conn: 'Active Diffusion / Poly / Tap ↔ Metal-1',
     rel: 'Surrounded by dielectric interlayer (ILD SiO2 / low-k).',
+    doping: 'Metallic conductor — pure Tungsten (W)'
+  },
+  nmosSrcCt: {
+    title: 'SOURCE CONTACT (W)',
+    fn: 'Tungsten via plug contacting the N+ Source diffusion.',
+    role: 'Provides low-resistance vertical connection between the Source diffusion and Metal-1 Source pad (GND).',
+    conn: 'N+ Source ↔ Metal-1 Source Pad',
+    rel: 'Filled with CVD Tungsten over Ti/TiN barrier liner and polished via CMP.',
+    doping: 'Metallic conductor — pure Tungsten (W)'
+  },
+  nmosDrnCt: {
+    title: 'DRAIN CONTACT (W)',
+    fn: 'Tungsten via plug contacting the N+ Drain diffusion.',
+    role: 'Provides low-resistance vertical connection between the Drain diffusion and Metal-1 Drain pad (VDS).',
+    conn: 'N+ Drain ↔ Metal-1 Drain Pad',
+    rel: 'Filled with CVD Tungsten over Ti/TiN barrier liner and polished via CMP.',
+    doping: 'Metallic conductor — pure Tungsten (W)'
+  },
+  polyCt: {
+    title: 'GATE CONTACT (W)',
+    fn: 'Tungsten via plug contacting the Polysilicon/Metal Gate runner.',
+    role: 'Transmits gate input voltage (VGS) from Metal-1 Gate pad down to the gate electrode.',
+    conn: 'Poly Gate Runner ↔ Metal-1 Gate Pad',
+    rel: 'Terminates on the gate extension outside the active channel area.',
+    doping: 'Metallic conductor — pure Tungsten (W)'
+  },
+  subtapCt: {
+    title: 'BODY TAP CONTACT (W)',
+    fn: 'Tungsten via plug contacting the P+ Substrate tap.',
+    role: 'Biases the P-substrate to 0V reference ground, eliminating body bias and preventing latch-up.',
+    conn: 'P+ Substrate Tap ↔ Metal-1 Body Pad',
+    rel: 'Surrounded by ILD dielectric on the bulk wafer body.',
     doping: 'Metallic conductor — pure Tungsten (W)'
   },
   metal: {

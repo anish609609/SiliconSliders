@@ -2,13 +2,29 @@
  * voice-assistant.js - NMOS CAD Viewer
  * Sarvam AI Voice Assistant Tutor & Audio Narration Engine
  * - Full parity Sarvam AI API Key modal with test voice verification
- * - Speech-to-text (Web Speech STT) and text-to-speech (Sarvam Bulbul v4 Flash 24kHz)
+ * - Speech-to-text (Web Speech STT) with active listening state and error reporting
+ * - Text-to-speech (Sarvam Bulbul v4 Flash 24kHz) with play/pause/stop playback controls
  * - LLM tutoring powered by sarvam-105b-conversations
  */
 
 (function () {
   var SARVAM_KEY_STORAGE = 'sarvam_api_key_custom';
   var STORAGE_KEY_SESSION_ONLY = 'sarvam_key_session_only';
+
+  var PERSONAS = {
+    'en-IN': [
+      { id: 'aparna_en_edtech', name: 'Aparna (EdTech Tutor)' },
+      { id: 'aparna_en_companion', name: 'Aparna (Companion)' }
+    ],
+    'hi-IN': [
+      { id: 'aparna_hi_customer', name: 'Aparna (Hindi Tutor)' },
+      { id: 'shubh_hi_customer', name: 'Shubh (Hindi Conversational)' },
+      { id: 'ritu_hi_customer', name: 'Ritu (Hindi Casual)' }
+    ],
+    'te-IN': [
+      { id: 'kavitha_te_narration', name: 'Kavitha (Telugu Narration)' }
+    ]
+  };
 
   var currentLang = 'en-IN';
   var currentSpeaker = 'aparna_en_edtech';
@@ -43,9 +59,9 @@
   var inputField = null;
   var sendBtn = null;
   var micBtn = null;
+  var playBtn = null;
   var stopBtn = null;
   var responseArea = null;
-  var visualizerBars = [];
 
   function getSavedApiKey() {
     try {
@@ -129,7 +145,160 @@
       currentAudioUrl = null;
     }
     isPlaying = false;
+    if (playBtn) {
+      playBtn.textContent = '▶ Play';
+      playBtn.disabled = true;
+    }
+    if (stopBtn) {
+      stopBtn.disabled = true;
+    }
     updateStatus('ready', 'AI Tutor Ready');
+  }
+
+  function togglePlayPause() {
+    if (!currentAudioInstance) return;
+    if (isPlaying) {
+      currentAudioInstance.pause();
+      isPlaying = false;
+      if (playBtn) playBtn.textContent = '▶ Play';
+      updateStatus('ready', 'Playback Paused');
+    } else {
+      currentAudioInstance.play().then(function () {
+        isPlaying = true;
+        if (playBtn) playBtn.textContent = '⏸ Pause';
+        if (stopBtn) stopBtn.disabled = false;
+        updateStatus('speaking', 'Speaking Voice...');
+      }).catch(function (err) {
+        console.error('Audio play error:', err);
+        updateStatus('error', 'Playback blocked: ' + err.message);
+      });
+    }
+  }
+
+  function playAudioBlob(blob) {
+    stopAudio();
+    currentAudioUrl = URL.createObjectURL(blob);
+    currentAudioInstance = new Audio(currentAudioUrl);
+
+    currentAudioInstance.onended = function () {
+      stopAudio();
+    };
+    currentAudioInstance.onerror = function (e) {
+      console.error('Audio playback error:', e);
+      updateStatus('error', 'Audio playback failed');
+      stopAudio();
+    };
+
+    if (playBtn) {
+      playBtn.disabled = false;
+      playBtn.textContent = '⏸ Pause';
+    }
+    if (stopBtn) {
+      stopBtn.disabled = false;
+    }
+
+    isPlaying = true;
+    updateStatus('speaking', 'Speaking Voice...');
+
+    currentAudioInstance.play().catch(function (err) {
+      console.warn('Autoplay prevented by browser, click Play to listen:', err);
+      isPlaying = false;
+      if (playBtn) {
+        playBtn.disabled = false;
+        playBtn.textContent = '▶ Play';
+      }
+      updateStatus('ready', 'Voice Ready — Click ▶ Play');
+    });
+  }
+
+  // =========================================================================
+  // SPEECH-TO-TEXT (MIC INPUT)
+  // =========================================================================
+  function initSpeechRecognition() {
+    var SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) {
+      console.error('Speech recognition (SpeechRecognition / webkitSpeechRecognition) not supported in this browser.');
+      updateStatus('error', 'Speech recognition not supported');
+      return null;
+    }
+
+    var recognition = new SpeechRecognitionClass();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = currentLang || 'en-IN';
+
+    recognition.onstart = function () {
+      isRecognizing = true;
+      if (micBtn) {
+        micBtn.classList.add('recording');
+        micBtn.title = 'Listening... Click to finish speaking';
+      }
+      updateStatus('listening', 'Listening...');
+    };
+
+    recognition.onresult = function (event) {
+      var transcript = '';
+      for (var i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (inputField && transcript) {
+        inputField.value = transcript;
+      }
+    };
+
+    recognition.onerror = function (event) {
+      isRecognizing = false;
+      if (micBtn) {
+        micBtn.classList.remove('recording');
+        micBtn.title = 'Voice Input (Mic)';
+      }
+      var errMsg = event.error === 'not-allowed' ? 'Mic permission denied' : ('STT error: ' + event.error);
+      console.error('Speech recognition error:', event.error, errMsg);
+      updateStatus('error', errMsg);
+    };
+
+    recognition.onend = function () {
+      isRecognizing = false;
+      if (micBtn) {
+        micBtn.classList.remove('recording');
+        micBtn.title = 'Voice Input (Mic)';
+      }
+      if (inputField && inputField.value.trim()) {
+        updateStatus('ready', 'Transcribed — Click Ask & Speak');
+      } else {
+        updateStatus('ready', 'AI Tutor Ready');
+      }
+    };
+
+    return recognition;
+  }
+
+  function toggleSpeechRecognition() {
+    if (isRecognizing && speechRecognition) {
+      try {
+        speechRecognition.stop();
+      } catch (e) {
+        console.error('Error stopping speech recognition:', e);
+      }
+      return;
+    }
+
+    if (!speechRecognition) {
+      speechRecognition = initSpeechRecognition();
+    }
+    if (!speechRecognition) {
+      alert('Speech-to-text recognition is not supported in this browser. Please type your question.');
+      return;
+    }
+
+    stopAudio();
+    speechRecognition.lang = currentLang || 'en-IN';
+    try {
+      speechRecognition.start();
+    } catch (e) {
+      console.error('Error starting speech recognition:', e);
+      updateStatus('error', 'Mic error: ' + e.message);
+    }
   }
 
   // =========================================================================
@@ -263,7 +432,7 @@
       }, 700);
 
     } catch (err) {
-      console.warn('[VoiceAssistant] Key verification error:', err);
+      console.error('[VoiceAssistant] Key verification error:', err);
       showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
       if (keyModalSaveBtn) {
         keyModalSaveBtn.disabled = false;
@@ -273,7 +442,7 @@
   }
 
   // =========================================================================
-  // SUBMIT PROMPT & TTS STREAMING
+  // SUBMIT PROMPT & TTS SYNTHESIS
   // =========================================================================
   async function submitQuestion(questionText) {
     var text = (questionText || (inputField ? inputField.value : '')).trim();
@@ -309,43 +478,53 @@
         }
       };
 
-      // Call backend or direct Sarvam LLM
-      var chatRes = await fetch('https://api.sarvam.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-subscription-key': apiKey
-        },
-        body: JSON.stringify({
-          model: 'sarvam-105b-conversations',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert VLSI educator explaining a 3D NMOS Transistor CAD layout. Provide a concise, engaging spoken explanation (2-3 sentences, 40-60 words) answering the student question naturally without bullet points, asterisks, or markdown equations.'
-            },
-            {
-              role: 'user',
-              content: 'Context: ' + JSON.stringify(contextPayload) + '\nQuestion: ' + text
-            }
-          ],
-          temperature: 0.3,
-          max_tokens: 150
-        }),
-        signal: signal
-      });
+      // Query Sarvam LLM
+      var answerText = '';
+      try {
+        var chatRes = await fetch('https://api.sarvam.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'api-subscription-key': apiKey
+          },
+          body: JSON.stringify({
+            model: 'sarvam-105b-conversations',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are an expert VLSI educator explaining a 3D NMOS Transistor CAD layout. Provide a concise, engaging spoken explanation (2-3 sentences, 40-60 words) answering the student question naturally without bullet points, asterisks, or markdown equations.'
+              },
+              {
+                role: 'user',
+                content: 'Context: ' + JSON.stringify(contextPayload) + '\nQuestion: ' + text
+              }
+            ],
+            temperature: 0.3,
+            max_tokens: 150
+          }),
+          signal: signal
+        });
 
-      if (!chatRes.ok) {
-        throw new Error('Sarvam LLM returned status ' + chatRes.status);
+        if (chatRes.ok) {
+          var chatData = await chatRes.json();
+          answerText = (chatData.choices && chatData.choices[0] && chatData.choices[0].message && chatData.choices[0].message.content) || '';
+        } else {
+          var chatErr = await chatRes.text();
+          console.error('Sarvam LLM status ' + chatRes.status + ':', chatErr);
+        }
+      } catch (chatFetchErr) {
+        console.error('Sarvam LLM fetch error:', chatFetchErr);
       }
 
-      var chatData = await chatRes.json();
-      var answerText = (chatData.choices && chatData.choices[0] && chatData.choices[0].message && chatData.choices[0].message.content) || 'The NMOS transistor operates by applying gate voltage VGS to invert the P-substrate surface into an electron channel between the N-plus source and drain.';
+      if (!answerText) {
+        answerText = 'The NMOS transistor operates by applying gate voltage VGS to invert the P-substrate surface into an electron channel between the N-plus source and drain.';
+      }
 
       isThinking = false;
       appendMessage('ai', answerText);
       updateStatus('synthesizing', 'Synthesizing 24kHz Voice...');
 
-      // Synthesize audio
+      // Synthesize audio via Sarvam TTS
       var ttsRes = await fetch('https://api.sarvam.ai/text-to-speech', {
         method: 'POST',
         headers: {
@@ -365,32 +544,43 @@
         var ttsData = await ttsRes.json();
         if (ttsData && ttsData.audios && ttsData.audios[0]) {
           var audioBlob = base64ToWavBlob(ttsData.audios[0]);
-          currentAudioUrl = URL.createObjectURL(audioBlob);
-          currentAudioInstance = new Audio(currentAudioUrl);
-          isPlaying = true;
-          updateStatus('speaking', 'Speaking Voice...');
-          currentAudioInstance.onended = function () {
-            stopAudio();
-          };
-          currentAudioInstance.play().catch(function () {});
+          playAudioBlob(audioBlob);
         } else {
-          updateStatus('ready', 'AI Tutor Ready');
+          console.error('Sarvam TTS returned empty audio payload:', ttsData);
+          updateStatus('error', 'TTS returned empty audio');
         }
       } else {
-        updateStatus('ready', 'AI Tutor Ready');
+        var ttsErr = await ttsRes.text();
+        console.error('Sarvam TTS returned status ' + ttsRes.status + ':', ttsErr);
+        updateStatus('error', 'TTS failed (' + ttsRes.status + ')');
       }
 
     } catch (err) {
       if (err.name === 'AbortError') return;
-      console.warn('[VoiceAssistant] Error:', err);
-      appendMessage('ai', 'Explanation: The NMOS transistor conducts when positive gate voltage VGS attracts minority electrons into the surface channel, creating an n-type bridge from source to drain.');
-      updateStatus('ready', 'AI Tutor Ready');
+      console.error('[VoiceAssistant] Error:', err);
+      updateStatus('error', 'Tutor error: ' + (err.message || 'Request failed'));
     }
   }
 
   // =========================================================================
   // INITIALIZATION & DOM BINDINGS
   // =========================================================================
+  function updateSpeakerOptions(lang) {
+    if (!speakerSelect) return;
+    speakerSelect.innerHTML = '';
+    var list = PERSONAS[lang] || PERSONAS['en-IN'];
+    list.forEach(function (item, idx) {
+      var opt = document.createElement('option');
+      opt.value = item.id;
+      opt.textContent = item.name;
+      if (idx === 0) {
+        opt.selected = true;
+        currentSpeaker = item.id;
+      }
+      speakerSelect.appendChild(opt);
+    });
+  }
+
   function init() {
     widgetEl = document.getElementById('voice-assistant-widget');
     launcherEl = document.getElementById('va-launcher-btn');
@@ -401,9 +591,9 @@
     inputField = document.getElementById('va-input-text') || document.getElementById('va-input');
     sendBtn = document.getElementById('va-btn-send');
     micBtn = document.getElementById('va-btn-mic');
+    playBtn = document.getElementById('va-btn-play');
     stopBtn = document.getElementById('va-btn-stop');
     responseArea = document.getElementById('va-response-area');
-    visualizerBars = Array.from(document.querySelectorAll('#va-visualizer .bar'));
 
     // Modal elements
     keyModalBackdrop = document.getElementById('va-key-modal');
@@ -417,6 +607,39 @@
     keyModalCloseBtn = document.getElementById('va-modal-close-btn');
     keyModalSaveBtn = document.getElementById('va-modal-save-btn');
     var settingsBtn = document.getElementById('va-btn-settings');
+
+    // Language & Speaker Persona change listeners
+    if (langSelect) {
+      langSelect.addEventListener('change', function () {
+        currentLang = langSelect.value;
+        updateSpeakerOptions(currentLang);
+        if (speechRecognition) speechRecognition.lang = currentLang;
+      });
+    }
+
+    if (speakerSelect) {
+      speakerSelect.addEventListener('change', function () {
+        currentSpeaker = speakerSelect.value;
+      });
+    }
+
+    // Microphone STT button
+    if (micBtn) {
+      micBtn.addEventListener('click', function () {
+        toggleSpeechRecognition();
+      });
+    }
+
+    // Audio Play / Stop buttons
+    if (playBtn) {
+      playBtn.addEventListener('click', function () {
+        togglePlayPause();
+      });
+    }
+
+    if (stopBtn) {
+      stopBtn.addEventListener('click', stopAudio);
+    }
 
     // Launcher button (restore)
     if (launcherEl && widgetEl) {
@@ -529,10 +752,6 @@
           submitQuestion();
         }
       });
-    }
-
-    if (stopBtn) {
-      stopBtn.addEventListener('click', stopAudio);
     }
 
     // Quick Prompt Chips

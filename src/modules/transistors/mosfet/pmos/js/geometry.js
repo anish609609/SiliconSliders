@@ -143,7 +143,10 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
     metalness: 0.10,
     transparent: true,
     opacity: 0.94,
-    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true
+    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1
   });
 
   var mesh = new THREE.Mesh(geom, mat);
@@ -243,27 +246,27 @@ function cylinder(rt, rb, h, seg, colorHexOrVar, opts) {
 }
 
 // ---------------------------------------------------------------------------
-// GEOMETRY ELEVATION COORDINATES (Y Stack - Elevated Cleanly Above Grid at Y=0)
+// GEOMETRY ELEVATION COORDINATES (Y Stack - Progressive Micro-Offsets to Eliminate Z-Fighting)
 // ---------------------------------------------------------------------------
 var Y = {
   subBot: 0.0,
   subTop: 3.0,
-  wellBot: 0.6,
-  wellTop: 3.0,
-  actBot: 1.8,
-  actTop: 3.0,
-  sdeBot: 2.5,
-  sdeTop: 3.0,
-  oxBot: 3.0,
-  oxTop: 3.18,
-  hkBot: 3.18,
-  hkTop: 3.42,
-  polyBot: 3.42,
-  polyTop: 4.45,
-  ctBot: 3.0,
-  ctTop: 5.15,
-  m1Bot: 5.15,
-  m1Top: 5.85
+  wellBot: 0.603,
+  wellTop: 3.003,
+  actBot: 1.806,
+  actTop: 3.006,
+  sdeBot: 2.509,
+  sdeTop: 3.009,
+  oxBot: 3.009,
+  oxTop: 3.189,
+  hkBot: 3.189,
+  hkTop: 3.429,
+  polyBot: 3.429,
+  polyTop: 4.459,
+  ctBot: 3.009,
+  ctTop: 5.159,
+  m1Bot: 5.159,
+  m1Top: 5.859
 };
 
 // 1. P-SUBSTRATE BASE SLAB (Bottom seated at y=0, grid lines at y=-0.02 never clip)
@@ -351,10 +354,13 @@ var chanMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.75,
   roughness: 0.22,
-  metalness: 0.15
+  metalness: 0.15,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1
 });
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
-channelMesh.position.set(0, 2.91, 0);
+channelMesh.position.set(0, 2.919, 0);
 reg(channelMesh, 'channel', 'active');
 
 // Dedicated pinch-off space-charge gap mesh visible during Saturation (VSD >= VSG - |VTH,p|)
@@ -366,10 +372,13 @@ var pinchMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.50,
   roughness: 0.25,
-  metalness: 0.20
+  metalness: 0.20,
+  polygonOffset: true,
+  polygonOffsetFactor: -1,
+  polygonOffsetUnits: -1
 });
 var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
-pinchMesh.position.set(0.6, 2.92, 0);
+pinchMesh.position.set(0.6, 2.929, 0);
 pinchMesh.visible = false;
 groups['active'].add(pinchMesh);
 

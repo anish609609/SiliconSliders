@@ -32,7 +32,7 @@ window.getMosfetPhysicsState = function() {
     isd = 0.0;
   } else if (currentVsd < vsdSat) {
     region = 'LINEAR';
-    isd = KP_PRIME * (vov * currentVsd - 0.5 * currentVsd * currentVsd) * (1.0 + LAMBDA_P * currentVsd);
+    isd = KP_PRIME * (vov * currentVsd - 0.5 * currentVsd * currentVsd);
   } else {
     region = 'SATURATION';
     var vsdDiff = currentVsd - vsdSat;
@@ -305,6 +305,25 @@ function drawIsdVsdGraph(activeVsg, activeVsd, activeIsd, activeRegion) {
   ctx.textAlign = 'right';
   ctx.fillText('SATURATION', padL + plotW - 8, padT + 16);
 
+  // Generates curve sampling coordinates that strictly include the boundary point v = vov
+  function getSamplePoints(vov, maxV, baseStep) {
+    var pts = [];
+    for (var v = 0; v <= maxV + 0.0001; v += baseStep) {
+      pts.push(Math.min(maxV, v));
+    }
+    if (vov > 0.001 && vov < maxV) {
+      pts.push(vov);
+    }
+    pts.sort(function(a, b) { return a - b; });
+    var unique = [pts[0]];
+    for (var i = 1; i < pts.length; i++) {
+      if (pts[i] - unique[unique.length - 1] > 0.002) {
+        unique.push(pts[i]);
+      }
+    }
+    return unique;
+  }
+
   // Family of VSG Curves: 0.6V, 0.9V, 1.2V, 1.5V
   var vsgFamily = [0.60, 0.90, 1.20, 1.50];
   vsgFamily.forEach(function(curveVsg) {
@@ -314,15 +333,17 @@ function drawIsdVsdGraph(activeVsg, activeVsd, activeIsd, activeRegion) {
     var isCloseToActive = Math.abs(curveVsg - activeVsg) < 0.06;
     if (isCloseToActive) return; // Will draw highlighted active curve separately
 
+    var pts = getSamplePoints(vovFamily, vsdMax, 0.04);
     ctx.strokeStyle = dimmedCurveColor;
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     var started = false;
 
-    for (var v = 0; v <= vsdMax; v += 0.05) {
+    for (var idx = 0; idx < pts.length; idx++) {
+      var v = pts[idx];
       var iCalc = 0;
       if (v < vovFamily) {
-        iCalc = KP_PRIME * (vovFamily * v - 0.5 * v * v) * (1.0 + LAMBDA_P * v);
+        iCalc = KP_PRIME * (vovFamily * v - 0.5 * v * v);
       } else {
         iCalc = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (v - vovFamily));
       }
@@ -346,15 +367,17 @@ function drawIsdVsdGraph(activeVsg, activeVsd, activeIsd, activeRegion) {
   // Active Highlighted VSG Curve
   var activeVov = Math.max(0, activeVsg - VTH_P);
   if (activeVov > 0.001) {
+    var activePts = getSamplePoints(activeVov, vsdMax, 0.03);
     ctx.strokeStyle = activeCurveColor;
     ctx.lineWidth = 2.4;
     ctx.beginPath();
     var startedActive = false;
 
-    for (var v = 0; v <= vsdMax; v += 0.04) {
+    for (var idx = 0; idx < activePts.length; idx++) {
+      var v = activePts[idx];
       var iCalc = 0;
       if (v < activeVov) {
-        iCalc = KP_PRIME * (activeVov * v - 0.5 * v * v) * (1.0 + LAMBDA_P * v);
+        iCalc = KP_PRIME * (activeVov * v - 0.5 * v * v);
       } else {
         iCalc = 0.5 * KP_PRIME * activeVov * activeVov * (1.0 + LAMBDA_P * (v - activeVov));
       }

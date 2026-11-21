@@ -226,13 +226,21 @@
 
 .card-process {
   border-top: 3px solid var(--accent-gold);
+  justify-content: flex-start;
 }
 .card-process:hover {
   border-color: rgba(245, 158, 11, 0.5);
 }
+.card-process .card-actions {
+  width: 100%;
+}
 
 .card-mems {
   border-top: 3px solid var(--accent-purple);
+  justify-content: flex-start;
+}
+.card-mems .card-placeholder-box {
+  width: 100%;
 }
 
 .card-top {
