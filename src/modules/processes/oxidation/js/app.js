@@ -1226,7 +1226,6 @@
               <div className="mt-auto pt-3 border-t border-slate-200 dark:border-slate-800/80 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="font-mono font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-                    <span className="text-amber-500 dark:text-amber-400">⚡</span>
                     <span>Recipe Presets</span>
                   </span>
                   <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
@@ -1611,10 +1610,10 @@
 
               </div>
 
-              {/* 4. DUAL CHARTS SIDE-BY-SIDE AT THE BOTTOM */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {/* 4. DUAL CHARTS STACKED VERTICALLY (FULL-WIDTH) */}
+              <div className="grid grid-cols-1 gap-3.5" style={{ gridTemplateColumns: '1fr' }}>
 
-                {/* Left Chart: Oxide Thickness x_ox(t) & Temperature T(t) */}
+                {/* Top Chart: Oxide Thickness x_ox(t) & Temperature T(t) */}
                 <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-md flex flex-col">
                   <div className="px-3.5 py-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between text-xs font-mono gap-2">
                     <div className="flex items-center gap-3">
@@ -1641,16 +1640,16 @@
                       </span>
                     </div>
                   </div>
-                  <div className="relative h-[145px] min-h-[140px] bg-white dark:bg-[#0a0d14] cursor-crosshair">
+                  <div className="relative h-[240px] min-h-[220px] bg-white dark:bg-[#0a0d14] cursor-crosshair">
                     <canvas
                       ref={chartTopRef}
                       className="w-full h-full block"
-                      style={{ height: '145px' }}
+                      style={{ height: '240px' }}
                     />
                   </div>
                 </div>
 
-                {/* Right Chart: Chamber Gas Kinetics & MFC Flushing */}
+                {/* Bottom Chart: Chamber Gas Kinetics & MFC Flushing */}
                 <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-md flex flex-col">
                   <div className="px-3.5 py-1.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between text-xs font-mono gap-2">
                     <div className="flex items-center gap-3">
@@ -1677,11 +1676,11 @@
                       </span>
                     </div>
                   </div>
-                  <div className="relative h-[145px] min-h-[140px] bg-white dark:bg-[#0a0d14] cursor-crosshair">
+                  <div className="relative h-[240px] min-h-[220px] bg-white dark:bg-[#0a0d14] cursor-crosshair">
                     <canvas
                       ref={chartBottomRef}
                       className="w-full h-full block"
-                      style={{ height: '145px' }}
+                      style={{ height: '240px' }}
                     />
                   </div>
                 </div>

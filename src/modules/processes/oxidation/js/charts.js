@@ -61,10 +61,10 @@
     this.callbacks = callbacks || {};
 
     this.margins = {
-      left: 56,
-      right: 56,
-      top: 18,
-      bottom: 22
+      left: 58,
+      right: 58,
+      top: 22,
+      bottom: 24
     };
 
     this.hoverTime = null;
@@ -219,14 +219,23 @@
       ctx.restore();
     }
 
-    // Stage Names at top of regions (Crisp & non-colliding)
-    ctx.font = FONT_BOLD;
-    ctx.fillStyle = isLight ? '#475569' : 'rgba(148, 163, 184, 0.50)';
+    // Stage Names at top of regions (Crisp & non-colliding with clean horizontal spacing)
+    ctx.font = '600 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+    ctx.fillStyle = isLight ? '#475569' : 'rgba(148, 163, 184, 0.65)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('N₂ RAMP', (m.left + xRamp) / 2, m.top + 4);
-    ctx.fillText('OXIDATION SOAK', (xRamp + xSoakEnd) / 2, m.top + 4);
-    ctx.fillText('N₂ COOL-DOWN', (xSoakEnd + m.left + plotW) / 2, m.top + 4);
+
+    var wRamp = xRamp - m.left;
+    var wSoak = xSoakEnd - xRamp;
+    var wCool = (m.left + plotW) - xSoakEnd;
+
+    var rampLabel = wRamp >= 75 ? 'N₂ RAMP' : (wRamp >= 35 ? 'RAMP' : '');
+    var soakLabel = wSoak >= 100 ? 'OXIDATION SOAK' : (wSoak >= 45 ? 'SOAK' : '');
+    var coolLabel = wCool >= 85 ? 'N₂ COOL-DOWN' : (wCool >= 45 ? 'COOL' : '');
+
+    if (rampLabel) ctx.fillText(rampLabel, (m.left + xRamp) / 2, m.top + 5);
+    if (soakLabel) ctx.fillText(soakLabel, (xRamp + xSoakEnd) / 2, m.top + 5);
+    if (coolLabel) ctx.fillText(coolLabel, (xSoakEnd + m.left + plotW) / 2, m.top + 5);
 
     // Horizontal Grid Lines
     ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.05)';
@@ -244,7 +253,7 @@
     ctx.fillStyle = isLight ? '#475569' : '#64748b';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    var numTicks = 6;
+    var numTicks = Math.max(6, Math.min(10, Math.floor(plotW / 95)));
     for (var tx = 0; tx <= numTicks; tx++) {
       var timeVal = (tx / numTicks) * t_total;
       var tickX = m.left + (tx / numTicks) * plotW;
@@ -265,7 +274,7 @@
     var ctx = this.ctxTop;
     var rect = canvas.getBoundingClientRect();
     var w = Math.round(rect.width) || 600;
-    var h = Math.round(rect.height) || 145;
+    var h = Math.round(rect.height) || 240;
     var dpr = window.devicePixelRatio || 1;
     var isLight = theme === 'light';
 
@@ -469,7 +478,7 @@
     var ctx = this.ctxBottom;
     var rect = canvas.getBoundingClientRect();
     var w = Math.round(rect.width) || 600;
-    var h = Math.round(rect.height) || 145;
+    var h = Math.round(rect.height) || 240;
     var dpr = window.devicePixelRatio || 1;
     var isLight = theme === 'light';
 
