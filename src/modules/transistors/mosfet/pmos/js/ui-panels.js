@@ -30,11 +30,11 @@ var TREE = [
       { label: 'POLYSILICON RUNNER', id: 'poly' },
       { label: 'GATE SIDEWALL SPACERS (Si3N4)', id: 'spacer' }
     ]},
-    { label: 'CONTACTS (TUNGSTEN)', children: [
-      { label: 'SOURCE CONTACT (W)', id: 'contact' },
-      { label: 'DRAIN CONTACT (W)', id: 'contact' },
-      { label: 'GATE CONTACT (W)', id: 'contact' },
-      { label: 'WELL TAP CONTACT (W)', id: 'contact' }
+    { label: 'CONTACTS (TUNGSTEN)', id: 'contact', children: [
+      { label: 'SOURCE CONTACT (W)', id: 'pmosSrcCt' },
+      { label: 'DRAIN CONTACT (W)', id: 'pmosDrnCt' },
+      { label: 'GATE CONTACT (W)', id: 'polyCt' },
+      { label: 'WELL TAP CONTACT (W)', id: 'welltapCt' }
     ]},
     { label: 'METAL-1 INTERCONNECT', children: [
       { label: 'SOURCE PAD (VDD)', id: 'srcRail' },
@@ -46,7 +46,8 @@ var TREE = [
 ];
 
 var VIRTUAL = {
-  pmos: { info: 'channel', meshes: ['pmosSrc', 'pmosDrn', 'sdeSrc', 'sdeDrn', 'poly', 'channel', 'nwell'] }
+  pmos: { info: 'channel', meshes: ['pmosSrc', 'pmosDrn', 'sdeSrc', 'sdeDrn', 'poly', 'channel', 'nwell'] },
+  contact: { info: 'contact', meshes: ['pmosSrcCt', 'pmosDrnCt', 'polyCt', 'welltapCt'] }
 };
 
 function idToInfo(id) {
@@ -62,6 +63,11 @@ function idToInfo(id) {
     poly: 'poly',
     spacer: 'spacer',
     contact: 'contact',
+    pmosSrcCt: 'contact',
+    pmosDrnCt: 'contact',
+    polyCt: 'contact',
+    welltapCt: 'contact',
+    wellCt: 'contact',
     metal: 'metal',
     welltap: 'welltap',
     srcRail: 'srcRail',

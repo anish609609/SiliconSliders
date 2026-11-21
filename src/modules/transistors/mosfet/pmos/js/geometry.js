@@ -19,6 +19,38 @@ function cssVar(name) {
 }
 
 // ---------------------------------------------------------------------------
+// PROCEDURAL BRUSHED METALLIC TEXTURE (Matching CMOS Inverter Palette)
+// ---------------------------------------------------------------------------
+var brushedMetalTexCache = null;
+function getBrushedMetalTexture() {
+  if (brushedMetalTexCache) return brushedMetalTexCache;
+  var c = document.createElement('canvas');
+  c.width = 256;
+  c.height = 256;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#cccccc';
+  ctx.fillRect(0, 0, 256, 256);
+  for (var i = 0; i < 300; i++) {
+    var y = Math.random() * 256;
+    var len = 30 + Math.random() * 150;
+    var x = Math.random() * 256;
+    var alpha = 0.08 + Math.random() * 0.15;
+    ctx.strokeStyle = Math.random() > 0.5 ? 'rgba(255,255,255,' + alpha + ')' : 'rgba(80,80,80,' + alpha + ')';
+    ctx.lineWidth = 0.7 + Math.random() * 1.0;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + len, y);
+    ctx.stroke();
+  }
+  var tex = new THREE.CanvasTexture(c);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 2);
+  brushedMetalTexCache = tex;
+  return tex;
+}
+
+// ---------------------------------------------------------------------------
 // GAUSSIAN DOPING DEPTH & SURFACE TEXTURE GENERATOR
 // ---------------------------------------------------------------------------
 var gaussTexCache = {};
@@ -137,21 +169,29 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
   geom.computeVertexNormals();
 
   var tex = gaussianDepthTexture(colorVar, peakV, sigmaV, { isoLines: 5 });
+  var rawColor = colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar;
+  var baseColor = new THREE.Color(rawColor);
   var mat = new THREE.MeshStandardMaterial({
+    color: baseColor,
     map: tex,
-    roughness: 0.40,
-    metalness: 0.10,
+    roughness: opts.roughness !== undefined ? opts.roughness : 0.40,
+    metalness: opts.metalness !== undefined ? opts.metalness : 0.10,
     transparent: true,
-    opacity: 0.94,
+    opacity: opts.opacity !== undefined ? opts.opacity : 0.94,
     depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true,
     polygonOffset: true,
     polygonOffsetFactor: -1,
-    polygonOffsetUnits: -1
+    polygonOffsetUnits: -1,
+    emissive: 0x000000,
+    emissiveIntensity: 0
   });
 
   var mesh = new THREE.Mesh(geom, mat);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
+  mesh.userData.colorVar = colorVar;
+  mesh.userData.baseEmissive = 0x000000;
+  mesh.userData.baseEmissiveIntensity = 0;
   if (opts.renderOrder) mesh.renderOrder = opts.renderOrder;
   group.add(mesh);
 
@@ -182,6 +222,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
 
   group.userData._isDopingMesh = true;
   group.userData._baseMat = mat;
+  group.userData.colorVar = colorVar;
   return group;
 }
 
@@ -218,16 +259,22 @@ function box(w, h, d, colorVar, opts) {
   opts = opts || {};
   var col = colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar;
   var mat = new THREE.MeshStandardMaterial({
-    color: col,
-    roughness: opts.roughness !== undefined ? opts.roughness : 0.45,
+    color: new THREE.Color(col),
+    roughness: opts.roughness !== undefined ? opts.roughness : 0.65,
     metalness: opts.metalness !== undefined ? opts.metalness : 0.15,
+    roughnessMap: opts.roughnessMap || ((opts.metalness !== undefined && opts.metalness >= 0.85) ? getBrushedMetalTexture() : null),
     transparent: opts.transparent || false,
     opacity: opts.opacity !== undefined ? opts.opacity : 1.0,
-    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true
+    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true,
+    emissive: 0x000000,
+    emissiveIntensity: 0
   });
   var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-  m.castShadow = true;
+  m.castShadow = !opts.noShadow;
   m.receiveShadow = true;
+  m.userData.colorVar = colorVar;
+  m.userData.baseEmissive = 0x000000;
+  m.userData.baseEmissiveIntensity = 0;
   return m;
 }
 
@@ -235,13 +282,18 @@ function cylinder(rt, rb, h, seg, colorHexOrVar, opts) {
   opts = opts || {};
   var col = (typeof colorHexOrVar === 'string' && colorHexOrVar.indexOf('--') === 0) ? cssVar(colorHexOrVar) : colorHexOrVar;
   var mat = new THREE.MeshStandardMaterial({
-    color: col,
+    color: new THREE.Color(col),
     roughness: opts.roughness !== undefined ? opts.roughness : 0.25,
-    metalness: opts.metalness !== undefined ? opts.metalness : 0.95
+    metalness: opts.metalness !== undefined ? opts.metalness : 0.95,
+    emissive: 0x000000,
+    emissiveIntensity: 0
   });
   var m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), mat);
   m.castShadow = true;
   m.receiveShadow = true;
+  m.userData.colorVar = colorHexOrVar;
+  m.userData.baseEmissive = 0x000000;
+  m.userData.baseEmissiveIntensity = 0;
   return m;
 }
 
@@ -271,6 +323,7 @@ var Y = {
 
 // 1. P-SUBSTRATE BASE SLAB (Bottom seated at y=0, grid lines at y=-0.02 never clip)
 var subMesh = box(24, Y.subTop - Y.subBot, 22, '--c-substrate', { roughness: 0.85, metalness: 0.05 });
+subMesh.renderOrder = 1;
 subMesh.position.set(0, (Y.subTop + Y.subBot) / 2, 0);
 reg(subMesh, 'psub', 'substrate');
 
@@ -283,6 +336,8 @@ var wellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-well', {
   sigmaV: 0.30,
   straggle: 0.24,
   cornerR: 0.6,
+  roughness: 0.50,
+  metalness: 0.15,
   outlineColor: '#5fd9c4',
   renderOrder: 2
 });
@@ -478,21 +533,13 @@ hkMesh.position.set(0, (Y.hkTop + Y.hkBot) / 2, 0);
 reg(hkMesh, 'highk', 'highk');
 
 // ---------------------------------------------------------------------------
-// 8. POLYSILICON / METAL GATE RUNNER (HKMG - Crisp & Lustrous, not burnt!)
+// 8. POLYSILICON / METAL GATE RUNNER (Coral-red satin, non-burnt HKMG material)
 // ---------------------------------------------------------------------------
 var polyRunnerLength = 13.4;
-var polyColor = new THREE.Color(cssVar('--c-poly') || '#d8503c');
-var polyMat = new THREE.MeshStandardMaterial({
-  color: polyColor,
-  roughness: 0.24,
-  metalness: 0.35,
-  emissive: new THREE.Color(0x38120e),
-  emissiveIntensity: 0.18
+var polyMesh = box(gateL, Y.polyTop - Y.polyBot, polyRunnerLength, '--c-poly', {
+  roughness: 0.45,
+  metalness: 0.20
 });
-var polyGeom = new THREE.BoxGeometry(gateL, Y.polyTop - Y.polyBot, polyRunnerLength);
-var polyMesh = new THREE.Mesh(polyGeom, polyMat);
-polyMesh.castShadow = true;
-polyMesh.receiveShadow = true;
 polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2, 1.2);
 reg(polyMesh, 'poly', 'poly');
 
@@ -530,47 +577,47 @@ var ctH = Y.ctTop - Y.ctBot;
 // Source Contact
 var srcCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 srcCt.position.set(srcX, (Y.ctTop + Y.ctBot) / 2, 0);
-reg(srcCt, 'contact', 'contact');
+reg(srcCt, 'pmosSrcCt', 'contact');
 
 // Drain Contact
 var drnCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 drnCt.position.set(drnX, (Y.ctTop + Y.ctBot) / 2, 0);
-reg(drnCt, 'contact', 'contact');
+reg(drnCt, 'pmosDrnCt', 'contact');
 
 // Gate Contact
 var gateCtH = Y.ctTop - Y.polyTop;
 var gateCt = cylinder(ctRadius, ctRadiusBot, gateCtH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 gateCt.position.set(0, (Y.ctTop + Y.polyTop) / 2, 6.2);
-reg(gateCt, 'contact', 'contact');
+reg(gateCt, 'polyCt', 'contact');
 
 // N-Well Tap Contact
 var wellCt = cylinder(ctRadius, ctRadiusBot, ctH, 20, 0x4a4d54, { roughness: 0.25, metalness: 0.95 });
 wellCt.position.set(-6.5, (Y.ctTop + Y.ctBot) / 2, 6.2);
-reg(wellCt, 'contact', 'contact');
+reg(wellCt, 'welltapCt', 'contact');
 
 // ---------------------------------------------------------------------------
-// 10. METAL-1 INTERCONNECT PADS
+// 10. METAL-1 INTERCONNECT PADS (Flat metallic ribbons, matching CMOS palette)
 // ---------------------------------------------------------------------------
 var m1H = Y.m1Top - Y.m1Bot;
 var m1Y = (Y.m1Top + Y.m1Bot) / 2;
 
 // Source Pad (S / VDD)
-var srcPad = box(3.4, m1H, 3.4, '#cf8a4a', { roughness: 0.20, metalness: 0.90 });
+var srcPad = box(3.4, m1H, 3.4, '--c-active-p', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
 srcPad.position.set(srcX, m1Y, 0);
 reg(srcPad, 'srcRail', 'metal');
 
 // Drain Pad (D / OUT)
-var drnPad = box(3.4, m1H, 3.4, '#e6a23c', { roughness: 0.20, metalness: 0.90 });
+var drnPad = box(3.4, m1H, 3.4, '--c-out', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
 drnPad.position.set(drnX, m1Y, 0);
 reg(drnPad, 'drnRail', 'metal');
 
 // Gate Pad (G / VG)
-var gatePad = box(2.6, m1H, 2.6, '#e6c94a', { roughness: 0.20, metalness: 0.90 });
+var gatePad = box(2.6, m1H, 2.6, '--c-in', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
 gatePad.position.set(0, m1Y, 6.2);
 reg(gatePad, 'gateRail', 'metal');
 
 // N-Well Tap Pad (B / VDD)
-var wellPad = box(2.6, m1H, 2.6, '#3f8f6f', { roughness: 0.20, metalness: 0.90 });
+var wellPad = box(2.6, m1H, 2.6, '--c-vdd', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
 wellPad.position.set(-6.5, m1Y, 6.2);
 reg(wellPad, 'wellRail', 'metal');
 
@@ -582,13 +629,14 @@ var labelCalloutGroups = [];
 
 function makeTextSprite(text, colorHex, opts) {
   opts = opts || {};
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
   var c = document.createElement('canvas');
   c.width = 384;
   c.height = 128;
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = opts.bg || 'rgba(10, 16, 26, 0.90)';
+  ctx.fillStyle = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(10, 16, 26, 0.90)');
   ctx.strokeStyle = colorHex;
   ctx.lineWidth = 4;
   var r = 16;
@@ -621,8 +669,73 @@ function makeTextSprite(text, colorHex, opts) {
   });
   var sprite = new THREE.Sprite(mat);
   sprite.scale.set(3.2, 1.1, 1.0);
+  sprite.renderOrder = 999;
+  sprite.userData.labelText = text;
+  sprite.userData.colorHex = colorHex;
   return sprite;
 }
+
+function updateLabelSprite(sprite, text, colorHex, isLight) {
+  var c = document.createElement('canvas');
+  c.width = 384;
+  c.height = 128;
+  var ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+
+  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(10, 16, 26, 0.90)';
+  ctx.strokeStyle = colorHex;
+  ctx.lineWidth = 4;
+  var r = 16;
+  ctx.beginPath();
+  ctx.moveTo(r, 6);
+  ctx.lineTo(c.width - r, 6);
+  ctx.quadraticCurveTo(c.width - 6, 6, c.width - 6, r);
+  ctx.lineTo(c.width - 6, c.height - r);
+  ctx.quadraticCurveTo(c.width - 6, c.height - 6, c.width - r, c.height - 6);
+  ctx.lineTo(r, c.height - 6);
+  ctx.quadraticCurveTo(6, c.height - 6, 6, c.height - r);
+  ctx.lineTo(6, r);
+  ctx.quadraticCurveTo(6, 6, r, 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = colorHex;
+  ctx.font = 'bold 36px "IBM Plex Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, c.width / 2, c.height / 2);
+
+  if (sprite.material && sprite.material.map) {
+    sprite.material.map.dispose();
+  }
+  var tex = new THREE.CanvasTexture(c);
+  sprite.material.map = tex;
+  sprite.material.needsUpdate = true;
+}
+
+function updateMaterialsTheme() {
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  selectable.forEach(function(m) {
+    if (m && m.userData && m.userData.colorVar && m.material && m.material.color) {
+      var hex = cssVar(m.userData.colorVar);
+      if (hex) m.material.color.set(hex);
+    } else if (m && m.isGroup) {
+      m.traverse(function(child) {
+        if (child.isMesh && child.userData && child.userData.colorVar && child.material && child.material.color) {
+          var hex = cssVar(child.userData.colorVar);
+          if (hex) child.material.color.set(hex);
+        }
+      });
+    }
+  });
+  labelSprites.forEach(function(s) {
+    if (s && s.userData && s.userData.labelText && s.userData.colorHex) {
+      updateLabelSprite(s, s.userData.labelText, s.userData.colorHex, isLight);
+    }
+  });
+}
+window.updateMaterialsTheme = updateMaterialsTheme;
 
 function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
   var group = new THREE.Group();
