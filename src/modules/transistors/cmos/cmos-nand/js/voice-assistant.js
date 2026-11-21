@@ -472,13 +472,27 @@ function updateVoiceContext() {
   bar.textContent = 'Selected: ' + selLabel + ' · A=' + cs.a + ' B=' + cs.b + ' → OUT=' + cs.out;
 }
 
+function showModalStatus(type, message) {
+  var statusMsg = document.getElementById('va-key-status-msg');
+  if (!statusMsg) return;
+  statusMsg.className = 'va-field-msg ' + type;
+  statusMsg.textContent = message;
+  statusMsg.style.display = 'block';
+}
+
 function openKeyModal() {
   var modal = document.getElementById('va-key-modal');
-  var input = document.getElementById('va-key-input');
-  var chk = document.getElementById('va-key-session-only');
+  var input = document.getElementById('va-input-apikey');
+  var chk = document.getElementById('va-chk-session-only');
   var eyeBtn = document.getElementById('va-btn-toggle-key-visibility');
+  var clearBtn = document.getElementById('va-modal-clear-btn');
+  var title = document.getElementById('va-modal-title');
+  var statusMsg = document.getElementById('va-key-status-msg');
+  var saveBtn = document.getElementById('va-modal-save-btn');
+
+  var currentKey = getSarvamApiKey();
   if (input) {
-    input.value = getSarvamApiKey();
+    input.value = currentKey;
     input.type = 'password';
   }
   if (eyeBtn) {
@@ -489,13 +503,118 @@ function openKeyModal() {
       hideIcon.style.display = 'none';
     }
   }
-  if (chk) chk.checked = isSessionOnlyKey();
-  if (modal) modal.classList.remove('hidden');
+  if (statusMsg) {
+    statusMsg.style.display = 'none';
+    statusMsg.textContent = '';
+  }
+  if (title) {
+    title.textContent = currentKey ? 'Manage Sarvam AI API Key' : 'Sarvam AI API Key Required';
+  }
+  if (clearBtn) {
+    clearBtn.style.display = currentKey ? 'inline-flex' : 'none';
+  }
+  if (chk) {
+    chk.checked = isSessionOnlyKey() || !currentKey;
+  }
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = 'Save & Test Voice 🔊';
+  }
+  if (modal) {
+    modal.style.display = 'flex';
+    requestAnimationFrame(function () {
+      modal.classList.add('is-open');
+      if (input && input.focus) input.focus();
+    });
+  }
 }
 
 function closeKeyModal() {
   var modal = document.getElementById('va-key-modal');
-  if (modal) modal.classList.add('hidden');
+  if (!modal) return;
+  modal.classList.remove('is-open');
+  setTimeout(function () {
+    modal.style.display = 'none';
+  }, 200);
+}
+
+async function handleSaveAndTestVoice() {
+  var input = document.getElementById('va-input-apikey');
+  var chk = document.getElementById('va-chk-session-only');
+  var saveBtn = document.getElementById('va-modal-save-btn');
+  var key = (input ? input.value : '').trim();
+
+  if (!key) {
+    showModalStatus('error', 'Please enter your personal Sarvam AI API subscription key.');
+    if (input && input.focus) input.focus();
+    return;
+  }
+
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '⏳ Verifying with Sarvam...';
+  }
+  showModalStatus('info', 'Connecting to Sarvam AI voice service to verify credentials...');
+
+  try {
+    var res = await fetch('https://api.sarvam.ai/text-to-speech', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-subscription-key': key
+      },
+      body: JSON.stringify({
+        inputs: ['Sarvam AI CMOS NAND tutor is ready.'],
+        target_language_code: 'en-IN',
+        speaker: 'aparna_en_edtech',
+        model: 'bulbul:v4-flash'
+      })
+    });
+
+    if (!res.ok) {
+      var errDetail = '';
+      try {
+        var errJson = await res.json();
+        errDetail = (errJson.error && errJson.error.message) || errJson.message || JSON.stringify(errJson);
+      } catch (_) {
+        errDetail = await res.text();
+      }
+      throw new Error('Sarvam API error (' + res.status + '): ' + (errDetail || 'Invalid key'));
+    }
+
+    var data = await res.json();
+    if (!data || !data.audios || !data.audios[0]) {
+      throw new Error('No audio data returned by Sarvam API.');
+    }
+
+    var sessionOnly = chk ? chk.checked : true;
+    saveSarvamApiKey(key, sessionOnly);
+    showModalStatus('success', '✓ API key verified! Playing sample voice...');
+
+    try {
+      var binaryString = window.atob(data.audios[0]);
+      var bytes = new Uint8Array(binaryString.length);
+      for (var i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+      var blob = new Blob([bytes.buffer], { type: 'audio/wav' });
+      var testUrl = URL.createObjectURL(blob);
+      var testAudio = new Audio(testUrl);
+      testAudio.onended = function () { URL.revokeObjectURL(testUrl); };
+      testAudio.play().catch(function () {});
+    } catch (_) {}
+
+    setVaStatus('AI Tutor Ready');
+    setTimeout(function () {
+      closeKeyModal();
+    }, 700);
+
+  } catch (err) {
+    console.warn('[VoiceAssistant] Key verification error:', err);
+    showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = 'Save & Test Voice 🔊';
+    }
+  }
 }
 
 async function submitVoicePrompt(promptText) {
@@ -720,12 +839,13 @@ function initVoiceAssistant() {
   }
 
   /* API Key Modal Buttons */
-  var saveKeyBtn = document.getElementById('va-key-save');
-  var clearKeyBtn = document.getElementById('va-key-clear');
-  var cancelKeyBtn = document.getElementById('va-key-cancel');
-  var keyInput = document.getElementById('va-key-input');
-  var sessionChk = document.getElementById('va-key-session-only');
+  var saveKeyBtn = document.getElementById('va-modal-save-btn');
+  var clearKeyBtn = document.getElementById('va-modal-clear-btn');
+  var cancelKeyBtn = document.getElementById('va-modal-cancel-btn');
+  var closeKeyBtn = document.getElementById('va-modal-close-btn');
+  var keyInput = document.getElementById('va-input-apikey');
   var eyeBtn = document.getElementById('va-btn-toggle-key-visibility');
+  var keyModal = document.getElementById('va-key-modal');
 
   if (eyeBtn && keyInput) {
     eyeBtn.addEventListener('click', function () {
@@ -748,23 +868,41 @@ function initVoiceAssistant() {
   }
 
   if (saveKeyBtn) {
-    saveKeyBtn.addEventListener('click', function () {
-      saveSarvamApiKey(keyInput ? keyInput.value : '', sessionChk ? sessionChk.checked : false);
-      closeKeyModal();
-      setVaStatus('API key saved');
+    saveKeyBtn.addEventListener('click', handleSaveAndTestVoice);
+  }
+  if (keyInput) {
+    keyInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSaveAndTestVoice();
+      }
     });
   }
   if (clearKeyBtn) {
     clearKeyBtn.addEventListener('click', function () {
       if (keyInput) keyInput.value = '';
       saveSarvamApiKey('', false);
-      closeKeyModal();
+      clearKeyBtn.style.display = 'none';
+      showModalStatus('info', 'API key cleared from local storage.');
       setVaStatus('API key cleared');
     });
   }
   if (cancelKeyBtn) {
     cancelKeyBtn.addEventListener('click', closeKeyModal);
   }
+  if (closeKeyBtn) {
+    closeKeyBtn.addEventListener('click', closeKeyModal);
+  }
+  if (keyModal) {
+    keyModal.addEventListener('click', function (e) {
+      if (e.target === keyModal) closeKeyModal();
+    });
+  }
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && keyModal && keyModal.classList.contains('is-open')) {
+      closeKeyModal();
+    }
+  });
 
   updateVoiceContext();
   checkServerKeyStatus();

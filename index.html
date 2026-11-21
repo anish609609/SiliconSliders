@@ -102,13 +102,50 @@
               Interactive 3D physical layouts and schematics for <span class="text-cyan-dim">CMOS Inverters</span>, <span class="text-cyan-dim">NAND gates</span>, and upcoming <span class="text-cyan-dim">FinFET / GAA</span> structures.
             </p>
           </div>
-          <div class="card-actions">
-            <a href="src/modules/transistors/cmos-inverter/index.html" class="card-btn card-btn-cyan">
-              <span>CMOS Inverter</span>
-            </a>
-            <a href="src/modules/transistors/cmos-nand/index.html" class="card-btn card-btn-cyan">
-              <span>CMOS NAND2</span>
-            </a>
+          <div class="card-family-sections">
+            <!-- Family 1: MOSFET Family -->
+            <div class="family-group">
+              <div class="family-header">
+                <span class="family-title">MOSFET Family</span>
+                <span class="family-badge">DISCRETE · 3D</span>
+              </div>
+              <div class="family-btn-grid">
+                <a href="src/modules/transistors/mosfet/nmos/index.html" class="family-card-btn" title="NMOS Transistor 3D Physical CAD">
+                  <span class="btn-text">NMOS</span>
+                  <span class="btn-sub">P-Substrate · N⁺ S/D</span>
+                </a>
+                <a href="src/modules/transistors/mosfet/pmos/index.html" class="family-card-btn" title="PMOS Transistor 3D Physical CAD">
+                  <span class="btn-text">PMOS</span>
+                  <span class="btn-sub">N-Well · P⁺ S/D</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Family 2: CMOS Logic Family -->
+            <div class="family-group">
+              <div class="family-header">
+                <span class="family-title">CMOS Logic Family</span>
+                <span class="family-badge live"><span class="dot-live"></span>ACTIVE 3D CAD</span>
+              </div>
+              <div class="family-btn-grid">
+                <a href="src/modules/transistors/cmos/cmos-inverter/index.html" class="family-card-btn active-btn" title="CMOS Inverter 3D Physical Layout Viewer">
+                  <span class="btn-text">Inverter</span>
+                  <span class="btn-sub">NOT Gate · HKMG</span>
+                </a>
+                <a href="src/modules/transistors/cmos/cmos-nand/index.html" class="family-card-btn active-btn" title="CMOS NAND2 3D Physical Layout Viewer">
+                  <span class="btn-text">NAND2</span>
+                  <span class="btn-sub">Euler Path · Dual Gate</span>
+                </a>
+              </div>
+              <!-- Extensible Grid for Future Gates -->
+              <div class="future-gates-row" aria-label="Upcoming CMOS logic gates roadmap">
+                <span class="future-tag" title="Planned: CMOS 2-Input NOR">NOR2</span>
+                <span class="future-tag" title="Planned: CMOS 2-Input AND">AND</span>
+                <span class="future-tag" title="Planned: CMOS 2-Input OR">OR</span>
+                <span class="future-tag" title="Planned: 6T SRAM Memory Cell">6T SRAM</span>
+                <span class="future-tag more" title="Future standard cell additions">+ More</span>
+              </div>
+            </div>
           </div>
         </article>
 

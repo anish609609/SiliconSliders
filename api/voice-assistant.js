@@ -5,13 +5,19 @@
 
 let inverterVoiceHandler = null;
 let nandVoiceHandler = null;
+let nmosVoiceHandler = null;
+let pmosVoiceHandler = null;
 
 function getInverterVoiceHandler() {
   if (!inverterVoiceHandler) {
     try {
-      inverterVoiceHandler = require('../src/modules/transistors/cmos-inverter/api/voice-assistant.js');
+      inverterVoiceHandler = require('../src/modules/transistors/cmos/cmos-inverter/api/voice-assistant.js');
     } catch (e) {
-      console.warn('Could not load inverter voice handler:', e.message);
+      try {
+        inverterVoiceHandler = require('../src/modules/transistors/cmos-inverter/api/voice-assistant.js');
+      } catch (err) {
+        console.warn('Could not load inverter voice handler:', err.message);
+      }
     }
   }
   return inverterVoiceHandler;
@@ -20,19 +26,51 @@ function getInverterVoiceHandler() {
 function getNandVoiceHandler() {
   if (!nandVoiceHandler) {
     try {
-      nandVoiceHandler = require('../src/modules/transistors/cmos-nand/api/voice-assistant.js');
+      nandVoiceHandler = require('../src/modules/transistors/cmos/cmos-nand/api/voice-assistant.js');
     } catch (e) {
-      console.warn('Could not load nand voice handler:', e.message);
+      try {
+        nandVoiceHandler = require('../src/modules/transistors/cmos-nand/api/voice-assistant.js');
+      } catch (err) {
+        console.warn('Could not load nand voice handler:', err.message);
+      }
     }
   }
   return nandVoiceHandler;
 }
 
+function getNmosVoiceHandler() {
+  if (!nmosVoiceHandler) {
+    try {
+      nmosVoiceHandler = require('../src/modules/transistors/mosfet/nmos/api/voice-assistant.js');
+    } catch (err) {
+      console.warn('Could not load nmos voice handler:', err.message);
+    }
+  }
+  return nmosVoiceHandler;
+}
+
+function getPmosVoiceHandler() {
+  if (!pmosVoiceHandler) {
+    try {
+      pmosVoiceHandler = require('../src/modules/transistors/mosfet/pmos/api/voice-assistant.js');
+    } catch (err) {
+      console.warn('Could not load pmos voice handler:', err.message);
+    }
+  }
+  return pmosVoiceHandler;
+}
+
 module.exports = async function handler(req, res) {
   try {
-    const referer = req.headers.referer || '';
-    if (referer.toLowerCase().includes('nand')) {
+    const referer = (req.headers.referer || '').toLowerCase();
+    if (referer.includes('nand')) {
       const h = getNandVoiceHandler();
+      if (h) return await h(req, res);
+    } else if (referer.includes('nmos')) {
+      const h = getNmosVoiceHandler();
+      if (h) return await h(req, res);
+    } else if (referer.includes('pmos')) {
+      const h = getPmosVoiceHandler();
       if (h) return await h(req, res);
     } else {
       const h = getInverterVoiceHandler();

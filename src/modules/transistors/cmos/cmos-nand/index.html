@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="../../../shared/viewer/css/viewer-shell.css" />
+  <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css" />
   <script>
     (function(){
       try {
@@ -33,7 +33,7 @@
   </div>
 
   <div id="topbar">
-    <a href="../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
+    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
     <div class="brand"><span class="dot"></span><b>CMOS·VIEWER</b><span>nand2 / rev 01</span></div>
 
     <div class="seg" id="mode-seg">
@@ -466,35 +466,75 @@
       </div>
     </section>
 
-    <!-- Sarvam API Key Setup & Privacy Modal -->
-    <div id="va-key-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="va-modal-title">
-      <div class="modal-card">
-        <h3 id="va-modal-title">Sarvam AI API Key Configuration</h3>
-        <p class="modal-desc">
-          Enter your Sarvam AI subscription key for <strong>sarvam-105b-conversations</strong> and <strong>bulbul:v4-flash</strong> streaming audio. Your key stays on this device (`localStorage`) and is only sent to Sarvam AI via `/api/voice-assistant` or direct HTTPS.
-        </p>
-        <div class="va-input-group">
-          <input type="password" id="va-key-input" placeholder="Paste Sarvam API key (api-subscription-key)..." autocomplete="off" />
-          <button type="button" id="va-btn-toggle-key-visibility" class="va-eye-btn" title="Toggle visibility" aria-label="Toggle password visibility">
-            <svg class="eye-icon eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-              <circle cx="12" cy="12" r="3"></circle>
-            </svg>
-            <svg class="eye-icon eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-              <line x1="1" y1="1" x2="23" y2="23"></line>
-            </svg>
-          </button>
+    <!-- Interactive Sarvam AI API Key Modal (Parity with CMOS Inverter) -->
+    <div id="va-key-modal" class="va-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="va-modal-title">
+      <div class="va-modal-card">
+        <div class="va-modal-header">
+          <div class="va-modal-title">
+            <span class="va-modal-icon">🔑</span>
+            <h3 id="va-modal-title">Sarvam AI API Key Required</h3>
+          </div>
+          <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">✕</button>
         </div>
-        <label class="modal-chk">
-          <input type="checkbox" id="va-key-session-only" />
-          <span>Session-only (clear automatically when tab closes)</span>
-        </label>
-        <div class="modal-actions">
-          <button type="button" class="mini-btn" id="va-key-clear">CLEAR KEY</button>
-          <div class="modal-actions-right">
-            <button type="button" class="mini-btn" id="va-key-cancel">CANCEL</button>
-            <button type="button" class="mini-btn accent" id="va-key-save">SAVE KEY</button>
+
+        <div class="va-modal-body">
+          <p class="va-modal-desc">
+            To enable live 3D CMOS NAND2 voice tutoring, interactive transistor physics Q&amp;A, and step-by-step layout audio narration, connect your personal Sarvam AI API subscription key.
+          </p>
+
+          <div class="va-modal-steps">
+            <div class="va-step-item">
+              <span class="va-step-num">1</span>
+              <span>Sign in or create a free account at <a href="https://dashboard.sarvam.ai" target="_blank" rel="noopener noreferrer" class="va-link">https://dashboard.sarvam.ai ↗</a></span>
+            </div>
+            <div class="va-step-item">
+              <span class="va-step-num">2</span>
+              <span>Navigate to <b>API Keys</b> in the dashboard and create a new API subscription key.</span>
+            </div>
+            <div class="va-step-item">
+              <span class="va-step-num">3</span>
+              <span>Paste your key below and click <b>Save &amp; Test Voice</b> to verify and start listening.</span>
+            </div>
+          </div>
+
+          <div class="va-modal-privacy-callout">
+            <span class="va-privacy-badge">🔒 Privacy Guarantee</span>
+            <p>
+              Your API key will <b>not be used by us</b> — it is stored securely on your local device and used directly to communicate with Sarvam AI. It will be deleted after you exit the session. We never save, store, or transmit your credentials to our servers.
+            </p>
+          </div>
+
+          <div class="va-modal-field">
+            <label for="va-input-apikey">SARVAM API SUBSCRIPTION KEY</label>
+            <div class="va-input-group">
+              <input type="password" id="va-input-apikey" placeholder="Paste your Sarvam API subscription key (sk_...)" autocomplete="off" spellcheck="false">
+              <button type="button" id="va-btn-toggle-key-visibility" class="va-eye-btn" title="Toggle visibility" aria-label="Toggle password visibility">
+                <svg class="eye-icon eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-icon eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+            <div id="va-key-status-msg" class="va-field-msg" style="display:none;"></div>
+          </div>
+
+          <div class="va-modal-options">
+            <label class="va-checkbox-label">
+              <input type="checkbox" id="va-chk-session-only" checked>
+              <span>Delete API key when exiting session (on browser/tab close)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="va-modal-footer">
+          <button id="va-modal-clear-btn" class="va-btn-secondary" style="display:none;">Clear Key</button>
+          <div class="va-footer-right">
+            <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
+            <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice 🔊</button>
           </div>
         </div>
       </div>
@@ -505,7 +545,7 @@
   <script src="js/data.js"></script>
   <script src="js/scene.js"></script>
   <script src="js/theme.js"></script>
-  <script src="../../../shared/viewer/js/viewer-core.js"></script>
+  <script src="../../../../shared/viewer/js/viewer-core.js"></script>
   <script src="js/geometry.js"></script>
   <script src="js/ui-panels.js"></script>
   <script src="js/selection.js"></script>

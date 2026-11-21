@@ -58,14 +58,20 @@ const MIME_TYPES = {
 // Lazy loaded voice handlers
 let inverterVoiceHandler = null;
 let nandVoiceHandler = null;
+let nmosVoiceHandler = null;
+let pmosVoiceHandler = null;
 
 function getInverterVoiceHandler() {
   if (!inverterVoiceHandler) {
-    const p = path.join(ROOT, 'src', 'modules', 'transistors', 'cmos-inverter', 'api', 'voice-assistant.js');
+    const p = path.join(ROOT, 'src', 'modules', 'transistors', 'cmos', 'cmos-inverter', 'api', 'voice-assistant.js');
     if (fs.existsSync(p)) inverterVoiceHandler = require(p);
     else {
-      const legacyP = path.join(ROOT, 'cmos_inverter_CAD', 'api', 'voice-assistant.js');
-      if (fs.existsSync(legacyP)) inverterVoiceHandler = require(legacyP);
+      const fallbackP = path.join(ROOT, 'src', 'modules', 'transistors', 'cmos-inverter', 'api', 'voice-assistant.js');
+      if (fs.existsSync(fallbackP)) inverterVoiceHandler = require(fallbackP);
+      else {
+        const legacyP = path.join(ROOT, 'cmos_inverter_CAD', 'api', 'voice-assistant.js');
+        if (fs.existsSync(legacyP)) inverterVoiceHandler = require(legacyP);
+      }
     }
   }
   return inverterVoiceHandler;
@@ -73,14 +79,34 @@ function getInverterVoiceHandler() {
 
 function getNandVoiceHandler() {
   if (!nandVoiceHandler) {
-    const p = path.join(ROOT, 'src', 'modules', 'transistors', 'cmos-nand', 'api', 'voice-assistant.js');
+    const p = path.join(ROOT, 'src', 'modules', 'transistors', 'cmos', 'cmos-nand', 'api', 'voice-assistant.js');
     if (fs.existsSync(p)) nandVoiceHandler = require(p);
     else {
-      const legacyP = path.join(ROOT, 'CMOS_NAND', 'api', 'voice-assistant.js');
-      if (fs.existsSync(legacyP)) nandVoiceHandler = require(legacyP);
+      const fallbackP = path.join(ROOT, 'src', 'modules', 'transistors', 'cmos-nand', 'api', 'voice-assistant.js');
+      if (fs.existsSync(fallbackP)) nandVoiceHandler = require(fallbackP);
+      else {
+        const legacyP = path.join(ROOT, 'CMOS_NAND', 'api', 'voice-assistant.js');
+        if (fs.existsSync(legacyP)) nandVoiceHandler = require(legacyP);
+      }
     }
   }
   return nandVoiceHandler;
+}
+
+function getNmosVoiceHandler() {
+  if (!nmosVoiceHandler) {
+    const p = path.join(ROOT, 'src', 'modules', 'transistors', 'mosfet', 'nmos', 'api', 'voice-assistant.js');
+    if (fs.existsSync(p)) nmosVoiceHandler = require(p);
+  }
+  return nmosVoiceHandler;
+}
+
+function getPmosVoiceHandler() {
+  if (!pmosVoiceHandler) {
+    const p = path.join(ROOT, 'src', 'modules', 'transistors', 'mosfet', 'pmos', 'api', 'voice-assistant.js');
+    if (fs.existsSync(p)) pmosVoiceHandler = require(p);
+  }
+  return pmosVoiceHandler;
 }
 
 function enhanceResponse(res) {
@@ -111,9 +137,15 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/voice-assistant' || pathname === '/api/explain') {
     try {
       // Check referer to determine which module is requesting
-      const referer = req.headers.referer || '';
-      if (referer.includes('nand') || referer.includes('NAND')) {
+      const referer = (req.headers.referer || '').toLowerCase();
+      if (referer.includes('nand')) {
         const h = getNandVoiceHandler();
+        if (h) return await h(req, res);
+      } else if (referer.includes('nmos')) {
+        const h = getNmosVoiceHandler();
+        if (h) return await h(req, res);
+      } else if (referer.includes('pmos')) {
+        const h = getPmosVoiceHandler();
         if (h) return await h(req, res);
       } else {
         const h = getInverterVoiceHandler();
@@ -133,19 +165,25 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/' || pathname === '') {
     pathname = '/index.html';
   } else if (pathname === '/inverter' || pathname === '/inverter/') {
-    res.writeHead(302, { Location: '/src/modules/transistors/cmos-inverter/index.html' });
+    res.writeHead(302, { Location: '/src/modules/transistors/cmos/cmos-inverter/index.html' });
     return res.end();
   } else if (pathname === '/nand' || pathname === '/nand/') {
-    res.writeHead(302, { Location: '/src/modules/transistors/cmos-nand/index.html' });
+    res.writeHead(302, { Location: '/src/modules/transistors/cmos/cmos-nand/index.html' });
+    return res.end();
+  } else if (pathname === '/nmos' || pathname === '/nmos/') {
+    res.writeHead(302, { Location: '/src/modules/transistors/mosfet/nmos/index.html' });
+    return res.end();
+  } else if (pathname === '/pmos' || pathname === '/pmos/') {
+    res.writeHead(302, { Location: '/src/modules/transistors/mosfet/pmos/index.html' });
     return res.end();
   } else if (pathname === '/oxidation' || pathname === '/oxidation/') {
     res.writeHead(302, { Location: '/src/modules/processes/oxidation/index.html' });
     return res.end();
   } else if (pathname === '/cmos_inverter_CAD' || pathname === '/cmos_inverter_CAD/') {
-    res.writeHead(302, { Location: '/src/modules/transistors/cmos-inverter/index.html' });
+    res.writeHead(302, { Location: '/src/modules/transistors/cmos/cmos-inverter/index.html' });
     return res.end();
   } else if (pathname === '/CMOS_NAND' || pathname === '/CMOS_NAND/') {
-    res.writeHead(302, { Location: '/src/modules/transistors/cmos-nand/index.html' });
+    res.writeHead(302, { Location: '/src/modules/transistors/cmos/cmos-nand/index.html' });
     return res.end();
   }
 

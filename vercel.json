@@ -7,22 +7,42 @@
   "redirects": [
     {
       "source": "/inverter",
-      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-inverter/index.html",
       "permanent": false
     },
     {
       "source": "/inverter/",
-      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-inverter/index.html",
       "permanent": false
     },
     {
       "source": "/nand",
-      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-nand/index.html",
       "permanent": false
     },
     {
       "source": "/nand/",
-      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-nand/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/nmos",
+      "destination": "/src/modules/transistors/mosfet/nmos/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/nmos/",
+      "destination": "/src/modules/transistors/mosfet/nmos/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/pmos",
+      "destination": "/src/modules/transistors/mosfet/pmos/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/pmos/",
+      "destination": "/src/modules/transistors/mosfet/pmos/index.html",
       "permanent": false
     },
     {
@@ -37,22 +57,22 @@
     },
     {
       "source": "/cmos_inverter_CAD",
-      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-inverter/index.html",
       "permanent": false
     },
     {
       "source": "/cmos_inverter_CAD/",
-      "destination": "/src/modules/transistors/cmos-inverter/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-inverter/index.html",
       "permanent": false
     },
     {
       "source": "/CMOS_NAND",
-      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-nand/index.html",
       "permanent": false
     },
     {
       "source": "/CMOS_NAND/",
-      "destination": "/src/modules/transistors/cmos-nand/index.html",
+      "destination": "/src/modules/transistors/cmos/cmos-nand/index.html",
       "permanent": false
     }
   ]

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NMOS Transistor (N-MOSFET) — 3D Semiconductor CAD &amp; Physical Model</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<div id="app">
+  <!-- Topbar -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <a href="../../../../../index.html" class="topbar-btn back-btn" title="Back to Silicon Sliders">← Silicon Sliders</a>
+      <span class="topbar-divider"></span>
+      <h1 class="topbar-title">NMOS TRANSISTOR <span class="badge-tech">28nm HKMG</span></h1>
+    </div>
+
+    <div class="topbar-center">
+      <div class="seg-control" id="view-mode-seg" role="tablist" aria-label="View Mode">
+        <button class="seg-btn active" data-mode="layout" role="tab" aria-selected="true">3D CAD Layout</button>
+        <button class="seg-btn" data-mode="schematic" role="tab" aria-selected="false">2D Schematic</button>
+      </div>
+
+      <span class="topbar-divider"></span>
+
+      <!-- Gate Voltage VGS Control -->
+      <div class="seg-control" id="in-seg" title="Gate Voltage (VGS)">
+        <span class="seg-label">V<sub>GS</sub>:</span>
+        <button class="seg-btn" data-in="0">0V (CUTOFF)</button>
+        <button class="seg-btn active" data-in="1">1.0V (ON)</button>
+        <button class="seg-btn" data-in="off">FLOAT</button>
+      </div>
+
+      <span class="topbar-divider"></span>
+
+      <!-- Particle Flow Mode -->
+      <div class="seg-control" id="flow-seg" title="Conduction Flow Simulation">
+        <button class="seg-btn active" data-flow="carrier">Carriers (e⁻)</button>
+        <button class="seg-btn" data-flow="current">Current (I<sub>D</sub>)</button>
+        <button class="seg-btn" data-flow="off">Off</button>
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <button class="topbar-btn" id="btn-reset" onclick="resetAll()" title="Reset camera, sliders, and selection">↺ Reset</button>
+      <button class="topbar-btn" id="theme-toggle" title="Toggle Light / Dark mode">🌓 Theme</button>
+    </div>
+  </header>
+
+  <!-- Left Drawer Toggle (Mobile) -->
+  <button id="left-toggle" class="drawer-toggle-btn" aria-label="Toggle Architecture &amp; Rules Panel">
+    <span class="icon">📐</span>
+  </button>
+
+  <!-- Right Drawer Toggle (Mobile) -->
+  <button id="right-toggle" class="drawer-toggle-btn" aria-label="Toggle Layers &amp; Fabrication Panel">
+    <span class="icon">🥞</span>
+  </button>
+
+  <!-- Main Workspace -->
+  <div id="workspace">
+    <!-- Left Panel: Architecture Tree & Lambda Design Rules -->
+    <aside id="left-panel">
+      <section class="panel-section">
+        <div class="panel-head" data-target="tree-body">
+          <span class="title">ARCHITECTURE HIERARCHY</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="panel-body" id="tree-body">
+          <div id="tree"></div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <div class="panel-head" data-target="dims-body">
+          <span class="title">MEAD-CONWAY λ RULES</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="panel-body" id="dims-body">
+          <div class="field-row">
+            <label for="lambda-select">PROCESS NODE (λ):</label>
+            <select id="lambda-select" class="va-select"></select>
+          </div>
+          <div id="dims-table"></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- Viewport Container -->
+    <main id="viewport-container">
+      <div id="canvas-host"></div>
+      <div id="loading"><div class="spinner"></div><div>Loading 3D NMOS Physics Model...</div></div>
+
+      <!-- 2D Schematic View Container -->
+      <div id="schematic-container" style="display: none;">
+        <svg id="schematic-svg" viewBox="0 0 400 360" width="100%" height="100%">
+          <!-- Background Grid Lines -->
+          <pattern id="sch-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          </pattern>
+          <rect width="400" height="360" fill="url(#sch-grid)" />
+
+          <!-- DRAIN Net & Pad (Top) -->
+          <g class="sch-el" data-id="drnRail">
+            <rect x="230" y="30" width="80" height="30" rx="4" fill="rgba(87, 207, 143, 0.15)" stroke="#57cf8f" stroke-width="1.5"/>
+            <text x="270" y="50" fill="#57cf8f" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">DRAIN (D)</text>
+            <line x1="270" y1="60" x2="270" y2="120" stroke="#57cf8f" stroke-width="2.5"/>
+            <circle cx="270" cy="120" r="4" fill="#57cf8f"/>
+          </g>
+
+          <!-- GATE Net & Pad (Left) -->
+          <g class="sch-el" data-id="gateRail">
+            <rect x="30" y="160" width="80" height="30" rx="4" fill="rgba(230, 201, 74, 0.15)" stroke="#e6c94a" stroke-width="1.5"/>
+            <text x="70" y="180" fill="#e6c94a" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">GATE (G)</text>
+            <line x1="110" y1="175" x2="210" y2="175" stroke="#e6c94a" stroke-width="2.5"/>
+            <circle cx="110" cy="175" r="4" fill="#e6c94a"/>
+          </g>
+
+          <!-- Discrete NMOS Transistor Symbol -->
+          <g class="sch-el" data-id="poly">
+            <!-- Gate electrode vertical bar -->
+            <line x1="210" y1="140" x2="210" y2="210" stroke="#e6c94a" stroke-width="3.5"/>
+            <!-- Gate dielectric gap -->
+            <line x1="222" y1="135" x2="222" y2="155" stroke="#4a92c9" stroke-width="2.5"/>
+            <line x1="222" y1="165" x2="222" y2="185" stroke="#4a92c9" stroke-width="2.5"/>
+            <line x1="222" y1="195" x2="222" y2="215" stroke="#4a92c9" stroke-width="2.5"/>
+
+            <!-- Drain tap into channel -->
+            <line x1="222" y1="145" x2="270" y2="145" stroke="#57cf8f" stroke-width="2.5"/>
+            <line x1="270" y1="145" x2="270" y2="120" stroke="#57cf8f" stroke-width="2.5"/>
+
+            <!-- Source tap from channel -->
+            <line x1="222" y1="205" x2="270" y2="205" stroke="#4a92c9" stroke-width="2.5"/>
+            <line x1="270" y1="205" x2="270" y2="230" stroke="#4a92c9" stroke-width="2.5"/>
+
+            <!-- Body / Bulk connection with inward arrow for N-channel -->
+            <line x1="222" y1="175" x2="270" y2="175" stroke="#9aa6b6" stroke-width="2"/>
+            <polygon points="230,175 242,170 242,180" fill="#9aa6b6"/>
+            <line x1="270" y1="175" x2="330" y2="175" stroke="#9aa6b6" stroke-width="2"/>
+          </g>
+
+          <!-- SOURCE Net & Pad (Bottom) -->
+          <g class="sch-el" data-id="srcRail">
+            <line x1="270" y1="230" x2="270" y2="270" stroke="#4a92c9" stroke-width="2.5"/>
+            <circle cx="270" cy="230" r="4" fill="#4a92c9"/>
+            <rect x="230" y="270" width="80" height="30" rx="4" fill="rgba(74, 146, 201, 0.15)" stroke="#4a92c9" stroke-width="1.5"/>
+            <text x="270" y="290" fill="#4a92c9" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">SOURCE (S)</text>
+            <text x="270" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">GND (0V)</text>
+          </g>
+
+          <!-- BODY / SUBSTRATE Net (Right) -->
+          <g class="sch-el" data-id="bodyRail">
+            <line x1="330" y1="175" x2="330" y2="270" stroke="#9aa6b6" stroke-width="2"/>
+            <rect x="300" y="270" width="80" height="30" rx="4" fill="rgba(154, 166, 182, 0.15)" stroke="#9aa6b6" stroke-width="1.5"/>
+            <text x="340" y="290" fill="#9aa6b6" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">BODY (B)</text>
+            <text x="340" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">P-Sub / GND</text>
+          </g>
+
+          <!-- State Annotations -->
+          <text x="70" y="210" fill="#e6c94a" font-family="IBM Plex Mono" font-size="11" text-anchor="middle" id="sch-vgs-val">1.0V</text>
+          <text x="222" y="235" fill="#5fd9c4" font-family="IBM Plex Mono" font-size="11" font-weight="700" text-anchor="middle" id="sch-channel-state">ON (INVERTED)</text>
+        </svg>
+        <div class="cap">DISCRETE NMOS TRANSISTOR · SCHEMATIC · Inward arrow indicates N-channel (electrons) · Click terminals to locate in 3D</div>
+      </div>
+
+      <!-- Anchored Popover -->
+      <div id="popover">
+        <div class="pop-card">
+          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
+          <div id="popover-content"></div>
+        </div>
+        <div class="pop-arrow"></div>
+      </div>
+
+      <!-- HUD: 3D Axis Indicator -->
+      <div class="hud" id="axis-indicator">
+        <div><b>X</b> — Source · Drain axis (Length L)</div>
+        <div><b>Y</b> — Fabrication layer stack</div>
+        <div><b>Z</b> — Transistor gate width (Width W)</div>
+      </div>
+
+      <!-- HUD: Breadcrumb -->
+      <div class="hud" id="crumb">NMOS TRANSISTOR <span id="crumb-sel"></span></div>
+
+      <!-- HUD: Flow Caption -->
+      <div class="hud" id="flow-caption">CARRIER FLOW: Electrons (e-) drift from Source (N+) through inversion channel to Drain (N+).</div>
+
+      <!-- HUD: Status Toggle & Live Telemetry Badge -->
+      <button class="hud interactive" id="status-toggle">STATUS</button>
+      <div class="hud" id="state-badge">
+        <div class="row"><span class="l">V_GS</span><span class="v on" id="badge-vgs">1.0 V (HIGH)</span></div>
+        <div class="row"><span class="l">STATE</span><span class="v on" id="badge-state">ON (INVERSION)</span></div>
+        <div class="row"><span class="l">CHANNEL</span><span class="v on" id="badge-chan">CONDUCTION CHANNEL</span></div>
+        <div class="row"><span class="l">I_DS</span><span class="v on" id="badge-ids">CONDUCTING (IDS > 0)</span></div>
+        <div class="disclaimer">N-channel MOSFET physics simulation · Subthreshold slope &amp; velocity saturation modeled.</div>
+      </div>
+
+      <!-- HUD: View Controls (Explode & Section Scrub) -->
+      <div class="hud interactive" id="view-hud">
+        <div class="vh-title" id="view-hud-toggle"><span>VIEW CONTROLS</span><span class="chev" id="view-hud-chev">▾</span></div>
+        <div class="vh-body" id="view-hud-body">
+          <div class="vh-sec">
+            <span class="vh-lbl">CAMERA PRESETS</span>
+            <div class="vh-btn-row">
+              <button class="vh-btn" id="btn-preset-iso">Iso</button>
+              <button class="vh-btn" id="btn-preset-top">Top</button>
+              <button class="vh-btn" id="btn-preset-front">Front</button>
+              <button class="vh-btn" id="btn-preset-side">Side</button>
+            </div>
+          </div>
+
+          <div class="vh-sec">
+            <span class="vh-lbl">EXPLODE LAYERS</span>
+            <div class="vh-slider-row">
+              <span class="axis-tag">Y</span>
+              <input type="range" id="explode-y-slider" min="0" max="100" value="0">
+              <span class="val" id="explode-y-val">0%</span>
+            </div>
+            <div class="vh-slider-row">
+              <span class="axis-tag">X</span>
+              <input type="range" id="explode-x-slider" min="0" max="100" value="0">
+              <span class="val" id="explode-x-val">0%</span>
+            </div>
+            <div class="vh-slider-row">
+              <span class="axis-tag">Z</span>
+              <input type="range" id="explode-z-slider" min="0" max="100" value="0">
+              <span class="val" id="explode-z-val">0%</span>
+            </div>
+          </div>
+
+          <div class="vh-sec">
+            <span class="vh-lbl">SECTION SCRUB (CLIPPING)</span>
+            <div class="vh-slider-row">
+              <span class="axis-tag">X</span>
+              <input type="range" id="scrub-x-slider" min="0" max="100" value="100">
+              <span class="val" id="scrub-x-val">100%</span>
+            </div>
+            <div class="vh-slider-row">
+              <span class="axis-tag">Y</span>
+              <input type="range" id="scrub-y-slider" min="0" max="100" value="100">
+              <span class="val" id="scrub-y-val">100%</span>
+            </div>
+            <div class="vh-slider-row">
+              <span class="axis-tag">Z</span>
+              <input type="range" id="scrub-z-slider" min="0" max="100" value="100">
+              <span class="val" id="scrub-z-val">100%</span>
+            </div>
+          </div>
+
+          <div class="vh-sec">
+            <label class="vh-chk-lbl">
+              <input type="checkbox" id="toggle-labels" checked>
+              <span>Show 3D Floating Labels</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Panel: Layers, Fab Sequence & Inspector -->
+    <aside id="right-panel">
+      <!-- Property Inspector -->
+      <section class="panel-section">
+        <div class="panel-head" data-target="inspector-body">
+          <span class="title">PROPERTY INSPECTOR</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="panel-body" id="inspector-body">
+          <div id="inspector">
+            <div class="empty">Select a layer, diffusion region, or tree node to inspect its function, electrical role, and physical relationships.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layer Visibility Toggles -->
+      <section class="panel-section">
+        <div class="panel-head" data-target="layers-body-wrap">
+          <span class="title">PROCESS LAYERS</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="panel-body" id="layers-body-wrap">
+          <div id="layers-body"></div>
+        </div>
+      </section>
+
+      <!-- Step-by-Step Fabrication Sequence Player -->
+      <section class="panel-section">
+        <div class="panel-head" data-target="fab-body">
+          <span class="title">FABRICATION SEQUENCE</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="panel-body" id="fab-body">
+          <div class="fab-header">
+            <span class="fab-step-badge" id="fab-step-num">8 / 8</span>
+            <span class="fab-step-title" id="fab-step-title">Metal-1 Metallization</span>
+          </div>
+          <p class="fab-desc" id="fab-step-desc">
+            First interconnect layer is patterned into Source (S), Drain (D), Gate (G), and Body (B) terminals.
+          </p>
+          <div class="fab-progress-track">
+            <div class="fab-progress-fill" id="fab-progress-bar" style="width: 100%;"></div>
+          </div>
+          <div class="fab-controls">
+            <button class="fab-btn" id="btn-fab-prev">◀ Back</button>
+            <button class="fab-btn primary" id="btn-fab-play">▶ Play Sequence</button>
+            <button class="fab-btn" id="btn-fab-next">Next ▶</button>
+            <button class="fab-btn" id="btn-fab-reset">Complete</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Layer Legend -->
+      <section class="panel-section">
+        <div class="panel-head" data-target="legend-body-wrap">
+          <span class="title">MATERIAL LEGEND</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="panel-body" id="legend-body-wrap">
+          <div id="legend-body"></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- Voice Assistant Floating Widget -->
+  <button id="va-launcher-btn" class="va-launcher" title="Open Sarvam AI NMOS Voice Tutor">
+    <span class="va-launcher-icon">🎙</span>
+    <span class="va-launcher-label">NMOS AI Tutor</span>
+  </button>
+
+  <div id="voice-assistant-widget" class="va-widget" style="display: none;">
+    <div class="va-hdr">
+      <div class="va-hdr-left">
+        <span class="va-hdr-icon">🎙</span>
+        <span class="va-hdr-title">Sarvam AI NMOS Tutor</span>
+      </div>
+      <div class="va-hdr-right">
+        <button id="va-btn-settings" class="va-hdr-btn" title="Configure Sarvam AI API Key">🔑</button>
+        <button id="va-hdr-close" class="va-hdr-btn" title="Close AI Tutor">✕</button>
+      </div>
+    </div>
+
+    <!-- Active Component Context Bar -->
+    <div class="va-context-bar">
+      <div class="va-ctx-line">
+        <span class="va-ctx-tag">SELECTED</span>
+        <span class="va-ctx-val" id="va-ctx-val">None</span>
+      </div>
+      <div class="va-ctx-state" id="va-ctx-state">VGS: 1.0V (ON)</div>
+    </div>
+
+    <!-- Status & Voice Controls -->
+    <div class="va-status-bar">
+      <div class="va-status-pill" id="va-status-pill">
+        <span class="va-status-dot"></span>
+        <span id="va-status-text">AI Tutor Ready</span>
+      </div>
+      <button class="va-hdr-btn" id="va-btn-stop" title="Stop Audio Playback">■ Stop</button>
+    </div>
+
+    <!-- Response Area -->
+    <div class="va-response-area" id="va-response-area">
+      <div class="va-msg va-msg-ai">
+        <div class="va-msg-header">Sarvam AI NMOS Tutor</div>
+        <div class="va-msg-body">
+          Welcome to the 3D NMOS CAD visualizer. Click any layer, diffusion region, or terminal to inspect its physical structure, or ask me about electron inversion, threshold voltage VTH, or short-channel effects!
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Chips -->
+    <div class="va-chips-row">
+      <button class="va-chip" data-prompt="Explain Selected">Explain Selected</button>
+      <button class="va-chip" data-prompt="How NMOS channel inverts">Channel Inversion</button>
+      <button class="va-chip" data-prompt="Why N-SDE / LDD is needed">SDE / LDD Role</button>
+      <button class="va-chip" data-prompt="Threshold voltage (VTH) role">Threshold VTH</button>
+    </div>
+
+    <!-- Input Box -->
+    <div class="va-input-row">
+      <input type="text" id="va-input" placeholder="Ask about NMOS physics or layout..." autocomplete="off">
+      <button id="va-btn-send" class="va-btn-send" title="Send question">➤</button>
+    </div>
+  </div>
+
+  <!-- Interactive Sarvam AI API Key Modal (Parity with CMOS Inverter) -->
+  <div id="va-key-modal" class="va-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="va-modal-title">
+    <div class="va-modal-card">
+      <div class="va-modal-header">
+        <div class="va-modal-title">
+          <span class="va-modal-icon">🔑</span>
+          <h3 id="va-modal-title">Sarvam AI API Key Required</h3>
+        </div>
+        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">✕</button>
+      </div>
+
+      <div class="va-modal-body">
+        <p class="va-modal-desc">
+          To enable live 3D NMOS voice tutoring, interactive transistor physics Q&amp;A, and step-by-step fabrication audio narration, connect your personal Sarvam AI API subscription key.
+        </p>
+
+        <div class="va-modal-steps">
+          <div class="va-step-item">
+            <span class="va-step-num">1</span>
+            <span>Sign in or create a free account at <a href="https://dashboard.sarvam.ai" target="_blank" rel="noopener noreferrer" class="va-link">https://dashboard.sarvam.ai ↗</a></span>
+          </div>
+          <div class="va-step-item">
+            <span class="va-step-num">2</span>
+            <span>Navigate to <b>API Keys</b> in the dashboard and create a new API subscription key.</span>
+          </div>
+          <div class="va-step-item">
+            <span class="va-step-num">3</span>
+            <span>Paste your key below and click <b>Save &amp; Test Voice</b> to verify and start listening.</span>
+          </div>
+        </div>
+
+        <div class="va-modal-privacy-callout">
+          <span class="va-privacy-badge">🔒 Privacy Guarantee</span>
+          <p>
+            Your API key will <b>not be used by us</b> — it is stored securely on your local device and used directly to communicate with Sarvam AI. It will be deleted after you exit the session. We never save, store, or transmit your credentials to our servers.
+          </p>
+        </div>
+
+        <div class="va-modal-field">
+          <label for="va-input-apikey">SARVAM API SUBSCRIPTION KEY</label>
+          <div class="va-input-group">
+            <input type="password" id="va-input-apikey" placeholder="Paste your Sarvam API subscription key (sk_...)" autocomplete="off" spellcheck="false">
+            <button type="button" id="va-btn-toggle-key-visibility" class="va-eye-btn" title="Toggle visibility" aria-label="Toggle password visibility">
+              <svg class="eye-icon eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="eye-icon eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+          <div id="va-key-status-msg" class="va-field-msg" style="display:none;"></div>
+        </div>
+
+        <div class="va-modal-options">
+          <label class="va-checkbox-label">
+            <input type="checkbox" id="va-chk-session-only" checked>
+            <span>Delete API key when exiting session (on browser/tab close)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="va-modal-footer">
+        <button id="va-modal-clear-btn" class="va-btn-secondary" style="display:none;">Clear Key</button>
+        <div class="va-footer-right">
+          <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
+          <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice 🔊</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts in exact load order -->
+<script src="js/data.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/theme.js"></script>
+<script src="../../../../shared/viewer/js/viewer-core.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/ui-panels.js"></script>
+<script src="js/selection.js"></script>
+<script src="js/controls-explode-scrub.js"></script>
+<script src="js/dimensions.js"></script>
+<script src="js/view-mode.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/logic-state.js"></script>
+<script src="js/build-anim.js"></script>
+<script src="js/render-loop.js"></script>
+<script src="js/main.js"></script>
+<script src="js/voice-assistant.js"></script>
+
+</body>
+</html>

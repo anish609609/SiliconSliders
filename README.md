@@ -65,18 +65,22 @@ SiliconSliders/
 │   └── modules/
 │       ├── transistors/                 # Pillar 1: Transistors & Base Circuits
 │       │   ├── README.md                # Pillar 1 Guide & Mead-Conway Design Rules
-│       │   ├── cmos-inverter/           # 3D CMOS Inverter CAD viewer & tour
-│       │   │   ├── index.html           # CAD viewport & HUD layout
-│       │   │   ├── README.md            # Comprehensive cell documentation
-│       │   │   ├── css/style.css        # EDA dark/light theme
-│       │   │   ├── js/*.js              # Modular Three.js geometry, logic & voice engine
-│       │   │   └── api/voice-assistant.js
-│       │   └── cmos-nand/               # 3D CMOS 2-Input NAND CAD viewer & tour
-│       │       ├── index.html           # CAD viewport & HUD layout
-│       │       ├── README.md            # Comprehensive cell documentation
-│       │       ├── css/style.css        # EDA dark/light theme
-│       │       ├── js/*.js              # Modular Three.js geometry, logic & voice engine
-│       │       └── api/voice-assistant.js
+│       │   ├── mosfet/                  # MOSFET Family (Discrete Transistors)
+│       │   │   ├── nmos/index.html      # 3D NMOS CAD viewer & physical shell
+│       │   │   └── pmos/index.html      # 3D PMOS CAD viewer & physical shell
+│       │   └── cmos/                    # CMOS Logic Family (Standard Cells)
+│       │       ├── cmos-inverter/       # 3D CMOS Inverter CAD viewer & tour
+│       │       │   ├── index.html       # CAD viewport & HUD layout
+│       │       │   ├── README.md        # Comprehensive cell documentation
+│       │       │   ├── css/style.css    # EDA dark/light theme
+│       │       │   ├── js/*.js          # Modular Three.js geometry, logic & voice engine
+│       │       │   └── api/voice-assistant.js
+│       │       └── cmos-nand/           # 3D CMOS 2-Input NAND CAD viewer & tour
+│       │           ├── index.html       # CAD viewport & HUD layout
+│       │           ├── README.md        # Comprehensive cell documentation
+│       │           ├── css/style.css    # EDA dark/light theme
+│       │           ├── js/*.js          # Modular Three.js geometry, logic & voice engine
+│       │           └── api/voice-assistant.js
 │       │
 │       ├── processes/                   # Pillar 2: Semiconductor Process Engineering
 │       │   ├── README.md                # Pillar 2 Guide & 3-Stage Process Template
@@ -102,7 +106,7 @@ SiliconSliders/
 ### Option 1: Direct File Launch (Zero Server Required)
 Because Silicon Sliders uses pure standard web technologies without bundlers or build steps, you can open any module directly in any modern browser:
 - Double-click `index.html` to launch the Silicon Sliders Homepage.
-- Or double-click `src/modules/transistors/cmos-inverter/index.html` directly off your disk.
+- Or double-click `src/modules/transistors/cmos/cmos-inverter/index.html` directly off your disk.
 
 ### Option 2: Unified Node Server (Recommended)
 Running the unified Node server enables the local `/api/voice-assistant` proxy endpoint and automatic `.env` `SARVAM_API_KEY` resolution:

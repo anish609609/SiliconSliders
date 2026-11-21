@@ -1,4 +1,4 @@
-[← Silicon Sliders Platform](../../../../README.md) · [Transistors Pillar](../README.md)
+[← Silicon Sliders Platform](../../../../../README.md) · [Transistors Pillar](../../README.md)
 
 # CMOS Inverter — Physical Layout & Fabrication CAD Viewer
 

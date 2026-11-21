@@ -8,14 +8,27 @@ This pillar focuses on translating abstract circuit schematics and textbook 2D c
 
 ## 📦 Active & Planned Modules
 
+### 1. MOSFET Family (Discrete Transistors)
 | Module | Status | Technology / Topology | Links |
 | :--- | :---: | :--- | :--- |
-| **CMOS Inverter** | `Active` | Planar Bulk CMOS · HKMG ($HfO_2 / SiO_2$) · SDE/LDD | [Launch 3D](cmos-inverter/index.html) · [Module Spec](cmos-inverter/README.md) |
-| **CMOS 2-Input NAND** | `Active` | Euler-Path Dual Gate · Uncontacted Series $N^+$ Bridge | [Launch 3D](cmos-nand/index.html) · [Module Spec](cmos-nand/README.md) |
+| **NMOS Transistor** | `Scaffolded` | Planar Bulk NMOS · P-Substrate · N⁺ Source/Drain · HKMG | [Launch Scaffold](mosfet/nmos/index.html) |
+| **PMOS Transistor** | `Scaffolded` | Planar Bulk PMOS · N-Well · P⁺ Source/Drain · $W_p \approx 2W_n$ | [Launch Scaffold](mosfet/pmos/index.html) |
+
+### 2. CMOS Logic Family (Standard Cells)
+| Module | Status | Technology / Topology | Links |
+| :--- | :---: | :--- | :--- |
+| **CMOS Inverter** | `Active` | Planar Bulk CMOS · HKMG ($HfO_2 / SiO_2$) · SDE/LDD | [Launch 3D](cmos/cmos-inverter/index.html) · [Module Spec](cmos/cmos-inverter/README.md) |
+| **CMOS 2-Input NAND** | `Active` | Euler-Path Dual Gate · Uncontacted Series $N^+$ Bridge | [Launch 3D](cmos/cmos-nand/index.html) · [Module Spec](cmos/cmos-nand/README.md) |
+| **CMOS 2-Input NOR** | `Roadmap` | Parallel NMOS Pull-Down · Series PMOS Pull-Up | *Roadmap* |
+| **CMOS 2-Input AND** | `Roadmap` | NAND2 Core + Inverter Buffer Stage | *Roadmap* |
+| **CMOS 2-Input OR** | `Roadmap` | NOR2 Core + Inverter Buffer Stage | *Roadmap* |
+| **6T SRAM Cell** | `Roadmap` | Cross-Coupled Inverter Pair · Wordline Pass Transistors | *Roadmap* |
+
+### 3. Advanced Multi-Gate Architecture (Roadmap)
+| Module | Status | Technology / Topology | Links |
+| :--- | :---: | :--- | :--- |
 | **3D FinFET (Tri-Gate)** | `In Dev` | Non-Planar Tri-Gate · Sub-16nm Channel Electrostatics | *Coming Soon* |
 | **GAAFET (Nanosheet)** | `Roadmap` | Vertically Stacked Nanosheets · Sub-3nm Technology | *Roadmap* |
-| **CMOS 2-Input NOR** | `Roadmap` | Parallel NMOS Pull-Down · Series PMOS Pull-Up | *Roadmap* |
-| **6T SRAM Cell** | `Roadmap` | Cross-Coupled Inverter Pair · Wordline Pass Transistors | *Roadmap* |
 
 ---
 
@@ -58,7 +71,7 @@ Each module includes an automated `[▶ PLAY TOUR]` feature animating the layer-
 
 ## 💡 Adding a New Transistor Module
 When adding a new logic cell:
-1. Copy the structure of `cmos-inverter/` or `cmos-nand/`.
+1. Copy the structure of `cmos/cmos-inverter/` or `cmos/cmos-nand/`.
 2. Define the Euler path for minimal diffusion breaks.
 3. Implement 3D geometries in `js/geometry.js` and register component metadata in `js/data.js`.
 4. Ensure full responsive support for the EDA dark/light theme engine.

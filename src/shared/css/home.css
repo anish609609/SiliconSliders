@@ -399,6 +399,165 @@
   color: var(--accent-gold);
 }
 
+/* ==========================================================================
+   Solid-State Device CAD Family-Based Layout
+   ========================================================================== */
+.card-family-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.family-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  transition: border-color var(--transition-fast);
+}
+
+[data-theme="light"] .family-group {
+  background: #f8fafc;
+}
+
+.family-group:hover {
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.family-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.family-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-heading);
+}
+
+.family-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background: var(--btn-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.family-badge.live {
+  background: var(--accent-cyan-glow);
+  color: var(--accent-cyan);
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.family-btn-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.family-card-btn {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  border-radius: 6px;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.family-card-btn:hover {
+  background: var(--btn-hover-bg);
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+
+.family-card-btn .btn-text {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-heading);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.family-card-btn .btn-text::after {
+  content: '→';
+  font-size: 11px;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast), color var(--transition-fast);
+}
+
+.family-card-btn:hover .btn-text::after {
+  transform: translateX(3px);
+  color: var(--accent-cyan);
+}
+
+.family-card-btn .btn-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-family: var(--font-sans);
+}
+
+.family-card-btn.active-btn {
+  border-color: rgba(56, 189, 248, 0.3);
+}
+
+.family-card-btn.active-btn:hover {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan-glow);
+}
+
+/* Extensible Future Gates Row */
+.future-gates-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.future-tag {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed var(--border-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: default;
+  transition: all var(--transition-fast);
+}
+
+.future-tag:hover {
+  border-color: var(--text-muted);
+  color: var(--text-heading);
+}
+
+.future-tag.more {
+  border: none;
+  color: var(--accent-cyan);
+  font-weight: 600;
+}
+
 /* Card Disabled / Placeholder State (MEMS) */
 .card-disabled {
   opacity: 0.85;
