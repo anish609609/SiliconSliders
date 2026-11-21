@@ -1,0 +1,166 @@
+/**
+ * data.js - PMOS CAD Viewer
+ * Layer legends and comprehensive physics, fabrication, and electrical role metadata
+ * for discrete P-channel MOSFET CAD inspection.
+ */
+
+var LEGEND = [
+  { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the deep N-Well tub.' },
+  { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)', desc: 'Deep retrograde N-type tub diffused into P-substrate (Nd ≈ 1×10¹⁷ cm⁻³). Isolates the PMOS active region.' },
+  { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)', desc: 'Heavily doped P+ regions forming the Source and Drain terminals (Na ≈ 1×10²⁰ cm⁻³).' },
+  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL (DEPLETION)', color: '#f43f5e', desc: 'Permanently implanted shallow P-type channel (Na ≈ 2×10¹⁷ cm⁻³) bridging Source and Drain inside the N-Well, rendering the transistor Normally ON at VGS = 0V.' },
+  { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (P-SDE / LDD)', color: 'var(--c-sde-p)', desc: 'Shallow, lightly doped extension regions (Na ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI).' },
+  { key: 'oxide',     name: 'GATE OXIDE (INTERFACIAL SiO2)', color: 'var(--c-oxide)', desc: 'Ultra-thin chemical oxide layer (~0.6 nm) passivating silicon surface to minimize Dit interface defect states.' },
+  { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling without direct tunneling leakage.' },
+  { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)', desc: 'Gate electrode controlling electrostatic potential across the channel to induce hole inversion.' },
+  { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep P+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
+  { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion, well tap, and poly layers to the first metal interconnect.' },
+  { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/VDD), Drain (D/OUT), Gate (G/VG), and N-Well Tap (B/VDD) terminals.' },
+  { key: 'src',       name: 'SOURCE TERMINAL (S / VDD)', color: '#cf8a4a', desc: 'Supplies carrier holes into the channel; tied to positive supply rail VDD (1.0V).' },
+  { key: 'drn',       name: 'DRAIN TERMINAL (D / OUT)', color: '#e6a23c', desc: 'Collects holes from the channel; pulls output up to VDD when PMOS conducts.' },
+  { key: 'gate',      name: 'GATE TERMINAL (G / VG)', color: '#e6c94a', desc: 'Active-low voltage input terminal. Low VG (0V) turns PMOS ON; High VG (VDD) turns PMOS OFF.' },
+  { key: 'welltap',   name: 'N-WELL TAP (B / VDD)', color: '#3f8f6f', desc: 'Ohmic N+ contact biasing N-well tub to VDD to prevent forward-biasing the source-well junction.' }
+];
+
+var INFO = {
+  psub: {
+    title: 'P-SUBSTRATE (BULK SILICON)',
+    fn: 'Base single-crystal p-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³).',
+    role: 'Hosts the deep N-Well tub and provides mechanical die stability.',
+    conn: 'Tied to GND across the die substrate grid.',
+    rel: 'Encloses the N-Well tub with a reverse-biased PN junction isolation.',
+    doping: 'P-type bulk silicon — lightly doped with Boron (Na ≈ 1×10¹⁵ cm⁻³)'
+  },
+  nwell: {
+    title: 'N-WELL TUB (RETROGRADE IMPLANT)',
+    fn: 'Deep N-type doped tub inside the p-substrate formed by Phosphorus implantation and thermal drive-in.',
+    role: 'Acts as the Body/Bulk terminal of the PMOS transistor; biased at VDD via the N-well tap.',
+    conn: 'N+ Well Tap → Tungsten Contact → Metal-1 (VDD / +1.0V)',
+    rel: 'Contains the PMOS active region and isolates it from the p-substrate bulk.',
+    doping: 'N-type, retrograde Gaussian — Nd ≈ 1×10¹⁷ cm⁻³'
+  },
+  pmosSrc: {
+    title: 'SOURCE REGION (P+ DIFFUSION)',
+    fn: 'Heavily doped P+ diffusion region engineered to inject mobile holes into the channel.',
+    role: 'Source terminal (S) — tied to positive rail VDD (+1.0V). Supplies holes during conduction.',
+    conn: 'Tungsten Via → Metal-1 Source Pad (VDD / 1.0V)',
+    rel: 'Bordered laterally by shallow P-SDE / LDD extension facing the gate.',
+    doping: 'P+, heavily doped — Na ≈ 1×10²⁰ cm⁻³ (Boron / BF2 dopant)'
+  },
+  pmosDrn: {
+    title: 'DRAIN REGION (P+ DIFFUSION)',
+    fn: 'Heavily doped P+ diffusion region collecting conduction holes from the channel.',
+    role: 'Drain terminal (D) — pulls output node OUT up towards VDD when gate is low (VG = 0V).',
+    conn: 'Tungsten Via → Metal-1 Drain Pad (OUT)',
+    rel: 'Separated from Source by channel length L (gate footprint).',
+    doping: 'P+, heavily doped — Na ≈ 1×10²⁰ cm⁻³ (Boron / BF2 dopant)'
+  },
+  sdeSrc: {
+    title: 'SOURCE EXTENSION (P-SDE / LDD)',
+    fn: 'Shallow, lightly doped P-type extension under the source-side gate spacer.',
+    role: 'Reduces peak electric field near channel edge, suppressing hot carrier degradation and short-channel effects.',
+    conn: 'Bridges heavily doped P+ Source to the inversion channel under gate edge.',
+    rel: 'Ultra-shallow junction (xj < 15 nm) to control punchthrough.',
+    doping: 'P-type, lightly doped — Na ≈ 1×10¹⁸ cm⁻³'
+  },
+  sdeDrn: {
+    title: 'DRAIN EXTENSION (P-SDE / LDD)',
+    fn: 'Shallow, lightly doped P-type extension under the drain-side gate spacer.',
+    role: 'Mitigates Drain-Induced Barrier Lowering (DIBL) and lateral straggle effects.',
+    conn: 'Bridges inversion channel to heavily doped P+ Drain.',
+    rel: 'Formed self-aligned to gate prior to spacer deposition.',
+    doping: 'P-type, lightly doped — Na ≈ 1×10¹⁸ cm⁻³'
+  },
+  channel: {
+    title: 'IMPLANTED P-CHANNEL (DEPLETION MODE)',
+    fn: 'Permanently implanted shallow P-type channel layer inside the N-Well beneath the gate dielectric bridging P+ Source and P+ Drain.',
+    role: 'Provides a pre-existing mobile hole conductive path at zero gate bias (VGS = 0V, Normally ON with VTH,p = +0.80V). Applying a positive gate voltage (0 < VGS < +0.80V) operates in Depletion Mode, electrostatically thinning the channel of holes until full pinch-off/cutoff at VGS ≥ +0.80V. Applying a negative gate bias (VGS < 0V) operates in Enhancement Mode, accumulating extra holes and increasing channel conductivity.',
+    conn: 'Permanently implanted conductive p-bridge between P+ Source and P+ Drain.',
+    rel: 'Doped with Acceptor impurities (e.g. Boron ion implant, Na ≈ 2×10¹⁷ cm⁻³) directly into the top surface of the N-Well before gate dielectric growth.',
+    doping: 'P-type shallow channel implant — Acceptor Boron (Na ≈ 2×10¹⁷ cm⁻³)'
+  },
+  oxide: {
+    title: 'GATE OXIDE (INTERFACIAL SiO2)',
+    fn: 'Atomically thin chemical silicon dioxide (SiO2) layer (~0.6 nm).',
+    role: 'Passivates the silicon channel interface, ensuring low Dit interface trap density and high hole mobility.',
+    conn: 'Sandwiched directly between N-Well silicon surface and High-k HfO2.',
+    rel: 'Thermally grown or ozone-oxidized before high-k deposition.',
+    doping: 'Stoichiometric dielectric — SiO2 (k = 3.9)'
+  },
+  highk: {
+    title: 'HIGH-K DIELECTRIC (HfO2)',
+    fn: 'Hafnium dioxide dielectric layer with high relative permittivity (k ≈ 25).',
+    role: 'Provides high gate capacitance (Cox) for robust channel inversion without quantum tunneling gate leakage.',
+    conn: 'Couples gate electrode electrostatic potential to the channel.',
+    rel: 'Deposited via Atomic Layer Deposition (ALD).',
+    doping: 'High-k metal oxide — HfO2 (EOT ≈ 0.8 nm)'
+  },
+  poly: {
+    title: 'GATE ELECTRODE (POLYSILICON / METAL GATE)',
+    fn: 'Gate electrode stripe crossing over the N-Well active area.',
+    role: 'Gate terminal (G) — active-low input voltage VG controls channel conduction.',
+    conn: 'Tungsten Via → Metal-1 Gate Pad (VG Input)',
+    rel: 'Workfunction tuned specifically for PMOS band alignment near valence band edge (Ev).',
+    doping: 'P+ doped polysilicon or workfunction metal (e.g. TiN/Pt)'
+  },
+  spacer: {
+    title: 'GATE SIDEWALL SPACERS (Si3N4)',
+    fn: 'Silicon nitride (Si3N4) dielectric spacers formed on the vertical sidewalls of the gate stack.',
+    role: 'Acts as a self-aligned offset hardmask for the heavy P+ source/drain deep ion implants, protecting the shallow P-SDE / LDD extensions underneath. Prevents source/drain silicide from shorting to the gate electrode and reduces gate-to-drain parasitic overlap capacitance (Cgd).',
+    conn: 'Dielectric insulator flanking gate electrode and gate dielectric.',
+    rel: 'Deposited conformally by LPCVD/PECVD and anisotropically reactive-ion etched (RIE) back with zero lateral mask.',
+    doping: 'Dielectric insulator — Silicon Nitride (Si3N4, k ≈ 7.5)'
+  },
+  contact: {
+    title: 'TUNGSTEN CONTACT PLUG (W-VIA)',
+    fn: 'Chemical Vapor Deposition (CVD) Tungsten via plug with Ti/TiN barrier liner.',
+    role: 'Low-resistance vertical interconnect bridging diffusion, poly, or well tap to Metal-1.',
+    conn: 'Active / Poly / Tap ↔ Metal-1',
+    rel: 'Passes through interlayer dielectric (ILD).',
+    doping: 'Metallic conductor — pure Tungsten (W)'
+  },
+  metal: {
+    title: 'METAL-1 INTERCONNECT (Cu / Al)',
+    fn: 'First level copper/aluminum metallization layer.',
+    role: 'Routes electrical power and signals to device terminals (Source, Drain, Gate, Well Tap).',
+    conn: 'Connects to contacts below and higher metal layers above.',
+    rel: 'Planarized using Chemical Mechanical Polishing (CMP).',
+    doping: 'Metallic conductor (Copper / Aluminum runner)'
+  },
+  welltap: {
+    title: 'N-WELL TAP (N+ OHMIC CONTACT)',
+    fn: 'Heavily doped N+ diffusion region into the N-Well.',
+    role: 'Provides an ohmic contact biasing the N-well to VDD (+1.0V), preventing latch-up and forward-biased well diodes.',
+    conn: 'N+ Tap → Tungsten Contact → Metal-1 (VDD)',
+    rel: 'Located adjacent to the PMOS active area inside the N-Well.',
+    doping: 'N+, heavily doped — Nd ≈ 1×10²⁰ cm⁻³ (Phosphorus dopant)'
+  },
+  srcRail: {
+    title: 'SOURCE RAIL / PAD (VDD)',
+    fn: 'Metal-1 terminal pad providing positive supply potential (+1.0V) to the PMOS Source.',
+    role: 'Maintains PMOS Source at VDD.',
+    conn: 'Tied to circuit supply rail VDD (+1.0V).',
+    rel: 'Source node of the pull-up network.'
+  },
+  drnRail: {
+    title: 'DRAIN RAIL / PAD (OUT)',
+    fn: 'Metal-1 terminal pad biased at output node potential OUT.',
+    role: 'Delivers pulled-up current to load when PMOS conducts.',
+    conn: 'Tied to output node OUT.',
+    rel: 'Current flows from Source to Drain when channel is active.'
+  },
+  gateRail: {
+    title: 'GATE INPUT PAD (G / VG / VSG)',
+    fn: 'Metal-1 terminal pad supplying continuous input gate bias VSG (0.00V to 1.80V) where VG = VDD - VSG.',
+    role: 'Controls channel inversion: Cutoff when VSG < |VTH,p| (0.40V), Linear/Triode when VSD < VSG - |VTH,p|, and Saturation when VSD ≥ VSG - |VTH,p|.',
+    conn: 'Drives gate electrode via tungsten contact plug.',
+    rel: 'Purely capacitive terminal — draws near-zero DC steady-state current.'
+  },
+  wellRail: {
+    title: 'N-WELL BODY TERMINAL (B / VDD)',
+    fn: 'Metal-1 terminal pad biasing the N-well body tap to VDD.',
+    role: 'Ensures VBS = 0V to maintain standard PMOS threshold voltage |VTP|.',
+    conn: 'Tied to supply rail VDD.',
+    rel: 'Prevents body effect.'
+  }
+};
