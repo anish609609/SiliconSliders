@@ -425,6 +425,45 @@ function reg(mesh, id, layerKey) {
   return mesh;
 }
 
+// ---------------------------------------------------------------------------
+// FILLETED TRACE & BEVELED PDK INTERCONNECT GEOMETRIES
+// ---------------------------------------------------------------------------
+// Extrudes planar Metal / Gate runner geometries with rounded corner fillets
+// and 45-degree micro-bevels matching the CMOS Inverter CAD baseline.
+function createFilletedTraceGeometry(w, h, d, cornerRadius, bevel) {
+  cornerRadius = Math.min(cornerRadius !== undefined ? cornerRadius : 0.15, Math.min(w, d) * 0.48);
+  bevel = Math.min(bevel !== undefined ? bevel : 0.02, Math.min(w, h, d) * 0.25);
+  var hw = w / 2;
+  var hd = d / 2;
+  var cr = cornerRadius;
+
+  var shape = new THREE.Shape();
+  shape.moveTo(-hw + cr, -hd);
+  shape.lineTo(hw - cr, -hd);
+  shape.quadraticCurveTo(hw, -hd, hw, -hd + cr);
+  shape.lineTo(hw, hd - cr);
+  shape.quadraticCurveTo(hw, hd, hw - cr, hd);
+  shape.lineTo(-hw + cr, hd);
+  shape.quadraticCurveTo(-hw, hd, -hw, hd - cr);
+  shape.lineTo(-hw, -hd + cr);
+  shape.quadraticCurveTo(-hw, -hd, -hw + cr, -hd);
+
+  var extrudeSettings = {
+    steps: 1,
+    depth: Math.max(0.001, h - bevel * 2),
+    bevelEnabled: bevel > 0,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelOffset: 0,
+    bevelSegments: 2
+  };
+  var geo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+  geo.rotateX(Math.PI / 2);
+  geo.center();
+  return geo;
+}
+var createBeveledBoxGeometry = createFilletedTraceGeometry;
+
 function box(w, h, d, colorVar, opts) {
   opts = opts || {};
   var col = colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar;
@@ -436,15 +475,33 @@ function box(w, h, d, colorVar, opts) {
     transparent: opts.transparent || false,
     opacity: opts.opacity !== undefined ? opts.opacity : 1.0,
     depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true,
+    polygonOffset: opts.polygonOffset || false,
+    polygonOffsetFactor: opts.polygonOffsetFactor !== undefined ? opts.polygonOffsetFactor : 0,
+    polygonOffsetUnits: opts.polygonOffsetUnits !== undefined ? opts.polygonOffsetUnits : 0,
     emissive: 0x000000,
     emissiveIntensity: 0
   });
-  var m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  var geo = (opts.bevel && typeof createFilletedTraceGeometry === 'function')
+    ? createFilletedTraceGeometry(w, h, d, opts.cornerRadius || 0.08, opts.bevel)
+    : new THREE.BoxGeometry(w, h, d);
+  var m = new THREE.Mesh(geo, mat);
   m.castShadow = !opts.noShadow;
   m.receiveShadow = true;
   m.userData.colorVar = colorVar;
   m.userData.baseEmissive = 0x000000;
   m.userData.baseEmissiveIntensity = 0;
+  if (opts.outlineColor) {
+    var edges = new THREE.EdgesGeometry(geo, 24);
+    var lineMat = new THREE.LineBasicMaterial({
+      color: new THREE.Color(opts.outlineColor),
+      transparent: true,
+      opacity: opts.outlineOpacity !== undefined ? opts.outlineOpacity : 0.40,
+      depthWrite: false
+    });
+    var line = new THREE.LineSegments(edges, lineMat);
+    line.raycast = function() {};
+    m.add(line);
+  }
   return m;
 }
 
@@ -692,22 +749,34 @@ reg(tapMesh, 'subtap', 'active');
 var gateL = 2.0;    // Gate length along X
 var gateW = 7.6;    // Dielectric width along Z
 
-// Interfacial Gate Oxide (SiO2) - PRESERVED IN BLUE PALETTE
+// Interfacial Gate Oxide (SiO2) - Clean refined translucent blue finish matching CMOS Inverter
 var oxMesh = box(gateL, Y.oxTop - Y.oxBot, gateW, '--c-oxide', {
   transparent: true,
-  opacity: 0.85,
-  roughness: 0.15,
-  metalness: 0.05
+  opacity: 0.82,
+  roughness: 0.32,  // subtle specular response matching CMOS Inverter, eliminates white blowout/glare
+  metalness: 0.02,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -1.0,
+  polygonOffsetUnits: -1.0,
+  outlineColor: '#7dd3fc',
+  outlineOpacity: 0.30
 });
 oxMesh.position.set(0, (Y.oxTop + Y.oxBot) / 2, 0);
 reg(oxMesh, 'oxide', 'oxide');
 
-// High-k Dielectric (HfO2) - Pristine translucent high-permittivity purple
+// High-k Dielectric (HfO2) - Refined dielectric finish matching CMOS Inverter
 var hkMesh = box(gateL, Y.hkTop - Y.hkBot, gateW, '--c-highk', {
   transparent: true,
-  opacity: 0.82,
-  roughness: 0.14,
-  metalness: 0.12
+  opacity: 0.78,
+  roughness: 0.28,  // soft dielectric satin highlight, avoids neon/glossy glare
+  metalness: 0.06,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -1.0,
+  polygonOffsetUnits: -1.0,
+  outlineColor: '#c084fc',
+  outlineOpacity: 0.30
 });
 hkMesh.position.set(0, (Y.hkTop + Y.hkBot) / 2, 0);
 reg(hkMesh, 'highk', 'highk');
@@ -718,31 +787,52 @@ reg(hkMesh, 'highk', 'highk');
 var polyRunnerLength = 11.2;
 var polyMesh = box(gateL, Y.polyTop - Y.polyBot, polyRunnerLength, '--c-poly', {
   roughness: 0.45,
-  metalness: 0.20
+  metalness: 0.20,
+  bevel: 0.02,
+  cornerRadius: 0.08,
+  outlineColor: '#f87171',
+  outlineOpacity: 0.40
 });
 polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2, 1.2);
 reg(polyMesh, 'poly', 'poly');
 
-// Sleek, modern crystalline Si3N4 sidewall spacers (crisp translucent dielectric)
+// Sleek, refined crystalline Si3N4 sidewall spacers (soft translucent dielectric)
 var spacerW = 0.20;
 var spacerMat = new THREE.MeshStandardMaterial({
-  color: 0x67e8f9,
-  roughness: 0.30,
-  metalness: 0.08,
+  color: 0x7dd3fc,   // cohesive Si3N4 dielectric tone
+  roughness: 0.45,   // soft satin finish, not harsh glass
+  metalness: 0.04,
   transparent: true,
-  opacity: 0.72
+  opacity: 0.62,     // refined translucency
+  depthWrite: false,
+  side: THREE.DoubleSide
 });
+var spacerGeo = new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD);
+var spacerEdges = new THREE.EdgesGeometry(spacerGeo, 24);
+var spacerEdgeMat = new THREE.LineBasicMaterial({
+  color: 0xbae6fd,
+  transparent: true,
+  opacity: 0.35,
+  depthWrite: false
+});
+
 var spacerGroup = new THREE.Group();
-var leftSpacer = new THREE.Mesh(new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD), spacerMat);
+var leftSpacer = new THREE.Mesh(spacerGeo, spacerMat);
 leftSpacer.position.set(-gateL / 2 - spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
 leftSpacer.userData.id = 'spacer';
 leftSpacer.userData.layer = 'spacer';
+var leftLine = new THREE.LineSegments(spacerEdges, spacerEdgeMat);
+leftLine.raycast = function() {};
+leftSpacer.add(leftLine);
 spacerGroup.add(leftSpacer);
 
-var rightSpacer = new THREE.Mesh(new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD), spacerMat);
+var rightSpacer = new THREE.Mesh(spacerGeo, spacerMat);
 rightSpacer.position.set(gateL / 2 + spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
 rightSpacer.userData.id = 'spacer';
 rightSpacer.userData.layer = 'spacer';
+var rightLine = new THREE.LineSegments(spacerEdges, spacerEdgeMat);
+rightLine.raycast = function() {};
+rightSpacer.add(rightLine);
 spacerGroup.add(rightSpacer);
 
 reg(spacerGroup, 'spacer', 'spacer');
