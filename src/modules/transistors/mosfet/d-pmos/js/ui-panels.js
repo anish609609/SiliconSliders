@@ -124,7 +124,7 @@ var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
   { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)' },
-  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL', color: '#f43f5e' },
+  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL', color: 'var(--c-sde-p)' },
   { key: 'sde',       name: 'EXTENSIONS (P-SDE / LDD)', color: 'var(--c-sde-p)' },
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },

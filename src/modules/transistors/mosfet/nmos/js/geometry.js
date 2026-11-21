@@ -638,6 +638,7 @@ var chanMat = new THREE.MeshStandardMaterial({
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
 channelMesh.position.set(0, 2.918, 0);
 channelMesh.renderOrder = 3;
+channelMesh.userData.colorVar = '--c-sde-n';
 reg(channelMesh, 'channel', 'active');
 
 // Dedicated pinch-off space-charge gap mesh visible during Saturation (VDS >= VGS - VTH)
@@ -1040,6 +1041,9 @@ function updateMaterialsTheme() {
       updateLabelSprite(s, s.userData.labelText, s.userData.colorHex, isLight);
     }
   });
+  if (typeof chanMat !== 'undefined' && chanMat.emissive) {
+    chanMat.emissive.set(0x0284c7);
+  }
 }
 window.updateMaterialsTheme = updateMaterialsTheme;
 

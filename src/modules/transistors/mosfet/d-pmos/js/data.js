@@ -8,7 +8,7 @@ var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the deep N-Well tub.' },
   { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)', desc: 'Deep retrograde N-type tub diffused into P-substrate (Nd ≈ 1×10¹⁷ cm⁻³). Isolates the PMOS active region.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)', desc: 'Heavily doped P+ regions forming the Source and Drain terminals (Na ≈ 1×10²⁰ cm⁻³).' },
-  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL (DEPLETION)', color: '#f43f5e', desc: 'Permanently implanted shallow P-type channel (Na ≈ 2×10¹⁷ cm⁻³) bridging Source and Drain inside the N-Well, rendering the transistor Normally ON at VGS = 0V.' },
+  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL (DEPLETION)', color: 'var(--c-sde-p)', desc: 'Permanently implanted shallow P-type channel (Na ≈ 2×10¹⁷ cm⁻³) bridging Source and Drain inside the N-Well, rendering the transistor Normally ON at VGS = 0V.' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (P-SDE / LDD)', color: 'var(--c-sde-p)', desc: 'Shallow, lightly doped extension regions (Na ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI).' },
   { key: 'oxide',     name: 'GATE OXIDE (INTERFACIAL SiO2)', color: 'var(--c-oxide)', desc: 'Ultra-thin chemical oxide layer (~0.6 nm) passivating silicon surface to minimize Dit interface defect states.' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling without direct tunneling leakage.' },

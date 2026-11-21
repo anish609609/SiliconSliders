@@ -29,6 +29,10 @@ if (rightToggleBtn && rightPanel) {
 var dockedPanel = document.getElementById('docked-panel');
 var viewHud = document.getElementById('view-hud');
 function updateViewHudPosition() {
+  if (window.innerWidth < 768) {
+    if (dockedPanel) dockedPanel.style.right = '';
+    return;
+  }
   var launcher = document.getElementById('va-launcher-btn');
   var vaWidget = document.getElementById('voice-assistant-widget');
   var ivHud = document.getElementById('isd-vsd-hud') || document.getElementById('ids-vds-hud');
@@ -54,6 +58,12 @@ var dpTabs = document.querySelectorAll('.dp-tab-btn');
 var dpContents = document.querySelectorAll('.dp-tab-content');
 var dpCollapseBtn = document.getElementById('dp-collapse-btn');
 var dpBody = document.getElementById('dp-body');
+
+// Collapse floating panels by default on mobile viewports (< 768px)
+if (window.innerWidth < 768 && dpBody && dpCollapseBtn) {
+  dpBody.classList.add('collapsed');
+  dpCollapseBtn.textContent = '▸';
+}
 
 dpTabs.forEach(function(tab) {
   tab.addEventListener('click', function() {

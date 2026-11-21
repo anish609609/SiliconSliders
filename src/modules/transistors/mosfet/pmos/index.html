@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Shared CAD Style Baseline -->
-  <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-layout.css">
+  <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
   <link rel="stylesheet" href="css/style.css">
 
   <!-- Three.js + OrbitControls -->
@@ -25,17 +25,19 @@
 <div id="app">
 
   <div id="topbar">
-    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
-    <div class="brand"><span class="dot"></span><b>PMOS·VIEWER</b></div>
+    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
+    <div class="brand"><span class="dot"></span><b class="brand-title-full">PMOS·VIEWER</b><b class="brand-title-compact">PMOS</b></div>
 
-    <div class="seg" id="mode-seg">
-      <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
-      <button data-mode="schematic">SCHEMATIC</button>
-    </div>
+    <div class="topbar-mode-row">
+      <div class="seg" id="mode-seg">
+        <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
+        <button data-mode="schematic">SCHEMATIC</button>
+      </div>
 
-    <div class="seg" id="flow-seg" title="Conduction Flow Simulation: Carrier Drift (h+) vs. Conventional Current (ISD)">
-      <button data-flow="carrier" class="active">HOLES</button>
-      <button data-flow="current">CURRENT</button>
+      <div class="seg" id="flow-seg" title="Conduction Flow Simulation: Carrier Drift (h+) vs. Conventional Current (ISD)">
+        <button data-flow="carrier" class="active">HOLES</button>
+        <button data-flow="current">CURRENT</button>
+      </div>
     </div>
 
     <div class="spacer"></div>

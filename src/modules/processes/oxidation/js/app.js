@@ -756,8 +756,7 @@
                 className="text-xs font-mono text-slate-700 dark:text-slate-300 hover:text-sky-600 dark:hover:text-cyan-400 px-2 sm:px-2.5 py-1 rounded border border-slate-200 dark:border-slate-800 hover:border-sky-400 dark:hover:border-cyan-500/50 bg-slate-50 dark:bg-transparent transition-colors flex items-center gap-1.5 flex-shrink-0"
                 title="Return to SiliconSliders Home"
               >
-                <span>←</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">Silicon</span><span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Sliders</span>
+                <span>← Silicon Sliders</span>
               </a>
               <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 flex-shrink-0" />
               <div className="flex items-center gap-2 min-w-0">
@@ -779,7 +778,6 @@
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50')
                 }
               >
-                <span>📐</span>
                 <span>Theory</span>
               </button>
               <button
@@ -792,7 +790,6 @@
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50')
                 }
               >
-                <span>🎛️</span>
                 <span>Sliders</span>
               </button>
               <button
@@ -805,7 +802,6 @@
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50')
                 }
               >
-                <span>🏭</span>
                 <span>Industry</span>
               </button>
             </nav>
@@ -1702,7 +1698,6 @@
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800/80 pb-4">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold font-mono text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <span className="text-sky-600 dark:text-cyan-400">📐</span>
                     <span>Thermal Oxidation Theory & Physical Models</span>
                   </h2>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -2094,7 +2089,6 @@
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg sm:text-xl font-bold font-mono text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <span className="text-sky-600 dark:text-cyan-400">🏭</span>
                     <span>State-of-the-Art Fab Equipment, Processes & Research</span>
                   </h2>
                   <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
@@ -2434,7 +2428,6 @@
                   className="px-3.5 py-1.5 rounded-lg border border-sky-400 dark:border-cyan-500/50 bg-sky-50 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 hover:bg-sky-100 dark:hover:bg-cyan-500/25 font-mono font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-sm"
                   title="Jump directly to detailed physical theory section"
                 >
-                  <span>📐</span>
                   <span>Dive Deep into Theory</span>
                 </button>
 

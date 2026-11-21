@@ -118,7 +118,7 @@ if (treeRoot) treeRoot.appendChild(renderTree(TREE, 0));
 var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)' },
-  { key: 'dchannel',  name: 'IMPLANTED N-CHANNEL (DEPLETION)', color: '#38bdf8' },
+  { key: 'dchannel',  name: 'IMPLANTED N-CHANNEL (DEPLETION)', color: 'var(--c-sde-n)' },
   { key: 'sde',       name: 'EXTENSIONS (N-SDE / LDD)', color: 'var(--c-sde-n)' },
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },

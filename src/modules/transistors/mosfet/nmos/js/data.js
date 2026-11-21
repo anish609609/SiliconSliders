@@ -7,6 +7,7 @@
 var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the NMOS transistor channel and depletion region.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)', desc: 'Heavily doped N+ regions forming the Source and Drain terminals (Nd ≈ 1×10²⁰ cm⁻³).' },
+  { key: 'channel',   name: 'ELECTRON INVERSION CHANNEL (N-TYPE)', color: 'var(--c-sde-n)', desc: 'Conductive surface inversion layer of mobile electrons induced beneath gate oxide when VGS > VTH (0.40V).' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (N-SDE / LDD)', color: 'var(--c-sde-n)', desc: 'Shallow, lightly doped extension regions (Nd ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI) and short-channel effects.' },
   { key: 'oxide',     name: 'GATE OXIDE (INTERFACIAL SiO2)', color: 'var(--c-oxide)', desc: 'Ultra-thin chemical oxide layer (~0.6 nm) passivating the silicon interface to minimize interface trap states (Dit).' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling while eliminating quantum mechanical direct-tunneling leakage.' },

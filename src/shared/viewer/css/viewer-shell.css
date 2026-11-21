@@ -145,3 +145,237 @@
 input[type="range"] {
   accent-color: var(--v-accent-cyan);
 }
+
+/* ==========================================================================
+   Desktop Baseline Preservation for Topbar Mode Bar & Brand
+   ========================================================================== */
+.topbar-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.brand-title-compact {
+  display: none;
+}
+.brand-title-full {
+  display: inline;
+}
+
+/* ==========================================================================
+   Responsive Mobile Optimization (under 768px)
+   - 2-Tier Header Navbar
+   - Status / Bias Box Overflow Prevention
+   - Bottom Sheet View Controls & Physics Panel
+   - Collision-Free Drawer Toggles
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. Reorganized 2-Tier Top Navigation Bar */
+  #topbar {
+    display: grid !important;
+    grid-template-columns: auto 1fr auto !important;
+    grid-template-rows: auto auto !important;
+    height: auto !important;
+    min-height: auto !important;
+    padding: 6px 10px 8px 10px !important;
+    gap: 6px 8px !important;
+    align-items: center !important;
+    row-gap: 6px !important;
+    box-sizing: border-box !important;
+  }
+  #topbar .nav-back-link {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-right: 0 !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    box-sizing: border-box !important;
+  }
+  #topbar .nav-back-link .back-text {
+    display: none !important;
+  }
+  #topbar .brand {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: start !important;
+    margin-right: 0 !important;
+    gap: 6px !important;
+  }
+  #topbar .brand .brand-title-full {
+    display: none !important;
+  }
+  #topbar .brand .brand-title-compact {
+    display: inline !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.03em !important;
+    white-space: nowrap !important;
+  }
+  #topbar .spacer {
+    display: none !important;
+  }
+  #topbar .right-cluster {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+  }
+  #topbar .right-cluster .tbtn {
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 9px !important;
+    font-size: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+  #topbar #theme-btn-label {
+    display: none !important;
+  }
+  #topbar #btn-theme-toggle {
+    padding: 0 10px !important;
+    min-width: 38px !important;
+  }
+  #topbar #btn-build-anim .play-extra {
+    display: none !important;
+  }
+
+  /* Row 2: Mode & Conduction Flow Toggles */
+  .topbar-mode-row {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 2px !important;
+  }
+  .topbar-mode-row::-webkit-scrollbar {
+    display: none !important;
+  }
+  .topbar-mode-row .seg {
+    flex: 1 1 auto !important;
+    display: flex !important;
+    margin: 0 !important;
+  }
+  .topbar-mode-row .seg button {
+    flex: 1 1 auto !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 6px !important;
+    font-size: 9.5px !important;
+    line-height: 36px !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. Top-Left Status & Bias Callout Box Overflow Fix */
+  .hud-top-left-stack {
+    top: 8px !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    box-sizing: border-box !important;
+    gap: 4px !important;
+    pointer-events: none !important;
+    z-index: 10 !important;
+  }
+  #crumb {
+    max-width: 100% !important;
+    font-size: 9.5px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #flow-caption {
+    width: auto !important;
+    max-width: calc(100vw - 24px) !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    box-sizing: border-box !important;
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+    padding: 5px 9px !important;
+    border-radius: 6px !important;
+    text-align: left !important;
+    left: auto !important;
+    transform: none !important;
+  }
+  #axis-indicator {
+    display: none !important;
+  }
+
+  /* 3. Non-colliding Drawer Toggles (< / >) */
+  .panel-toggle {
+    top: 36% !important;
+    transform: translateY(-50%) !important;
+    height: 48px !important;
+    width: 24px !important;
+    z-index: 40 !important;
+  }
+
+  /* 4. Docked Panel Bottom Sheet */
+  #docked-panel {
+    position: absolute !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 14px 14px 0 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: none !important;
+    max-height: 50vh !important;
+    z-index: 22 !important;
+    box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.55) !important;
+    transition: transform 0.22s ease, max-height 0.22s ease !important;
+  }
+  #docked-panel .dp-header {
+    padding: 6px 10px !important;
+    min-height: 40px !important;
+    cursor: pointer !important;
+  }
+  #docked-panel .dp-tab-btn {
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    font-size: 9px !important;
+  }
+  #docked-panel .dp-collapse-btn {
+    min-height: 36px !important;
+    min-width: 36px !important;
+    font-size: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  #docked-panel .dp-body {
+    max-height: calc(50vh - 44px) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  #docked-panel .dp-body.collapsed {
+    display: none !important;
+  }
+}
