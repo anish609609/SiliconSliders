@@ -546,7 +546,7 @@ var Y = {
   ctBot: 3.009,
   ctTop: 5.159,
   m1Bot: 5.159,
-  m1Top: 5.859
+  m1Top: 5.339
 };
 
 // 1. P-SUBSTRATE BASE SLAB (Bottom seated at y=0, grid lines at y=-0.02 never clip)
@@ -871,28 +871,60 @@ wellCt.position.set(-6.5, (Y.ctTop + Y.ctBot) / 2, 6.2);
 reg(wellCt, 'welltapCt', 'contact');
 
 // ---------------------------------------------------------------------------
-// 10. METAL-1 INTERCONNECT PADS (Flat metallic ribbons, matching CMOS palette)
+// 10. METAL-1 INTERCONNECT RAILS (Sleek thin flat ribbons, matching CMOS Inverter baseline)
 // ---------------------------------------------------------------------------
 var m1H = Y.m1Top - Y.m1Bot;
 var m1Y = (Y.m1Top + Y.m1Bot) / 2;
 
-// Source Pad (S / VDD)
-var srcPad = box(3.4, m1H, 3.4, '--c-active-p', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Source Rail (S / VDD) - Sleek thin flat ribbon capping the PMOS source via
+var srcPad = box(1.2, m1H, 2.4, '--c-active-p', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#fca5a5',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 srcPad.position.set(srcX, m1Y, 0);
 reg(srcPad, 'srcRail', 'metal');
 
-// Drain Pad (D / OUT)
-var drnPad = box(3.4, m1H, 3.4, '--c-out', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Drain Rail (D / OUT) - Sleek thin flat ribbon capping the PMOS drain via
+var drnPad = box(1.2, m1H, 2.4, '--c-out', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#fde047',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 drnPad.position.set(drnX, m1Y, 0);
 reg(drnPad, 'drnRail', 'metal');
 
-// Gate Pad (G / VG)
-var gatePad = box(2.6, m1H, 2.6, '--c-in', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Gate Rail (G / VG) - Sleek thin flat ribbon capping the gate contact via
+var gatePad = box(1.2, m1H, 2.0, '--c-in', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#fde047',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 gatePad.position.set(0, m1Y, 6.2);
 reg(gatePad, 'gateRail', 'metal');
 
-// N-Well Tap Pad (B / VDD)
-var wellPad = box(2.6, m1H, 2.6, '--c-vdd', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// N-Well Tap Rail (B / VDD) - Sleek thin flat ribbon capping the well tap via
+var wellPad = box(1.2, m1H, 1.8, '--c-vdd', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#fca5a5',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 wellPad.position.set(-6.5, m1Y, 6.2);
 reg(wellPad, 'wellRail', 'metal');
 

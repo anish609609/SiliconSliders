@@ -90,6 +90,7 @@ var DIM_MAP = {
   pmosSrcCt:['contactSize','contactHeight'], pmosDrnCt:['contactSize','contactHeight'],
   nmosSrcCt:['contactSize','contactHeight'], nmosDrnCt:['contactSize','contactHeight'],
   polyCt:['contactSize','contactHeight'], welltapCt:['contactSize','contactHeight'], subtapCt:['contactSize','contactHeight'],
+  srcRail:['metalWidth','metalThickness','viaOverlap'], drnRail:['metalWidth','metalThickness','viaOverlap'], gateRail:['metalWidth','metalThickness','viaOverlap'], bodyRail:['metalWidth','metalThickness','viaOverlap'], wellRail:['metalWidth','metalThickness','viaOverlap'],
   vddRail:['metalWidth','metalThickness'], gndRail:['metalWidth','metalThickness'], inPin:['metalWidth','metalThickness','viaOverlap'],
   outPin:['metalWidth','metalThickness'], outSpine:['metalWidth','metalThickness','viaOverlap'],
   vddStubPmos:['metalWidth','metalThickness','viaOverlap'], vddStubTap:['metalWidth','metalThickness','viaOverlap'],

@@ -543,7 +543,7 @@ var Y = {
   ctBot: 3.008,
   ctTop: 5.158,
   m1Bot: 5.158,
-  m1Top: 5.858
+  m1Top: 5.338
 };
 
 // 1. P-SUBSTRATE BASE SLAB (Matching CMOS Inverter Palette)
@@ -860,28 +860,60 @@ subCt.position.set(-6.5, (Y.ctTop + Y.ctBot) / 2, 6.2);
 reg(subCt, 'subtapCt', 'contact');
 
 // ---------------------------------------------------------------------------
-// 9. METAL-1 INTERCONNECT PADS (Flat metallic ribbons, matching CMOS palette)
+// 9. METAL-1 INTERCONNECT RAILS (Sleek thin flat ribbons, matching CMOS Inverter baseline)
 // ---------------------------------------------------------------------------
 var m1H = Y.m1Top - Y.m1Bot;
 var m1Y = (Y.m1Top + Y.m1Bot) / 2;
 
-// Source Pad (S / GND)
-var srcPad = box(3.4, m1H, 3.4, '--c-active-n', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Source Rail (S / GND) - Sleek thin flat ribbon capping the Tungsten via
+var srcPad = box(1.2, m1H, 2.4, '--c-active-n', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#7dd3fc',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 srcPad.position.set(srcX, m1Y, 0);
 reg(srcPad, 'srcRail', 'metal');
 
-// Drain Pad (D / VDS)
-var drnPad = box(3.4, m1H, 3.4, '--c-out', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Drain Rail (D / VDS) - Sleek thin flat ribbon capping the Tungsten via
+var drnPad = box(1.2, m1H, 2.4, '--c-out', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#86efac',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 drnPad.position.set(drnX, m1Y, 0);
 reg(drnPad, 'drnRail', 'metal');
 
-// Gate Pad (G / VGS)
-var gatePad = box(2.6, m1H, 2.6, '--c-in', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Gate Rail (G / VGS) - Sleek thin flat ribbon capping the gate contact via
+var gatePad = box(1.2, m1H, 2.0, '--c-in', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#fde047',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 gatePad.position.set(0, m1Y, 5.2);
 reg(gatePad, 'gateRail', 'metal');
 
-// Body Tap Pad (B / GND)
-var bodyPad = box(2.6, m1H, 2.6, '--c-gnd', { roughness: 0.20, metalness: 0.90, roughnessMap: getBrushedMetalTexture() });
+// Body Tap Rail (B / GND) - Sleek thin flat ribbon capping the substrate tap via
+var bodyPad = box(1.2, m1H, 1.8, '--c-gnd', {
+  roughness: 0.22,
+  metalness: 0.88,
+  bevel: 0.02,
+  cornerRadius: 0.15,
+  outlineColor: '#cbd5e1',
+  outlineOpacity: 0.45,
+  roughnessMap: getBrushedMetalTexture()
+});
 bodyPad.position.set(-6.5, m1Y, 6.2);
 reg(bodyPad, 'bodyRail', 'metal');
 
