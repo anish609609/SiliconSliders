@@ -282,17 +282,33 @@
 
             <!-- Telemetry & Readouts -->
             <div class="dp-section dp-readouts">
-              <div class="iv-row">
-                <span class="iv-k">V<sub>GS</sub></span><span class="iv-v" id="iv-vgs-readout">1.00 V</span>
-                <span class="iv-k">V<sub>DS</sub></span><span class="iv-v" id="iv-vds-readout">0.80 V</span>
-                <span class="iv-k">V<sub>TH</sub></span><span class="iv-v">0.40 V</span>
+              <div class="iv-grid">
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>GS</sub></span>
+                  <span class="iv-v" id="iv-vgs-readout">1.00 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>DS</sub></span>
+                  <span class="iv-v" id="iv-vds-readout">0.80 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>TH</sub></span>
+                  <span class="iv-v">0.40 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>OV</sub></span>
+                  <span class="iv-v" id="iv-vov-readout">0.60 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">I<sub>DS</sub></span>
+                  <span class="iv-v" id="iv-ids-readout">0.20 mA</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">L<sub>eff</sub></span>
+                  <span class="iv-v" id="iv-leff-readout">26.8 nm</span>
+                </div>
               </div>
-              <div class="iv-row">
-                <span class="iv-k">V<sub>OV</sub></span><span class="iv-v" id="iv-vov-readout">0.60 V</span>
-                <span class="iv-k">I<sub>DS</sub></span><span class="iv-v" id="iv-ids-readout">0.20 mA</span>
-                <span class="iv-k">L<sub>eff</sub></span><span class="iv-v" id="iv-leff-readout">26.8 nm</span>
-              </div>
-              <div class="iv-row iv-state-row">
+              <div class="iv-state-line">
                 <span class="iv-k">STATE:</span>
                 <span class="iv-v-state" id="iv-state-desc">Pinch-off · High-field drift</span>
               </div>

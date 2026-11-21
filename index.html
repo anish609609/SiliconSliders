@@ -109,15 +109,41 @@
                 <span class="family-title">MOSFET Family</span>
                 <span class="family-badge">DISCRETE · 3D</span>
               </div>
-              <div class="family-btn-grid">
-                <a href="src/modules/transistors/mosfet/nmos/index.html" class="family-card-btn" title="NMOS Transistor 3D Physical CAD">
-                  <span class="btn-text">NMOS</span>
-                  <span class="btn-sub">P-Substrate · N⁺ S/D</span>
-                </a>
-                <a href="src/modules/transistors/mosfet/pmos/index.html" class="family-card-btn" title="PMOS Transistor 3D Physical CAD">
-                  <span class="btn-text">PMOS</span>
-                  <span class="btn-sub">N-Well · P⁺ S/D</span>
-                </a>
+
+              <!-- Sub-group 1: Enhancement Mode -->
+              <div class="family-subgroup">
+                <div class="family-subgroup-header">
+                  <span class="family-subgroup-title">ENHANCEMENT</span>
+                  <span class="family-subgroup-note">Normally OFF</span>
+                </div>
+                <div class="family-btn-grid">
+                  <a href="src/modules/transistors/mosfet/nmos/index.html" class="family-card-btn active-btn" title="NMOS Transistor (Enhancement Mode) 3D Physical CAD">
+                    <span class="btn-text">NMOS</span>
+                    <span class="btn-sub">P-Substrate · N⁺ S/D</span>
+                  </a>
+                  <a href="src/modules/transistors/mosfet/pmos/index.html" class="family-card-btn active-btn" title="PMOS Transistor (Enhancement Mode) 3D Physical CAD">
+                    <span class="btn-text">PMOS</span>
+                    <span class="btn-sub">N-Well · P⁺ S/D</span>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Sub-group 2: Depletion Mode -->
+              <div class="family-subgroup">
+                <div class="family-subgroup-header">
+                  <span class="family-subgroup-title">DEPLETION</span>
+                  <span class="family-subgroup-note">Normally ON</span>
+                </div>
+                <div class="family-btn-grid">
+                  <div class="family-card-btn disabled" aria-disabled="true" title="NMOS Depletion Mode (Coming Soon)">
+                    <span class="btn-text">NMOS <span class="tag-soon">SOON</span></span>
+                    <span class="btn-sub">Implanted N-Ch · Coming Soon</span>
+                  </div>
+                  <div class="family-card-btn disabled" aria-disabled="true" title="PMOS Depletion Mode (Coming Soon)">
+                    <span class="btn-text">PMOS <span class="tag-soon">SOON</span></span>
+                    <span class="btn-sub">Implanted P-Ch · Coming Soon</span>
+                  </div>
+                </div>
               </div>
             </div>
 
