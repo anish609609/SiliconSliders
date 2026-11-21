@@ -67,6 +67,11 @@ scene.add(rim);
 // grid + ground shadow catcher
 var grid = new THREE.GridHelper(60, 40, 0x1c2530, 0x141a22);
 grid.position.y = -0.02;
+grid.renderOrder = -10;
+if (grid.material) {
+  grid.material.depthTest = true;
+  grid.material.depthWrite = false;
+}
 scene.add(grid);
 var shadowPlane = new THREE.Mesh(
   new THREE.PlaneGeometry(90,90),
@@ -122,5 +127,10 @@ function updateGridTheme(isLight){
   var c2 = isLight ? 0xcbd5e1 : 0x141a22;
   grid = new THREE.GridHelper(60, 40, c1, c2);
   grid.position.y = -0.02;
+  grid.renderOrder = -10;
+  if (grid.material) {
+    grid.material.depthTest = true;
+    grid.material.depthWrite = false;
+  }
   scene.add(grid);
 }

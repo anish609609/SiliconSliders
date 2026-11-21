@@ -50,93 +50,13 @@ function getBrushedMetalTexture() {
 }
 
 // ---------------------------------------------------------------------------
-// GAUSSIAN DOPING DEPTH & SURFACE TEXTURE GENERATOR
-// ---------------------------------------------------------------------------
-var gaussTexCache = {};
-function gaussianDepthTexture(colorVarOrHex, peakV, sigmaV, opts) {
-  opts = opts || {};
-  var rawColor = colorVarOrHex.indexOf('--') === 0 ? cssVar(colorVarOrHex) : colorVarOrHex;
-  var key = [rawColor, peakV, sigmaV, opts.isoLines || 5].join('|');
-  if (gaussTexCache[key]) return gaussTexCache[key];
-
-  var TW = 512, TH = 256;
-  var c = document.createElement('canvas');
-  c.width = TW;
-  c.height = TH;
-  var ctx = c.getContext('2d');
-  var img = ctx.createImageData(TW, TH);
-  var data = img.data;
-
-  var tc = new THREE.Color(rawColor);
-  var r0 = Math.round(tc.r * 255);
-  var g0 = Math.round(tc.g * 255);
-  var b0 = Math.round(tc.b * 255);
-
-  var nIso = opts.isoLines !== undefined ? opts.isoLines : 5;
-
-  for (var py = 0; py < TH; py++) {
-    var v = py / (TH - 1);
-    var dv = (v - peakV) / sigmaV;
-    var gDepth = Math.exp(-0.5 * dv * dv);
-
-    for (var px = 0; px < TW; px++) {
-      var u = px / (TW - 1);
-      var uMod = 0.94 + 0.06 * Math.cos(u * Math.PI * 4);
-      var conc = Math.min(1.0, gDepth * uMod);
-
-      var idx = (py * TW + px) * 4;
-      data[idx]     = Math.min(255, Math.round(r0 * (0.65 + 0.45 * conc) + 40 * conc));
-      data[idx + 1] = Math.min(255, Math.round(g0 * (0.65 + 0.45 * conc) + 40 * conc));
-      data[idx + 2] = Math.min(255, Math.round(b0 * (0.65 + 0.45 * conc) + 40 * conc));
-      data[idx + 3] = Math.round(180 + 75 * conc);
-    }
-  }
-  ctx.putImageData(img, 0, 0);
-
-  var isoRatios = [0.85, 0.60, 0.35, 0.15, 0.05].slice(0, nIso);
-  isoRatios.forEach(function(ratio, i) {
-    var dv = Math.sqrt(-2.0 * Math.log(ratio)) * sigmaV;
-    var alpha = 0.70 - i * 0.10;
-    ctx.strokeStyle = 'rgba(255,255,255,' + alpha.toFixed(2) + ')';
-    ctx.lineWidth = 1.4;
-
-    var vUp = peakV - dv;
-    if (vUp >= 0 && vUp <= 1) {
-      var yUp = vUp * (TH - 1);
-      ctx.beginPath();
-      ctx.moveTo(0, yUp);
-      ctx.lineTo(TW, yUp);
-      ctx.stroke();
-    }
-    var vDn = peakV + dv;
-    if (vDn >= 0 && vDn <= 1) {
-      var yDn = vDn * (TH - 1);
-      ctx.beginPath();
-      ctx.moveTo(0, yDn);
-      ctx.lineTo(TW, yDn);
-      ctx.stroke();
-    }
-  });
-
-  var tex = new THREE.CanvasTexture(c);
-  tex.wrapS = THREE.RepeatWrapping;
-  tex.wrapT = THREE.ClampToEdgeWrapping;
-  gaussTexCache[key] = tex;
-  return tex;
-}
-
-// ---------------------------------------------------------------------------
-// 3D GAUSSIAN DOPING MESH BUILDER
+// 3D GAUSSIAN DOPING MESH BUILDER (Clean Solid Matte Semiconductor Finish)
 // ---------------------------------------------------------------------------
 function gaussianDopingMesh(w, h, d, colorVar, opts) {
   opts = opts || {};
-  var peakV    = opts.peakV !== undefined ? opts.peakV : 0.18;
-  var sigmaV   = opts.sigmaV !== undefined ? opts.sigmaV : 0.26;
   var straggle = opts.straggle !== undefined ? opts.straggle : 0.22;
   var cornerR  = opts.cornerR !== undefined ? opts.cornerR : 0.35;
-  var outlineColor = opts.outlineColor || '#4fd1ff';
 
-  var group = new THREE.Group();
   var geom = new THREE.BoxGeometry(w, h, d, 8, 8, 8);
   var pos = geom.attributes.position;
   var halfW = w / 2;
@@ -167,20 +87,15 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
   }
   geom.computeVertexNormals();
 
-  var tex = gaussianDepthTexture(colorVar, peakV, sigmaV, { isoLines: 5 });
   var rawColor = colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar;
   var baseColor = new THREE.Color(rawColor);
   var mat = new THREE.MeshStandardMaterial({
     color: baseColor,
-    map: tex,
-    roughness: opts.roughness !== undefined ? opts.roughness : 0.40,
-    metalness: opts.metalness !== undefined ? opts.metalness : 0.10,
-    transparent: true,
-    opacity: opts.opacity !== undefined ? opts.opacity : 0.92,
-    depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : true,
-    polygonOffset: true,
-    polygonOffsetFactor: -1,
-    polygonOffsetUnits: -1,
+    roughness: opts.roughness !== undefined ? opts.roughness : 0.50,
+    metalness: opts.metalness !== undefined ? opts.metalness : 0.15,
+    transparent: false,
+    opacity: 1.0,
+    depthWrite: true,
     emissive: 0x000000,
     emissiveIntensity: 0
   });
@@ -191,39 +106,9 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
   mesh.userData.colorVar = colorVar;
   mesh.userData.baseEmissive = 0x000000;
   mesh.userData.baseEmissiveIntensity = 0;
-  if (opts.renderOrder) mesh.renderOrder = opts.renderOrder;
-  group.add(mesh);
+  mesh.renderOrder = opts.renderOrder !== undefined ? opts.renderOrder : 3;
 
-  // Crisp perimeter ring
-  var ringShape = new THREE.Shape();
-  var rw = w / 2, rd = d / 2, cr = cornerR;
-  ringShape.moveTo(-rw + cr, -rd);
-  ringShape.lineTo(rw - cr, -rd);
-  ringShape.quadraticCurveTo(rw, -rd, rw, -rd + cr);
-  ringShape.lineTo(rw, rd - cr);
-  ringShape.quadraticCurveTo(rw, rd, rw - cr, rd);
-  ringShape.lineTo(-rw + cr, rd);
-  ringShape.quadraticCurveTo(-rw, rd, -rw, rd - cr);
-  ringShape.lineTo(-rw, -rd + cr);
-  ringShape.quadraticCurveTo(-rw, -rd, -rw + cr, -rd);
-
-  var ringPts = ringShape.getPoints(36);
-  var ringGeom = new THREE.BufferGeometry().setFromPoints(ringPts);
-  var ringMat = new THREE.LineBasicMaterial({
-    color: new THREE.Color(outlineColor),
-    linewidth: 1.5,
-    transparent: true,
-    opacity: 0.85
-  });
-  var ring = new THREE.Line(ringGeom, ringMat);
-  ring.rotation.x = -Math.PI / 2;
-  ring.position.y = h / 2 + 0.01;
-  group.add(ring);
-
-  group.userData._isDopingMesh = true;
-  group.userData._baseMat = mat;
-  group.userData.colorVar = colorVar;
-  return group;
+  return mesh;
 }
 
 // ---------------------------------------------------------------------------
@@ -321,6 +206,7 @@ var Y = {
 
 // 1. P-SUBSTRATE BASE SLAB (Matching CMOS Inverter Palette)
 var subMesh = box(22, Y.subTop - Y.subBot, 20, '--c-substrate', { roughness: 0.85, metalness: 0.05 });
+subMesh.renderOrder = 1;
 subMesh.position.set(0, (Y.subTop + Y.subBot) / 2, 0);
 reg(subMesh, 'psub', 'substrate');
 
@@ -333,21 +219,17 @@ var srcX = -4.2;
 var drnX = 4.2;
 
 var srcMesh = gaussianDopingMesh(actW, actH, actD, '--c-active-n', {
-  peakV: 0.18,
-  sigmaV: 0.26,
   straggle: 0.22,
   cornerR: 0.35,
-  outlineColor: '#4fd1ff'
+  renderOrder: 3
 });
 srcMesh.position.set(srcX, (Y.actTop + Y.actBot) / 2, 0);
 reg(srcMesh, 'nmosSrc', 'active');
 
 var drnMesh = gaussianDopingMesh(actW, actH, actD, '--c-active-n', {
-  peakV: 0.18,
-  sigmaV: 0.26,
   straggle: 0.22,
   cornerR: 0.35,
-  outlineColor: '#4fd1ff'
+  renderOrder: 3
 });
 drnMesh.position.set(drnX, (Y.actTop + Y.actBot) / 2, 0);
 reg(drnMesh, 'nmosDrn', 'active');
@@ -359,21 +241,17 @@ var sdeSrcX = -1.55;
 var sdeDrnX = 1.55;
 
 var sdeSrcMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-n', {
-  peakV: 0.12,
-  sigmaV: 0.18,
   straggle: 0.15,
   cornerR: 0.20,
-  outlineColor: '#8fd0f8'
+  renderOrder: 4
 });
 sdeSrcMesh.position.set(sdeSrcX, (Y.sdeTop + Y.sdeBot) / 2, 0);
 reg(sdeSrcMesh, 'sdeSrc', 'sde');
 
 var sdeDrnMesh = gaussianDopingMesh(sdeW, sdeH, actD, '--c-sde-n', {
-  peakV: 0.12,
-  sigmaV: 0.18,
   straggle: 0.15,
   cornerR: 0.20,
-  outlineColor: '#8fd0f8'
+  renderOrder: 4
 });
 sdeDrnMesh.position.set(sdeDrnX, (Y.sdeTop + Y.sdeBot) / 2, 0);
 reg(sdeDrnMesh, 'sdeDrn', 'sde');
@@ -388,16 +266,15 @@ var chanMat = new THREE.MeshStandardMaterial({
   color: 0x38bdf8,
   emissive: 0x0284c7,
   emissiveIntensity: 0.45,
-  transparent: true,
-  opacity: 0.75,
-  roughness: 0.20,
-  metalness: 0.15,
-  polygonOffset: true,
-  polygonOffsetFactor: -1,
-  polygonOffsetUnits: -1
+  transparent: false,
+  opacity: 1.0,
+  depthWrite: true,
+  roughness: 0.50,
+  metalness: 0.15
 });
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
 channelMesh.position.set(0, 2.918, 0);
+channelMesh.renderOrder = 3;
 reg(channelMesh, 'channel', 'dchannel');
 
 // Dedicated pinch-off space-charge gap mesh visible during Saturation (VDS >= VGS - VTH)
@@ -406,16 +283,15 @@ var pinchMat = new THREE.MeshStandardMaterial({
   color: 0xf59e0b,
   emissive: 0xd97706,
   emissiveIntensity: 0.50,
-  transparent: true,
-  opacity: 0.50,
-  roughness: 0.25,
-  metalness: 0.20,
-  polygonOffset: true,
-  polygonOffsetFactor: -1,
-  polygonOffsetUnits: -1
+  transparent: false,
+  opacity: 1.0,
+  depthWrite: true,
+  roughness: 0.50,
+  metalness: 0.15
 });
 var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
 pinchMesh.position.set(0.6, 2.928, 0);
+pinchMesh.renderOrder = 3;
 pinchMesh.visible = false;
 groups['dchannel'].add(pinchMesh);
 
@@ -474,7 +350,6 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
 
   // Update dynamic channel material luminescence with IDS
   var intensityNorm = Math.min(1.0, ids / 0.6);
-  chanMat.opacity = 0.35 + 0.55 * intensityNorm;
   chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
 
   // Update pinch-off space-charge region in Saturation
@@ -483,7 +358,7 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
     var gapW = Math.max(0.15, 1.0 - pinchX);
     pinchMesh.scale.x = gapW / 0.8;
     pinchMesh.position.x = pinchX + gapW / 2;
-    pinchMat.opacity = 0.30 + 0.40 * Math.min(1.0, (vds - vov) / 0.8);
+    pinchMat.emissiveIntensity = 0.30 + 0.40 * Math.min(1.0, (vds - vov) / 0.8);
   } else {
     pinchMesh.visible = false;
   }
@@ -492,11 +367,9 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
 // 5. SUBSTRATE / BODY TAP (P+)
 var tapW = 2.4, tapD = 2.4;
 var tapMesh = gaussianDopingMesh(tapW, actH, tapD, '--c-substrate', {
-  peakV: 0.18,
-  sigmaV: 0.24,
   straggle: 0.20,
-  cornerR: 0.3,
-  outlineColor: '#aab4c2'
+  cornerR: 0.30,
+  renderOrder: 3
 });
 tapMesh.position.set(-6.5, (Y.actTop + Y.actBot) / 2, 6.2);
 reg(tapMesh, 'subtap', 'active');
