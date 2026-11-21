@@ -90,6 +90,10 @@ function rebuildFlowCurves() {
   }
 }
 
+function stepFlowMarkers(dt) {
+  updateFlowMarkers(dt);
+}
+
 function updateFlowMarkers() {
   if (flowMode === 'off' || currentIn === 0 || !flowMarkers.length) return;
 

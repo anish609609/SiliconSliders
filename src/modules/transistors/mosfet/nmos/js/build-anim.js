@@ -109,6 +109,12 @@ function stopBuildAnimation() {
   isFabPlaying = false;
   var playBtn = document.getElementById('btn-fab-play');
   if (playBtn) playBtn.innerHTML = '▶ Play Sequence';
+  var topbarTourBtn = document.getElementById('btn-build-anim');
+  if (topbarTourBtn) {
+    topbarTourBtn.classList.remove('active');
+    var label = topbarTourBtn.querySelector('.play-label');
+    if (label) label.textContent = 'PLAY';
+  }
 }
 
 function startBuildAnimation() {
@@ -116,6 +122,12 @@ function startBuildAnimation() {
   isFabPlaying = true;
   var playBtn = document.getElementById('btn-fab-play');
   if (playBtn) playBtn.innerHTML = '⏸ Pause Sequence';
+  var topbarTourBtn = document.getElementById('btn-build-anim');
+  if (topbarTourBtn) {
+    topbarTourBtn.classList.add('active');
+    var label = topbarTourBtn.querySelector('.play-label');
+    if (label) label.textContent = 'PAUSE';
+  }
 
   if (currentFabStep >= FAB_STEPS.length) {
     applyFabStep(1);
@@ -137,6 +149,14 @@ function updateBuildAnimation() {
 var btnFabPlay = document.getElementById('btn-fab-play');
 if (btnFabPlay) {
   btnFabPlay.addEventListener('click', function() {
+    if (isFabPlaying) stopBuildAnimation();
+    else startBuildAnimation();
+  });
+}
+
+var btnBuildAnim = document.getElementById('btn-build-anim');
+if (btnBuildAnim) {
+  btnBuildAnim.addEventListener('click', function() {
     if (isFabPlaying) stopBuildAnimation();
     else startBuildAnimation();
   });
