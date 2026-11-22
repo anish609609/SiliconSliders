@@ -42,6 +42,8 @@
         <button data-mode="schematic"><span class="tab-label-full">CIRCUIT DIAGRAM</span><span class="tab-label-compact">SCHEMATIC</span></button>
       </div>
 
+      <div class="topbar-divider" aria-hidden="true"></div>
+
       <div class="seg" id="flow-seg" title="Conduction Simulation: Mobile Carrier Drift (e- / h+) vs Conventional Current (I)">
         <button data-flow="carrier" class="active">CARRIERS</button>
         <button data-flow="current">CURRENT</button>
@@ -382,8 +384,17 @@
         </div>
       </div>
 
-      <div class="hud" id="note">
-        Depletion width and space-charge dimensions are dynamically rendered using exact 1D Poisson equations for Silicon at temperature T.
+      <div class="scale-note-wrap" id="scale-note-wrap">
+        <button type="button" class="scale-note-btn" id="scale-note-btn" title="View scale &amp; physics disclaimer" aria-expanded="false">
+          <span class="scale-note-icon">ⓘ</span>
+          <span class="scale-note-label">Scale Note</span>
+        </button>
+        <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
+          <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PHYSICS NOTE</div>
+          <div class="scale-note-popover-body">
+            Depletion width and space-charge dimensions are dynamically rendered using exact 1D Poisson equations for Silicon at temperature T.
+          </div>
+        </div>
       </div>
 
       <!-- Integrated Docked Right-Hand Panel (Physics & Controls) -->

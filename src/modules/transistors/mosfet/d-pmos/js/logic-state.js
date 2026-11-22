@@ -237,7 +237,7 @@ function drawIsdVsdGraph(activeVgs, activeVsd, activeIsd, activeRegion) {
 
   // Margins
   var padL = 36;
-  var padR = 14;
+  var padR = 30;
   var padT = 14;
   var padB = 24;
   var plotW = W - padL - padR;
@@ -486,7 +486,7 @@ function initLogicStateControls() {
 
     function handleGraphPointer(e) {
       var rect = canvas.getBoundingClientRect();
-      var padL = 36, padR = 14;
+      var padL = 36, padR = 30;
       var padT = 14, padB = 24;
       var plotW = rect.width - padL - padR;
       var plotH = rect.height - padT - padB;

@@ -152,7 +152,14 @@ input[type="range"] {
 .topbar-mode-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-divider {
+  width: 1px;
+  height: 22px;
+  background: var(--v-border);
+  margin: 0 2px;
   flex-shrink: 0;
 }
 .brand-title-compact {
@@ -379,6 +386,162 @@ input[type="range"] {
     display: none !important;
   }
 }
+
+/* ==========================================================================
+   Shared Visual Hierarchy & Layout Polish
+   - Collapsible Bottom-Left Scale Note Pill & Popover
+   - Toned-down Neutral Top-Bar Tour Button
+   - Clean Aligned STATE: Readout
+   ========================================================================== */
+.scale-note-wrap {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  z-index: 20;
+  pointer-events: auto;
+}
+
+.scale-note-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 9999px;
+  background: var(--v-bg-panel);
+  border: 1px solid var(--v-border-strong);
+  color: var(--v-text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.scale-note-btn:hover,
+.scale-note-btn.active,
+.scale-note-wrap:hover .scale-note-btn {
+  color: var(--v-text-primary);
+  border-color: var(--v-accent-cyan);
+  background: var(--v-bg-input);
+  box-shadow: 0 2px 12px rgba(0, 229, 255, 0.2);
+}
+
+.scale-note-icon {
+  font-size: 12px;
+  color: var(--v-accent-cyan);
+}
+
+.scale-note-popover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 290px;
+  background: var(--v-bg-panel-solid);
+  border: 1px solid var(--v-border-strong);
+  border-radius: 8px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  font-family: 'IBM Plex Mono', monospace;
+  z-index: 30;
+  pointer-events: auto;
+}
+
+[data-theme="light"] .scale-note-popover {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.scale-note-popover.open,
+.scale-note-wrap:hover .scale-note-popover {
+  display: block;
+}
+
+.scale-note-popover-title {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--v-accent-cyan);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.scale-note-popover-body {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--v-text-secondary);
+}
+
+@media (max-width: 768px) {
+  .topbar-divider {
+    height: 18px;
+    margin: 0 1px;
+  }
+  .scale-note-wrap {
+    bottom: calc(50vh + 10px);
+    left: 10px;
+  }
+  .scale-note-popover {
+    width: calc(100vw - 32px);
+    max-width: 290px;
+  }
+}
+
+/* Toned-down Top-Bar Tour Button */
+#btn-build-anim.tbtn-play-tour,
+.tbtn.tbtn-play-tour {
+  background: var(--v-bg-input);
+  border: 1px solid var(--v-border);
+  color: var(--v-text-secondary);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  box-shadow: none;
+  animation: none !important;
+}
+
+#btn-build-anim.tbtn-play-tour:hover,
+.tbtn.tbtn-play-tour:hover {
+  color: var(--v-text-primary);
+  border-color: var(--v-border-strong);
+  background: var(--v-btn-hover);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+#btn-build-anim.tbtn-play-tour.active,
+.tbtn.tbtn-play-tour.active {
+  color: var(--v-text-primary);
+  background: var(--v-bg-panel);
+  border-color: var(--v-border-strong);
+  font-weight: 600;
+}
+
+#docked-panel {
+  right: 38px;
+}
+
+/* STATE: Readout Alignment & Wrapping */
+#docked-panel .iv-state-line {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  gap: 8px !important;
+  padding: 6px 10px !important;
+}
+
+#docked-panel .iv-state-line .iv-k {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+#docked-panel .iv-state-line .iv-v-state {
+  text-align: right !important;
+  word-break: normal !important;
+  overflow-wrap: break-word !important;
+  white-space: normal !important;
+  line-height: 1.35 !important;
+}
+
 /**
  * Silicon Sliders - Unified Theory View Stylesheet
  * High-contrast, theme-synced styling for Theory tab cards, equations, tables, and quick jump navigation

@@ -56,6 +56,9 @@ function setViewMode(mode){
   var rightToggle = document.getElementById('right-toggle');
   if (rightToggle) rightToggle.style.display = isLayout ? '' : 'none';
 
+  var noteEl = document.getElementById('note') || document.getElementById('scale-note-wrap');
+  if (noteEl) noteEl.style.display = isLayout ? '' : 'none';
+
   var leftPanel = document.getElementById('left-panel');
   if (leftPanel) {
     if (isTheory) leftPanel.style.display = 'none';

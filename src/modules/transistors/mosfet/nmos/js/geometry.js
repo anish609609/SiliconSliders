@@ -934,7 +934,7 @@ function makeTextSprite(text, colorHex, opts) {
   ctx.clearRect(0, 0, c.width, c.height);
 
   // High-contrast semi-transparent pill badge
-  ctx.fillStyle = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(11, 16, 24, 0.92)');
+  ctx.fillStyle = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)');
   ctx.strokeStyle = colorHex;
   ctx.lineWidth = 3.5;
   var r = 18;
@@ -953,7 +953,7 @@ function makeTextSprite(text, colorHex, opts) {
   ctx.stroke();
 
   ctx.fillStyle = colorHex;
-  ctx.font = 'bold 34px "IBM Plex Mono", monospace';
+  ctx.font = 'bold 36px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, c.width / 2, c.height / 2);
@@ -980,7 +980,7 @@ function updateLabelSprite(sprite, text, colorHex, isLight) {
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(11, 16, 24, 0.92)';
+  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)';
   ctx.strokeStyle = colorHex;
   ctx.lineWidth = 3.5;
   var r = 18;
@@ -999,7 +999,7 @@ function updateLabelSprite(sprite, text, colorHex, isLight) {
   ctx.stroke();
 
   ctx.fillStyle = colorHex;
-  ctx.font = 'bold 34px "IBM Plex Mono", monospace';
+  ctx.font = 'bold 36px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, c.width / 2, c.height / 2);

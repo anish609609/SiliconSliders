@@ -30,9 +30,9 @@ function updateViewHudPosition(){
   var vaWidget = document.getElementById('voice-assistant-widget');
   if (rightPanel.classList.contains('open')){
     var w = rightPanel.getBoundingClientRect().width;
-    viewHud.style.right = (w + 14) + 'px';
-    if (launcher) launcher.style.right = (w + 14) + 'px';
-    if (vaWidget) vaWidget.style.right = (w + 14) + 'px';
+    viewHud.style.right = (w + 38) + 'px';
+    if (launcher) launcher.style.right = (w + 38) + 'px';
+    if (vaWidget) vaWidget.style.right = (w + 38) + 'px';
   } else {
     viewHud.style.right = '';
     if (launcher) launcher.style.right = '';
@@ -79,6 +79,31 @@ function resetAll(){
   document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
   document.getElementById('crumb-sel').textContent = '';
 }
+
+// Collapsible Scale Note Popover Handler
+function initScaleNote() {
+  var wrap = document.getElementById('scale-note-wrap') || document.getElementById('note');
+  if (!wrap) return;
+  var btn = wrap.querySelector('.scale-note-btn');
+  var popover = wrap.querySelector('.scale-note-popover');
+  if (!btn || !popover) return;
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = popover.classList.toggle('open');
+    btn.classList.toggle('active', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!wrap.contains(e.target)) {
+      popover.classList.remove('open');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+initScaleNote();
 
 resize();
 if (typeof initTheme === 'function') initTheme();

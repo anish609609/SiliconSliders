@@ -10,9 +10,9 @@ function H() {
   return (wrapEl && wrapEl.clientHeight) || (window.innerHeight - 80);
 }
 
-var TOP_VIEW_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(-0.5, 58, 0.05) : null;
-var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(24, 18, 28) : null;
-var INITIAL_TARGET = typeof THREE !== 'undefined' ? new THREE.Vector3(-0.5, 1.5, 0) : null;
+var TOP_VIEW_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 58, 0.05) : null;
+var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(25.3, 18, 28) : null;
+var INITIAL_TARGET = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 1.5, 0) : null;
 
 var scene = null;
 var camera = null;

@@ -48,6 +48,8 @@
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
+    <div class="topbar-divider" aria-hidden="true"></div>
+
     <div class="in-toggle">
       IN =
       <div class="seg" id="in-seg">
@@ -434,8 +436,17 @@
 
       <div class="hud" id="flow-caption"></div>
 
-      <div class="hud" id="note">
-        Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are not design-rule compliant — topology and functional relationships are physically meaningful.
+      <div class="scale-note-wrap" id="scale-note-wrap">
+        <button type="button" class="scale-note-btn" id="scale-note-btn" title="View scale &amp; PDK disclaimer" aria-expanded="false">
+          <span class="scale-note-icon">ⓘ</span>
+          <span class="scale-note-label">Scale Note</span>
+        </button>
+        <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
+          <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
+          <div class="scale-note-popover-body">
+            Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are not design-rule compliant — topology and functional relationships are physically meaningful.
+          </div>
+        </div>
       </div>
 
       <button class="hud interactive" id="status-toggle">STATUS</button>

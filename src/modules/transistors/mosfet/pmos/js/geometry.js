@@ -944,7 +944,7 @@ function makeTextSprite(text, colorHex, opts) {
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(10, 16, 26, 0.90)');
+  ctx.fillStyle = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)');
   ctx.strokeStyle = colorHex;
   ctx.lineWidth = 4;
   var r = 16;
@@ -990,7 +990,7 @@ function updateLabelSprite(sprite, text, colorHex, isLight) {
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(10, 16, 26, 0.90)';
+  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)';
   ctx.strokeStyle = colorHex;
   ctx.lineWidth = 4;
   var r = 16;

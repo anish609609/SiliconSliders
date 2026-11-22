@@ -140,7 +140,7 @@
     text-decoration: none;
   }
 
-  /* ---------- Highlighted 3D Tour Play Button ---------- */
+  /* ---------- Clean Topbar Tour Button (Neutral / Outlined) ---------- */
   #btn-build-anim,
   .tbtn-play-tour {
     position: relative;
@@ -148,106 +148,44 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    background: linear-gradient(135deg, rgba(95, 217, 196, 0.18) 0%, rgba(95, 217, 196, 0.06) 100%);
-    border: 1px solid rgba(95, 217, 196, 0.65);
-    color: var(--accent);
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    padding: 7px 13px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .02em;
+    padding: 7px 12px;
     border-radius: 6px;
     cursor: pointer;
-    box-shadow: 0 0 12px rgba(95, 217, 196, 0.28), 0 2px 6px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    overflow: hidden;
+    box-shadow: none;
+    transition: color .15s ease, border-color .15s ease, background .15s ease, transform .12s ease;
   }
 
-  /* Pulsing ambient glow to make the button stand out immediately */
-  #btn-build-anim:not(.active) {
-    animation: tourBtnGlow 2.8s ease-in-out infinite;
-  }
-
-  @keyframes tourBtnGlow {
-    0%, 100% {
-      box-shadow: 0 0 10px rgba(95, 217, 196, 0.25), 0 2px 6px rgba(0, 0, 0, 0.25);
-      border-color: rgba(95, 217, 196, 0.55);
-    }
-    50% {
-      box-shadow: 0 0 20px 3px rgba(95, 217, 196, 0.6), 0 3px 12px rgba(95, 217, 196, 0.4);
-      border-color: rgba(95, 217, 196, 1);
-    }
-  }
-
-  /* Periodic high-tech shimmer sweep across the button */
-  #btn-build-anim::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 60%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
-    transform: skewX(-20deg);
-    pointer-events: none;
-    animation: tourBtnShimmer 4.5s ease-in-out infinite;
-  }
-
-  @keyframes tourBtnShimmer {
-    0%, 65% {
-      left: -100%;
-    }
-    100% {
-      left: 180%;
-    }
-  }
-
-  #btn-build-anim .play-icon {
+  #btn-build-anim .play-icon,
+  .tbtn-play-tour .play-icon {
     font-size: 10px;
     line-height: 1;
     display: inline-block;
-    color: var(--accent);
-    filter: drop-shadow(0 0 4px var(--accent));
-    transition: transform 0.15s ease;
+    color: inherit;
   }
 
-  #btn-build-anim:hover {
-    background: linear-gradient(135deg, rgba(95, 217, 196, 0.3) 0%, rgba(95, 217, 196, 0.14) 100%);
-    border-color: #5fd9c4;
-    color: #ffffff;
-    transform: translateY(-1px) scale(1.03);
-    box-shadow: 0 0 22px rgba(95, 217, 196, 0.65), 0 4px 14px rgba(0, 0, 0, 0.4);
+  #btn-build-anim:hover,
+  .tbtn-play-tour:hover {
+    color: var(--text);
+    border-color: #33404f;
+    background: #1b2230;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0,0,0,.35);
   }
 
-  #btn-build-anim:hover .play-icon {
-    color: #ffffff;
-    transform: scale(1.2);
-  }
-
-  #btn-build-anim:active {
-    transform: translateY(0) scale(0.98);
-  }
-
-  /* When active during 3D fabrication sequence */
-  #btn-build-anim.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #08110f;
-    font-weight: 700;
-    box-shadow: 0 0 18px rgba(95, 217, 196, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3);
-    animation: none;
-  }
-
-  #btn-build-anim.active::before {
-    display: none;
-  }
-
-  #btn-build-anim.active .play-icon {
-    color: #08110f;
-    filter: none;
-  }
-
-  #btn-build-anim.active:hover {
-    background: #7ae4d2;
-    box-shadow: 0 0 24px rgba(95, 217, 196, 0.85);
+  #btn-build-anim.active,
+  .tbtn-play-tour.active {
+    color: var(--text);
+    background: var(--panel-2);
+    border-color: var(--border-strong, #3b4656);
+    font-weight: 600;
+    box-shadow: none;
   }
 
   #topbar .spacer{ flex:1; }
@@ -774,59 +712,35 @@
     border-color: var(--accent);
   }
 
-  /* Light Theme overrides for highlighted tour button */
+  /* Light Theme overrides for neutral tour button */
   :root[data-theme="light"] #btn-build-anim,
   :root[data-theme="light"] .tbtn-play-tour {
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.14) 0%, rgba(13, 148, 136, 0.04) 100%);
-    border: 1px solid rgba(13, 148, 136, 0.65);
-    color: #0d9488;
-    box-shadow: 0 0 10px rgba(13, 148, 136, 0.2), 0 2px 6px rgba(13, 148, 136, 0.1);
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    box-shadow: none;
   }
 
-  :root[data-theme="light"] #btn-build-anim:not(.active) {
-    animation: tourBtnGlowLight 2.8s ease-in-out infinite;
-  }
-
-  @keyframes tourBtnGlowLight {
-    0%, 100% {
-      box-shadow: 0 0 8px rgba(13, 148, 136, 0.2), 0 2px 4px rgba(0, 0, 0, 0.06);
-      border-color: rgba(13, 148, 136, 0.55);
-    }
-    50% {
-      box-shadow: 0 0 18px 2px rgba(13, 148, 136, 0.45), 0 3px 10px rgba(13, 148, 136, 0.25);
-      border-color: rgba(13, 148, 136, 1);
-    }
-  }
-
-  :root[data-theme="light"] #btn-build-anim .play-icon {
-    color: #0d9488;
+  :root[data-theme="light"] #btn-build-anim .play-icon,
+  :root[data-theme="light"] .tbtn-play-tour .play-icon {
+    color: inherit;
     filter: none;
   }
 
-  :root[data-theme="light"] #btn-build-anim:hover {
-    background: linear-gradient(135deg, rgba(13, 148, 136, 0.25) 0%, rgba(13, 148, 136, 0.12) 100%);
-    border-color: #0d9488;
+  :root[data-theme="light"] #btn-build-anim:hover,
+  :root[data-theme="light"] .tbtn-play-tour:hover {
     color: #0f172a;
-    box-shadow: 0 0 18px rgba(13, 148, 136, 0.45), 0 3px 8px rgba(0, 0, 0, 0.1);
+    border-color: #94a3b8;
+    background: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
-  :root[data-theme="light"] #btn-build-anim:hover .play-icon {
+  :root[data-theme="light"] #btn-build-anim.active,
+  :root[data-theme="light"] .tbtn-play-tour.active {
     color: #0f172a;
-  }
-
-  :root[data-theme="light"] #btn-build-anim.active {
-    background: #0d9488;
-    border-color: #0d9488;
-    color: #ffffff;
-    box-shadow: 0 0 16px rgba(13, 148, 136, 0.55);
-  }
-
-  :root[data-theme="light"] #btn-build-anim.active .play-icon {
-    color: #ffffff;
-  }
-
-  :root[data-theme="light"] #btn-build-anim.active:hover {
-    background: #0f766e;
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    box-shadow: none;
   }
   :root[data-theme="light"] #left-panel,
   :root[data-theme="light"] #right-panel {
@@ -1933,7 +1847,7 @@
      ========================================================================= */
   #docked-panel {
     top: 14px;
-    right: 14px;
+    right: 38px;
     width: 322px;
     max-width: calc(100vw - 28px);
     max-height: calc(100vh - 80px);
@@ -2153,8 +2067,8 @@
   }
   #docked-panel .iv-state-line {
     display: flex;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: baseline;
+    gap: 8px;
     margin-top: 8px;
     padding-top: 6px;
     border-top: 1px dashed var(--border-soft);
@@ -2175,7 +2089,8 @@
     font-weight: 600;
     color: var(--accent);
     white-space: normal;
-    word-break: break-word;
+    word-break: normal;
+    overflow-wrap: break-word;
     line-height: 1.4;
     flex: 1;
     min-width: 0;

@@ -42,6 +42,8 @@
       <button type="button" class="seg-btn" id="btn-view-schematic" data-mode="schematic" data-view="schematic">SCHEMATIC</button>
     </div>
 
+    <div class="topbar-divider" aria-hidden="true"></div>
+
     <div class="in-toggle" aria-label="Input A Logic State">
       A =
       <div class="seg" id="input-a-group">
@@ -181,6 +183,19 @@
       <div id="state-rows" class="state-rows"></div>
       <div id="state-banner" class="state-banner"></div>
       <div class="state-disclaimer">Idealized static DC conduction &amp; carrier flow model</div>
+    </div>
+
+    <div class="scale-note-wrap nand-scale-note" id="scale-note-wrap">
+      <button type="button" class="scale-note-btn" id="scale-note-btn" title="View scale &amp; PDK disclaimer" aria-expanded="false">
+        <span class="scale-note-icon">ⓘ</span>
+        <span class="scale-note-label">Scale Note</span>
+      </button>
+      <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
+        <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
+        <div class="scale-note-popover-body">
+          Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS NAND layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are illustrative Mead–Conway style rules.
+        </div>
+      </div>
     </div>
 
     <!-- Bottom-Right Explode & Section Scrub HUD -->

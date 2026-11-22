@@ -91,7 +91,7 @@ function renderIVCurve(state) {
   var axisColor = isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.18)';
 
   // Margin setup
-  var padL = 38, padR = 14, padT = 16, padB = 24;
+  var padL = 38, padR = 30, padT = 16, padB = 24;
   var plotW = w - padL - padR;
   var plotH = h - padT - padB;
 
@@ -263,7 +263,7 @@ function renderFieldProfile(state) {
   var textDim = isLight ? '#64748b' : '#64748b';
   var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
 
-  var padL = 36, padR = 14, padT = 16, padB = 22;
+  var padL = 36, padR = 30, padT = 16, padB = 22;
   var plotW = w - padL - padR;
   var halfH = (h - padT - padB) / 2.0;
 
@@ -393,7 +393,7 @@ function renderFieldProfile(state) {
 function updateVAFromPointer(clientX) {
   if (!ivCanvas) return;
   var rect = ivCanvas.getBoundingClientRect();
-  var padL = 38, padR = 14;
+  var padL = 38, padR = 30;
   var plotW = rect.width - padL - padR;
   var xRel = Math.max(0, Math.min(plotW, (clientX - rect.left) - padL));
   var frac = xRel / plotW;

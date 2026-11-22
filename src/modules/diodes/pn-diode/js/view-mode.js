@@ -47,7 +47,7 @@ function setViewMode(mode) {
   var axisInd = document.getElementById('axis-indicator');
   if (axisInd) axisInd.style.display = isLayout ? '' : 'none';
 
-  var noteEl = document.getElementById('note');
+  var noteEl = document.getElementById('note') || document.getElementById('scale-note-wrap');
   if (noteEl) noteEl.style.display = isLayout ? '' : 'none';
 
   var topLeftHud = document.getElementById('top-left-hud');

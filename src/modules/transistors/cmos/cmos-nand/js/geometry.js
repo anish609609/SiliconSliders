@@ -503,18 +503,18 @@ function contactAt(id, x, z, topOfLower) {
 
 function renderLabelCanvasTexture(text, colorHex) {
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var pad = 10, fontSize = 26;
+  var pad = 12, fontSize = 32;
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
-  ctx.font = '600 ' + fontSize + 'px IBM Plex Mono, monospace';
+  ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
   var metrics = ctx.measureText(text);
   canvas.width = Math.ceil(metrics.width) + pad * 2;
   canvas.height = fontSize + pad * 2;
-  ctx.font = '600 ' + fontSize + 'px IBM Plex Mono, monospace';
-  ctx.fillStyle = isLight ? 'rgba(255,255,255,0.92)' : 'rgba(10,13,18,0.72)';
+  ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? 'rgba(255,255,255,0.97)' : 'rgba(10,14,22,0.96)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = colorHex; ctx.lineWidth = 1.5;
-  ctx.strokeRect(0.75, 0.75, canvas.width - 1.5, canvas.height - 1.5);
+  ctx.strokeStyle = colorHex; ctx.lineWidth = 2.5;
+  ctx.strokeRect(1.25, 1.25, canvas.width - 2.5, canvas.height - 2.5);
   ctx.fillStyle = colorHex;
   ctx.textBaseline = 'middle';
   ctx.fillText(text, pad, canvas.height / 2 + 1);
@@ -526,18 +526,18 @@ function renderLabelCanvasTexture(text, colorHex) {
 
 function makeLabel(text, colorHex) {
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var pad = 10, fontSize = 26;
+  var pad = 12, fontSize = 32;
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
-  ctx.font = '600 ' + fontSize + 'px IBM Plex Mono, monospace';
+  ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
   var metrics = ctx.measureText(text);
   canvas.width = Math.ceil(metrics.width) + pad * 2;
   canvas.height = fontSize + pad * 2;
-  ctx.font = '600 ' + fontSize + 'px IBM Plex Mono, monospace';
-  ctx.fillStyle = isLight ? 'rgba(255,255,255,0.92)' : 'rgba(10,13,18,0.72)';
+  ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? 'rgba(255,255,255,0.97)' : 'rgba(10,14,22,0.96)';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = colorHex; ctx.lineWidth = 1.5;
-  ctx.strokeRect(0.75, 0.75, canvas.width - 1.5, canvas.height - 1.5);
+  ctx.strokeStyle = colorHex; ctx.lineWidth = 2.5;
+  ctx.strokeRect(1.25, 1.25, canvas.width - 2.5, canvas.height - 2.5);
   ctx.fillStyle = colorHex;
   ctx.textBaseline = 'middle';
   ctx.fillText(text, pad, canvas.height / 2 + 1);

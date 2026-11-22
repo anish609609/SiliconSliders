@@ -9,7 +9,7 @@ function updateViewHudPosition() {
   var stateBadge = document.getElementById('state-badge');
 
   var rightCollapsed = !rightPanel || rightPanel.classList.contains('collapsed');
-  var rightOffset = rightCollapsed ? 14 : ((rightPanel.offsetWidth || 262) + 20);
+  var rightOffset = rightCollapsed ? 38 : ((rightPanel.offsetWidth || 262) + 20);
 
   if (viewHud) {
     viewHud.style.right = rightOffset + 'px';
@@ -33,6 +33,11 @@ function updateViewHudPosition() {
   if (stateBadge) {
     stateBadge.style.left = leftOffset + 'px';
     stateBadge.style.bottom = '14px';
+  }
+
+  var scaleNote = document.getElementById('scale-note-wrap');
+  if (scaleNote) {
+    scaleNote.style.left = leftOffset + 'px';
   }
 }
 
@@ -71,6 +76,30 @@ function resetAll() {
   camera.position.copy(TOP_VIEW_POS);
   controls.target.copy(INITIAL_TARGET);
   controls.update();
+}
+
+// Collapsible Scale Note Popover Handler
+function initScaleNote() {
+  var wrap = document.getElementById('scale-note-wrap') || document.getElementById('note');
+  if (!wrap) return;
+  var btn = wrap.querySelector('.scale-note-btn');
+  var popover = wrap.querySelector('.scale-note-popover');
+  if (!btn || !popover) return;
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = popover.classList.toggle('open');
+    btn.classList.toggle('active', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!wrap.contains(e.target)) {
+      popover.classList.remove('open');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
 }
 
 function initMainUi() {
@@ -117,6 +146,7 @@ function initMainUi() {
     btnReset.addEventListener('click', resetAll);
   }
 
+  initScaleNote();
   syncToggleArrows();
   updateViewHudPosition();
 

@@ -273,7 +273,7 @@ body { font-family: var(--sans); color: var(--text); }
 
 /* ---------- Docked Right HUD Panel ---------- */
 .hud.interactive {
-  position:absolute; top:12px; right:14px; z-index:11;
+  position:absolute; top:12px; right:38px; z-index:11;
   width:320px; max-height:calc(100% - 24px); display:flex; flex-direction:column;
   background:var(--panel); border:1px solid var(--border); border-radius:8px;
   box-shadow:0 8px 32px rgba(0,0,0,0.4); overflow:hidden;
@@ -398,10 +398,11 @@ input[type="range"]::-webkit-slider-thumb:hover { transform:scale(1.2); }
 .iv-k { font-family:var(--mono); font-size:9px; color:var(--text-faint); }
 .iv-v { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text); }
 .iv-state-line {
-  display:flex; align-items:center; gap:6px; margin-top:4px;
+  display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-top:4px;
   font-family:var(--mono); font-size:10px; color:var(--text-dim);
 }
-.iv-v-state { color:var(--accent); font-weight:600; }
+.iv-state-line .iv-k { flex-shrink:0; white-space:nowrap; }
+.iv-v-state { color:var(--accent); font-weight:600; text-align:right; word-break:normal; overflow-wrap:break-word; }
 
 /* View controls tab */
 .vh-section-title { font-family:var(--mono); font-size:10px; font-weight:700; color:var(--text-faint); text-transform:uppercase; margin-bottom:4px; }

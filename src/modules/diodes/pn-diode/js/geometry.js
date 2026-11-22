@@ -109,29 +109,30 @@ function createIonTexture(sign, bgColor, fgColor) {
 // 3D FLOATING TEXT LABELS (Billboard Sprites)
 // ---------------------------------------------------------------------------
 function makeLabelSprite(text, color, subtext) {
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
   var c = document.createElement('canvas');
   c.width = 380; c.height = 110;
   var ctx = c.getContext('2d');
 
   // Background rounded pill
-  ctx.fillStyle = 'rgba(11, 14, 19, 0.88)';
+  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)';
   ctx.strokeStyle = color || '#5fd9c4';
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 3.5;
   ctx.beginPath();
-  ctx.roundRect(8, 8, 364, 94, 12);
+  ctx.roundRect(8, 8, 364, 94, 14);
   ctx.fill();
   ctx.stroke();
 
   // Title
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 30px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? '#0f172a' : '#ffffff';
+  ctx.font = 'bold 32px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.fillText(text, 190, 46);
 
   // Subtitle
   if (subtext) {
-    ctx.fillStyle = color || '#5fd9c4';
-    ctx.font = '500 20px "IBM Plex Mono", monospace';
+    ctx.fillStyle = color || (isLight ? '#0284c7' : '#5fd9c4');
+    ctx.font = '600 21px "IBM Plex Mono", monospace';
     ctx.fillText(subtext, 190, 78);
   }
 

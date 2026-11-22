@@ -327,16 +327,34 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background: linear-gradient(135deg, rgba(95, 217, 196, 0.18) 0%, rgba(95, 217, 196, 0.06) 100%);
-  border: 1px solid rgba(95, 217, 196, 0.65);
-  color: var(--accent);
-  font-weight: 600;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .02em;
+  padding: 7px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: none;
+  transition: color .15s ease, border-color .15s ease, background .15s ease, transform .12s ease;
 }
 #btn-build-anim:hover,
 .tbtn-play-tour:hover {
-  border-color: var(--accent);
-  box-shadow: 0 0 16px rgba(95, 217, 196, 0.45);
-  color: #ffffff;
+  color: var(--text);
+  border-color: #33404f;
+  background: #1b2230;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(0,0,0,.35);
+}
+#btn-build-anim.active,
+.tbtn-play-tour.active {
+  color: var(--text);
+  background: var(--panel-2);
+  border-color: var(--border-strong, #3b4656);
+  font-weight: 600;
+  box-shadow: none;
 }
 
 .tour-btn-inner {
@@ -1012,10 +1030,22 @@ body.tour-running .drawer-toggle {
 
 /* Bottom-Right View HUD */
 .view-hud {
-  right: 14px;
+  right: 38px;
   bottom: 14px;
   width: 222px;
   transition: right 0.24s cubic-bezier(0.22, 1, 0.36, 1), bottom 0.24s ease;
+}
+
+.scale-note-wrap.nand-scale-note {
+  bottom: 215px;
+  left: 14px;
+  transition: left 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (max-width: 768px) {
+  .scale-note-wrap.nand-scale-note {
+    bottom: calc(50vh + 10px);
+    left: 10px;
+  }
 }
 
 .view-hud-hdr {

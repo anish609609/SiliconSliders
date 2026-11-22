@@ -35,6 +35,9 @@ window.addEventListener('DOMContentLoaded', function () {
     // 10. Initialize Sliders, Presets, and Physics Telemetry
     initLogicControls();
 
+    // 10b. Initialize Collapsible Scale Note Popover
+    initScaleNote();
+
     // 11. Initial WebGL Canvas Sizing
     resize();
 
@@ -60,3 +63,27 @@ window.addEventListener('DOMContentLoaded', function () {
     }
   }
 });
+
+// Collapsible Scale Note Popover Handler
+function initScaleNote() {
+  var wrap = document.getElementById('scale-note-wrap') || document.getElementById('note');
+  if (!wrap) return;
+  var btn = wrap.querySelector('.scale-note-btn');
+  var popover = wrap.querySelector('.scale-note-popover');
+  if (!btn || !popover) return;
+
+  btn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = popover.classList.toggle('open');
+    btn.classList.toggle('active', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+
+  document.addEventListener('click', function(e) {
+    if (!wrap.contains(e.target)) {
+      popover.classList.remove('open');
+      btn.classList.remove('active');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
