@@ -37,7 +37,8 @@
     <div class="brand"><span class="dot"></span><b>CMOS·VIEWER</b><span>nand2 / rev 01</span></div>
 
     <div class="seg" id="mode-seg">
-      <button type="button" class="seg-btn active" id="btn-view-layout" data-mode="layout" data-view="layout">PHYSICAL LAYOUT</button>
+      <button type="button" class="seg-btn" id="btn-view-theory" data-mode="theory" data-view="theory">THEORY</button>
+      <button type="button" class="seg-btn active" id="btn-view-layout" data-mode="layout" data-view="layout"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
       <button type="button" class="seg-btn" id="btn-view-schematic" data-mode="schematic" data-view="schematic">SCHEMATIC</button>
     </div>
 
@@ -396,6 +397,187 @@
         </svg>
       </div>
     </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Header -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>CMOS 2-Input NAND Gate Physics &amp; Dynamic Delay</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  Dual parallel PMOS pull-up / series NMOS pull-down topology, transistor sizing rules, internal node charge sharing, and Euler path layout.
+                </p>
+              </div>
+              <span class="theory-badge">Parallel PUN (2× PMOS) + Series PDN (2× NMOS) · OUT = !(A · B)</span>
+            </div>
+
+            <!-- Quick Jump Anchor Links -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#nand-topology" class="theory-jump-chip">1. PUN / PDN Topology</a>
+              <a href="#nand-truthtable" class="theory-jump-chip">2. Truth Table &amp; States</a>
+              <a href="#nand-sizing" class="theory-jump-chip">3. Series Sizing Rules</a>
+              <a href="#nand-chargesharing" class="theory-jump-chip">4. Charge Sharing &amp; Body Effect</a>
+              <a href="#nand-delay" class="theory-jump-chip">5. Delay Asymmetry</a>
+              <a href="#nand-euler" class="theory-jump-chip">6. Euler Path &amp; Layout</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Topology & Operation -->
+          <article id="nand-topology" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Dual Network Topology &amp; Boolean Operation</h3>
+              <span class="theory-card-tag">OUT = !(A · B), Parallel PMOS + Series NMOS</span>
+            </div>
+            <p class="theory-p">
+              The <b>CMOS 2-Input NAND Gate</b> is a universal digital logic gate implementing the Boolean function <code>Y = !(A · B)</code>. It is engineered with dual complementary networks:
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Pull-Up Network (PUN): 2× PMOS in Parallel</span>
+                <p class="theory-subcard-desc">Transistors MP1 (Gate A) and MP2 (Gate B) are connected in <b>parallel</b> between VDD (+1.0V) and OUT. If either input A=0 OR B=0, at least one PMOS turns ON to strongly pull the output HIGH to VDD.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Pull-Down Network (PDN): 2× NMOS in Series</span>
+                <p class="theory-subcard-desc">Transistors MN2 (Gate B, top) and MN1 (Gate A, bottom) are connected in <b>series</b> between OUT and GND. Current can discharge to ground if and only if both A=1 AND B=1 simultaneously.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 2: Truth Table & Conduction States -->
+          <article id="nand-truthtable" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Complete Conduction State Truth Table</h3>
+              <span class="theory-card-tag">4 Distinct Input Vectors</span>
+            </div>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Input A</th>
+                    <th>Input B</th>
+                    <th>Output Y</th>
+                    <th>PUN State (MP1, MP2)</th>
+                    <th>PDN State (MN1, MN2)</th>
+                    <th>Conduction Path Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>0</code> (0V)</td>
+                    <td><code>0</code> (0V)</td>
+                    <td><b>1 (VDD)</b></td>
+                    <td>MP1 ON, MP2 ON</td>
+                    <td>MN1 OFF, MN2 OFF</td>
+                    <td>Dual parallel pull-up; minimum on-resistance (R<sub>p</sub>/2); fastest rise time.</td>
+                  </tr>
+                  <tr>
+                    <td><code>0</code> (0V)</td>
+                    <td><code>1</code> (VDD)</td>
+                    <td><b>1 (VDD)</b></td>
+                    <td>MP1 ON, MP2 OFF</td>
+                    <td>MN1 OFF, MN2 ON</td>
+                    <td>Single PMOS pull-up through MP1; series PDN broken at MN1.</td>
+                  </tr>
+                  <tr>
+                    <td><code>1</code> (VDD)</td>
+                    <td><code>0</code> (0V)</td>
+                    <td><b>1 (VDD)</b></td>
+                    <td>MP1 OFF, MP2 ON</td>
+                    <td>MN1 ON, MN2 OFF</td>
+                    <td>Single PMOS pull-up through MP2; series PDN broken at MN2.</td>
+                  </tr>
+                  <tr>
+                    <td><code>1</code> (VDD)</td>
+                    <td><code>1</code> (VDD)</td>
+                    <td><b>0 (GND)</b></td>
+                    <td>MP1 OFF, MP2 OFF</td>
+                    <td>MN1 ON, MN2 ON</td>
+                    <td>Both series NMOS conduct; complete low-impedance discharge path to GND.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <!-- Section 3: Series Sizing Rules -->
+          <article id="nand-sizing" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. Transistor Sizing Rules &amp; Series Stacking Penalty</h3>
+              <span class="theory-card-tag">(Wn/L)NAND = 2 × (Wn/L)INV</span>
+            </div>
+            <p class="theory-p">
+              When two identical NMOS transistors are stacked in series, their on-resistances sum together: <code>R<sub>PDN</sub> = R<sub>n1</sub> + R<sub>n2</sub> = 2 R<sub>n</sub></code>. To match the pull-down delay of a reference unit inverter (<code>R<sub>inv,N</sub></code>):
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">(W<sub>n</sub> / L)<sub>NAND</sub> = 2 × (W<sub>n</sub> / L)<sub>INV</sub></div>
+              <div class="theory-formula-sub">Doubling NMOS channel width halves each transistor's on-resistance (R<sub>n</sub> = R<sub>inv</sub> / 2), keeping total stack resistance equal to R<sub>inv</sub>.</div>
+            </div>
+            <p class="theory-p">
+              <b>Parallel PMOS Sizing:</b> In the worst-case pull-up transition (A=0, B=1 or A=1, B=0), only a single PMOS conducts. Therefore, each PMOS width must match the unit inverter PMOS width:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">(W<sub>p</sub> / L)<sub>NAND</sub> = 1 × (W<sub>p</sub> / L)<sub>INV</sub> ≈ 2 × (W<sub>n</sub> / L)<sub>INV</sub></div>
+              <div class="theory-formula-sub">Worst-case pull-up resistance equals R<sub>inv,P</sub> without needing to oversize PMOS.</div>
+            </div>
+          </article>
+
+          <!-- Section 4: Charge Sharing & Body Effect -->
+          <article id="nand-chargesharing" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. Internal Node Capacitance, Charge Sharing &amp; Body Effect</h3>
+              <span class="theory-card-tag">Cint = Cdb1 + Csb2, VTH2 = VTH0 + γ(√(2φF + Vint) - √(2φF))</span>
+            </div>
+            <p class="theory-p">
+              The intermediate N+ diffusion junction between MN1 and MN2 introduces a parasitic internal node capacitance <code>C<sub>int</sub> = C<sub>db,MN1</sub> + C<sub>sb,MN2</sub></code>:
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Body Effect on Top NMOS (MN2)</span>
+                <p class="theory-subcard-desc">While MN1 has its source tied directly to GND (V<sub>SB1</sub> = 0), MN2's source sits at internal potential <code>V<sub>int</sub> &gt; 0</code>. This creates body reverse bias <code>V<sub>SB2</sub> = V<sub>int</sub></code>, increasing MN2's threshold voltage via the body effect and reducing overdrive.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Charge Sharing Glitches</span>
+                <p class="theory-subcard-desc">If B transitions HIGH while A remains LOW, charge on C<sub>L</sub> is shared with internal capacitor C<sub>int</sub>, causing an undesirable momentary voltage dip (glitch) on the output line.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 5: Propagation Delay Asymmetry -->
+          <article id="nand-delay" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Propagation Delay Asymmetry (tpLH vs. tpHL)</h3>
+              <span class="theory-card-tag">tpLH (2 PMOS parallel) = ½ tpLH (1 PMOS)</span>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Low-to-High: t<sub>pLH(both)</sub> ≈ 0.69 · (R<sub>p</sub> / 2) · C<sub>L</sub> &nbsp;|&nbsp; t<sub>pLH(single)</sub> ≈ 0.69 · R<sub>p</sub> · C<sub>L</sub></div>
+              <div class="theory-formula-sub">High-to-Low: t<sub>pHL</sub> ≈ 0.69 · [R<sub>n1</sub> · (C<sub>L</sub> + C<sub>int</sub>) + R<sub>n2</sub> · C<sub>L</sub>]</div>
+            </div>
+            <p class="theory-p">
+              Input pattern dependent delay: If input B is already 1 and A rises, <code>C<sub>int</sub></code> was already discharged, making this transition noticeably faster than if input A was 1 and B rises.
+            </p>
+          </article>
+
+          <!-- Section 6: Euler Path & Layout -->
+          <article id="nand-euler" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. Logical Effort &amp; Euler Graph Topology</h3>
+              <span class="theory-card-tag">Logical Effort g = 4/3, Continuous Active Diffusion</span>
+            </div>
+            <p class="theory-p">
+              <b>Logical Effort:</b> Input capacitance per pin is <code>C<sub>in</sub> = 2 (NMOS) + 2 (PMOS) = 4</code> units. Relative to an inverter (3 units), the NAND gate has a logical effort of <code>g = 4/3 ≈ 1.33</code>.
+            </p>
+            <p class="theory-p">
+              <b>Euler Path Layout:</b> The shared diffusion strip in this 3D model follows an Euler path ordering (<code>A - B</code>), merging the drain of MN1 and source of MN2 into a single compact diffusion node to minimize parasitic area and capacitance.
+            </p>
+          </article>
+        </div>
+      </div>
+
 
     <!-- Sarvam AI Voice Tutor Floating Launcher & Glassmorphic Widget -->
     <button type="button" id="va-launcher-btn" class="va-launcher-btn" title="Open Sarvam AI VLSI Voice Tutor" aria-label="Open AI Voice Tutor">

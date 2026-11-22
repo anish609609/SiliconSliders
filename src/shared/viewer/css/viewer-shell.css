@@ -379,3 +379,337 @@ input[type="range"] {
     display: none !important;
   }
 }
+/**
+ * Silicon Sliders - Unified Theory View Stylesheet
+ * High-contrast, theme-synced styling for Theory tab cards, equations, tables, and quick jump navigation
+ */
+
+/* Segmented Switcher (Theory | Physical Layout | Schematic) */
+#mode-seg {
+  display: inline-flex;
+  align-items: center;
+  background: var(--v-bg-panel);
+  border: 1px solid var(--v-border);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+#mode-seg button,
+#mode-seg .seg-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--v-text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+#mode-seg button:hover,
+#mode-seg .seg-btn:hover {
+  color: var(--v-text-primary);
+  background: var(--v-btn-hover);
+}
+#mode-seg button.active,
+#mode-seg .seg-btn.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.3) !important;
+}
+[data-theme="dark"] #mode-seg button.active,
+[data-theme="dark"] #mode-seg .seg-btn.active {
+  background: #00e5ff !important;
+  color: #080b11 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 3px rgba(0, 229, 255, 0.3) !important;
+}
+
+.tab-label-compact {
+  display: none;
+}
+.tab-label-full {
+  display: inline;
+}
+
+@media (max-width: 768px) {
+  .tab-label-full {
+    display: none !important;
+  }
+  .tab-label-compact {
+    display: inline !important;
+  }
+  #mode-seg button,
+  #mode-seg .seg-btn {
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    height: 34px !important;
+    line-height: 34px !important;
+  }
+}
+
+/* Theory Overlay Container */
+#theory-overlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--v-bg-base);
+  color: var(--v-text-primary);
+  z-index: 45;
+  padding: 24px 20px 80px 20px;
+  box-sizing: border-box;
+}
+#theory-overlay.visible {
+  display: block;
+}
+
+.theory-wrap {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* Theory Header & Hero */
+.theory-hero {
+  background: var(--v-bg-panel);
+  border: 1px solid var(--v-border);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+.theory-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.theory-hero-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--v-text-primary);
+  margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.theory-hero-subtitle {
+  font-size: 13px;
+  color: var(--v-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+.theory-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  border: 1px solid var(--v-border-strong);
+  background: var(--v-bg-input);
+  color: var(--v-accent-cyan);
+  white-space: nowrap;
+}
+
+/* Quick Jump Pill Navigation */
+.theory-jump-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--v-border);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+}
+.theory-jump-label {
+  color: var(--v-text-tertiary);
+  font-weight: 600;
+  margin-right: 4px;
+  text-transform: uppercase;
+}
+.theory-jump-chip {
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: var(--v-bg-input);
+  color: var(--v-text-secondary);
+  border: 1px solid var(--v-border);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.theory-jump-chip:hover {
+  color: var(--v-accent-cyan);
+  border-color: var(--v-accent-cyan);
+  background: var(--v-btn-hover);
+  transform: translateY(-1px);
+}
+
+/* Theory Section Cards */
+.theory-card {
+  background: var(--v-bg-panel);
+  border: 1px solid var(--v-border);
+  border-radius: 14px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease;
+}
+.theory-card:hover {
+  border-color: var(--v-border-strong);
+}
+.theory-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--v-border);
+  padding-bottom: 10px;
+  margin-bottom: 14px;
+}
+.theory-card-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--v-accent-cyan);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.theory-card-tag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--v-bg-input);
+  color: var(--v-text-tertiary);
+  border: 1px solid var(--v-border);
+}
+.theory-p {
+  font-size: 13px;
+  color: var(--v-text-secondary);
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+.theory-p b, .theory-p strong {
+  color: var(--v-text-primary);
+}
+
+/* Formula Callout Boxes */
+.theory-formula-box {
+  background: var(--v-bg-input);
+  border: 1px solid var(--v-border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 14px 0;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.theory-formula-main {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--v-accent-cyan);
+  letter-spacing: 0.02em;
+}
+.theory-formula-sub {
+  font-size: 11px;
+  color: var(--v-text-tertiary);
+  margin-top: 5px;
+  line-height: 1.4;
+}
+
+/* Multi-Column Feature Grids */
+.theory-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 14px 0;
+}
+.theory-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin: 14px 0;
+}
+.theory-subcard {
+  background: var(--v-bg-input);
+  border: 1px solid var(--v-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.theory-subcard-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--v-text-primary);
+  margin-bottom: 6px;
+  display: block;
+}
+.theory-subcard-desc {
+  font-size: 11.5px;
+  color: var(--v-text-secondary);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Physics Data Table */
+.theory-table-wrap {
+  overflow-x: auto;
+  margin: 14px 0;
+  border-radius: 8px;
+  border: 1px solid var(--v-border);
+}
+.theory-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Inter', sans-serif;
+  text-align: left;
+}
+.theory-table th {
+  background: var(--v-bg-input);
+  color: var(--v-text-primary);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--v-border);
+}
+.theory-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--v-border);
+  color: var(--v-text-secondary);
+}
+.theory-table tr:last-child td {
+  border-bottom: none;
+}
+.theory-table code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--v-accent-cyan);
+}
+
+@media (max-width: 768px) {
+  #theory-overlay {
+    padding: 14px 12px 70px 12px;
+  }
+  .theory-hero {
+    padding: 14px 16px;
+  }
+  .theory-card {
+    padding: 14px 16px;
+  }
+  .theory-grid-3,
+  .theory-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

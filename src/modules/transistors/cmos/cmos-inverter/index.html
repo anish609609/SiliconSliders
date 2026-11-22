@@ -43,9 +43,10 @@
     <div class="brand"><span class="dot"></span><b>CMOS·VIEWER</b><span>inverter / rev 01</span></div>
 
     <div class="seg" id="mode-seg">
-      <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
-      <button data-mode="schematic">SCHEMATIC</button>
-    </div>
+        <button data-mode="theory">THEORY</button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
+        <button data-mode="schematic">SCHEMATIC</button>
+      </div>
 
     <div class="in-toggle">
       IN =
@@ -213,6 +214,207 @@
         </svg>
         <div class="cap">CMOS INVERTER — SCHEMATIC · click any terminal, gate or net to locate it in the 3D layout · bubble on gate = PMOS (P-channel)</div>
       </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Header -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>CMOS Inverter Circuit Physics &amp; VTC Characteristics</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  Complementary pull-up / pull-down topology, 5 VTC operating regions, switching threshold VM, noise margins, and dynamic dissipation.
+                </p>
+              </div>
+              <span class="theory-badge">PUN (PMOS) + PDN (NMOS) · Rail-to-Rail Swing · Zero Static Power</span>
+            </div>
+
+            <!-- Quick Jump Anchor Links -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#inv-topology" class="theory-jump-chip">1. Circuit Topology &amp; Operation</a>
+              <a href="#inv-vtc" class="theory-jump-chip">2. VTC &amp; 5 Operating Regions</a>
+              <a href="#inv-switching" class="theory-jump-chip">3. Switching Threshold (VM)</a>
+              <a href="#inv-noisemargins" class="theory-jump-chip">4. Noise Margins (NMH / NML)</a>
+              <a href="#inv-power" class="theory-jump-chip">5. Dynamic Power &amp; Delay</a>
+              <a href="#inv-sizing" class="theory-jump-chip">6. Sizing Rules &amp; Euler Path</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Topology & Operation -->
+          <article id="inv-topology" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Circuit Architecture, Complementary Switching &amp; Floating State</h3>
+              <span class="theory-card-tag">PUN to VDD, PDN to GND, Zero Static Power</span>
+            </div>
+            <p class="theory-p">
+              The <b>CMOS Inverter</b> is the primary building block of digital integrated circuits. It consists of two complementary enhancement MOSFETs whose gates are connected to common input <code>V<sub>IN</sub></code> and drains to common output <code>V<sub>OUT</sub></code>:
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Pull-Up Network (PUN)</span>
+                <p class="theory-subcard-desc">PMOS transistor connected between VDD (+1.0V) and OUT. Conducts when <code>V<sub>IN</sub> = 0V</code> (active-low gate) to pull OUT to VDD.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Pull-Down Network (PDN)</span>
+                <p class="theory-subcard-desc">NMOS transistor connected between OUT and GND (0V). Conducts when <code>V<sub>IN</sub> = VDD</code> (active-high gate) to discharge OUT to GND.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Zero Static DC Power</span>
+                <p class="theory-subcard-desc">In either steady logic state (0 or 1), one transistor is completely OFF while the other is ON. No direct DC path exists between VDD and GND, resulting in near-zero static power dissipation.</p>
+              </div>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">IN = 0V ⟹ PMOS ON, NMOS OFF ⟹ V<sub>OUT</sub> = V<sub>OH</sub> = V<sub>DD</sub> &nbsp;|&nbsp; IN = V<sub>DD</sub> ⟹ PMOS OFF, NMOS ON ⟹ V<sub>OUT</sub> = V<sub>OL</sub> = 0V</div>
+              <div class="theory-formula-sub">Floating High-Z State (IN = OFF): When the input is disconnected or floating, both PMOS and NMOS enter weak inversion subthreshold leakage, yielding undefined intermediate output voltages.</div>
+            </div>
+          </article>
+
+          <!-- Section 2: VTC Curve & 5 Operating Regions -->
+          <article id="inv-vtc" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Voltage Transfer Characteristic (VTC) &amp; 5 Operating Regions</h3>
+              <span class="theory-card-tag">5 Distinct Analytical Regimes (A through E)</span>
+            </div>
+            <p class="theory-p">
+              As input voltage <code>V<sub>IN</sub></code> increases from <code>0V</code> to <code>V<sub>DD</sub></code>, the inverter traverses 5 distinct operating regions based on the conduction state of NMOS and PMOS:
+            </p>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Region</th>
+                    <th>Input Range (VIN)</th>
+                    <th>NMOS State</th>
+                    <th>PMOS State</th>
+                    <th>Output Voltage (VOUT) &amp; Analytical Behavior</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Region A</b></td>
+                    <td><code>0 ≤ V<sub>IN</sub> &lt; V<sub>TH,n</sub></code></td>
+                    <td>Cutoff (I<sub>Dn</sub> = 0)</td>
+                    <td>Linear (V<sub>SD</sub> ≈ 0)</td>
+                    <td><code>V<sub>OUT</sub> = V<sub>OH</sub> = V<sub>DD</sub></code>. PMOS ties OUT to VDD with zero current.</td>
+                  </tr>
+                  <tr>
+                    <td><b>Region B</b></td>
+                    <td><code>V<sub>TH,n</sub> ≤ V<sub>IN</sub> &lt; V<sub>M</sub></code></td>
+                    <td>Saturation (V<sub>DS</sub> &gt; V<sub>GS</sub> - V<sub>TH,n</sub>)</td>
+                    <td>Linear (V<sub>SD</sub> &lt; V<sub>SG</sub> - |V<sub>TH,p</sub>|)</td>
+                    <td><code>V<sub>OUT</sub></code> begins falling. NMOS saturation current matches PMOS linear current.</td>
+                  </tr>
+                  <tr>
+                    <td><b>Region C</b></td>
+                    <td><code>V<sub>IN</sub> ≈ V<sub>M</sub></code> (Switching Point)</td>
+                    <td><b>Saturation</b></td>
+                    <td><b>Saturation</b></td>
+                    <td><b>Maximum Voltage Gain:</b> <code>A<sub>v</sub> = -(g<sub>mn</sub> + g<sub>mp</sub>)/(g<sub>dsn</sub> + g<sub>dsp</sub>)</code>. Peak short-circuit current flows from VDD to GND.</td>
+                  </tr>
+                  <tr>
+                    <td><b>Region D</b></td>
+                    <td><code>V<sub>M</sub> &lt; V<sub>IN</sub> ≤ V<sub>DD</sub> - |V<sub>TH,p</sub>|</code></td>
+                    <td>Linear (V<sub>DS</sub> &lt; V<sub>GS</sub> - V<sub>TH,n</sub>)</td>
+                    <td>Saturation (V<sub>SD</sub> ≥ V<sub>SG</sub> - |V<sub>TH,p</sub>|)</td>
+                    <td><code>V<sub>OUT</sub></code> approaches ground. NMOS linear resistance pulls OUT close to 0V.</td>
+                  </tr>
+                  <tr>
+                    <td><b>Region E</b></td>
+                    <td><code>V<sub>IN</sub> &gt; V<sub>DD</sub> - |V<sub>TH,p</sub>|</code></td>
+                    <td>Linear (V<sub>DS</sub> = 0)</td>
+                    <td>Cutoff (I<sub>Dp</sub> = 0)</td>
+                    <td><code>V<sub>OUT</sub> = V<sub>OL</sub> = 0V</code>. NMOS ties OUT to GND with zero current.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <!-- Section 3: Switching Threshold VM & Sizing -->
+          <article id="inv-switching" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. Inverter Switching Threshold (VM) &amp; Transistor Sizing (βr)</h3>
+              <span class="theory-card-tag">VM = VDD/2, βr = kn / kp = 1, Wp ≈ 2.5 Wn</span>
+            </div>
+            <p class="theory-p">
+              The switching threshold <code>V<sub>M</sub></code> is defined as the unique operating point where <code>V<sub>IN</sub> = V<sub>OUT</sub> = V<sub>M</sub></code>. In this state, both transistors are in saturation, equating their drain currents:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">½ · k<sub>n</sub> · (V<sub>M</sub> - V<sub>TH,n</sub>)² = ½ · k<sub>p</sub> · (V<sub>DD</sub> - V<sub>M</sub> - |V<sub>TH,p</sub>|)²</div>
+              <div class="theory-formula-sub">Defining transconductance ratio β<sub>r</sub> = k<sub>n</sub> / k<sub>p</sub> = [μ<sub>n</sub> C<sub>ox</sub> (W<sub>n</sub>/L<sub>n</sub>)] / [μ<sub>p</sub> C<sub>ox</sub> (W<sub>p</sub>/L<sub>p</sub>)]:</div>
+              <div class="theory-formula-main" style="margin-top:8px;">V<sub>M</sub> = [V<sub>TH,n</sub> + √(1/β<sub>r</sub>) · (V<sub>DD</sub> - |V<sub>TH,p</sub>|)] / [1 + √(1/β<sub>r</sub>)]</div>
+            </div>
+            <p class="theory-p">
+              <b>Symmetric Inverter Condition:</b> For ideal symmetric switching (<code>V<sub>M</sub> = V<sub>DD</sub> / 2</code>) with matched threshold voltages (<code>V<sub>TH,n</sub> = |V<sub>TH,p</sub>|</code>), the transconductance ratio must satisfy <code>β<sub>r</sub> = 1 ⟹ k<sub>n</sub> = k<sub>p</sub></code>. Because electron mobility <code>μ<sub>n</sub> ≈ 2.5 × μ<sub>p</sub></code>, achieving matched strengths requires sizing the PMOS width wider:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">(W<sub>p</sub> / W<sub>n</sub>)<sub>matched</sub> = μ<sub>n</sub> / μ<sub>p</sub> ≈ 2.0 to 3.0</div>
+              <div class="theory-formula-sub">This fundamental VLSI sizing rule ensures equal rise time (t<sub>pLH</sub>) and fall time (t<sub>pHL</sub>).</div>
+            </div>
+          </article>
+
+          <!-- Section 4: Noise Margins -->
+          <article id="inv-noisemargins" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. Noise Margins (NMH &amp; NML) &amp; Signal Integrity</h3>
+              <span class="theory-card-tag">dVOUT/dVIN = -1, Robust Digital Regeneration</span>
+            </div>
+            <p class="theory-p">
+              Noise margins quantify a logic gate's tolerance to electrical noise without corrupting logical state. Critical transition points are defined where the VTC slope reaches unity gain (<code>dV<sub>OUT</sub>/dV<sub>IN</sub> = -1</code>):
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Noise Margin Low (NML)</span>
+                <p class="theory-subcard-desc">Maximum noise voltage superimposed on a Logic 0 that will not cause a false Logic 1 transition:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-cyan);">
+                  NM<sub>L</sub> = V<sub>IL</sub> - V<sub>OL</sub> = V<sub>IL</sub> - 0V = V<sub>IL</sub>
+                </div>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Noise Margin High (NMH)</span>
+                <p class="theory-subcard-desc">Maximum noise voltage subtracted from a Logic 1 that will not cause a false Logic 0 transition:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-cyan);">
+                  NM<sub>H</sub> = V<sub>OH</sub> - V<sub>IH</sub> = V<sub>DD</sub> - V<sub>IH</sub>
+                </div>
+              </div>
+            </div>
+            <p class="theory-p">
+              In symmetric CMOS inverters, robust noise margins are achieved: <code>NM<sub>L</sub> ≈ NM<sub>H</sub> ≈ 0.4 × V<sub>DD</sub></code>.
+            </p>
+          </article>
+
+          <!-- Section 5: Dynamic Power & Delay -->
+          <article id="inv-power" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Dynamic Power Dissipation &amp; Propagation Delay</h3>
+              <span class="theory-card-tag">Pdyn = CL · VDD² · f, tp = ½ (tpHL + tpLH)</span>
+            </div>
+            <p class="theory-p">
+              Total CMOS power dissipation consists of dynamic switching energy, short-circuit current, and static subthreshold leakage:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">P<sub>total</sub> = P<sub>dyn</sub> + P<sub>sc</sub> + P<sub>leak</sub> = C<sub>L</sub> · V<sub>DD</sub>² · f<sub>clk</sub> + I<sub>peak</sub> · V<sub>DD</sub> · f<sub>clk</sub> · Δt<sub>sc</sub> + I<sub>leak</sub> · V<sub>DD</sub></div>
+              <div class="theory-formula-sub">Propagation Delay: t<sub>pHL</sub> ≈ (C<sub>L</sub> · V<sub>DD</sub>) / [k<sub>n</sub>(V<sub>DD</sub> - V<sub>TH,n</sub>)²] &nbsp;·&nbsp; t<sub>pLH</sub> ≈ (C<sub>L</sub> · V<sub>DD</sub>) / [k<sub>p</sub>(V<sub>DD</sub> - |V<sub>TH,p</sub>|)²]</div>
+            </div>
+          </article>
+
+          <!-- Section 6: Sizing & Euler Path -->
+          <article id="inv-sizing" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. Euler Path Layout &amp; Lambda Design Rules</h3>
+              <span class="theory-card-tag">Diffusion Sharing, Contact Spacing, SDE Overlap</span>
+            </div>
+            <p class="theory-p">
+              In physical VLSI layout, PMOS and NMOS active areas are aligned in parallel strips under a continuous vertical polysilicon gate wire. Placing N-well and P-substrate taps at regular pitch satisfies Mead-Conway lambda design rules and completely suppresses parasitic latchup.
+            </p>
+          </article>
+        </div>
+      </div>
+
 
       <div id="popover">
         <div class="pop-card">

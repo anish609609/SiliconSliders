@@ -35,7 +35,8 @@
 
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
-        <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
+        <button data-mode="theory">THEORY</button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
@@ -153,7 +154,7 @@
             <!-- Body / Bulk connection with inward arrow for N-channel -->
             <line x1="222" y1="175" x2="270" y2="175" stroke="#9aa6b6" stroke-width="2"/>
             <polygon points="230,175 242,170 242,180" fill="#9aa6b6"/>
-            <line x1="270" y1="175" x2="330" y2="175" stroke="#9aa6b6" stroke-width="2"/>
+            <line x1="270" y1="175" x2="370" y2="175" stroke="#9aa6b6" stroke-width="2"/>
           </g>
 
           <!-- SOURCE Net & Pad (Bottom) -->
@@ -167,10 +168,10 @@
 
           <!-- BODY / SUBSTRATE Net (Right) -->
           <g class="sch-el" data-id="bodyRail">
-            <line x1="330" y1="175" x2="330" y2="270" stroke="#9aa6b6" stroke-width="2"/>
-            <rect x="300" y="270" width="80" height="30" rx="4" fill="rgba(154, 166, 182, 0.15)" stroke="#9aa6b6" stroke-width="1.5"/>
-            <text x="340" y="290" fill="#9aa6b6" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">BODY (B)</text>
-            <text x="340" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">P-Sub / GND</text>
+            <line x1="370" y1="175" x2="370" y2="270" stroke="#9aa6b6" stroke-width="2"/>
+            <rect x="330" y="270" width="80" height="30" rx="4" fill="rgba(154, 166, 182, 0.15)" stroke="#9aa6b6" stroke-width="1.5"/>
+            <text x="370" y="290" fill="#9aa6b6" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">BODY (B)</text>
+            <text x="370" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">P-Sub / GND</text>
           </g>
 
           <!-- State Annotations -->
@@ -179,6 +180,216 @@
         </svg>
         <div class="cap">DISCRETE DEPLETION NMOS TRANSISTOR · SCHEMATIC · Solid channel bar indicates permanently implanted N-channel (Normally ON) · Inward arrow indicates N-channel</div>
       </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Header -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>Depletion NMOS (D-NMOS) Transistor Physics</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  Pre-implanted metallurgical N-channel, normally ON zero-bias conduction, dual-mode operation, and Shockley equations.
+                </p>
+              </div>
+              <span class="theory-badge">Implanted N-Channel · Normally ON (VTH &lt; 0) · Dual Mode</span>
+            </div>
+
+            <!-- Quick Jump Anchor Links -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#dnmos-structure" class="theory-jump-chip">1. Implanted Architecture</a>
+              <a href="#dnmos-dualmode" class="theory-jump-chip">2. Depletion vs. Enhancement</a>
+              <a href="#dnmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
+              <a href="#dnmos-equations" class="theory-jump-chip">4. Operating Regions &amp; Shockley</a>
+              <a href="#dnmos-graphs" class="theory-jump-chip">5. Live Graph &amp; Zero Bias</a>
+              <a href="#dnmos-applications" class="theory-jump-chip">6. VLSI &amp; Active Load Uses</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Architecture & Implanted Channel -->
+          <article id="dnmos-structure" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Device Architecture, Doping &amp; Normally-ON Conduction</h3>
+              <span class="theory-card-tag">Implanted N-Layer, IDSS = 0.21 mA, VTH = -0.80V</span>
+            </div>
+            <p class="theory-p">
+              The <b>Depletion N-Channel MOSFET (D-NMOS)</b> features a shallow donor-doped N-channel layer intentionally pre-implanted beneath the gate oxide into the P-type silicon substrate (donor implant dose <code>Φ<sub>D</sub> ≈ 1×10¹² cm⁻²</code>). This metallurgical layer provides a permanent conductive highway connecting the heavily doped N+ Source and Drain regions even with <b>zero gate-to-source bias (V<sub>GS</sub> = 0V)</b>.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. Built-in Channel Highway</span>
+                <p class="theory-subcard-desc">At zero external gate bias, high free electron density already populates the implanted channel. Substantial current (<code>I<sub>DSS</sub> ≈ 0.208 mA</code>) flows when V<sub>DS</sub> is applied.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Negative Threshold (VTH &lt; 0)</span>
+                <p class="theory-subcard-desc">Because a conductive channel pre-exists, the gate threshold voltage is negative (<code>V<sub>TH</sub> = V<sub>P</sub> ≈ -0.80V</code>), representing the pinch-off voltage required to deplete the channel.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Normally-ON Property</span>
+                <p class="theory-subcard-desc">Unlike enhancement MOSFETs which start in cutoff at zero bias, depletion MOSFETs are inherently conductive and require negative bias to turn OFF.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 2: Dual-Mode Operation -->
+          <article id="dnmos-dualmode" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Dual-Mode Operation: Depletion Mode vs. Enhancement Mode</h3>
+              <span class="theory-card-tag">Depletion (VGS &lt; 0) vs. Enhancement (VGS &gt; 0)</span>
+            </div>
+            <p class="theory-p">
+              D-NMOS is uniquely versatile because it operates in two distinct physical gate regimes:
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Cutoff / Full Pinch-Off (VGS ≤ VTH)</span>
+                <p class="theory-subcard-desc">When <code>V<sub>GS</sub> ≤ -0.80V</code>, the gate depletion region expands downward across the entire implanted channel thickness, completely cutting off electron transit: <code>I<sub>D</sub> = 0</code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Depletion Mode (VTH &lt; VGS &lt; 0V)</span>
+                <p class="theory-subcard-desc">Negative gate voltage repels electrons toward the substrate, narrowing the effective cross-sectional channel depth. Drain current is reduced below the zero-bias level I<sub>DSS</sub>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Enhancement Mode (VGS &gt; 0V)</span>
+                <p class="theory-subcard-desc">Positive gate voltage attracts additional electrons to the oxide interface, forming a surface accumulation layer on top of the implanted channel. This boosts <code>I<sub>D</sub></code> well above I<sub>DSS</sub>.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              This dual-mode flexibility allows D-NMOS to operate either as an electronically controlled variable resistor or as a robust constant current source.
+            </p>
+          </article>
+
+          <!-- Section 3: Explicit Pinch-Off Mechanism -->
+          <article id="dnmos-pinchoff" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. The Pinch-Off Mechanism &amp; Boundary Conditions</h3>
+              <span class="theory-card-tag">VDS,sat = VGS - VTH = VGS - (-0.80V) = VGS + 0.80V</span>
+            </div>
+            <p class="theory-p">
+              In a depletion MOSFET, channel pinch-off is governed by the simultaneous action of gate depletion from the top surface and substrate junction depletion from the bottom.
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Pinch-Off Boundary Equation: V<sub>DS</sub> = V<sub>DS,sat</sub> = V<sub>GS</sub> - V<sub>TH</sub> = V<sub>GS</sub> + |V<sub>TH</sub>| &nbsp;⟺&nbsp; V<sub>GD</sub> = V<sub>TH</sub></div>
+              <div class="theory-formula-sub">With V<sub>TH</sub> = -0.80 V, pinch-off at zero gate bias (V<sub>GS</sub> = 0V) occurs at exactly V<sub>DS,sat</sub> = 0 - (-0.80V) = +0.80 V!</div>
+            </div>
+            <p class="theory-p">
+              <b>Why and How Pinch-Off Occurs:</b>
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Linear / Triode (VDS &lt; VDS,sat)</span>
+                <p class="theory-subcard-desc">The implanted channel remains open throughout its entire length from Source to Drain. The channel depth narrows toward the Drain due to increasing local reverse bias <code>V<sub>GD</sub>(y)</code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Beyond Pinch-Off (VDS ≥ VDS,sat)</span>
+                <p class="theory-subcard-desc">The gate depletion region merges with the substrate depletion region at the Drain boundary. The channel pinches off, and excess voltage <code>V<sub>DS</sub> - V<sub>DS,sat</sub></code> drops across the high-field drain depletion gap.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              <b>Carrier Transport Beyond Pinch-Off:</b> Electrons traversing the open channel arrive at the pinch-off point and are rapidly propelled across the drain depletion region by the intense lateral electric field (<code>E<sub>x</sub> &gt; 10⁴ V/cm</code>) at saturation velocity (<code>v<sub>sat</sub> ≈ 1×10⁷ cm/s</code>). Drain current saturates at a constant plateau with modest slope due to channel-length modulation.
+            </p>
+          </article>
+
+          <!-- Section 4: Operating Regions & Equations -->
+          <article id="dnmos-equations" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. Operating Regions, Analytical Formulations &amp; Shockley Form</h3>
+              <span class="theory-card-tag">kn = 0.65 mA/V², VTH = -0.80V, IDSS = 0.208 mA</span>
+            </div>
+            <p class="theory-p">
+              Define the process transconductance parameter as <code>k<sub>n</sub> = μ<sub>n</sub> · C<sub>ox</sub> · (W / L) = 0.65 mA/V²</code>. Overdrive voltage is defined as <code>V<sub>OV</sub> = V<sub>GS</sub> - V<sub>TH</sub> = V<sub>GS</sub> - (-0.80V) = V<sub>GS</sub> + 0.80V</code>.
+            </p>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Operating Region</th>
+                    <th>Voltage Conditions</th>
+                    <th>Analytical Current Equation (ID)</th>
+                    <th>Channel State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Cutoff</b></td>
+                    <td><code>V<sub>GS</sub> ≤ V<sub>TH</sub> (-0.80V)</code></td>
+                    <td><code>I<sub>D</sub> = 0</code></td>
+                    <td>Fully depleted; space-charge barrier shuts off current</td>
+                  </tr>
+                  <tr>
+                    <td><b>Linear (Triode)</b></td>
+                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> &lt; V<sub>GS</sub> - V<sub>TH</sub></code></td>
+                    <td><code>I<sub>D</sub> = k<sub>n</sub> · [(V<sub>GS</sub> - V<sub>TH</sub>)·V<sub>DS</sub> - ½·V<sub>DS</sub>²]</code></td>
+                    <td>Continuous resistive N-channel from S to D</td>
+                  </tr>
+                  <tr>
+                    <td><b>Saturation</b></td>
+                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> ≥ V<sub>GS</sub> - V<sub>TH</sub></code></td>
+                    <td><code>I<sub>D</sub> = ½·k<sub>n</sub>·(V<sub>GS</sub> - V<sub>TH</sub>)² · (1 + λ·V<sub>DS</sub>)</code></td>
+                    <td>Pinched off at drain edge; saturated drift current</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Shockley Zero-Bias Saturation Form: I<sub>DSS</sub> = ½ · k<sub>n</sub> · V<sub>TH</sub>² = ½ · (0.65 mA/V²) · (-0.80 V)² ≈ 0.208 mA</div>
+              <div class="theory-formula-sub">In normalized JFET/Depletion format: I<sub>D,sat</sub> = I<sub>DSS</sub> · [1 - (V<sub>GS</sub> / V<sub>TH</sub>)]² · (1 + λ · V<sub>DS</sub>)</div>
+            </div>
+          </article>
+
+          <!-- Section 5: Sync with Live Graph -->
+          <article id="dnmos-graphs" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Graph Panel</h3>
+              <span class="theory-card-tag">Presets: CUTOFF, DEPLETION, ZERO BIAS, ENHANCE</span>
+            </div>
+            <p class="theory-p">
+              The live <b>PHYSICS &amp; GRAPH</b> panel in this D-NMOS module implements 4 dedicated operating region presets:
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Region Presets &amp; Biasing</span>
+                <p class="theory-subcard-desc">
+                  • <b>CUTOFF:</b> V<sub>GS</sub> = -0.80V (Channel depleted, I<sub>D</sub> = 0)<br>
+                  • <b>DEPLETION:</b> V<sub>GS</sub> = -0.40V (Narrowed channel, I<sub>D</sub> &lt; I<sub>DSS</sub>)<br>
+                  • <b>ZERO BIAS:</b> V<sub>GS</sub> = 0.00V (Normally ON, I<sub>D</sub> = I<sub>DSS</sub> = 0.21 mA)<br>
+                  • <b>ENHANCE:</b> V<sub>GS</sub> = +0.40V (Accumulation layer, I<sub>D</sub> &gt; I<sub>DSS</sub>)
+                </p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Saturation Locus Curve</span>
+                <p class="theory-subcard-desc">The dashed golden curve shows the pinch-off boundary <code>V<sub>DS,sat</sub> = V<sub>GS</sub> - V<sub>TH</sub></code>. Observe that even at V<sub>GS</sub> = 0V, saturation begins at <code>V<sub>DS</sub> = 0.80V</code>.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 6: Applications & VLSI Role -->
+          <article id="dnmos-applications" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. VLSI Logic &amp; Analog Applications</h3>
+              <span class="theory-card-tag">Depletion Load Inverter, Current Sources</span>
+            </div>
+            <p class="theory-p">
+              <b>Depletion-Load NMOS Inverters:</b> Before complementary CMOS became universal, D-NMOS was heavily utilized as an active pull-up load resistor by tying its gate to its source (<code>V<sub>GS</sub> = 0V</code>). This configuration provides a constant pull-up current <code>I<sub>DSS</sub></code> that charges load capacitance significantly faster than a passive resistor without sacrificing logic swing.
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Constant Current Reference</span>
+                <p class="theory-subcard-desc">With gate tied to source, D-NMOS behaves as a two-terminal constant current sink: <code>I = I<sub>DSS</sub> (1 + λ V<sub>DS</sub>)</code>, operating down to <code>V<sub>DS</sub> = |V<sub>TH</sub>|</code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Power Management Startup</span>
+                <p class="theory-subcard-desc">Because D-NMOS is normally ON at 0V, modern Power Management ICs (PMICs) use D-NMOS transistors as high-voltage startup switches to prime internal regulators before CMOS control circuits power up.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
 
       <div id="popover">
         <div class="pop-card">

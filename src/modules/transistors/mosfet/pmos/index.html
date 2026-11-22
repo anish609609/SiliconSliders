@@ -30,7 +30,8 @@
 
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
-        <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
+        <button data-mode="theory">THEORY</button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
@@ -152,7 +153,7 @@
             <!-- Body / Bulk connection with outward arrow for P-channel -->
             <line x1="222" y1="175" x2="270" y2="175" stroke="#3f8f6f" stroke-width="2"/>
             <polygon points="260,175 248,170 248,180" fill="#3f8f6f"/>
-            <line x1="270" y1="175" x2="330" y2="175" stroke="#3f8f6f" stroke-width="2"/>
+            <line x1="270" y1="175" x2="370" y2="175" stroke="#3f8f6f" stroke-width="2"/>
           </g>
 
           <!-- DRAIN Net & Pad (Bottom - OUT) -->
@@ -166,10 +167,10 @@
 
           <!-- N-WELL BODY Net (Right - VDD) -->
           <g class="sch-el" data-id="wellRail">
-            <line x1="330" y1="175" x2="330" y2="270" stroke="#3f8f6f" stroke-width="2"/>
-            <rect x="300" y="270" width="80" height="30" rx="4" fill="rgba(63, 143, 111, 0.15)" stroke="#3f8f6f" stroke-width="1.5"/>
-            <text x="340" y="290" fill="#3f8f6f" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">WELL (B)</text>
-            <text x="340" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">N-Well (VDD)</text>
+            <line x1="370" y1="175" x2="370" y2="270" stroke="#3f8f6f" stroke-width="2"/>
+            <rect x="330" y="270" width="80" height="30" rx="4" fill="rgba(63, 143, 111, 0.15)" stroke="#3f8f6f" stroke-width="1.5"/>
+            <text x="370" y="290" fill="#3f8f6f" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">WELL (B)</text>
+            <text x="370" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">N-Well (VDD)</text>
           </g>
 
           <!-- State Annotations -->
@@ -178,6 +179,207 @@
         </svg>
         <div class="cap">DISCRETE PMOS TRANSISTOR · SCHEMATIC · Bubble on gate indicates active-low P-channel (holes) · Click terminals to locate in 3D</div>
       </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Header -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>Enhancement PMOS (E-PMOS) Transistor Physics</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  N-well tub electrostatics, hole inversion conduction, active-low gate switching, and complete governing formulations.
+                </p>
+              </div>
+              <span class="theory-badge">N-Well Tub · P+ S/D · Normally OFF (VTH &lt; 0)</span>
+            </div>
+
+            <!-- Quick Jump Anchor Links -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#pmos-structure" class="theory-jump-chip">1. Architecture &amp; N-Well</a>
+              <a href="#pmos-inversion" class="theory-jump-chip">2. Hole Inversion &amp; Threshold</a>
+              <a href="#pmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
+              <a href="#pmos-equations" class="theory-jump-chip">4. Operating Regions &amp; Equations</a>
+              <a href="#pmos-graphs" class="theory-jump-chip">5. Live Graph &amp; Locus Sync</a>
+              <a href="#pmos-secondorder" class="theory-jump-chip">6. Second-Order &amp; Body Effect</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Architecture & N-Well Tub -->
+          <article id="pmos-structure" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Device Architecture, N-Well Tub &amp; Normally-OFF Mode</h3>
+              <span class="theory-card-tag">N-Well Tub, P+ S/D, Hole Conduction</span>
+            </div>
+            <p class="theory-p">
+              The <b>Enhancement P-Channel MOSFET (E-PMOS)</b> is fabricated inside an engineered N-well tub (donor concentration <code>N<sub>D</sub> ≈ 1×10¹⁶ cm⁻³</code>) embedded within the standard P-type silicon wafer. Heavily doped P-type source and drain regions (boron concentration <code>N<sub>A</sub> ≈ 1×10²⁰ cm⁻³</code>) flank the channel.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. N-Well Tub Isolation</span>
+                <p class="theory-subcard-desc">The N-well is biased to the most positive power rail (VDD = +1.0V to +1.2V) via an N+ well tap to keep the well-to-substrate PN junction reverse-biased and isolate PMOS from neighboring circuits.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Hole Drift Conduction</span>
+                <p class="theory-subcard-desc">Conduction is carried by positively charged holes (h+). Due to higher effective mass in the valence band, hole mobility (<code>μ<sub>p</sub> ≈ 220 cm²/(V·s)</code>) is roughly 2.5× lower than electron mobility.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Channel Width Sizing (Wp ≈ 2Wn)</span>
+                <p class="theory-subcard-desc">To match the drive current and switching speed of an NMOS device of identical gate length, PMOS channel width must be sized wider: <code>W<sub>p</sub> ≈ (2 to 3) × W<sub>n</sub></code>.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              At zero gate-to-source bias (<code>V<sub>GS</sub> = 0V</code> or <code>V<sub>SG</sub> = 0V</code>), the back-to-back P+/N-well junctions completely block current transit. Thus, E-PMOS is inherently <b>normally OFF</b>.
+            </p>
+          </article>
+
+          <!-- Section 2: Inversion & Threshold Voltage -->
+          <article id="pmos-inversion" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Surface Inversion &amp; Negative Threshold Voltage (VTH &lt; 0)</h3>
+              <span class="theory-card-tag">VTH,p = -0.80V, |VTH,p| = +0.80V</span>
+            </div>
+            <p class="theory-p">
+              To induce a conductive channel in PMOS, a negative voltage must be applied to the gate with respect to the source and N-well. In circuit design, it is standard practice to express voltages using positive source-referenced notations:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">V<sub>SG</sub> = V<sub>S</sub> - V<sub>G</sub> = -V<sub>GS</sub> &nbsp;&gt;&nbsp; |V<sub>TH,p</sub>| &nbsp;≈&nbsp; +0.80 V</div>
+              <div class="theory-formula-sub">Negative threshold: V<sub>TH,p</sub> ≈ -0.80 V &nbsp;·&nbsp; Effective Overdrive: V<sub>OV</sub> = V<sub>SG</sub> - |V<sub>TH,p</sub>| = |V<sub>GS</sub>| - |V<sub>TH,p</sub>|</div>
+            </div>
+            <p class="theory-p">
+              <b>Physical Inversion Process:</b> When <code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code> (or <code>V<sub>GS</sub> &lt; V<sub>TH,p</sub></code>), the negative gate potential bends energy bands upward, repelling majority electrons from the N-well surface and creating an initial depletion layer. Once the surface potential reaches strong inversion (<code>ψ<sub>s</sub> = -2φ<sub>Fn</sub></code>), minority holes from the P+ source and drain are attracted to the interface, forming a continuous conductive P-type inversion layer.
+            </p>
+          </article>
+
+          <!-- Section 3: Explicit Pinch-Off Mechanism -->
+          <article id="pmos-pinchoff" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. The Pinch-Off Mechanism in P-Channel Transistors</h3>
+              <span class="theory-card-tag">VSD,sat = VSG - |VTH,p|, VDG = |VTH,p|</span>
+            </div>
+            <p class="theory-p">
+              In PMOS operation, the Source is typically held at positive supply <code>V<sub>DD</sub></code> while the Drain is at a lower voltage (<code>V<sub>SD</sub> = V<sub>S</sub> - V<sub>D</sub> ≥ 0</code>). Along the channel from Source (y=0, V=0 relative to source) to Drain (y=L, V=V<sub>SD</sub>), the local source-to-channel potential increases, which reduces the local gate oxide potential.
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Pinch-Off Boundary Condition: V<sub>SD</sub> = V<sub>SD,sat</sub> = V<sub>SG</sub> - |V<sub>TH,p</sub>| &nbsp;⟺&nbsp; V<sub>DG</sub> = |V<sub>TH,p</sub>|</div>
+              <div class="theory-formula-sub">In standard VGS/VDS coordinates: |V<sub>DS</sub>| = |V<sub>DS,sat</sub>| = |V<sub>GS</sub> - V<sub>TH,p</sub>| &nbsp;⟺&nbsp; V<sub>GD</sub> = V<sub>TH,p</sub></div>
+            </div>
+            <p class="theory-p">
+              <b>Why and How Pinch-Off Occurs:</b>
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Linear Regime (VSD &lt; VSD,sat)</span>
+                <p class="theory-subcard-desc">The hole inversion layer extends continuously from Source to Drain. The channel depth is deepest at the Source and tapers toward the Drain as local overdrive shrinks.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Beyond Pinch-Off (VSD ≥ VSD,sat)</span>
+                <p class="theory-subcard-desc">The hole inversion layer thickness drops to zero at the Drain edge. The pinch-off boundary shifts slightly toward the source, creating a high-field space charge region <code>ΔL</code>.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              <b>Hole Transport Beyond Pinch-Off:</b> When holes drifting down the channel reach the pinch-off point, they encounter an intense lateral electric field directed from Source to Drain. This field sweeps the holes across the depletion region into the Drain at saturation velocity. The hole current <code>I<sub>SD</sub></code> reaches saturation and remains nearly constant regardless of further increase in <code>V<sub>SD</sub></code>.
+            </p>
+          </article>
+
+          <!-- Section 4: Operating Regions & Equations -->
+          <article id="pmos-equations" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. Operating Regions &amp; Complete Governing Formulations</h3>
+              <span class="theory-card-tag">kp = 0.32 mA/V², λ = 0.08 V⁻¹</span>
+            </div>
+            <p class="theory-p">
+              Define the PMOS process transconductance parameter as <code>k<sub>p</sub> = μ<sub>p</sub> · C<sub>ox</sub> · (W<sub>p</sub> / L)</code> (nominal model value: <code>k<sub>p</sub> = 0.32 mA/V²</code>). The operating regions are mathematically partitioned as follows:
+            </p>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Operating Region</th>
+                    <th>Source-Referenced Conditions</th>
+                    <th>Analytical Current Equation (ISD)</th>
+                    <th>Channel State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Cutoff</b></td>
+                    <td><code>V<sub>SG</sub> ≤ |V<sub>TH,p</sub>|</code><br><span style="font-size:10px; color:var(--v-text-tertiary);">(V<sub>GS</sub> ≥ V<sub>TH,p</sub>)</span></td>
+                    <td><code>I<sub>SD</sub> = 0</code> &nbsp;(Ideal drift)<br><span style="font-size:10px; color:var(--v-text-tertiary);">Subthreshold leakage only</span></td>
+                    <td>No channel; P+/N-well barrier blocks holes</td>
+                  </tr>
+                  <tr>
+                    <td><b>Linear (Triode)</b></td>
+                    <td><code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code><br><code>V<sub>SD</sub> &lt; V<sub>SG</sub> - |V<sub>TH,p</sub>|</code></td>
+                    <td><code>I<sub>SD</sub> = k<sub>p</sub> · [(V<sub>SG</sub> - |V<sub>TH,p</sub>|)·V<sub>SD</sub> - ½·V<sub>SD</sub>²]</code></td>
+                    <td>Continuous resistive inverted P-channel</td>
+                  </tr>
+                  <tr>
+                    <td><b>Saturation</b></td>
+                    <td><code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code><br><code>V<sub>SD</sub> ≥ V<sub>SG</sub> - |V<sub>TH,p</sub>|</code></td>
+                    <td><code>I<sub>SD</sub> = ½·k<sub>p</sub>·(V<sub>SG</sub> - |V<sub>TH,p</sub>|)² · (1 + λ·V<sub>SD</sub>)</code></td>
+                    <td>Pinched off at drain; velocity-saturated hole sweep</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Small-Signal Transconductance: g<sub>m</sub> = ∂I<sub>SD</sub>/∂V<sub>SG</sub> = k<sub>p</sub> · (V<sub>SG</sub> - |V<sub>TH,p</sub>|) = √(2 · k<sub>p</sub> · I<sub>SD</sub>)</div>
+              <div class="theory-formula-sub">Output Resistance: r<sub>o</sub> = ∂V<sub>SD</sub>/∂I<sub>SD</sub> ≈ 1 / (λ · I<sub>SD,sat</sub>) &nbsp;·&nbsp; Intrinsic Gain: A<sub>v0</sub> = g<sub>m</sub> · r<sub>o</sub> = 2 / [λ · (V<sub>SG</sub> - |V<sub>TH,p</sub>|)]</div>
+            </div>
+          </article>
+
+          <!-- Section 5: Sync with Live Graph -->
+          <article id="pmos-graphs" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Graph Panel</h3>
+              <span class="theory-card-tag">ISD vs. VSD Family of Curves</span>
+            </div>
+            <p class="theory-p">
+              The live <b>PHYSICS &amp; GRAPH</b> panel in this PMOS module continuously plots <code>I<sub>SD</sub></code> versus <code>V<sub>SD</sub></code> (or <code>|I<sub>D</sub>|</code> vs. <code>|V<sub>DS</sub>|</code>):
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Quadratic Saturation Locus</span>
+                <p class="theory-subcard-desc">The dashed golden parabola denotes <code>I<sub>SD,sat</sub> = ½ k<sub>p</sub> V<sub>SD</sub>²</code>, tracing the transition from triode to saturation across all gate voltages <code>V<sub>SG</sub></code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Finite Output Conductance (λ)</span>
+                <p class="theory-subcard-desc">In saturation, curves slope upward due to channel-length modulation parameter <code>λ = 0.08 V⁻¹</code>, reflecting the shortening of <code>L<sub>eff</sub> = L - ΔL</code> under higher <code>V<sub>SD</sub></code>.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              <b>Live Telemetry Sync:</b> Operating readouts for <code>V<sub>GS</sub></code> (or <code>V<sub>SG</sub></code>), <code>V<sub>SD</sub></code>, <code>V<sub>TH,p</sub> = -0.80V</code>, <code>V<sub>OV</sub> = V<sub>SG</sub> - |V<sub>TH,p</sub>|</code>, and <code>I<sub>SD</sub></code> accurately reflect the real-time bias point. Clicking or dragging the canvas cursor repositions the operating bias and animates 3D hole carriers proportionally.
+            </p>
+          </article>
+
+          <!-- Section 6: Second-Order Effects & Body Bias -->
+          <article id="pmos-secondorder" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. Second-Order Effects, Body Bias &amp; Latchup Prevention</h3>
+              <span class="theory-card-tag">Body Effect, Substrate Sensitivity, Latchup</span>
+            </div>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">PMOS Body Effect</span>
+                <p class="theory-subcard-desc">If the N-well body is biased higher than the Source (<code>V<sub>BS</sub> = V<sub>Well</sub> - V<sub>S</sub> &gt; 0</code>), the threshold magnitude increases:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; margin-top:4px; color:var(--v-accent-cyan);">
+                  |V<sub>TH,p</sub>| = |V<sub>TH0,p</sub>| + γ<sub>p</sub> · [√(2φ<sub>Fn</sub> + V<sub>BS</sub>) - √(2φ<sub>Fn</sub>)]
+                </div>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">CMOS Latchup Prevention</span>
+                <p class="theory-subcard-desc">Parasitic bipolar transistors (vertical PNP and lateral NPN) form a silicon-controlled rectifier (SCR). Frequent N+ well taps to VDD and P+ substrate taps to GND clamp substrate resistance, suppressing latchup.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
 
       <div id="popover">
         <div class="pop-card">

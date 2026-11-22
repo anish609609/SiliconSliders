@@ -1,23 +1,80 @@
-/* PHYSICAL LAYOUT <-> SCHEMATIC switcher with SVG [data-id] cross-probing */
+/* PHYSICAL LAYOUT <-> SCHEMATIC <-> THEORY switcher with SVG [data-id] cross-probing */
 
-var viewMode = 'layout';
+var viewMode = 'layout'; // 'theory' | 'layout' | 'schematic'
 
 function setViewMode(mode) {
-  viewMode = mode === 'schematic' ? 'schematic' : 'layout';
+  viewMode = mode;
   var overlay = document.getElementById('schematic-overlay');
+  var theoryOverlay = document.getElementById('theory-overlay');
+  var canvasHost = document.getElementById('canvas-host');
   var btnLayout = document.getElementById('btn-view-layout');
   var btnSch = document.getElementById('btn-view-schematic');
+  var btnTheory = document.getElementById('btn-view-theory');
 
-  if (btnLayout) btnLayout.classList.toggle('active', viewMode === 'layout');
-  if (btnSch) btnSch.classList.toggle('active', viewMode === 'schematic');
+  if (btnTheory) btnTheory.classList.toggle('active', mode === 'theory');
+  if (btnLayout) btnLayout.classList.toggle('active', mode === 'layout');
+  if (btnSch) btnSch.classList.toggle('active', mode === 'schematic');
 
-  if (overlay) {
-    overlay.classList.toggle('hidden', viewMode !== 'schematic');
+  var isTheory = (mode === 'theory');
+  var isSchematic = (mode === 'schematic');
+  var isLayout = (mode === 'layout');
+
+  if (theoryOverlay) {
+    theoryOverlay.classList.toggle('visible', isTheory);
+    theoryOverlay.style.display = isTheory ? 'block' : 'none';
   }
 
-  if (viewMode === 'schematic') {
+  if (overlay) {
+    overlay.classList.toggle('hidden', !isSchematic);
+    overlay.style.display = isSchematic ? 'flex' : 'none';
+  }
+
+  if (canvasHost) {
+    canvasHost.style.visibility = isLayout ? 'visible' : 'hidden';
+    canvasHost.style.display = isLayout ? 'block' : 'none';
+  }
+
+  // 3D HUD & floating controls
+  var inToggles = document.querySelectorAll('.in-toggle');
+  inToggles.forEach(function(el){ el.style.display = isTheory ? 'none' : ''; });
+
+  var flowModeGroup = document.getElementById('flow-mode-group');
+  if (flowModeGroup) flowModeGroup.style.display = isLayout ? '' : 'none';
+
+  var btnBuildAnim = document.getElementById('btn-build-anim');
+  if (btnBuildAnim) btnBuildAnim.style.display = isLayout ? '' : 'none';
+
+  var btnResetCam = document.getElementById('btn-reset-cam') || document.getElementById('btn-reset');
+  if (btnResetCam) btnResetCam.style.display = isLayout ? '' : 'none';
+
+  var leftToggle = document.getElementById('left-toggle');
+  if (leftToggle) leftToggle.style.display = isLayout ? '' : 'none';
+
+  var rightToggle = document.getElementById('right-toggle');
+  if (rightToggle) rightToggle.style.display = isLayout ? '' : 'none';
+
+  var leftPanel = document.getElementById('left-panel');
+  if (leftPanel) {
+    if (isTheory) leftPanel.style.display = 'none';
+    else if (isLayout) leftPanel.style.display = '';
+  }
+
+  var rightPanel = document.getElementById('right-panel');
+  if (rightPanel) {
+    if (isTheory) rightPanel.style.display = 'none';
+    else if (isLayout) rightPanel.style.display = '';
+  }
+
+  var vaLauncher = document.getElementById('va-launcher-btn');
+  if (vaLauncher) vaLauncher.style.display = isTheory ? 'none' : '';
+
+  if (isSchematic || isTheory) {
     var pop = document.getElementById('popover');
     if (pop) pop.classList.add('hidden');
+  } else {
+    // Returning to 3D layout
+    window.dispatchEvent(new Event('resize'));
+    if (typeof controls !== 'undefined' && controls && controls.update) controls.update();
   }
 }
 
@@ -57,12 +114,17 @@ function updateSchematicVisuals(state) {
 }
 
 function initViewMode() {
+  var btnTheory = document.getElementById('btn-view-theory');
   var btnLayout = document.getElementById('btn-view-layout');
   var btnSch = document.getElementById('btn-view-schematic');
   var schBack = document.getElementById('sch-btn-layout');
   var schReset = document.getElementById('sch-btn-reset');
   var svg = document.getElementById('nand2-schematic-svg');
+  var theoryOverlay = document.getElementById('theory-overlay');
 
+  if (btnTheory) {
+    btnTheory.addEventListener('click', function () { setViewMode('theory'); });
+  }
   if (btnLayout) {
     btnLayout.addEventListener('click', function () { setViewMode('layout'); });
   }
@@ -88,6 +150,20 @@ function initViewMode() {
       if (typeof selectById === 'function') {
         selectById(id);
       }
+    });
+  }
+
+  // Smooth scrolling for quick jump anchors inside theory view
+  if (theoryOverlay) {
+    theoryOverlay.querySelectorAll('a[href^="#"]').forEach(function(a) {
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        var targetId = a.getAttribute('href').slice(1);
+        var targetEl = document.getElementById(targetId);
+        if (targetEl) {
+          targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
     });
   }
 }

@@ -30,7 +30,8 @@
 
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
-        <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
+        <button data-mode="theory">THEORY</button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
@@ -150,7 +151,7 @@
             <!-- Body / Bulk connection with outward arrow for P-channel -->
             <line x1="222" y1="175" x2="270" y2="175" stroke="#3f8f6f" stroke-width="2"/>
             <polygon points="260,175 248,170 248,180" fill="#3f8f6f"/>
-            <line x1="270" y1="175" x2="330" y2="175" stroke="#3f8f6f" stroke-width="2"/>
+            <line x1="270" y1="175" x2="370" y2="175" stroke="#3f8f6f" stroke-width="2"/>
           </g>
 
           <!-- DRAIN Net & Pad (Bottom - OUT) -->
@@ -164,10 +165,10 @@
 
           <!-- N-WELL BODY Net (Right - VDD) -->
           <g class="sch-el" data-id="wellRail">
-            <line x1="330" y1="175" x2="330" y2="270" stroke="#3f8f6f" stroke-width="2"/>
-            <rect x="300" y="270" width="80" height="30" rx="4" fill="rgba(63, 143, 111, 0.15)" stroke="#3f8f6f" stroke-width="1.5"/>
-            <text x="340" y="290" fill="#3f8f6f" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">WELL (B)</text>
-            <text x="340" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">N-Well (VDD)</text>
+            <line x1="370" y1="175" x2="370" y2="270" stroke="#3f8f6f" stroke-width="2"/>
+            <rect x="330" y="270" width="80" height="30" rx="4" fill="rgba(63, 143, 111, 0.15)" stroke="#3f8f6f" stroke-width="1.5"/>
+            <text x="370" y="290" fill="#3f8f6f" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">WELL (B)</text>
+            <text x="370" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">N-Well (VDD)</text>
           </g>
 
           <!-- State Annotations -->
@@ -176,6 +177,210 @@
         </svg>
         <div class="cap">DISCRETE DEPLETION PMOS · SCHEMATIC · Solid bar indicates implanted P-channel (Normally ON) · Bubble indicates active-low gate · Click terminals to locate in 3D</div>
       </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Header -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>Depletion PMOS (D-PMOS) Transistor Physics</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  Pre-implanted metallurgical P-channel in N-well, normally ON zero-bias hole conduction, dual-mode operation, and Shockley formulations.
+                </p>
+              </div>
+              <span class="theory-badge">Implanted P-Channel in N-Well · Normally ON (VTH &gt; 0) · Dual Mode</span>
+            </div>
+
+            <!-- Quick Jump Anchor Links -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#dpmos-structure" class="theory-jump-chip">1. Implanted Architecture</a>
+              <a href="#dpmos-dualmode" class="theory-jump-chip">2. Depletion vs. Enhancement</a>
+              <a href="#dpmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
+              <a href="#dpmos-equations" class="theory-jump-chip">4. Operating Regions &amp; Shockley</a>
+              <a href="#dpmos-graphs" class="theory-jump-chip">5. Live Graph &amp; Zero Bias</a>
+              <a href="#dpmos-applications" class="theory-jump-chip">6. Precision Analog Uses</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Architecture & Implanted Channel -->
+          <article id="dpmos-structure" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Device Architecture, Doping &amp; Normally-ON Conduction</h3>
+              <span class="theory-card-tag">Implanted P-Layer in N-Well, IDSS = 0.10 mA, VTH = +0.80V</span>
+            </div>
+            <p class="theory-p">
+              The <b>Depletion P-Channel MOSFET (D-PMOS)</b> is fabricated inside an N-well tub embedded within a P-substrate wafer. A shallow acceptor-doped P-type layer (boron or BF₂ dose <code>Φ<sub>A</sub> ≈ 1×10¹² cm⁻²</code>) is pre-implanted directly under the gate oxide between the heavily doped P+ Source and Drain regions.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. Built-in P-Channel</span>
+                <p class="theory-subcard-desc">At zero gate bias (<code>V<sub>GS</sub> = 0V</code>), the metallurgical P-channel is populated with free hole carriers. A robust zero-bias current (<code>I<sub>DSS</sub> ≈ 0.102 mA</code>) flows when V<sub>SD</sub> is applied.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Positive Threshold (VTH &gt; 0)</span>
+                <p class="theory-subcard-desc">In D-PMOS, gate-to-source threshold voltage is positive: <code>V<sub>TH</sub> = +0.80V</code>. A positive gate bias is required to deplete holes and turn the transistor OFF.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Normally-ON Property</span>
+                <p class="theory-subcard-desc">Current flows effortlessly at zero gate bias without needing inversion. Applying gate voltage modulates the channel cross-sectional thickness above or below nominal.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 2: Dual-Mode Operation -->
+          <article id="dpmos-dualmode" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Dual-Mode Operation: Depletion Mode vs. Enhancement Mode</h3>
+              <span class="theory-card-tag">Depletion (VGS &gt; 0) vs. Enhancement (VGS &lt; 0)</span>
+            </div>
+            <p class="theory-p">
+              Because the channel is pre-formed, D-PMOS supports dual-mode gate control:
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Cutoff / Full Pinch-Off (VGS ≥ VTH)</span>
+                <p class="theory-subcard-desc">When positive gate bias <code>V<sub>GS</sub> ≥ +0.80V</code> is applied, the gate depletion region expands downward across the entire P-channel thickness, repelling all mobile holes: <code>I<sub>SD</sub> = 0</code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Depletion Mode (0V &lt; VGS &lt; VTH)</span>
+                <p class="theory-subcard-desc">Positive gate voltage pushes holes into the N-well, narrowing the effective channel depth. Hole current is reduced below the zero-bias level I<sub>DSS</sub>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Enhancement Mode (VGS &lt; 0V)</span>
+                <p class="theory-subcard-desc">Negative gate voltage attracts additional holes to the surface, accumulating carriers on top of the implanted channel. This boosts <code>I<sub>SD</sub></code> well above I<sub>DSS</sub>.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 3: Explicit Pinch-Off Mechanism -->
+          <article id="dpmos-pinchoff" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. The Pinch-Off Mechanism in Depletion PMOS</h3>
+              <span class="theory-card-tag">VSD,sat = VTH - VGS = 0.80V - VGS</span>
+            </div>
+            <p class="theory-p">
+              Source is tied to positive potential <code>V<sub>DD</sub></code> while Drain is at a lower voltage (<code>V<sub>SD</sub> = V<sub>S</sub> - V<sub>D</sub> ≥ 0</code>). Along the channel from Source to Drain, local gate-to-channel reverse bias increases.
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Pinch-Off Boundary Equation: V<sub>SD</sub> = V<sub>SD,sat</sub> = V<sub>TH</sub> - V<sub>GS</sub> &nbsp;(for V<sub>GS</sub> &lt; V<sub>TH</sub>)</div>
+              <div class="theory-formula-sub">With V<sub>TH</sub> = +0.80 V, pinch-off at zero gate bias (V<sub>GS</sub> = 0V) occurs at exactly V<sub>SD,sat</sub> = 0.80V - 0V = +0.80 V!</div>
+            </div>
+            <p class="theory-p">
+              <b>Why and How Pinch-Off Occurs:</b>
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Linear Regime (VSD &lt; VSD,sat)</span>
+                <p class="theory-subcard-desc">The implanted hole channel is continuous between Source and Drain. The channel cross-section is deeper at the Source and tapers toward the Drain.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Beyond Pinch-Off (VSD ≥ VSD,sat)</span>
+                <p class="theory-subcard-desc">The depletion region merges at the Drain edge. The channel pinches off, and excess voltage <code>V<sub>SD</sub> - V<sub>SD,sat</sub></code> drops across the drain space-charge layer.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              <b>Carrier Transport Beyond Pinch-Off:</b> Mobile holes traveling down the channel reach the pinch-off point and are swept across the drain space-charge layer by the intense lateral electric field into the Drain at saturation velocity. Hole current <code>I<sub>SD</sub></code> reaches a saturation plateau.
+            </p>
+          </article>
+
+          <!-- Section 4: Operating Regions & Equations -->
+          <article id="dpmos-equations" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. Operating Regions, Analytical Formulations &amp; Shockley Form</h3>
+              <span class="theory-card-tag">kp = 0.32 mA/V², VTH = +0.80V, IDSS = 0.102 mA</span>
+            </div>
+            <p class="theory-p">
+              Define the PMOS process transconductance parameter as <code>k<sub>p</sub> = μ<sub>p</sub> · C<sub>ox</sub> · (W<sub>p</sub> / L) = 0.32 mA/V²</code>. Overdrive voltage is defined as <code>V<sub>OV</sub> = V<sub>TH</sub> - V<sub>GS</sub> = 0.80V - V<sub>GS</sub></code>.
+            </p>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Operating Region</th>
+                    <th>Voltage Conditions</th>
+                    <th>Analytical Current Equation (ISD)</th>
+                    <th>Channel State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Cutoff</b></td>
+                    <td><code>V<sub>GS</sub> ≥ V<sub>TH</sub> (+0.80V)</code></td>
+                    <td><code>I<sub>SD</sub> = 0</code></td>
+                    <td>Fully depleted; hole conduction extinguished</td>
+                  </tr>
+                  <tr>
+                    <td><b>Linear (Triode)</b></td>
+                    <td><code>V<sub>GS</sub> &lt; V<sub>TH</sub></code><br><code>V<sub>SD</sub> &lt; V<sub>TH</sub> - V<sub>GS</sub></code></td>
+                    <td><code>I<sub>SD</sub> = k<sub>p</sub> · [(V<sub>TH</sub> - V<sub>GS</sub>)·V<sub>SD</sub> - ½·V<sub>SD</sub>²]</code></td>
+                    <td>Continuous resistive P-channel from S to D</td>
+                  </tr>
+                  <tr>
+                    <td><b>Saturation</b></td>
+                    <td><code>V<sub>GS</sub> &lt; V<sub>TH</sub></code><br><code>V<sub>SD</sub> ≥ V<sub>TH</sub> - V<sub>GS</sub></code></td>
+                    <td><code>I<sub>SD</sub> = ½·k<sub>p</sub>·(V<sub>TH</sub> - V<sub>GS</sub>)² · (1 + λ·V<sub>SD</sub>)</code></td>
+                    <td>Pinched off at drain; velocity-saturated hole sweep</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Shockley Zero-Bias Saturation Form: I<sub>DSS</sub> = ½ · k<sub>p</sub> · V<sub>TH</sub>² = ½ · (0.32 mA/V²) · (+0.80 V)² ≈ 0.102 mA</div>
+              <div class="theory-formula-sub">In normalized JFET/Depletion format: I<sub>SD,sat</sub> = I<sub>DSS</sub> · [1 - (V<sub>GS</sub> / V<sub>TH</sub>)]² · (1 + λ · V<sub>SD</sub>)</div>
+            </div>
+          </article>
+
+          <!-- Section 5: Sync with Live Graph -->
+          <article id="dpmos-graphs" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Graph Panel</h3>
+              <span class="theory-card-tag">Presets: CUTOFF, DEPLETION, ZERO BIAS, ENHANCE</span>
+            </div>
+            <p class="theory-p">
+              The live <b>PHYSICS &amp; GRAPH</b> panel in this D-PMOS module synchronizes directly with the 4 operating region presets:
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Region Presets &amp; Biasing</span>
+                <p class="theory-subcard-desc">
+                  • <b>CUTOFF:</b> V<sub>GS</sub> = +0.80V (Holes depleted, I<sub>SD</sub> = 0)<br>
+                  • <b>DEPLETION:</b> V<sub>GS</sub> = +0.40V (Narrowed channel, I<sub>SD</sub> &lt; I<sub>DSS</sub>)<br>
+                  • <b>ZERO BIAS:</b> V<sub>GS</sub> = 0.00V (Normally ON, I<sub>SD</sub> = I<sub>DSS</sub> = 0.10 mA)<br>
+                  • <b>ENHANCE:</b> V<sub>GS</sub> = -0.40V (Accumulation layer, I<sub>SD</sub> &gt; I<sub>DSS</sub>)
+                </p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Saturation Locus Curve</span>
+                <p class="theory-subcard-desc">The dashed golden curve represents <code>V<sub>SD,sat</sub> = V<sub>TH</sub> - V<sub>GS</sub></code>. At zero gate bias (V<sub>GS</sub> = 0V), saturation begins at <code>V<sub>SD</sub> = 0.80V</code>.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 6: Applications & Precision Analog Uses -->
+          <article id="dpmos-applications" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. Analog Precision &amp; Power IC Applications</h3>
+              <span class="theory-card-tag">High-Side Current Sources, Voltage Level Shifters</span>
+            </div>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">High-Side Constant Current Source</span>
+                <p class="theory-subcard-desc">With gate tied to source (<code>V<sub>GS</sub> = 0V</code>), D-PMOS acts as a high-side current source connected to VDD, supplying constant current <code>I<sub>DSS</sub></code> down to low drain voltages.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Zero-Headroom Level Shifters</span>
+                <p class="theory-subcard-desc">Because D-PMOS requires no gate threshold voltage drop to turn ON, it is used in analog level shifters and low-dropout regulators requiring minimal voltage headroom.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
 
       <div id="popover">
         <div class="pop-card">

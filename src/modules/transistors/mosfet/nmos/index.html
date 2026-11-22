@@ -35,7 +35,8 @@
 
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
-        <button data-mode="layout" class="active">PHYSICAL LAYOUT</button>
+        <button data-mode="theory">THEORY</button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
@@ -155,7 +156,7 @@
             <!-- Body / Bulk connection with inward arrow for N-channel -->
             <line x1="222" y1="175" x2="270" y2="175" stroke="#9aa6b6" stroke-width="2"/>
             <polygon points="230,175 242,170 242,180" fill="#9aa6b6"/>
-            <line x1="270" y1="175" x2="330" y2="175" stroke="#9aa6b6" stroke-width="2"/>
+            <line x1="270" y1="175" x2="370" y2="175" stroke="#9aa6b6" stroke-width="2"/>
           </g>
 
           <!-- SOURCE Net & Pad (Bottom) -->
@@ -169,10 +170,10 @@
 
           <!-- BODY / SUBSTRATE Net (Right) -->
           <g class="sch-el" data-id="bodyRail">
-            <line x1="330" y1="175" x2="330" y2="270" stroke="#9aa6b6" stroke-width="2"/>
-            <rect x="300" y="270" width="80" height="30" rx="4" fill="rgba(154, 166, 182, 0.15)" stroke="#9aa6b6" stroke-width="1.5"/>
-            <text x="340" y="290" fill="#9aa6b6" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">BODY (B)</text>
-            <text x="340" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">P-Sub / GND</text>
+            <line x1="370" y1="175" x2="370" y2="270" stroke="#9aa6b6" stroke-width="2"/>
+            <rect x="330" y="270" width="80" height="30" rx="4" fill="rgba(154, 166, 182, 0.15)" stroke="#9aa6b6" stroke-width="1.5"/>
+            <text x="370" y="290" fill="#9aa6b6" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">BODY (B)</text>
+            <text x="370" y="315" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10" text-anchor="middle">P-Sub / GND</text>
           </g>
 
           <!-- State Annotations -->
@@ -181,6 +182,229 @@
         </svg>
         <div class="cap">DISCRETE NMOS TRANSISTOR · SCHEMATIC · Inward arrow indicates N-channel (electrons) · Click terminals to locate in 3D</div>
       </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Header -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>Enhancement NMOS (E-NMOS) Transistor Physics</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  Band bending, electrostatic surface inversion, pinch-off boundary mechanics, and complete current-voltage formulations.
+                </p>
+              </div>
+              <span class="theory-badge">P-Substrate · N+ S/D · Normally OFF (VTH &gt; 0)</span>
+            </div>
+
+            <!-- Quick Jump Anchor Links -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#nmos-structure" class="theory-jump-chip">1. Structure &amp; Doping</a>
+              <a href="#nmos-inversion" class="theory-jump-chip">2. Inversion &amp; Threshold</a>
+              <a href="#nmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
+              <a href="#nmos-equations" class="theory-jump-chip">4. Operating Regions &amp; Equations</a>
+              <a href="#nmos-graphs" class="theory-jump-chip">5. Live Graph &amp; Locus Sync</a>
+              <a href="#nmos-secondorder" class="theory-jump-chip">6. Second-Order Effects</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Structure & Doping -->
+          <article id="nmos-structure" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Device Architecture, Doping &amp; Normally-OFF Mode</h3>
+              <span class="theory-card-tag">P-Sub, N+ S/D, LDD, Poly Gate</span>
+            </div>
+            <p class="theory-p">
+              The <b>Enhancement N-Channel MOSFET (E-NMOS)</b> is a four-terminal field-effect transistor fabricated on a moderately doped single-crystal P-type silicon substrate (boron acceptor concentration <code>N<sub>A</sub> ≈ 1×10¹⁵ cm⁻³</code>). Source and Drain contacts consist of heavily doped N-type wells (arsenic or phosphorus donor concentration <code>N<sub>D</sub> ≈ 1×10²⁰ cm⁻³</code>) separated by a channel of physical metallurgical length <code>L</code> and width <code>W</code>.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. Substrate &amp; Bulk (B)</span>
+                <p class="theory-subcard-desc">P-type bulk provides the crystal lattice and forms back-to-back PN junctions with source and drain. Tied to GND (0V) to guarantee reverse-bias isolation.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. LDD / SDE Extensions</span>
+                <p class="theory-subcard-desc">Lightly Doped Drain extensions under the sidewall spacers reduce peak lateral electric fields near the drain edge, suppressing hot-carrier degradation.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Normally-OFF Conduction</span>
+                <p class="theory-subcard-desc">At zero gate bias (<code>V<sub>GS</sub> = 0V</code>), the back-to-back PN junctions prevent electron transit between source and drain. Drain current is virtually zero (cutoff).</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              Because no conductive channel exists at thermal equilibrium without an externally applied electric field, the enhancement NMOS is intrinsically <b>normally OFF</b>. Conduction requires positive gate bias above the threshold voltage.
+            </p>
+          </article>
+
+          <!-- Section 2: Inversion & Threshold Voltage -->
+          <article id="nmos-inversion" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Surface Inversion &amp; Threshold Voltage (VTH &gt; 0)</h3>
+              <span class="theory-card-tag">ψs = 2φF, VTH = +0.70V</span>
+            </div>
+            <p class="theory-p">
+              When a positive voltage <code>V<sub>GS</sub></code> is applied to the polysilicon/metal gate relative to the substrate, positive electric field lines terminate on negative charges in the semiconductor, driving three sequential physical regimes:
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Accumulation (VGS &lt; 0V)</span>
+                <p class="theory-subcard-desc">Negative gate voltage attracts majority holes to the Si/SiO₂ interface, reinforcing the P-type surface and preventing conduction.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Depletion (0V &lt; VGS &lt; VTH)</span>
+                <p class="theory-subcard-desc">Positive gate voltage repels mobile holes, leaving uncompensated ionized acceptor atoms (N<sub>A</sub>⁻) that form an insulating space-charge depletion layer of depth <code>W<sub>dep</sub></code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Strong Inversion (VGS ≥ VTH)</span>
+                <p class="theory-subcard-desc">Band bending pulls the conduction band below the Fermi level. Free minority electrons accumulate at the oxide interface, creating a conductive N-type channel.</p>
+              </div>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">V<sub>TH</sub> = V<sub>FB</sub> + 2φ<sub>F</sub> + [√(2q · ε<sub>Si</sub> · N<sub>A</sub> · 2φ<sub>F</sub>)] / C<sub>ox</sub> &nbsp;≈&nbsp; +0.70 V</div>
+              <div class="theory-formula-sub">Bulk Fermi potential: φ<sub>F</sub> = (kT/q) · ln(N<sub>A</sub>/n<sub>i</sub>) &nbsp;·&nbsp; Oxide Capacitance: C<sub>ox</sub> = ε<sub>ox</sub> / t<sub>ox</sub></div>
+            </div>
+            <p class="theory-p">
+              The effective gate overdrive voltage driving carrier inversion is defined as <code>V<sub>OV</sub> = V<sub>GS</sub> - V<sub>TH</sub></code>. When <code>V<sub>GS</sub> &gt; V<sub>TH</sub></code>, the electron sheet charge density is given by <code>Q<sub>inv</sub>(y) = -C<sub>ox</sub> [V<sub>GS</sub> - V<sub>TH</sub> - V(y)]</code>.
+            </p>
+          </article>
+
+          <!-- Section 3: Explicit Pinch-Off Mechanism -->
+          <article id="nmos-pinchoff" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. The Pinch-Off Mechanism &amp; Saturation Boundary</h3>
+              <span class="theory-card-tag">VDS,sat = VGS - VTH, VGD = VTH</span>
+            </div>
+            <p class="theory-p">
+              A foundational concept in MOSFET operation is <b>channel pinch-off</b>. As drain-to-source bias <code>V<sub>DS</sub></code> is applied, electron drift current flows from Source (y=0, V=0) to Drain (y=L, V=V<sub>DS</sub>). Consequently, the local channel voltage <code>V(y)</code> increases monotonically from source to drain.
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Pinch-Off Boundary Condition: V<sub>DS</sub> = V<sub>DS,sat</sub> = V<sub>GS</sub> - V<sub>TH</sub> &nbsp;⟺&nbsp; V<sub>GD</sub> = V<sub>TH</sub></div>
+              <div class="theory-formula-sub">At the drain edge (y = L), the local oxide voltage drops to V<sub>GD</sub> = V<sub>GS</sub> - V<sub>DS</sub>. When V<sub>GD</sub> = V<sub>TH</sub>, inversion charge density Q<sub>inv</sub>(L) tapers to zero.</div>
+            </div>
+            <p class="theory-p">
+              <b>Why and How Pinch-Off Occurs:</b>
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Linear / Triode (VDS &lt; VDS,sat)</span>
+                <p class="theory-subcard-desc">The inversion channel remains continuous and unbroken from source to drain. The channel profile is tapered (deeper at source, shallower at drain), behaving as a non-linear voltage-controlled resistor.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Beyond Pinch-Off (VDS ≥ VDS,sat)</span>
+                <p class="theory-subcard-desc">The inversion channel vanishes at the drain edge. The pinch-off point shifts slightly toward the source, leaving a high-field depletion gap <code>ΔL</code> between channel tip and drain.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              <b>Carrier Transport Beyond Pinch-Off:</b> Even though the inversion layer depth pinches to zero at the drain end, current does <i>not</i> stop flowing! Mobile electrons traveling down the inversion channel reach the pinch-off point and are immediately swept across the high-field drain depletion space-charge layer by the intense lateral electric field (<code>E<sub>x</sub> &gt; 10⁴ V/cm</code>) at saturation velocity (<code>v<sub>sat</sub> ≈ 1×10⁷ cm/s</code>). The current reaches saturation and becomes virtually independent of further increases in <code>V<sub>DS</sub></code>.
+            </p>
+          </article>
+
+          <!-- Section 4: Operating Regions & Equations -->
+          <article id="nmos-equations" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. Operating Regions &amp; Complete Governing Formulations</h3>
+              <span class="theory-card-tag">kn = 0.65 mA/V², λ = 0.08 V⁻¹</span>
+            </div>
+            <p class="theory-p">
+              Define the NMOS process transconductance parameter as <code>k<sub>n</sub> = μ<sub>n</sub> · C<sub>ox</sub> · (W / L)</code> (nominal model value: <code>k<sub>n</sub> = 0.65 mA/V²</code>, with electron mobility <code>μ<sub>n</sub> ≈ 550 cm²/(V·s)</code>). The operating regions are mathematically partitioned as follows:
+            </p>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Operating Region</th>
+                    <th>Voltage Conditions</th>
+                    <th>Analytical Current Equation</th>
+                    <th>Channel State</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Cutoff</b></td>
+                    <td><code>V<sub>GS</sub> ≤ V<sub>TH</sub></code></td>
+                    <td><code>I<sub>D</sub> = 0</code> &nbsp;(Ideal drift)<br><span style="font-size:10px; color:var(--v-text-tertiary);">Subthreshold: I<sub>sub</sub> ∝ exp[q(V<sub>GS</sub>-V<sub>TH</sub>)/nkT]</span></td>
+                    <td>No channel; back-to-back PN blocking</td>
+                  </tr>
+                  <tr>
+                    <td><b>Linear (Triode)</b></td>
+                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> &lt; V<sub>GS</sub> - V<sub>TH</sub></code></td>
+                    <td><code>I<sub>D</sub> = k<sub>n</sub> · [(V<sub>GS</sub> - V<sub>TH</sub>)·V<sub>DS</sub> - ½·V<sub>DS</sub>²]</code></td>
+                    <td>Continuous resistive inverted channel from S to D</td>
+                  </tr>
+                  <tr>
+                    <td><b>Saturation</b></td>
+                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> ≥ V<sub>GS</sub> - V<sub>TH</sub></code></td>
+                    <td><code>I<sub>D</sub> = ½·k<sub>n</sub>·(V<sub>GS</sub> - V<sub>TH</sub>)² · (1 + λ·V<sub>DS</sub>)</code></td>
+                    <td>Pinched off at drain; velocity-saturated electron sweep</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Small-Signal Transconductance: g<sub>m</sub> = ∂I<sub>D</sub>/∂V<sub>GS</sub> = k<sub>n</sub> · (V<sub>GS</sub> - V<sub>TH</sub>) = √(2 · k<sub>n</sub> · I<sub>D</sub>)</div>
+              <div class="theory-formula-sub">Output Resistance: r<sub>o</sub> = ∂V<sub>DS</sub>/∂I<sub>D</sub> ≈ 1 / (λ · I<sub>D,sat</sub>) &nbsp;·&nbsp; Intrinsic Gain: A<sub>v0</sub> = g<sub>m</sub> · r<sub>o</sub> = 2 / [λ · (V<sub>GS</sub> - V<sub>TH</sub>)]</div>
+            </div>
+          </article>
+
+          <!-- Section 5: Sync with Live Graph -->
+          <article id="nmos-graphs" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Graph Panel</h3>
+              <span class="theory-card-tag">ID vs. VDS Family of Curves</span>
+            </div>
+            <p class="theory-p">
+              The live <b>PHYSICS &amp; GRAPH</b> panel in this module directly computes and visualizes the above formulations in real time:
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Quadratic Saturation Locus</span>
+                <p class="theory-subcard-desc">The dashed golden parabolic curve represents <code>I<sub>D,sat</sub> = ½ k<sub>n</sub> V<sub>DS</sub>²</code>, joining all pinch-off boundary points <code>(V<sub>DS,sat</sub>, I<sub>D,sat</sub>)</code> across varying gate biases.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Channel-Length Modulation Slope</span>
+                <p class="theory-subcard-desc">In the saturation region (to the right of the locus), the curve exhibits an upward slope proportional to <code>λ = 0.08 V⁻¹</code>, reflecting channel shortening <code>ΔL</code> under higher drain bias.</p>
+              </div>
+            </div>
+            <p class="theory-p">
+              <b>Live Telemetry Sync:</b> The readouts for <code>V<sub>GS</sub></code>, <code>V<sub>DS</sub></code>, <code>V<sub>TH</sub> = 0.70V</code>, <code>V<sub>OV</sub> = V<sub>GS</sub> - V<sub>TH</sub></code>, and <code>I<sub>D</sub></code> precisely match the operating point marker plotted on the canvas. Clicking or dragging anywhere on the graph recalculates the transistor bias state and updates 3D carrier flow velocities instantaneously.
+            </p>
+          </article>
+
+          <!-- Section 6: Second-Order Effects -->
+          <article id="nmos-secondorder" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. Second-Order &amp; Short-Channel Physical Effects</h3>
+              <span class="theory-card-tag">CLM, Body Effect, DIBL, Subthreshold Swing</span>
+            </div>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Body Effect (Substrate Sensitivity)</span>
+                <p class="theory-subcard-desc">When source-to-body reverse bias <code>V<sub>SB</sub> &gt; 0</code> is applied, the depletion layer widens, requiring greater gate potential to invert the channel:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; margin-top:4px; color:var(--v-accent-cyan);">
+                  V<sub>TH</sub> = V<sub>TH0</sub> + γ · [√(2φ<sub>F</sub> + V<sub>SB</sub>) - √(2φ<sub>F</sub>)]
+                </div>
+                <p class="theory-subcard-desc" style="margin-top:4px;">Body coefficient: <code>γ = √(2q · ε<sub>Si</sub> · N<sub>A</sub>) / C<sub>ox</sub> ≈ 0.45 V<sup>½</sup></code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Drain-Induced Barrier Lowering (DIBL)</span>
+                <p class="theory-subcard-desc">In sub-micron transistors (short L), high drain bias penetrates into the channel, lowering the source-channel potential barrier and shifting threshold voltage downward:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; margin-top:4px; color:var(--v-accent-cyan);">
+                  ΔV<sub>TH</sub> = -η · V<sub>DS</sub> &nbsp;(where η is the DIBL coefficient)
+                </div>
+              </div>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Subthreshold Swing: S = [∂(log₁₀ I<sub>D</sub>) / ∂V<sub>GS</sub>]⁻¹ = ln(10) · (kT/q) · [1 + C<sub>dep</sub>/C<sub>ox</sub>] ≈ 70–85 mV/decade</div>
+              <div class="theory-formula-sub">S represents the gate voltage swing required to change subthreshold leakage current by one order of magnitude at room temperature (300K).</div>
+            </div>
+          </article>
+        </div>
+      </div>
+
 
       <div id="popover">
         <div class="pop-card">

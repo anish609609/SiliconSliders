@@ -1,56 +1,112 @@
 /**
- * view-mode.js - PMOS CAD Viewer
- * View mode switching (3D Layout vs 2D Schematic), camera presets,
- * and interactive 2D schematic SVG element bindings.
+ * view-mode.js - MOSFET CAD Viewer
+ * View mode switching (Theory vs 3D Layout vs 2D Schematic),
+ * camera presets, and interactive 2D schematic SVG element bindings.
  */
 
-var currentViewMode = 'layout'; // 'layout' | 'schematic'
+var currentViewMode = 'layout'; // 'theory' | 'layout' | 'schematic'
 var modeSeg = document.getElementById('mode-seg') || document.getElementById('view-mode-seg');
 var schematicOverlay = document.getElementById('schematic-overlay') || document.getElementById('schematic-container');
+var theoryOverlay = document.getElementById('theory-overlay');
 var canvasHost = document.getElementById('canvas-host');
 
 function setViewMode(mode) {
   currentViewMode = mode;
   if (modeSeg) {
-    modeSeg.querySelectorAll('button').forEach(function(b) {
-      b.classList.toggle('active', b.dataset.mode === mode);
+    modeSeg.querySelectorAll('button, .seg-btn').forEach(function(b) {
+      b.classList.toggle('active', (b.dataset.mode === mode || b.dataset.view === mode));
     });
   }
 
+  var isTheory = (mode === 'theory');
+  var isSchematic = (mode === 'schematic');
+  var isLayout = (mode === 'layout');
+
+  // Theory overlay visibility
+  if (theoryOverlay) {
+    theoryOverlay.classList.toggle('visible', isTheory);
+    theoryOverlay.style.display = isTheory ? 'block' : 'none';
+  }
+
+  // Schematic overlay visibility
   if (schematicOverlay) {
-    schematicOverlay.classList.toggle('visible', mode === 'schematic');
-    schematicOverlay.style.display = mode === 'schematic' ? 'flex' : 'none';
+    schematicOverlay.classList.toggle('visible', isSchematic);
+    schematicOverlay.classList.toggle('hidden', !isSchematic);
+    schematicOverlay.style.display = isSchematic ? 'flex' : 'none';
   }
 
+  // 3D Canvas Host
   if (canvasHost) {
-    canvasHost.style.visibility = mode === 'schematic' ? 'hidden' : 'visible';
+    canvasHost.style.visibility = isLayout ? 'visible' : 'hidden';
+    canvasHost.style.display = isLayout ? 'block' : 'none';
   }
 
+  // 3D HUD & Controls Visibility
   var flowCap = document.getElementById('flow-caption');
-  if (flowCap) {
-    flowCap.style.display = mode === 'schematic' ? 'none' : '';
-  }
+  if (flowCap) flowCap.style.display = isLayout ? '' : 'none';
+
   var axisInd = document.getElementById('axis-indicator');
-  if (axisInd) {
-    axisInd.style.display = mode === 'schematic' ? 'none' : '';
-  }
+  if (axisInd) axisInd.style.display = isLayout ? '' : 'none';
+
   var noteEl = document.getElementById('note');
-  if (noteEl) {
-    noteEl.style.display = mode === 'schematic' ? 'none' : '';
+  if (noteEl) noteEl.style.display = isLayout ? '' : 'none';
+
+  var topLeftHud = document.getElementById('top-left-hud') || document.querySelector('.hud-top-left-stack');
+  if (topLeftHud) topLeftHud.style.display = isLayout ? '' : 'none';
+
+  var dockedPanel = document.getElementById('docked-panel');
+  if (dockedPanel) dockedPanel.style.display = isLayout ? '' : 'none';
+
+  var leftToggle = document.getElementById('left-toggle');
+  if (leftToggle) leftToggle.style.display = isLayout ? '' : 'none';
+
+  var rightToggle = document.getElementById('right-toggle');
+  if (rightToggle) rightToggle.style.display = isLayout ? '' : 'none';
+
+  var leftPanel = document.getElementById('left-panel');
+  if (leftPanel) {
+    if (isTheory) leftPanel.style.display = 'none';
+    else if (isLayout) leftPanel.style.display = '';
   }
 
-  if (mode === 'schematic') {
+  var rightPanel = document.getElementById('right-panel');
+  if (rightPanel) {
+    if (isTheory) rightPanel.style.display = 'none';
+    else if (isLayout) rightPanel.style.display = '';
+  }
+
+  var btnBuildAnim = document.getElementById('btn-build-anim');
+  if (btnBuildAnim) btnBuildAnim.style.display = isLayout ? '' : 'none';
+
+  var btnResetCam = document.getElementById('btn-reset-cam') || document.getElementById('btn-reset');
+  if (btnResetCam) btnResetCam.style.display = isLayout ? '' : 'none';
+
+  var flowSeg = document.getElementById('flow-seg') || document.getElementById('flow-mode-group');
+  if (flowSeg) flowSeg.style.display = isLayout ? '' : 'none';
+
+  var vaLauncher = document.getElementById('va-launcher-btn');
+  if (vaLauncher) vaLauncher.style.display = isTheory ? 'none' : '';
+
+  if (isSchematic || isTheory) {
     if (typeof hidePopover === 'function') hidePopover();
+    var pop = document.getElementById('popover');
+    if (pop) pop.classList.add('hidden');
   } else {
+    // Returning to physical layout: restore canvas and camera without distortion
     if (typeof resize === 'function') resize();
+    window.dispatchEvent(new Event('resize'));
+    if (typeof controls !== 'undefined' && controls && controls.update) {
+      controls.update();
+    }
   }
 }
 
 if (modeSeg) {
   modeSeg.addEventListener('click', function(e) {
-    var btn = e.target.closest('button');
-    if (!btn || !btn.dataset.mode) return;
-    setViewMode(btn.dataset.mode);
+    var btn = e.target.closest('button, .seg-btn');
+    if (!btn) return;
+    var mode = btn.dataset.mode || btn.dataset.view;
+    if (mode) setViewMode(mode);
   });
 }
 
@@ -70,30 +126,38 @@ var btnPresetSide = document.getElementById('btn-preset-side');
 
 if (btnPresetIso) {
   btnPresetIso.addEventListener('click', function() {
-    activeCamera.position.set(16, 17, 20);
-    controls.target.set(-0.5, 3.2, 0);
-    controls.update();
+    if (typeof activeCamera !== 'undefined' && activeCamera) {
+      activeCamera.position.set(16, 17, 20);
+      controls.target.set(-0.5, 3.2, 0);
+      controls.update();
+    }
   });
 }
 if (btnPresetTop) {
   btnPresetTop.addEventListener('click', function() {
-    activeCamera.position.set(-0.5, 42, 0.01);
-    controls.target.set(-0.5, 3.2, 0);
-    controls.update();
+    if (typeof activeCamera !== 'undefined' && activeCamera) {
+      activeCamera.position.set(-0.5, 42, 0.01);
+      controls.target.set(-0.5, 3.2, 0);
+      controls.update();
+    }
   });
 }
 if (btnPresetFront) {
   btnPresetFront.addEventListener('click', function() {
-    activeCamera.position.set(-0.5, 5.2, 30);
-    controls.target.set(-0.5, 3.2, 0);
-    controls.update();
+    if (typeof activeCamera !== 'undefined' && activeCamera) {
+      activeCamera.position.set(-0.5, 5.2, 30);
+      controls.target.set(-0.5, 3.2, 0);
+      controls.update();
+    }
   });
 }
 if (btnPresetSide) {
   btnPresetSide.addEventListener('click', function() {
-    activeCamera.position.set(30, 5.2, 0);
-    controls.target.set(-0.5, 3.2, 0);
-    controls.update();
+    if (typeof activeCamera !== 'undefined' && activeCamera) {
+      activeCamera.position.set(30, 5.2, 0);
+      controls.target.set(-0.5, 3.2, 0);
+      controls.update();
+    }
   });
 }
 
@@ -116,6 +180,20 @@ if (schematicOverlay) {
       setViewMode('layout');
       if (id && typeof selectById === 'function') {
         selectById(id);
+      }
+    });
+  });
+}
+
+// Smooth scrolling for quick jump anchors inside theory view
+if (theoryOverlay) {
+  theoryOverlay.querySelectorAll('a[href^="#"]').forEach(function(a) {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      var targetId = a.getAttribute('href').slice(1);
+      var targetEl = document.getElementById(targetId);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     });
   });
