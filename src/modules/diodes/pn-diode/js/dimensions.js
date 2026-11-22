@@ -1,6 +1,6 @@
 /**
  * dimensions.js - PN Junction Diode CAD Viewer
- * Lambda-scaled layout rules table and process scaling selector.
+ * Lambda-scaled layout rules table and process scaling selector for Planar Silicon Diode.
  */
 
 function initDimensions() {
@@ -9,11 +9,11 @@ function initDimensions() {
 
   if (lambdaSelect) {
     var lambdas = [
-      { nm: 14, label: '14nm Node (λ = 7nm)' },
-      { nm: 28, label: '28nm Node (λ = 14nm)' },
-      { nm: 45, label: '45nm Node (λ = 22.5nm)' },
-      { nm: 90, label: '90nm Node (λ = 45nm)' },
-      { nm: 180, label: '180nm Planar (λ = 90nm)' }
+      { nm: 14, label: '14nm FinFET / Planar (λ = 7nm)' },
+      { nm: 28, label: '28nm HKMG (λ = 14nm)' },
+      { nm: 45, label: '45nm Planar (λ = 22.5nm)' },
+      { nm: 90, label: '90nm Planar (λ = 45nm)' },
+      { nm: 180, label: '180nm Planar CMOS (λ = 90nm)' }
     ];
 
     lambdaSelect.innerHTML = lambdas.map(function (item, idx) {

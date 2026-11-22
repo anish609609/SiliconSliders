@@ -1,13 +1,13 @@
 /**
  * flow.js - PN Junction Diode CAD Viewer
- * Dynamic 3D carrier flow & conventional current simulation:
+ * Dynamic 3D carrier flow & conventional current simulation for Planar Silicon IC Diode:
  * - Ultra-fine quantum particles (electrons: cyan, holes: orange-red, conventional current: gold).
- * - Equilibrium: subtle thermal Brownian jitter, zero net drift.
- * - Forward bias: electrons (N->P) and holes (P->N), speed & density scale with current I.
- * - Reverse bias: majority pullback towards contacts, sparse minority leakage drift.
- * - Reverse breakdown: rapid electron sweep (P->N) and strong reverse current (Cathode->Anode).
- *   - Zener mode (VBR < 5V): narrow-barrier band-to-band tunneling stream.
- *   - Avalanche mode (VBR > 6V): cascading impact ionization carrier pair generation.
+ * - Planar U-shaped conduction path:
+ *   Anode Metal-1 (VA) -> Tungsten Via -> P+ Anode Tub -> Conformal Depletion Shell -> N-Well -> N+ Cathode Tap -> Tungsten Via -> Cathode Metal-1 (GND).
+ * - Equilibrium (VA = 0V): subtle Brownian thermal jitter inside P+ tub and N-Well; zero net current.
+ * - Forward bias (VA > 0V): majority injection; electrons (Cathode -> Anode) and holes (Anode -> Cathode); speed & count scale with current I.
+ * - Reverse bias: majority pullback towards terminals; sparse minority thermal leakage drift across junction.
+ * - Reverse breakdown (VA <= -VBR): rapid reverse drift across junction sidewalls (Zener tunneling / Avalanche multiplication).
  */
 
 var flowMode = 'carrier'; // 'carrier' | 'current' | 'off'
@@ -16,8 +16,8 @@ var flowGroup = new THREE.Group();
 flowGroup.name = 'flowGroup';
 scene.add(flowGroup);
 
-// Geometries and materials
-var particleGeom = new THREE.SphereGeometry(0.065, 8, 8);
+// Particle geometries and materials
+var particleGeom = new THREE.SphereGeometry(0.075, 8, 8);
 var electronMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, depthTest: true, depthWrite: false }); // Cyan
 var holeMat = new THREE.MeshBasicMaterial({ color: 0xf97316, depthTest: true, depthWrite: false });     // Orange-Red
 var currentMat = new THREE.MeshBasicMaterial({ color: 0xffcf4d, depthTest: true, depthWrite: false });  // Golden Yellow
@@ -26,7 +26,6 @@ var avalancheMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, depthTest: tru
 
 flowGroup.renderOrder = 999;
 
-// Particle arrays
 var activeParticles = [];
 
 function initFlowControls() {
@@ -40,6 +39,46 @@ function initFlowControls() {
       });
     });
   }
+}
+
+/**
+ * Computes 3D position along planar conduction trajectory
+ * t in [0, 1] maps from Anode Metal-1 -> Cathode Metal-1
+ */
+function getPlanarPoint(t, zOffset, xJitter) {
+  t = Math.max(0.0, Math.min(1.0, t));
+  var x, y, z;
+  z = zOffset || 0.0;
+  var xj = xJitter || 0.0;
+
+  if (t < 0.18) {
+    // 1. Descending Anode Tungsten Via: from Y = 2.0 to 0.0 at X = -4.8
+    var s = t / 0.18;
+    x = -4.8 + xj * 0.4;
+    y = 2.0 - s * 2.0;
+  } else if (t < 0.40) {
+    // 2. Curving through P+ Anode Tub towards metallurgical junction (X = -1.6)
+    var s2 = (t - 0.18) / 0.22;
+    x = -4.8 + s2 * 3.2 + xj * 0.6;
+    y = -s2 * 1.0 - 0.2 * Math.sin(s2 * Math.PI);
+  } else if (t < 0.62) {
+    // 3. Crossing Conformal Depletion Shell & N-Well towards N+ Tap
+    var s3 = (t - 0.40) / 0.22;
+    x = -1.6 + s3 * 3.6 + xj * 0.5;
+    y = -1.0 - 0.3 * Math.cos(s3 * Math.PI);
+  } else if (t < 0.82) {
+    // 4. Entering N+ Cathode Tap and curving up toward via base
+    var s4 = (t - 0.62) / 0.20;
+    x = 2.0 + s4 * 2.8 + xj * 0.4;
+    y = -1.0 + s4 * 1.0;
+  } else {
+    // 5. Ascending Cathode Tungsten Via: from Y = 0.0 to 2.0 at X = +4.8
+    var s5 = (t - 0.82) / 0.18;
+    x = 4.8 + xj * 0.4;
+    y = s5 * 2.0;
+  }
+
+  return { x: x, y: y, z: z };
 }
 
 /**
@@ -72,9 +111,7 @@ function rebuildFlowSimulation() {
   }
   flowGroup.visible = true;
 
-  // Determine track positions along Z (-3.2 to +3.2) and Y (-1.0 to +1.0)
-  var zTracks = [-3.0, -1.5, 0.0, 1.5, 3.0];
-  var yTracks = [-0.8, 0.0, 0.8];
+  var zTracks = [-2.4, -1.2, 0.0, 1.2, 2.4];
 
   // =========================================================================
   // CASE 1: EQUILIBRIUM (VA = 0)
@@ -82,31 +119,31 @@ function rebuildFlowSimulation() {
   if (regime === 'EQUILIBRIUM' || Math.abs(va) < 0.02) {
     if (caption) {
       caption.textContent = isCarrier
-        ? 'THERMAL EQUILIBRIUM (VA = 0V): Zero net current. Majority carriers exhibit subtle thermal jitter.'
+        ? 'THERMAL EQUILIBRIUM (VA = 0V): Zero net current. Majority carriers exhibit subtle thermal jitter in planar regions.'
         : 'CONVENTIONAL CURRENT (I = 0): Zero net electric current across equilibrium junction.';
     }
 
     if (isCarrier) {
-      // Create stationary majority holes in P-region (left, X: -10 to -2)
+      // Stationary majority holes in P+ tub (X: -7.5 to -2.0, Y: -1.4 to 0.0)
       for (var i = 0; i < 28; i++) {
         var hole = new THREE.Mesh(particleGeom, holeMat);
         var basePos = new THREE.Vector3(
-          -10.0 + Math.random() * 7.5,
-          -1.2 + Math.random() * 2.4,
-          -3.5 + Math.random() * 7.0
+          -7.2 + Math.random() * 5.0,
+          -1.4 + Math.random() * 1.2,
+          -3.2 + Math.random() * 6.4
         );
         hole.position.copy(basePos);
         flowGroup.add(hole);
         activeParticles.push({ mesh: hole, type: 'hole-jitter', home: basePos.clone() });
       }
 
-      // Create stationary majority electrons in N-region (right, X: +2 to +10)
+      // Stationary majority electrons in N-Well & N+ tap (X: 1.5 to 8.5, Y: -2.0 to 0.0)
       for (var j = 0; j < 28; j++) {
         var elec = new THREE.Mesh(particleGeom, electronMat);
         var basePosN = new THREE.Vector3(
-          2.5 + Math.random() * 7.5,
-          -1.2 + Math.random() * 2.4,
-          -3.5 + Math.random() * 7.0
+          2.0 + Math.random() * 6.0,
+          -1.6 + Math.random() * 1.4,
+          -3.2 + Math.random() * 6.4
         );
         elec.position.copy(basePosN);
         flowGroup.add(elec);
@@ -121,70 +158,67 @@ function rebuildFlowSimulation() {
   // =========================================================================
   if (regime === 'FORWARD' || va > 0.0) {
     var absI = Math.abs(currentMa);
-    var speed = 0.04 + 0.18 * Math.min(1.0, absI / 25.0);
+    var speed = 0.0035 + 0.014 * Math.min(1.0, absI / 25.0);
     var numParticles = Math.round(18 + 36 * Math.min(1.0, absI / 25.0));
 
     if (caption) {
       caption.textContent = isCarrier
-        ? 'FORWARD BIAS (VA = +' + va.toFixed(2) + 'V, I = ' + absI.toFixed(2) + 'mA): Electrons (cyan) injected from N->P; Holes (orange) injected from P->N.'
-        : 'CONVENTIONAL CURRENT: Anode (+) -> Cathode (-) forward current flowing with I = ' + absI.toFixed(2) + ' mA.';
+        ? 'FORWARD BIAS (VA = +' + va.toFixed(2) + 'V, I = ' + absI.toFixed(2) + 'mA): Holes (orange) flow Anode->Cathode; Electrons (cyan) flow Cathode->Anode along planar path.'
+        : 'CONVENTIONAL CURRENT: Anode (+) -> Cathode (-) planar current flowing with I = ' + absI.toFixed(2) + ' mA.';
     }
 
     if (isCarrier) {
-      // 1. Electrons flowing from N (Right, +10) -> Across narrowed junction -> P (Left, -10)
+      // 1. Holes flowing Anode -> Cathode (t: 0 -> 1)
       for (var i = 0; i < numParticles; i++) {
-        var elec = new THREE.Mesh(particleGeom, electronMat);
-        var z = zTracks[i % zTracks.length] + (Math.random() - 0.5) * 0.4;
-        var y = yTracks[Math.floor(i / zTracks.length) % yTracks.length];
-        var startX = 10.0 - (i / numParticles) * 20.0;
-        elec.position.set(startX, y, z);
-        flowGroup.add(elec);
-        activeParticles.push({
-          mesh: elec,
-          type: 'electron-fwd',
-          speed: speed,
-          minX: -10.5,
-          maxX: 10.5,
-          y: y,
-          z: z
-        });
-      }
-
-      // 2. Holes flowing from P (Left, -10) -> Across junction -> N (Right, +10)
-      for (var j = 0; j < numParticles; j++) {
         var hole = new THREE.Mesh(particleGeom, holeMat);
-        var z = zTracks[(j + 2) % zTracks.length] + (Math.random() - 0.5) * 0.4;
-        var y = yTracks[Math.floor(j / zTracks.length) % yTracks.length];
-        var startX = -10.0 + (j / numParticles) * 20.0;
-        hole.position.set(startX, y, z);
+        var tStartH = (i / numParticles);
+        var zH = zTracks[i % zTracks.length] + (Math.random() - 0.5) * 0.4;
+        var ptH = getPlanarPoint(tStartH, zH, 0);
+        hole.position.set(ptH.x, ptH.y, ptH.z);
         flowGroup.add(hole);
         activeParticles.push({
           mesh: hole,
-          type: 'hole-fwd',
+          type: 'planar-forward',
+          t: tStartH,
           speed: speed,
-          minX: -10.5,
-          maxX: 10.5,
-          y: y,
-          z: z
+          z: zH,
+          xj: (Math.random() - 0.5) * 0.5
+        });
+      }
+
+      // 2. Electrons flowing Cathode -> Anode (t: 1 -> 0)
+      for (var j = 0; j < numParticles; j++) {
+        var elec = new THREE.Mesh(particleGeom, electronMat);
+        var tStartE = (j / numParticles);
+        var zE = zTracks[(j + 2) % zTracks.length] + (Math.random() - 0.5) * 0.4;
+        var ptE = getPlanarPoint(tStartE, zE, 0);
+        elec.position.set(ptE.x, ptE.y, ptE.z);
+        flowGroup.add(elec);
+        activeParticles.push({
+          mesh: elec,
+          type: 'planar-reverse',
+          t: tStartE,
+          speed: speed,
+          z: zE,
+          xj: (Math.random() - 0.5) * 0.5
         });
       }
     } else {
-      // Conventional Current mode: flowing Anode (Left, -10) -> Cathode (Right, +10)
+      // Conventional current mode: flowing Anode -> Cathode
       for (var k = 0; k < numParticles * 1.5; k++) {
         var cur = new THREE.Mesh(particleGeom, currentMat);
-        var z = zTracks[k % zTracks.length];
-        var y = yTracks[Math.floor(k / zTracks.length) % yTracks.length];
-        var startX = -10.5 + (k / (numParticles * 1.5)) * 21.0;
-        cur.position.set(startX, y, z);
+        var tStartC = (k / (numParticles * 1.5));
+        var zC = zTracks[k % zTracks.length] + (Math.random() - 0.5) * 0.3;
+        var ptC = getPlanarPoint(tStartC, zC, 0);
+        cur.position.set(ptC.x, ptC.y, ptC.z);
         flowGroup.add(cur);
         activeParticles.push({
           mesh: cur,
-          type: 'current-fwd',
-          speed: speed * 1.1,
-          minX: -10.5,
-          maxX: 10.5,
-          y: y,
-          z: z
+          type: 'planar-forward',
+          t: tStartC,
+          speed: speed * 1.15,
+          z: zC,
+          xj: (Math.random() - 0.5) * 0.4
         });
       }
     }
@@ -197,45 +231,47 @@ function rebuildFlowSimulation() {
   if (regime === 'REVERSE') {
     if (caption) {
       caption.textContent = isCarrier
-        ? 'REVERSE BIAS (VA = ' + va.toFixed(2) + 'V): Majority carriers pulled back; only sparse thermally generated minority carrier drift (Is leakage).'
+        ? 'REVERSE BIAS (VA = ' + va.toFixed(2) + 'V): Majority carriers pulled back; sparse thermally generated minority carrier drift (Is leakage).'
         : 'REVERSE BIAS: Minimal reverse saturation leakage current (I ≈ -Is ≈ pA/nA range).';
     }
 
     if (isCarrier) {
-      // Majority carriers pulled back away from junction
-      // Holes pulled towards Anode terminal (Left, X: -11 to -6)
+      // Majority holes pulled back towards left edge of P+ tub
       for (var i = 0; i < 16; i++) {
         var hole = new THREE.Mesh(particleGeom, holeMat);
-        var basePos = new THREE.Vector3(-10.8 + Math.random() * 4.5, -1.0 + Math.random() * 2.0, -3.5 + Math.random() * 7.0);
+        var basePos = new THREE.Vector3(-7.5 + Math.random() * 2.5, -1.2 + Math.random() * 1.0, -3.2 + Math.random() * 6.4);
         hole.position.copy(basePos);
         flowGroup.add(hole);
         activeParticles.push({ mesh: hole, type: 'hole-jitter', home: basePos.clone() });
       }
 
-      // Electrons pulled towards Cathode terminal (Right, X: +6 to +11)
+      // Majority electrons pulled back towards Cathode tap
       for (var j = 0; j < 16; j++) {
         var elec = new THREE.Mesh(particleGeom, electronMat);
-        var basePosN = new THREE.Vector3(6.5 + Math.random() * 4.5, -1.0 + Math.random() * 2.0, -3.5 + Math.random() * 7.0);
+        var basePosN = new THREE.Vector3(5.0 + Math.random() * 2.5, -1.2 + Math.random() * 1.0, -3.2 + Math.random() * 6.4);
         elec.position.copy(basePosN);
         flowGroup.add(elec);
         activeParticles.push({ mesh: elec, type: 'electron-jitter', home: basePosN.clone() });
       }
 
       // Sparse minority electron leakage drifting across depletion: P -> N
-      for (var k = 0; k < 5; k++) {
+      for (var k = 0; k < 6; k++) {
         var leakElec = new THREE.Mesh(particleGeom, electronMat);
         leakElec.scale.set(0.7, 0.7, 0.7);
-        var startX = -6.0 + k * 2.5;
-        leakElec.position.set(startX, (k % 2 === 0 ? 0.3 : -0.3), (k - 2) * 1.5);
+        var startT = 0.35 + k * 0.05;
+        var zL = (k - 2.5) * 1.2;
+        var ptL = getPlanarPoint(startT, zL, 0);
+        leakElec.position.set(ptL.x, ptL.y, ptL.z);
         flowGroup.add(leakElec);
         activeParticles.push({
           mesh: leakElec,
-          type: 'minority-drift',
-          speed: 0.03,
-          minX: -6.0,
-          maxX: 6.0,
-          y: (k % 2 === 0 ? 0.3 : -0.3),
-          z: (k - 2) * 1.5
+          type: 'planar-forward',
+          t: startT,
+          speed: 0.0018,
+          z: zL,
+          xj: 0,
+          minT: 0.35,
+          maxT: 0.65
         });
       }
     }
@@ -247,142 +283,86 @@ function rebuildFlowSimulation() {
   // =========================================================================
   var isZener = (regime === 'ZENER');
   var absIBr = Math.abs(currentMa);
-  var brSpeed = 0.12 + 0.22 * Math.min(1.0, absIBr / 30.0);
+  var brSpeed = 0.008 + 0.022 * Math.min(1.0, absIBr / 30.0);
 
   if (caption) {
     caption.textContent = isZener
-      ? 'ZENER BREAKDOWN (VBR < 5V): Direct quantum band-to-band electron tunneling across the ultra-narrow depletion zone! Strong reverse current.'
-      : 'AVALANCHE BREAKDOWN (VBR > 6V): Cascading impact ionization! Energetic carriers strike lattice generating secondary electron-hole pairs.';
+      ? 'ZENER BREAKDOWN (VBR < 5V): Direct quantum band-to-band electron tunneling across the ultra-narrow junction sidewall! Massive reverse current.'
+      : 'AVALANCHE BREAKDOWN (VBR > 6V): Cascading impact ionization multiplication! Energetic carriers strike lattice generating secondary electron-hole pairs.';
   }
 
+  var brCount = 38;
   if (isCarrier) {
-    if (isZener) {
-      // Zener: Direct band-to-band tunneling electron stream P -> N
-      for (var i = 0; i < 40; i++) {
-        var zElec = new THREE.Mesh(particleGeom, zenerMat);
-        var z = zTracks[i % zTracks.length] + (Math.random() - 0.5) * 0.3;
-        var y = yTracks[Math.floor(i / zTracks.length) % yTracks.length];
-        var startX = -2.5 + (i / 40.0) * 5.0;
-        zElec.position.set(startX, y, z);
-        flowGroup.add(zElec);
-        activeParticles.push({
-          mesh: zElec,
-          type: 'zener-tunnel',
-          speed: brSpeed * 1.4,
-          minX: -2.5,
-          maxX: 2.5,
-          y: y,
-          z: z
-        });
-      }
-    } else {
-      // Avalanche: Impact ionization multiplication particles
-      for (var j = 0; j < 50; j++) {
-        var isHole = (j % 3 === 0);
-        var avPart = new THREE.Mesh(particleGeom, isHole ? avalancheMat : electronMat);
-        var z = zTracks[j % zTracks.length] + (Math.random() - 0.5) * 0.5;
-        var y = yTracks[Math.floor(j / zTracks.length) % yTracks.length];
-        var startX = -6.0 + (j / 50.0) * 12.0;
-        avPart.position.set(startX, y, z);
-        flowGroup.add(avPart);
-        activeParticles.push({
-          mesh: avPart,
-          type: isHole ? 'avalanche-hole' : 'avalanche-elec',
-          speed: brSpeed,
-          minX: -6.5,
-          maxX: 6.5,
-          y: y,
-          z: z
-        });
-      }
+    var bMat = isZener ? zenerMat : avalancheMat;
+    for (var m = 0; m < brCount; m++) {
+      var brP = new THREE.Mesh(particleGeom, bMat);
+      var tStart = 0.30 + (m / brCount) * 0.35;
+      var zB = zTracks[m % zTracks.length] + (Math.random() - 0.5) * 0.4;
+      var ptB = getPlanarPoint(tStart, zB, (Math.random() - 0.5) * 0.3);
+      brP.position.set(ptB.x, ptB.y, ptB.z);
+      flowGroup.add(brP);
+      activeParticles.push({
+        mesh: brP,
+        type: 'planar-forward',
+        t: tStart,
+        speed: brSpeed,
+        z: zB,
+        xj: (Math.random() - 0.5) * 0.4,
+        minT: 0.28,
+        maxT: 0.68
+      });
     }
   } else {
-    // Current Mode during breakdown: strong reverse current Cathode (+X) -> Anode (-X)
-    for (var k = 0; k < 45; k++) {
-      var cur = new THREE.Mesh(particleGeom, currentMat);
-      var z = zTracks[k % zTracks.length];
-      var y = yTracks[Math.floor(k / zTracks.length) % yTracks.length];
-      var startX = 10.5 - (k / 45.0) * 21.0;
-      cur.position.set(startX, y, z);
-      flowGroup.add(cur);
+    // Reverse conventional current flows Cathode -> Anode (t: 1 -> 0)
+    for (var n = 0; n < brCount * 1.5; n++) {
+      var curBr = new THREE.Mesh(particleGeom, currentMat);
+      var tStartC = (n / (brCount * 1.5));
+      var zCB = zTracks[n % zTracks.length];
+      var ptCB = getPlanarPoint(tStartC, zCB, 0);
+      curBr.position.set(ptCB.x, ptCB.y, ptCB.z);
+      flowGroup.add(curBr);
       activeParticles.push({
-        mesh: cur,
-        type: 'current-rev',
+        mesh: curBr,
+        type: 'planar-reverse',
+        t: tStartC,
         speed: brSpeed * 1.2,
-        minX: -10.5,
-        maxX: 10.5,
-        y: y,
-        z: z
+        z: zCB,
+        xj: (Math.random() - 0.5) * 0.3
       });
     }
   }
 }
 
 /**
- * Per-frame animation tick
+ * Per-frame animation tick updating particle positions
  */
 function updateFlowParticles(delta) {
-  var t = Date.now() * 0.003;
+  if (!activeParticles.length) return;
+  var dt = Math.min(0.05, delta || 0.016);
+  var time = Date.now() * 0.004;
 
   for (var i = 0; i < activeParticles.length; i++) {
     var p = activeParticles[i];
-    var mesh = p.mesh;
 
-    switch (p.type) {
-      case 'hole-jitter':
-      case 'electron-jitter':
-        // Brownian thermal jitter
-        mesh.position.x = p.home.x + 0.12 * Math.sin(t + i * 1.5);
-        mesh.position.y = p.home.y + 0.12 * Math.cos(t * 1.2 + i * 2.0);
-        mesh.position.z = p.home.z + 0.12 * Math.sin(t * 0.8 + i);
-        break;
-
-      case 'electron-fwd':
-        // Drift from +X (Cathode) to -X (Anode)
-        mesh.position.x -= p.speed;
-        if (mesh.position.x < p.minX) mesh.position.x = p.maxX;
-        break;
-
-      case 'hole-fwd':
-        // Drift from -X (Anode) to +X (Cathode)
-        mesh.position.x += p.speed;
-        if (mesh.position.x > p.maxX) mesh.position.x = p.minX;
-        break;
-
-      case 'current-fwd':
-        // Conventional current from -X (Anode) to +X (Cathode)
-        mesh.position.x += p.speed;
-        if (mesh.position.x > p.maxX) mesh.position.x = p.minX;
-        break;
-
-      case 'minority-drift':
-        mesh.position.x += p.speed;
-        if (mesh.position.x > p.maxX) mesh.position.x = p.minX;
-        break;
-
-      case 'zener-tunnel':
-        // High speed electron tunneling across narrow barrier P (-X) -> N (+X)
-        mesh.position.x += p.speed;
-        if (mesh.position.x > p.maxX) mesh.position.x = p.minX;
-        break;
-
-      case 'avalanche-elec':
-        // Impact electrons sweeping across high field P (-X) -> N (+X)
-        mesh.position.x += p.speed;
-        if (mesh.position.x > p.maxX) mesh.position.x = p.minX;
-        break;
-
-      case 'avalanche-hole':
-        // Impact holes sweeping towards Anode N (+X) -> P (-X)
-        mesh.position.x -= p.speed;
-        if (mesh.position.x < p.minX) mesh.position.x = p.maxX;
-        break;
-
-      case 'current-rev':
-        // Reverse current flowing Cathode (+X) -> Anode (-X)
-        mesh.position.x -= p.speed;
-        if (mesh.position.x < p.minX) mesh.position.x = p.maxX;
-        break;
+    if (p.type === 'planar-forward') {
+      p.t += p.speed * (dt * 60.0);
+      var maxT = p.maxT || 1.0;
+      var minT = p.minT || 0.0;
+      if (p.t > maxT) p.t = minT;
+      var pt = getPlanarPoint(p.t, p.z, p.xj);
+      p.mesh.position.set(pt.x, pt.y, pt.z);
+    } else if (p.type === 'planar-reverse') {
+      p.t -= p.speed * (dt * 60.0);
+      var maxTR = p.maxT || 1.0;
+      var minTR = p.minT || 0.0;
+      if (p.t < minTR) p.t = maxTR;
+      var ptR = getPlanarPoint(p.t, p.z, p.xj);
+      p.mesh.position.set(ptR.x, ptR.y, ptR.z);
+    } else if (p.type === 'hole-jitter' || p.type === 'electron-jitter') {
+      var seed = i * 1.7;
+      p.mesh.position.x = p.home.x + 0.12 * Math.sin(time + seed);
+      p.mesh.position.y = p.home.y + 0.08 * Math.cos(time * 1.3 + seed);
+      p.mesh.position.z = p.home.z + 0.12 * Math.sin(time * 0.8 + seed);
     }
   }
 }

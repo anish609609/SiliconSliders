@@ -70,6 +70,10 @@
         </svg>
         <span id="theme-btn-label">LIGHT</span>
       </button>
+      <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence with AI Voice Tutor" aria-label="Play 3D Fabrication Tour">
+        <span class="play-icon">▶</span>
+        <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>
+      </button>
       <button class="tbtn" id="btn-reset-cam">RESET</button>
     </div>
   </div>
@@ -384,6 +388,26 @@
         </div>
       </div>
 
+      <!-- Top-Center Step Explanation Banner for Drop-Down Fabrication Tour -->
+      <div id="tour-banner" class="tour-banner" style="display: none;">
+        <div class="tb-header">
+          <div class="tb-badge-group">
+            <span class="tb-badge" id="tb-step-badge">STEP 1 OF 7</span>
+            <b class="tb-title" id="tb-step-title">P-Substrate Wafer Preparation</b>
+          </div>
+          <div class="tb-controls">
+            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour">⏸</button>
+            <button id="tb-btn-close" class="tb-btn" title="Close tour">✕</button>
+          </div>
+        </div>
+        <div class="tb-desc" id="tb-step-desc">
+          Single-crystal P-type silicon wafer lightly doped with Boron (Na ≈ 1×10¹⁵ cm⁻³) provides mechanical support and the base substrate.
+        </div>
+        <div class="tb-progress-track">
+          <div class="tb-progress-fill" id="tb-progress-fill"></div>
+        </div>
+      </div>
+
       <div class="scale-note-wrap" id="scale-note-wrap">
         <button type="button" class="scale-note-btn" id="scale-note-btn" title="View scale &amp; physics disclaimer" aria-expanded="false">
           <span class="scale-note-icon">ⓘ</span>
@@ -433,7 +457,7 @@
               <div class="dp-section-header">
                 <span class="dp-section-title">DOPING PRESET</span>
               </div>
-              <div class="seg dp-presets">
+              <div class="seg dp-presets doping-presets-grid">
                 <button data-doping="standard" class="dp-preset-btn doping-preset-btn active" title="NA=10¹⁷, ND=10¹⁶ (Avalanche VBR > 6V)">STANDARD</button>
                 <button data-doping="zener" class="dp-preset-btn doping-preset-btn" title="NA=3×10¹⁸, ND=3×10¹⁸ (Heavy Doping, Zener VBR < 5V)">ZENER (HEAVY)</button>
                 <button data-doping="symmetric" class="dp-preset-btn doping-preset-btn" title="NA=10¹⁶, ND=10¹⁶ (Symmetric Junction)">SYMMETRIC</button>
@@ -758,6 +782,7 @@
 <script src="js/logic-state.js"></script>
 <script src="js/render-loop.js"></script>
 <script src="js/voice-assistant.js"></script>
+<script src="js/build-anim.js"></script>
 <script src="js/main.js"></script>
 
 </body>

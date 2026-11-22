@@ -90,6 +90,7 @@ scene.add(shadowPlane);
 var btnResetCam = document.getElementById('btn-reset-cam');
 if (btnResetCam) {
   btnResetCam.addEventListener('click', function () {
+    if (typeof stopBuildAnimation === 'function') stopBuildAnimation(true);
     controls.reset();
     camPersp.position.copy(INITIAL_POS);
     controls.target.copy(INITIAL_TARGET);

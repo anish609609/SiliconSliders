@@ -1,14 +1,17 @@
 /**
  * geometry.js - PN Junction Diode CAD Viewer
- * 3D Physical model for a discrete planar/mesa PN Junction Diode:
- * - P-type silicon bulk block (Anode side) with Boron acceptor doping finish.
- * - N-type silicon bulk block (Cathode side) with Phosphorus donor doping finish.
- * - Dynamic space-charge depletion zone expanding/contracting with bias VA and doping NA, ND.
- * - Asymmetric depletion extensions xp vs xn with fixed uncompensated space-charge ions (NA- and ND+).
- * - Metallic Anode (P-side) and Cathode (N-side) contact pads with brushed metal textures.
- * - Surface oxide passivation dielectric (SiO2) with etched contact windows.
- * - Volumetric high-field breakdown glow active during Zener/Avalanche breakdown.
- * - Interactive raycasting, mesh registration, layer explosion groups, and clipping plane integration.
+ * Authentic 3D Physical CAD model for a Planar Diffused Silicon IC PN Junction Diode:
+ * - P-Type Silicon Substrate (Bulk wafer slab matching NMOS styling)
+ * - N-Well (Cathode Body Tub) implanted into the P-substrate
+ * - P+ Anode Diffusion Tub with Gaussian curved profile forming P+/N junction
+ * - N+ Cathode Ohmic Contact Tap with Gaussian curved profile inside N-Well
+ * - 3D Conformal Depletion Shell wrapping the P+ Anode tub, dynamically modulated by VA, NA, ND
+ * - Fixed Space-Charge Ions (Acceptors NA- and Donors ND+) aligned along conformal boundary
+ * - High-Field Breakdown Glow on high-curvature junction sidewalls in Breakdown regime
+ * - Shallow Trench Isolation (STI) oxide and Surface Passivation / ILD (SiO2)
+ * - Vertical Tungsten (W) contact via plugs through ILD to active diffusions
+ * - Metal-1 interconnect pads for Anode (A) and Cathode (K)
+ * - 3D Floating billboard terminal tags (ANODE / CATHODE)
  */
 
 function cssVar(name) {
@@ -16,45 +19,64 @@ function cssVar(name) {
 }
 
 // ---------------------------------------------------------------------------
-// LAYER GROUPS & MESH REGISTRY
+// LAYER GROUPS & REGISTRY
 // ---------------------------------------------------------------------------
 var groups = {
-  semiconductor: new THREE.Group(),
+  substrate: new THREE.Group(),
+  nwell: new THREE.Group(),
+  active: new THREE.Group(),
   depletion: new THREE.Group(),
   ions: new THREE.Group(),
-  contacts: new THREE.Group(),
+  field: new THREE.Group(),
   passivation: new THREE.Group(),
-  field: new THREE.Group()
+  contact: new THREE.Group(),
+  metal: new THREE.Group(),
+  labels: new THREE.Group()
 };
+
+// Backwards compatibility aliases
+groups.semiconductor = groups.active;
+groups.contacts = groups.contact;
 
 var clickableMeshes = [];
 var interactiveLabels = [];
 
-// Base block dimensions
-var BLOCK_HALF_L = 12.0;   // Length along X (-12 to +12)
-var BLOCK_W = 9.0;        // Width along Z (-4.5 to +4.5)
-var BLOCK_H = 3.6;        // Height along Y (-1.8 to +1.8)
+// Base Dimensions in 3D Units
+var SUB_L = 26.0;   // Substrate length X (-13 to +13)
+var SUB_W = 15.0;   // Substrate width Z (-7.5 to +7.5)
+var SUB_H = 4.0;    // Substrate thickness Y (-4.0 to 0.0)
+
+var WELL_L = 21.0;  // N-Well length X (-10.5 to +10.5)
+var WELL_W = 12.0;  // N-Well width Z (-6.0 to +6.0)
+var WELL_H = 3.0;   // N-Well depth into silicon (-3.0 to 0.0)
+
+var P_TUB_W = 6.4;  // P+ Anode tub width X (-8.0 to -1.6, center -4.8)
+var P_TUB_L = 9.0;  // P+ Anode tub length Z (-4.5 to +4.5)
+var P_TUB_D = 1.6;  // P+ Anode tub depth Y (-1.6 to 0.0)
+
+var N_TAP_W = 5.6;  // N+ Cathode tap width X (+2.0 to +7.6, center +4.8)
+var N_TAP_L = 9.0;  // N+ Cathode tap length Z (-4.5 to +4.5)
+var N_TAP_D = 1.3;  // N+ Cathode tap depth Y (-1.3 to 0.0)
 
 // Dynamic mesh references
-var pBlockMesh = null;
-var nBlockMesh = null;
-var depletionMesh = null;
+var subMesh = null;
+var nwellMesh = null;
+var pTubMesh = null;
+var nTapMesh = null;
+var depletionShellMesh = null;
 var breakdownGlowMesh = null;
 var fixedIonsPGroup = null;
 var fixedIonsNGroup = null;
-var pEdgeLine = null;
-var nEdgeLine = null;
-var depletionEdgeLine = null;
 
 // Materials dictionary
 var diodeMaterials = {};
 
 // ---------------------------------------------------------------------------
-// PROCEDURAL TEXTURES
+// PROCEDURAL TEXTURES (BRUSHED METAL & IONS)
 // ---------------------------------------------------------------------------
-var brushedMetalTex = null;
+var brushedMetalTexCache = null;
 function getBrushedMetalTexture() {
-  if (brushedMetalTex) return brushedMetalTex;
+  if (brushedMetalTexCache) return brushedMetalTexCache;
   var c = document.createElement('canvas');
   c.width = 256; c.height = 256;
   var ctx = c.getContext('2d');
@@ -76,7 +98,7 @@ function getBrushedMetalTexture() {
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(2, 2);
-  brushedMetalTex = tex;
+  brushedMetalTexCache = tex;
   return tex;
 }
 
@@ -84,16 +106,14 @@ function createIonTexture(sign, bgColor, fgColor) {
   var c = document.createElement('canvas');
   c.width = 128; c.height = 128;
   var ctx = c.getContext('2d');
-  // Outer circle
   ctx.fillStyle = bgColor;
   ctx.beginPath();
-  ctx.arc(64, 64, 58, 0, Math.PI * 2);
+  ctx.arc(64, 64, 56, 0, Math.PI * 2);
   ctx.fill();
   ctx.lineWidth = 6;
   ctx.strokeStyle = fgColor;
   ctx.stroke();
 
-  // Sign text (- or +)
   ctx.fillStyle = fgColor;
   ctx.font = 'bold 74px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
@@ -106,7 +126,7 @@ function createIonTexture(sign, bgColor, fgColor) {
 }
 
 // ---------------------------------------------------------------------------
-// 3D FLOATING TEXT LABELS (Billboard Sprites)
+// 3D FLOATING BILLBOARD LABELS
 // ---------------------------------------------------------------------------
 function makeLabelSprite(text, color, subtext) {
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
@@ -114,7 +134,6 @@ function makeLabelSprite(text, color, subtext) {
   c.width = 380; c.height = 110;
   var ctx = c.getContext('2d');
 
-  // Background rounded pill
   ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)';
   ctx.strokeStyle = color || '#5fd9c4';
   ctx.lineWidth = 3.5;
@@ -123,16 +142,14 @@ function makeLabelSprite(text, color, subtext) {
   ctx.fill();
   ctx.stroke();
 
-  // Title
   ctx.fillStyle = isLight ? '#0f172a' : '#ffffff';
-  ctx.font = 'bold 32px "IBM Plex Mono", monospace';
+  ctx.font = 'bold 30px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.fillText(text, 190, 46);
 
-  // Subtitle
   if (subtext) {
     ctx.fillStyle = color || (isLight ? '#0284c7' : '#5fd9c4');
-    ctx.font = '600 21px "IBM Plex Mono", monospace';
+    ctx.font = '600 20px "IBM Plex Mono", monospace';
     ctx.fillText(subtext, 190, 78);
   }
 
@@ -146,42 +163,149 @@ function makeLabelSprite(text, color, subtext) {
 }
 
 // ---------------------------------------------------------------------------
+// GAUSSIAN CURVED TUB GEOMETRY (Matching NMOS/PMOS Active Tub Standards)
+// ---------------------------------------------------------------------------
+function createGaussianTubGeometry(w, h, d, opts) {
+  opts = opts || {};
+  var nLayers = opts.nLayers || 18;
+  var nPerim = opts.nPerim || 36;
+  var straggle = opts.straggle !== undefined ? opts.straggle : 0.20;
+  var cornerR = opts.cornerR !== undefined ? opts.cornerR : Math.min(w, d) * 0.22;
+  cornerR = Math.min(cornerR, (w / 2) * 0.95, (d / 2) * 0.95);
+
+  var positions = [];
+  var uvs = [];
+  var indices = [];
+
+  var halfW = w / 2;
+  var halfD = d / 2;
+
+  function getRoundedRectPoint(hx, hz, cr, theta) {
+    var cos = Math.cos(theta);
+    var sin = Math.sin(theta);
+    var sx = Math.max(0, hx - cr);
+    var sz = Math.max(0, hz - cr);
+    var qx = cos >= 0 ? 1 : -1;
+    var qz = sin >= 0 ? 1 : -1;
+    var cCos = Math.abs(cos);
+    var cSin = Math.abs(sin);
+    var len = Math.hypot(cCos, cSin) || 1;
+    return [
+      qx * (sx + cr * (cCos / len)),
+      qz * (sz + cr * (cSin / len))
+    ];
+  }
+
+  for (var i = 0; i <= nLayers; i++) {
+    var eta = i / nLayers;
+    var rFactor = Math.sqrt(Math.max(0, 1.0 - eta * eta));
+    var curHx = halfW * (1.0 - straggle * (1.0 - rFactor));
+    var curHz = halfD * (1.0 - straggle * (1.0 - rFactor));
+    var curCr = cornerR * (0.35 + 0.65 * rFactor);
+    var y = h * 0.5 - h * eta;
+
+    for (var j = 0; j < nPerim; j++) {
+      var theta = (j / nPerim) * Math.PI * 2;
+      var pt = getRoundedRectPoint(curHx, curHz, curCr, theta);
+      positions.push(pt[0], y, pt[1]);
+      uvs.push(j / nPerim, eta);
+    }
+  }
+
+  for (var i = 0; i < nLayers; i++) {
+    var ring1 = i * nPerim;
+    var ring2 = (i + 1) * nPerim;
+    for (var j = 0; j < nPerim; j++) {
+      var nextJ = (j + 1) % nPerim;
+      var a = ring1 + j;
+      var b = ring2 + j;
+      var c = ring2 + nextJ;
+      var d = ring1 + nextJ;
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  // Bottom cap
+  var bottomCenterIdx = positions.length / 3;
+  positions.push(0, -h * 0.5, 0);
+  uvs.push(0.5, 1.0);
+  var lastRingStart = nLayers * nPerim;
+  for (var j = 0; j < nPerim; j++) {
+    var nextJ = (j + 1) % nPerim;
+    indices.push(bottomCenterIdx, lastRingStart + nextJ, lastRingStart + j);
+  }
+
+  // Top surface cap
+  var topCenterIdx = positions.length / 3;
+  positions.push(0, h * 0.5, 0);
+  uvs.push(0.5, 0.0);
+  for (var j = 0; j < nPerim; j++) {
+    var nextJ = (j + 1) % nPerim;
+    indices.push(topCenterIdx, j, nextJ);
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(indices);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+// ---------------------------------------------------------------------------
 // BUILD 3D GEOMETRY
 // ---------------------------------------------------------------------------
 function buildDiodeGeometry() {
-  // Add groups to scene
   Object.keys(groups).forEach(function (k) {
     scene.add(groups[k]);
   });
 
   var metalTex = getBrushedMetalTexture();
+  var isLight = (currentTheme === 'light');
 
-  // Materials initialization
-  var isLight = currentTheme === 'light';
+  // Theme-sensitive colors
+  var subColor = isLight ? 0x475569 : 0x3a3f4b;
+  var wellColor = isLight ? 0x059669 : 0x1e4a38;
   var pColor = isLight ? 0xd97706 : 0xcf8a4a;
   var nColor = isLight ? 0x0284c7 : 0x4a92c9;
   var depletColor = 0x9333ea;
   var metalColor = isLight ? 0x2563eb : 0x4f86c9;
   var oxideColor = isLight ? 0x0284c7 : 0x38bdf8;
+  var viaColor = isLight ? 0x94a3b8 : 0x64748b;
+
+  diodeMaterials.substrate = new THREE.MeshStandardMaterial({
+    color: subColor,
+    roughness: 0.65,
+    metalness: 0.15
+  });
+
+  diodeMaterials.nwell = new THREE.MeshStandardMaterial({
+    color: wellColor,
+    roughness: 0.50,
+    metalness: 0.20,
+    transparent: true,
+    opacity: 0.88
+  });
 
   diodeMaterials.pRegion = new THREE.MeshStandardMaterial({
     color: pColor,
-    roughness: 0.45,
-    metalness: 0.15
+    roughness: 0.40,
+    metalness: 0.20
   });
 
   diodeMaterials.nRegion = new THREE.MeshStandardMaterial({
     color: nColor,
-    roughness: 0.45,
-    metalness: 0.15
+    roughness: 0.40,
+    metalness: 0.20
   });
 
   diodeMaterials.depletion = new THREE.MeshStandardMaterial({
     color: depletColor,
-    roughness: 0.3,
-    metalness: 0.2,
+    roughness: 0.30,
+    metalness: 0.25,
     transparent: true,
-    opacity: 0.42,
+    opacity: 0.45,
     depthWrite: false
   });
 
@@ -193,166 +317,319 @@ function buildDiodeGeometry() {
     blending: THREE.AdditiveBlending
   });
 
-  diodeMaterials.metal = new THREE.MeshStandardMaterial({
-    color: metalColor,
-    map: metalTex,
-    roughness: 0.35,
-    metalness: 0.75
+  diodeMaterials.sti = new THREE.MeshStandardMaterial({
+    color: oxideColor,
+    roughness: 0.20,
+    metalness: 0.10,
+    transparent: true,
+    opacity: 0.48,
+    depthWrite: false
   });
 
   diodeMaterials.passivation = new THREE.MeshStandardMaterial({
     color: oxideColor,
-    roughness: 0.2,
-    metalness: 0.1,
+    roughness: 0.20,
+    metalness: 0.10,
     transparent: true,
-    opacity: 0.38,
+    opacity: 0.35,
     depthWrite: false
   });
 
-  // 1. P-Type Region Mesh (Negative X half)
-  var pGeo = new THREE.BoxGeometry(1.0, BLOCK_H, BLOCK_W);
-  pBlockMesh = new THREE.Mesh(pGeo, diodeMaterials.pRegion);
-  pBlockMesh.castShadow = true;
-  pBlockMesh.receiveShadow = true;
-  pBlockMesh.userData = { id: 'pRegion' };
-  clickableMeshes.push(pBlockMesh);
-  groups.semiconductor.add(pBlockMesh);
+  diodeMaterials.metal = new THREE.MeshStandardMaterial({
+    color: metalColor,
+    map: metalTex,
+    roughness: 0.35,
+    metalness: 0.80
+  });
 
-  pEdgeLine = new THREE.LineSegments(
-    new THREE.EdgesGeometry(pGeo),
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 })
+  diodeMaterials.contact = new THREE.MeshStandardMaterial({
+    color: viaColor,
+    roughness: 0.30,
+    metalness: 0.85
+  });
+
+  // =========================================================================
+  // 1. P-SUBSTRATE (BULK SILICON WAFER SLAB)
+  // =========================================================================
+  var subGeo = new THREE.BoxGeometry(SUB_L, SUB_H, SUB_W);
+  subMesh = new THREE.Mesh(subGeo, diodeMaterials.substrate);
+  subMesh.position.set(0, -SUB_H / 2, 0); // Y: -4.0 to 0.0
+  subMesh.receiveShadow = true;
+  subMesh.userData = { id: 'substrate', layerKey: 'substrate' };
+  clickableMeshes.push(subMesh);
+  groups.substrate.add(subMesh);
+
+  var subEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(subGeo),
+    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 })
   );
-  pBlockMesh.add(pEdgeLine);
+  subMesh.add(subEdges);
 
-  // 2. N-Type Region Mesh (Positive X half)
-  var nGeo = new THREE.BoxGeometry(1.0, BLOCK_H, BLOCK_W);
-  nBlockMesh = new THREE.Mesh(nGeo, diodeMaterials.nRegion);
-  nBlockMesh.castShadow = true;
-  nBlockMesh.receiveShadow = true;
-  nBlockMesh.userData = { id: 'nRegion' };
-  clickableMeshes.push(nBlockMesh);
-  groups.semiconductor.add(nBlockMesh);
+  // =========================================================================
+  // 2. N-WELL (CATHODE BODY TUB)
+  // =========================================================================
+  var wellGeo = createGaussianTubGeometry(WELL_L, WELL_H, WELL_W, {
+    nLayers: 16,
+    nPerim: 32,
+    straggle: 0.14,
+    cornerR: 1.8
+  });
+  nwellMesh = new THREE.Mesh(wellGeo, diodeMaterials.nwell);
+  nwellMesh.position.set(0, -WELL_H / 2, 0); // Y: -3.0 to 0.0
+  nwellMesh.receiveShadow = true;
+  nwellMesh.userData = { id: 'nwell', layerKey: 'nwell' };
+  clickableMeshes.push(nwellMesh);
+  groups.nwell.add(nwellMesh);
 
-  nEdgeLine = new THREE.LineSegments(
-    new THREE.EdgesGeometry(nGeo),
-    new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.25 })
+  var wellEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(wellGeo),
+    new THREE.LineBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.35 })
   );
-  nBlockMesh.add(nEdgeLine);
+  nwellMesh.add(wellEdges);
 
-  // 3. Dynamic Depletion Region Mesh (Spans junction [-xp, +xn])
-  var depGeo = new THREE.BoxGeometry(1.0, BLOCK_H + 0.04, BLOCK_W + 0.04);
-  depletionMesh = new THREE.Mesh(depGeo, diodeMaterials.depletion);
-  depletionMesh.userData = { id: 'depletionRegion' };
-  clickableMeshes.push(depletionMesh);
-  groups.depletion.add(depletionMesh);
+  // =========================================================================
+  // 3. ACTIVE DIFFUSIONS (P+ ANODE TUB & N+ CATHODE TAP)
+  // =========================================================================
+  // 3a. P+ Anode Tub (Implanted on Left, center X = -4.8)
+  var pTubGeo = createGaussianTubGeometry(P_TUB_W, P_TUB_D, P_TUB_L, {
+    nLayers: 14,
+    nPerim: 28,
+    straggle: 0.18,
+    cornerR: 1.2
+  });
+  pTubMesh = new THREE.Mesh(pTubGeo, diodeMaterials.pRegion);
+  pTubMesh.position.set(-4.8, -P_TUB_D / 2, 0); // Y: -1.6 to 0.0
+  pTubMesh.castShadow = true;
+  pTubMesh.receiveShadow = true;
+  pTubMesh.userData = { id: 'pRegion', layerKey: 'active' };
+  clickableMeshes.push(pTubMesh);
+  groups.active.add(pTubMesh);
 
-  depletionEdgeLine = new THREE.LineSegments(
+  var pEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(pTubGeo),
+    new THREE.LineBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 0.32 })
+  );
+  pTubMesh.add(pEdges);
+
+  // 3b. N+ Cathode Tap (Implanted on Right, center X = +4.8)
+  var nTapGeo = createGaussianTubGeometry(N_TAP_W, N_TAP_D, N_TAP_L, {
+    nLayers: 14,
+    nPerim: 28,
+    straggle: 0.18,
+    cornerR: 1.2
+  });
+  nTapMesh = new THREE.Mesh(nTapGeo, diodeMaterials.nRegion);
+  nTapMesh.position.set(4.8, -N_TAP_D / 2, 0); // Y: -1.3 to 0.0
+  nTapMesh.castShadow = true;
+  nTapMesh.receiveShadow = true;
+  nTapMesh.userData = { id: 'nRegion', layerKey: 'active' };
+  clickableMeshes.push(nTapMesh);
+  groups.active.add(nTapMesh);
+
+  var nEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(nTapGeo),
+    new THREE.LineBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.32 })
+  );
+  nTapMesh.add(nEdges);
+
+  // =========================================================================
+  // 4. CONFORMAL 3D DEPLETION SHELL
+  // =========================================================================
+  // Conformal shell wrapping around the P+ tub inside the N-Well.
+  // Dynamic scale will expand its bottom & sidewalls based on W = xp + xn.
+  var depGeo = createGaussianTubGeometry(P_TUB_W + 0.3, P_TUB_D + 0.25, P_TUB_L + 0.3, {
+    nLayers: 14,
+    nPerim: 28,
+    straggle: 0.22,
+    cornerR: 1.35
+  });
+  depletionShellMesh = new THREE.Mesh(depGeo, diodeMaterials.depletion);
+  depletionShellMesh.position.set(-4.8, -P_TUB_D / 2, 0);
+  depletionShellMesh.userData = { id: 'depletionRegion', layerKey: 'depletion' };
+  clickableMeshes.push(depletionShellMesh);
+  groups.depletion.add(depletionShellMesh);
+
+  var depEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(depGeo),
-    new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.6 })
+    new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.55 })
   );
-  depletionMesh.add(depletionEdgeLine);
+  depletionShellMesh.add(depEdges);
 
-  // 4. Breakdown Glow Volumetric Mesh
-  var glowGeo = new THREE.BoxGeometry(1.0, BLOCK_H + 0.3, BLOCK_W + 0.3);
+  // =========================================================================
+  // 5. HIGH-FIELD BREAKDOWN GLOW MESH
+  // =========================================================================
+  // Concentrated along the high-curvature junction sidewalls & bottom perimeter
+  var glowGeo = new THREE.BoxGeometry(1.6, P_TUB_D + 0.4, P_TUB_L + 0.4);
   breakdownGlowMesh = new THREE.Mesh(glowGeo, diodeMaterials.breakdownGlow);
-  breakdownGlowMesh.userData = { id: 'breakdownGlow' };
+  breakdownGlowMesh.position.set(-1.6, -P_TUB_D / 2, 0);
+  breakdownGlowMesh.userData = { id: 'breakdownGlow', layerKey: 'field' };
   groups.field.add(breakdownGlowMesh);
 
-  // 5. Fixed Space-Charge Ions Group (Acceptors NA- and Donors ND+)
+  // =========================================================================
+  // 6. FIXED SPACE-CHARGE IONS
+  // =========================================================================
   fixedIonsPGroup = new THREE.Group();
-  fixedIonsPGroup.userData = { id: 'fixedIonsP' };
+  fixedIonsPGroup.userData = { id: 'fixedIonsP', layerKey: 'ions' };
   groups.ions.add(fixedIonsPGroup);
 
   fixedIonsNGroup = new THREE.Group();
-  fixedIonsNGroup.userData = { id: 'fixedIonsN' };
+  fixedIonsNGroup.userData = { id: 'fixedIonsN', layerKey: 'ions' };
   groups.ions.add(fixedIonsNGroup);
 
   buildIonMarkers();
 
-  // 6. Anode Contact (Metal-1 Pad & Via Studs on P-Side)
-  var padW = 3.2;
-  var padL = BLOCK_W - 1.2;
+  // =========================================================================
+  // 7. DIELECTRIC & ISOLATION STACK (STI & ILD PASSIVATION)
+  // =========================================================================
+  // 7a. Shallow Trench Isolation (STI) between P+ tub and N+ tap: X in [-1.6, 2.0]
+  var stiGeo = new THREE.BoxGeometry(3.6, 0.8, P_TUB_L + 1.2);
+  var stiMesh = new THREE.Mesh(stiGeo, diodeMaterials.sti);
+  stiMesh.position.set(0.2, -0.4, 0); // Y: -0.8 to 0.0
+  stiMesh.userData = { id: 'sti', layerKey: 'passivation' };
+  clickableMeshes.push(stiMesh);
+  groups.passivation.add(stiMesh);
+
+  // Outer Perimeter STI surrounding well edges
+  var stiRimGeo1 = new THREE.BoxGeometry(2.5, 0.8, WELL_W);
+  var stiRimMesh1 = new THREE.Mesh(stiRimGeo1, diodeMaterials.sti);
+  stiRimMesh1.position.set(-9.25, -0.4, 0);
+  groups.passivation.add(stiRimMesh1);
+
+  var stiRimGeo2 = new THREE.BoxGeometry(2.5, 0.8, WELL_W);
+  var stiRimMesh2 = new THREE.Mesh(stiRimGeo2, diodeMaterials.sti);
+  stiRimMesh2.position.set(9.25, -0.4, 0);
+  groups.passivation.add(stiRimMesh2);
+
+  // 7b. Interlayer Dielectric (ILD Passivation SiO2)
+  // Surface slab from Y = 0.0 to Y = 1.6 with etched contact cuts
+  var ildHeight = 1.6;
+  var ildCenterGeo = new THREE.BoxGeometry(4.8, ildHeight, P_TUB_L);
+  var ildCenterMesh = new THREE.Mesh(ildCenterGeo, diodeMaterials.passivation);
+  ildCenterMesh.position.set(0.0, ildHeight / 2, 0); // Center between via windows
+  ildCenterMesh.userData = { id: 'passivation', layerKey: 'passivation' };
+  clickableMeshes.push(ildCenterMesh);
+  groups.passivation.add(ildCenterMesh);
+
+  var ildOuterLeft = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, ildHeight, P_TUB_L),
+    diodeMaterials.passivation
+  );
+  ildOuterLeft.position.set(-9.25, ildHeight / 2, 0);
+  groups.passivation.add(ildOuterLeft);
+
+  var ildOuterRight = new THREE.Mesh(
+    new THREE.BoxGeometry(3.5, ildHeight, P_TUB_L),
+    diodeMaterials.passivation
+  );
+  ildOuterRight.position.set(9.25, ildHeight / 2, 0);
+  groups.passivation.add(ildOuterRight);
+
+  // =========================================================================
+  // 8. TUNGSTEN CONTACT VIAS (W VIA PLUGS)
+  // =========================================================================
+  var viaH = 1.8;
+  var viaR = 0.28;
+  var viaZOffsets = [-2.4, 0.0, 2.4];
+
+  // Anode Tungsten Vias (X = -4.8, punching down into P+ tub)
+  viaZOffsets.forEach(function (vz, idx) {
+    var vGeo = new THREE.CylinderGeometry(viaR, viaR * 0.95, viaH, 16);
+    var vMesh = new THREE.Mesh(vGeo, diodeMaterials.contact);
+    vMesh.position.set(-4.8, viaH / 2, vz);
+    vMesh.castShadow = true;
+    vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'anode_' + idx };
+    clickableMeshes.push(vMesh);
+    groups.contact.add(vMesh);
+  });
+
+  // Cathode Tungsten Vias (X = +4.8, punching down into N+ tap)
+  viaZOffsets.forEach(function (vz, idx) {
+    var vGeo = new THREE.CylinderGeometry(viaR, viaR * 0.95, viaH, 16);
+    var vMesh = new THREE.Mesh(vGeo, diodeMaterials.contact);
+    vMesh.position.set(4.8, viaH / 2, vz);
+    vMesh.castShadow = true;
+    vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'cathode_' + idx };
+    clickableMeshes.push(vMesh);
+    groups.contact.add(vMesh);
+  });
+
+  // =========================================================================
+  // 9. METAL-1 INTERCONNECTS (ANODE & CATHODE TERMINAL PADS)
+  // =========================================================================
+  var padW = 4.8;
+  var padL = 7.2;
   var padH = 0.45;
+
+  // Anode Metal-1 Pad (Left, X = -4.8, atop vias at Y = viaH + padH/2)
   var anodePadGeo = new THREE.BoxGeometry(padW, padH, padL);
   var anodeMesh = new THREE.Mesh(anodePadGeo, diodeMaterials.metal);
-  anodeMesh.position.set(-BLOCK_HALF_L + padW / 2 + 0.6, BLOCK_H / 2 + padH / 2, 0);
+  anodeMesh.position.set(-4.8, viaH + padH / 2, 0);
   anodeMesh.castShadow = true;
-  anodeMesh.userData = { id: 'anodeMetal' };
+  anodeMesh.userData = { id: 'anodeMetal', layerKey: 'metal' };
   clickableMeshes.push(anodeMesh);
-  groups.contacts.add(anodeMesh);
+  groups.metal.add(anodeMesh);
 
-  // Tungsten via plugs for Anode
-  for (var vz = -2.8; vz <= 2.8; vz += 1.8) {
-    var viaGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.35, 12);
-    var viaMesh = new THREE.Mesh(viaGeo, diodeMaterials.metal);
-    viaMesh.position.set(-BLOCK_HALF_L + padW / 2 + 0.6, BLOCK_H / 2 + 0.15, vz);
-    groups.contacts.add(viaMesh);
-  }
+  var anodeEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(anodePadGeo),
+    new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.6 })
+  );
+  anodeMesh.add(anodeEdges);
 
-  // 7. Cathode Contact (Metal-1 Pad & Via Studs on N-Side)
+  // Cathode Metal-1 Pad (Right, X = +4.8, atop vias at Y = viaH + padH/2)
   var cathodePadGeo = new THREE.BoxGeometry(padW, padH, padL);
   var cathodeMesh = new THREE.Mesh(cathodePadGeo, diodeMaterials.metal);
-  cathodeMesh.position.set(BLOCK_HALF_L - padW / 2 - 0.6, BLOCK_H / 2 + padH / 2, 0);
+  cathodeMesh.position.set(4.8, viaH + padH / 2, 0);
   cathodeMesh.castShadow = true;
-  cathodeMesh.userData = { id: 'cathodeMetal' };
+  cathodeMesh.userData = { id: 'cathodeMetal', layerKey: 'metal' };
   clickableMeshes.push(cathodeMesh);
-  groups.contacts.add(cathodeMesh);
+  groups.metal.add(cathodeMesh);
 
-  // Tungsten via plugs for Cathode
-  for (var vz = -2.8; vz <= 2.8; vz += 1.8) {
-    var viaGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.35, 12);
-    var viaMesh = new THREE.Mesh(viaGeo, diodeMaterials.metal);
-    viaMesh.position.set(BLOCK_HALF_L - padW / 2 - 0.6, BLOCK_H / 2 + 0.15, vz);
-    groups.contacts.add(viaMesh);
-  }
+  var cathodeEdges = new THREE.LineSegments(
+    new THREE.EdgesGeometry(cathodePadGeo),
+    new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.6 })
+  );
+  cathodeMesh.add(cathodeEdges);
 
-  // 8. Passivation Dielectric Oxide (SiO2) Capping Layer
-  var passL = (BLOCK_HALF_L - padW - 0.9) * 2;
-  var passGeo = new THREE.BoxGeometry(passL, 0.35, BLOCK_W);
-  var passMesh = new THREE.Mesh(passGeo, diodeMaterials.passivation);
-  passMesh.position.set(0, BLOCK_H / 2 + 0.18, 0);
-  passMesh.userData = { id: 'passivation' };
-  clickableMeshes.push(passMesh);
-  groups.passivation.add(passMesh);
-
-  // 9. Floating 3D Billboard Labels
-  var lblAnode = makeLabelSprite('ANODE (A)', '#4a92c9', 'P-Side Contact (VA)');
-  lblAnode.position.set(-BLOCK_HALF_L + 2.2, BLOCK_H / 2 + 2.4, 0);
-  groups.contacts.add(lblAnode);
+  // =========================================================================
+  // 10. 3D FLOATING TERMINAL LABELS
+  // =========================================================================
+  var lblAnode = makeLabelSprite('ANODE (A)', '#4a92c9', 'P+ Anode Terminal (VA)');
+  lblAnode.position.set(-4.8, viaH + padH + 1.8, 0);
+  groups.labels.add(lblAnode);
   interactiveLabels.push(lblAnode);
 
-  var lblCathode = makeLabelSprite('CATHODE (K)', '#57cf8f', 'N-Side Contact (GND)');
-  lblCathode.position.set(BLOCK_HALF_L - 2.2, BLOCK_H / 2 + 2.4, 0);
-  groups.contacts.add(lblCathode);
+  var lblCathode = makeLabelSprite('CATHODE (K)', '#57cf8f', 'N+ Cathode Terminal (GND)');
+  lblCathode.position.set(4.8, viaH + padH + 1.8, 0);
+  groups.labels.add(lblCathode);
   interactiveLabels.push(lblCathode);
 
-  var lblJunction = makeLabelSprite('P-N JUNCTION', '#c084fc', 'Metallurgical Boundary (x=0)');
-  lblJunction.position.set(0, -BLOCK_H / 2 - 1.6, 0);
+  var lblJunction = makeLabelSprite('P+/N JUNCTION', '#c084fc', 'Metallurgical Boundary');
+  lblJunction.position.set(-1.6, -P_TUB_D - 1.2, 0);
   groups.depletion.add(lblJunction);
   interactiveLabels.push(lblJunction);
 }
 
 // ---------------------------------------------------------------------------
-// BUILD SPACE CHARGE ION MARKERS (NA- on P-Side, ND+ on N-Side)
+// BUILD SPACE CHARGE ION MARKERS (CONFORMAL TO TUB JUNCTION)
 // ---------------------------------------------------------------------------
 var ionPTexture = null;
 var ionNTexture = null;
 
 function buildIonMarkers() {
-  if (!ionPTexture) ionPTexture = createIonTexture('-', '#e11d48', '#ffffff');
+  if (!ionPTexture) ionPTexture = createIonTexture('−', '#e11d48', '#ffffff');
   if (!ionNTexture) ionNTexture = createIonTexture('+', '#0284c7', '#ffffff');
 
-  // Pre-create 18 sprites on each side arranged in a 3x3 depth/lateral matrix
+  // Pre-create 24 sprites on each side conforming along the tub boundary
   for (var i = 0; i < 24; i++) {
     var pMat = new THREE.SpriteMaterial({ map: ionPTexture, depthTest: true, depthWrite: false });
     var pSprite = new THREE.Sprite(pMat);
-    pSprite.scale.set(0.65, 0.65, 1.0);
+    pSprite.scale.set(0.55, 0.55, 1.0);
     pSprite.userData = { id: 'fixedIonsP', idx: i };
     fixedIonsPGroup.add(pSprite);
 
     var nMat = new THREE.SpriteMaterial({ map: ionNTexture, depthTest: true, depthWrite: false });
     var nSprite = new THREE.Sprite(nMat);
-    nSprite.scale.set(0.65, 0.65, 1.0);
+    nSprite.scale.set(0.55, 0.55, 1.0);
     nSprite.userData = { id: 'fixedIonsN', idx: i };
     fixedIonsNGroup.add(nSprite);
   }
@@ -362,77 +639,91 @@ function buildIonMarkers() {
 // UPDATE 3D GEOMETRY FROM ACTIVE PHYSICS STATE
 // ---------------------------------------------------------------------------
 function updateDiode3DGeometry(state) {
-  if (!pBlockMesh || !nBlockMesh || !depletionMesh) return;
+  if (!pTubMesh || !nwellMesh || !depletionShellMesh) return;
 
-  // Physical depletion widths xp and xn mapped to 3D visual units
-  // Map typical depletion width (0.05 to 2.5 um) to 3D space [0.2 to 8.0 units]
   var wUm = state.wUm || 0.35;
   var xpUm = state.xpUm || (wUm * 0.1);
   var xnUm = state.xnUm || (wUm * 0.9);
 
-  // Scaling factor mapping micrometers to 3D units
-  // Reference: standard standard equilibrium (w ~ 0.35 um) -> 3D total width ~ 3.6 units
-  var scaleFactor = 10.0;
-  var xpVis = Math.max(0.18, Math.min(8.5, xpUm * scaleFactor));
-  var xnVis = Math.max(0.18, Math.min(8.5, xnUm * scaleFactor));
+  // Physical to visual scale factor
+  var scaleFactor = 7.0;
+  var xpVis = Math.max(0.12, Math.min(3.0, xpUm * scaleFactor));
+  var xnVis = Math.max(0.15, Math.min(4.5, xnUm * scaleFactor));
   var totalWVis = xpVis + xnVis;
 
-  // 1. Depletion Zone Mesh
-  // Positioned from -xpVis to +xnVis, center is (-xpVis + xnVis)/2
-  var depCenterX = (-xpVis + xnVis) / 2.0;
-  depletionMesh.scale.set(totalWVis, 1, 1);
-  depletionMesh.position.set(depCenterX, 0, 0);
+  // 1. Conformal Depletion Shell Scaling
+  // Shell wraps around P+ tub: center at -4.8, depth at -P_TUB_D / 2.
+  // Sidewall extends outward by xnVis toward Cathode tap (+X),
+  // and bottom extends deeper by xnVis.
+  var scaleX = 1.0 + (xnVis / P_TUB_W) * 1.8;
+  var scaleY = 1.0 + (xnVis / P_TUB_D) * 1.4;
+  var scaleZ = 1.0 + (xnVis / P_TUB_L) * 1.2;
 
-  // 2. P-Region Mesh (spans from -BLOCK_HALF_L to -xpVis)
-  var pLength = Math.max(0.2, BLOCK_HALF_L - xpVis);
-  pBlockMesh.scale.set(pLength, 1, 1);
-  pBlockMesh.position.set(-BLOCK_HALF_L + pLength / 2.0, 0, 0);
+  depletionShellMesh.scale.set(scaleX, scaleY, scaleZ);
+  // Shift center slightly toward right (+X) and downward (-Y) as xn expands outward
+  depletionShellMesh.position.set(-4.8 + xnVis * 0.35, -P_TUB_D / 2 - xnVis * 0.25, 0);
 
-  // 3. N-Region Mesh (spans from +xnVis to +BLOCK_HALF_L)
-  var nLength = Math.max(0.2, BLOCK_HALF_L - xnVis);
-  nBlockMesh.scale.set(nLength, 1, 1);
-  nBlockMesh.position.set(BLOCK_HALF_L - nLength / 2.0, 0, 0);
-
-  // 4. Update Fixed Ions Positions
-  // Spread NA- ions uniformly inside [-xpVis, -0.05]
+  // 2. Position Fixed Space-Charge Ions
+  // P-side negative ions (-) lie on inner margin of the P+ tub boundary
   var pSprites = fixedIonsPGroup.children;
   var nSprites = fixedIonsNGroup.children;
 
-  var yPositions = [-1.0, 0.0, 1.0];
-  var zPositions = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0];
+  var zCoords = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0];
 
   for (var i = 0; i < pSprites.length; i++) {
     var s = pSprites[i];
-    var yIdx = i % yPositions.length;
-    var zIdx = Math.floor(i / yPositions.length) % zPositions.length;
-    var fracX = 0.15 + 0.70 * ((i % 4) / 3.0); // distributed along -xp
-    var xPos = -xpVis * fracX;
-    s.position.set(xPos, yPositions[yIdx], zPositions[zIdx]);
-    // Fade out if depletion is extremely thin
-    s.visible = xpVis > 0.25;
+    var zIdx = i % zCoords.length;
+    var zPos = zCoords[zIdx];
+
+    if (i < 12) {
+      // Right sidewall boundary (X ≈ -1.6, P-side margin: -1.6 - xpVis)
+      var frac = (i % 3) / 2.0;
+      var yPos = -0.3 - frac * 1.1;
+      var xPos = -1.6 - xpVis * (0.3 + 0.5 * (Math.floor(i / 3) / 4.0));
+      s.position.set(xPos, yPos, zPos);
+    } else {
+      // Bottom junction boundary (Y ≈ -1.6, P-side margin: -1.6 + xpVis)
+      var fracX = (i - 12) / 12.0;
+      var xPos = -7.4 + fracX * 5.6;
+      var yPos = -P_TUB_D + xpVis * 0.4;
+      s.position.set(xPos, yPos, zPos);
+    }
+    s.visible = xpVis > 0.14;
   }
 
-  // Spread ND+ ions uniformly inside [+0.05, +xnVis]
+  // N-side positive ions (+) lie in N-Well outside the P+ tub boundary
   for (var j = 0; j < nSprites.length; j++) {
     var sn = nSprites[j];
-    var yIdxN = j % yPositions.length;
-    var zIdxN = Math.floor(j / yPositions.length) % zPositions.length;
-    var fracXN = 0.15 + 0.70 * ((j % 4) / 3.0);
-    var xPosN = xnVis * fracXN;
-    sn.position.set(xPosN, yPositions[yIdxN], zPositions[zIdxN]);
-    sn.visible = xnVis > 0.25;
+    var zIdxN = j % zCoords.length;
+    var zPosN = zCoords[zIdxN];
+
+    if (j < 12) {
+      // Right sidewall in N-Well (X: -1.6 to -1.6 + xnVis)
+      var fracY = (j % 3) / 2.0;
+      var yPosN = -0.3 - fracY * 1.1;
+      var xPosN = -1.6 + xnVis * (0.2 + 0.6 * (Math.floor(j / 3) / 4.0));
+      sn.position.set(xPosN, yPosN, zPosN);
+    } else {
+      // Bottom boundary in N-Well (Y: -P_TUB_D - xnVis)
+      var fracXN = (j - 12) / 12.0;
+      var xPosN = -7.4 + fracXN * 5.6;
+      var yPosN = -P_TUB_D - xnVis * 0.45;
+      sn.position.set(xPosN, yPosN, zPosN);
+    }
+    sn.visible = xnVis > 0.14;
   }
 
-  // 5. High-Field Breakdown Glow
+  // 3. High-Field Breakdown Glow
   if (breakdownGlowMesh) {
     var isBreakdown = (state.regime === 'ZENER' || state.regime === 'AVALANCHE' || state.regime === 'MIXED');
     if (isBreakdown) {
       breakdownGlowMesh.visible = true;
-      breakdownGlowMesh.scale.set(totalWVis + 0.4, 1.0, 1.0);
-      breakdownGlowMesh.position.set(depCenterX, 0, 0);
-      var glowColor = state.regime === 'ZENER' ? 0xf43f5e : 0x8b5cf6;
+      breakdownGlowMesh.scale.set(1.0 + xnVis * 0.4, 1.0 + xnVis * 0.25, 1.0);
+      breakdownGlowMesh.position.set(-1.6 + xnVis * 0.2, -P_TUB_D / 2 - xnVis * 0.1, 0);
+
+      var glowColor = (state.regime === 'ZENER') ? 0xf43f5e : 0x8b5cf6;
       diodeMaterials.breakdownGlow.color.setHex(glowColor);
-      diodeMaterials.breakdownGlow.opacity = 0.45 + 0.25 * Math.sin(Date.now() * 0.008);
+      diodeMaterials.breakdownGlow.opacity = 0.45 + 0.25 * Math.sin(Date.now() * 0.009);
     } else {
       breakdownGlowMesh.visible = false;
       diodeMaterials.breakdownGlow.opacity = 0.0;
@@ -444,20 +735,15 @@ function updateDiode3DGeometry(state) {
 // ADAPTIVE MATERIALS THEME (LIGHT / DARK)
 // ---------------------------------------------------------------------------
 function updateMaterialsTheme() {
-  var isLight = currentTheme === 'light';
-  if (!diodeMaterials.pRegion) return;
+  var isLight = (currentTheme === 'light');
+  if (!diodeMaterials.substrate) return;
 
+  diodeMaterials.substrate.color.setHex(isLight ? 0x475569 : 0x3a3f4b);
+  diodeMaterials.nwell.color.setHex(isLight ? 0x059669 : 0x1e4a38);
   diodeMaterials.pRegion.color.setHex(isLight ? 0xd97706 : 0xcf8a4a);
   diodeMaterials.nRegion.color.setHex(isLight ? 0x0284c7 : 0x4a92c9);
   diodeMaterials.metal.color.setHex(isLight ? 0x2563eb : 0x4f86c9);
+  diodeMaterials.contact.color.setHex(isLight ? 0x94a3b8 : 0x64748b);
   diodeMaterials.passivation.color.setHex(isLight ? 0x0284c7 : 0x38bdf8);
-
-  if (pEdgeLine && pEdgeLine.material) {
-    pEdgeLine.material.color.setHex(isLight ? 0x94a3b8 : 0xffffff);
-    pEdgeLine.material.opacity = isLight ? 0.35 : 0.22;
-  }
-  if (nEdgeLine && nEdgeLine.material) {
-    nEdgeLine.material.color.setHex(isLight ? 0x94a3b8 : 0xffffff);
-    nEdgeLine.material.opacity = isLight ? 0.35 : 0.22;
-  }
+  diodeMaterials.sti.color.setHex(isLight ? 0x0284c7 : 0x38bdf8);
 }

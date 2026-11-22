@@ -14,6 +14,11 @@ function animate() {
     controls.update();
   }
 
+  // Update guided 3D fabrication tour drop-in animations
+  if (typeof updateBuildAnimation === 'function') {
+    updateBuildAnimation(delta);
+  }
+
   // Update carrier/current particle drift & thermal jitter
   if (typeof updateFlowParticles === 'function') {
     updateFlowParticles(delta);

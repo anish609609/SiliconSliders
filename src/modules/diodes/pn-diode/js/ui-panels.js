@@ -1,7 +1,7 @@
 /**
  * ui-panels.js - PN Junction Diode CAD Viewer
  * Left and right panel building, layer visibility management,
- * architecture tree generation, and docked panel tabs.
+ * architecture tree generation, docked panel tabs, and sliding drawer controls.
  */
 
 function initUIPanels() {
@@ -92,20 +92,23 @@ function setupPanelToggles() {
   var rightPanel = document.getElementById('right-panel');
   var leftToggle = document.getElementById('left-toggle');
   var rightToggle = document.getElementById('right-toggle');
-  var bodyRow = document.getElementById('body-row');
 
   if (leftToggle && leftPanel) {
     leftToggle.addEventListener('click', function () {
-      leftPanel.classList.toggle('collapsed');
-      if (bodyRow) bodyRow.classList.toggle('left-collapsed', leftPanel.classList.contains('collapsed'));
+      var open = leftPanel.classList.toggle('open');
+      leftToggle.classList.toggle('is-open', open);
+      leftToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      document.body.classList.toggle('left-open', open);
       setTimeout(resize, 220);
     });
   }
 
   if (rightToggle && rightPanel) {
     rightToggle.addEventListener('click', function () {
-      rightPanel.classList.toggle('collapsed');
-      if (bodyRow) bodyRow.classList.toggle('right-collapsed', rightPanel.classList.contains('collapsed'));
+      var open = rightPanel.classList.toggle('open');
+      rightToggle.classList.toggle('is-open', open);
+      rightToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      updateDockedPanelOffset();
       setTimeout(resize, 220);
     });
   }
@@ -118,6 +121,32 @@ function setupPanelToggles() {
     });
   });
 }
+
+function updateDockedPanelOffset() {
+  var rightPanel = document.getElementById('right-panel');
+  var dockedPanel = document.getElementById('docked-panel');
+  var launcher = document.getElementById('va-launcher-btn');
+  var vaWidget = document.getElementById('voice-assistant-widget');
+
+  if (window.innerWidth < 768) {
+    if (dockedPanel) dockedPanel.style.right = '';
+    if (launcher) launcher.style.right = '';
+    if (vaWidget) vaWidget.style.right = '';
+    return;
+  }
+
+  if (rightPanel && rightPanel.classList.contains('open')) {
+    var w = rightPanel.getBoundingClientRect().width || 262;
+    if (dockedPanel) dockedPanel.style.right = (w + 38) + 'px';
+    if (launcher) launcher.style.right = (w + 38) + 'px';
+    if (vaWidget) vaWidget.style.right = (w + 38) + 'px';
+  } else {
+    if (dockedPanel) dockedPanel.style.right = '';
+    if (launcher) launcher.style.right = '';
+    if (vaWidget) vaWidget.style.right = '';
+  }
+}
+window.addEventListener('resize', updateDockedPanelOffset);
 
 function setupDockedPanelTabs() {
   var dpTabs = document.querySelectorAll('.dp-tab-btn');

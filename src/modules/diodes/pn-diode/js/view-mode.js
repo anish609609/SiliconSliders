@@ -22,6 +22,11 @@ function setViewMode(mode) {
   var isSchematic = (mode === 'schematic');
   var isLayout = (mode === 'layout');
 
+  // If tour is playing and leaving layout, stop it cleanly
+  if (!isLayout && typeof stopBuildAnimation === 'function') {
+    stopBuildAnimation(true);
+  }
+
   // Theory overlay
   if (theoryOverlay) {
     theoryOverlay.classList.toggle('visible', isTheory);
@@ -79,6 +84,9 @@ function setViewMode(mode) {
 
   var btnResetCam = document.getElementById('btn-reset-cam');
   if (btnResetCam) btnResetCam.style.display = isLayout ? '' : 'none';
+
+  var btnTour = document.getElementById('btn-build-anim');
+  if (btnTour) btnTour.style.display = isLayout ? '' : 'none';
 
   var vaLauncher = document.getElementById('va-launcher-btn');
   if (vaLauncher) vaLauncher.style.display = isTheory ? 'none' : '';

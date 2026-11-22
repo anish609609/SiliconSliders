@@ -1,125 +1,178 @@
 /**
  * data.js - PN Junction Diode CAD Viewer
- * Component metadata, architectural layer hierarchy, and lambda design rules.
+ * Component metadata, architectural layer hierarchy, and lambda design rules
+ * for a planar diffused silicon IC PN junction diode.
  */
 
 var COMPONENTS = {
+  substrate: {
+    id: 'substrate',
+    name: 'P-Type Silicon Substrate (Bulk Wafer)',
+    title: 'P-Substrate Wafer (Mechanical & Bulk Body)',
+    layer: 'Substrate',
+    role: 'Provides mechanical wafer integrity and electrical isolation for integrated IC components.',
+    fn: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) lightly doped with Boron. Hosts the implanted N-Well tub.',
+    doping: 'Boron (NA): ~10¹⁵ cm⁻³ (Lightly doped P-type bulk)',
+    colorVar: '--c-substrate',
+    colorHex: '#3a3f4b',
+    thickness: '4.0 μm (CAD normalized)',
+    area: '26 μm × 15 μm'
+  },
+  nwell: {
+    id: 'nwell',
+    name: 'N-Well (Cathode Body Region)',
+    title: 'N-Well Tub (Implanted Cathode Body)',
+    layer: 'Well Implantation',
+    role: 'Acts as the n-type cathode semiconductor body hosting the metallurgical junction and ohmic tap.',
+    fn: 'Formed by high-energy Phosphorus/Arsenic ion implantation and high-temperature thermal drive-in diffusion. Encapsulates the P+ anode tub and N+ cathode tap.',
+    doping: 'Phosphorus (ND): 10¹⁵ – 10¹⁹ cm⁻³ (Adjustable via ND slider)',
+    colorVar: '--c-well',
+    colorHex: '#059669',
+    thickness: '3.0 μm depth into silicon',
+    area: '21 μm × 12 μm'
+  },
   pRegion: {
     id: 'pRegion',
-    name: 'P-Type Silicon Body (Anode Side)',
-    title: 'P-Type Silicon Bulk (Boron Acceptors)',
-    layer: 'Semiconductor Base',
-    role: 'Provides mobile hole majority carriers and forms the metallurgical P-N junction.',
-    fn: 'Under forward bias, holes diffuse across the narrowed depletion barrier into the N-region. Under reverse bias, the minority electron leakage drift is collected here.',
-    doping: 'Boron (NA): 10¹⁵ – 10¹⁹ cm⁻³ (Acceptors)',
+    name: 'P+ Anode Diffusion Tub',
+    title: 'P+ Anode Tub (Heavily Doped Active Diffusion)',
+    layer: 'Active Diffusion',
+    role: 'Forms the primary metallurgical P+/N junction with the surrounding N-Well.',
+    fn: 'Heavily doped with Boron (NA ≈ 10¹⁵–10¹⁹ cm⁻³). In forward bias (VA > 0), injects majority holes across the lowered depletion barrier into the N-Well.',
+    doping: 'Boron (NA): 10¹⁵ – 10¹⁹ cm⁻³ (Adjustable via NA slider)',
     colorVar: '--c-active-p',
     colorHex: '#cf8a4a',
-    thickness: '2.50 μm',
-    area: '100 μm × 100 μm'
+    thickness: '1.6 μm junction depth (xj)',
+    area: '6.4 μm × 9.0 μm'
   },
   nRegion: {
     id: 'nRegion',
-    name: 'N-Type Silicon Body (Cathode Side)',
-    title: 'N-Type Silicon Bulk (Phosphorus Donors)',
-    layer: 'Semiconductor Base',
-    role: 'Provides mobile electron majority carriers and completes the bilateral diode block.',
-    fn: 'Supplies electrons that diffuse into the P-region under forward bias. Serves as the negative cathode terminal.',
-    doping: 'Phosphorus / Arsenic (ND): 10¹⁵ – 10¹⁹ cm⁻³ (Donors)',
+    name: 'N+ Cathode Ohmic Contact Tap',
+    title: 'N+ Cathode Tap (Heavy Ohmic Contact Diffusion)',
+    layer: 'Active Diffusion',
+    role: 'Provides a degenerate low-resistance ohmic contact interface from the cathode metal via into the N-Well.',
+    fn: 'Heavily doped with Arsenic (N+ ≈ 1×10²⁰ cm⁻³) to suppress Schottky barrier formation, ensuring ideal ohmic contact to the Cathode Tungsten plug.',
+    doping: 'Arsenic/Phosphorus (N+): ~1×10²⁰ cm⁻³ (Degenerate N+)',
     colorVar: '--c-active-n',
     colorHex: '#4a92c9',
-    thickness: '2.50 μm',
-    area: '100 μm × 100 μm'
+    thickness: '1.3 μm junction depth',
+    area: '5.6 μm × 9.0 μm'
   },
   depletionRegion: {
     id: 'depletionRegion',
-    name: 'Space-Charge Depletion Region',
-    title: 'Depletion Layer (Transition Zone)',
-    layer: 'Active Junction',
-    role: 'Insulating electrostatic barrier zone swept free of mobile carriers.',
-    fn: 'Maintains built-in potential Vbi and peak electric field Emax. Expands under reverse bias and contracts under forward bias, setting total junction capacitance.',
-    doping: 'Depleted of mobile carriers; populated by fixed uncompensated ionized dopant cores',
+    name: 'Conformal 3D Depletion Shell',
+    title: 'Space-Charge Depletion Region (Transition Layer)',
+    layer: 'Space Charge',
+    role: 'Electrostatic insulating barrier layer swept free of mobile majority carriers.',
+    fn: 'Conformal shell wrapping around the P+ Anode tub (bottom and sidewalls) inside the N-Well. Width W = xp + xn dynamically expands under reverse bias and contracts under forward bias, establishing junction capacitance Cj.',
+    doping: 'Swept free of mobile carriers; contains uncompensated fixed ionized cores NA⁻ and ND⁺',
     colorVar: '--c-depletion',
     colorHex: '#a855f7',
     thickness: 'W = xp + xn (Dynamic: 0.05 μm to > 3.0 μm)',
-    area: '100 μm × 100 μm'
+    area: 'Conformal tub perimeter & bottom'
   },
   fixedIonsP: {
     id: 'fixedIonsP',
     name: 'Ionized Acceptor Cores (P-Side Ions)',
     title: 'Fixed Negative Space-Charge (NA⁻)',
-    layer: 'Space-Charge Layer',
+    layer: 'Space Charge',
     role: 'Uncompensated Boron atom cores with net negative charge in the P-depletion slice.',
     fn: 'Terminate electric field lines originating from donor ions, establishing the negative space-charge sheet ρ(x) = -q·NA across -xp ≤ x ≤ 0.',
     doping: 'Uncompensated ionized acceptors NA⁻ (Net charge: -q·NA·xp)',
     colorVar: '--c-danger',
-    colorHex: '#e35d5d',
+    colorHex: '#e11d48',
     thickness: 'xp = W · ND / (NA + ND)',
-    area: 'Fixed uncompensated ion lattice'
+    area: 'Sub-surface depletion perimeter'
   },
   fixedIonsN: {
     id: 'fixedIonsN',
     name: 'Ionized Donor Cores (N-Side Ions)',
     title: 'Fixed Positive Space-Charge (ND⁺)',
-    layer: 'Space-Charge Layer',
+    layer: 'Space Charge',
     role: 'Uncompensated Phosphorus atom cores with net positive charge in the N-depletion slice.',
     fn: 'Originate electric field lines that terminate on acceptor ions, establishing the positive space-charge sheet ρ(x) = +q·ND across 0 ≤ x ≤ xn.',
     doping: 'Uncompensated ionized donors ND⁺ (Net charge: +q·ND·xn)',
     colorVar: '--c-accent',
     colorHex: '#5fd9c4',
     thickness: 'xn = W · NA / (NA + ND)',
-    area: 'Fixed uncompensated ion lattice'
-  },
-  anodeMetal: {
-    id: 'anodeMetal',
-    name: 'Anode Terminal Contact Pad',
-    title: 'Anode Ohmic Metallization (Metal-1)',
-    layer: 'Metallization',
-    role: 'Ohmic low-resistance terminal connecting external positive voltage to the P-region.',
-    fn: 'Collects conventional forward current (holes entering from external circuit) and applies potential VA to the P-side.',
-    doping: 'Tungsten plug / Aluminum-Copper alloy (Ohmic silicide contact)',
-    colorVar: '--c-metal',
-    colorHex: '#4f86c9',
-    thickness: '0.40 μm Metal-1 Ribbon',
-    area: '25 μm × 90 μm'
-  },
-  cathodeMetal: {
-    id: 'cathodeMetal',
-    name: 'Cathode Terminal Contact Pad',
-    title: 'Cathode Ohmic Metallization (Metal-1)',
-    layer: 'Metallization',
-    role: 'Ohmic low-resistance terminal connecting external negative voltage to the N-region.',
-    fn: 'Collects forward electron flow and establishes the negative/ground reference potential on the N-side.',
-    doping: 'Tungsten plug / Aluminum-Copper alloy (Ohmic silicide contact)',
-    colorVar: '--c-metal',
-    colorHex: '#4f86c9',
-    thickness: '0.40 μm Metal-1 Ribbon',
-    area: '25 μm × 90 μm'
-  },
-  passivation: {
-    id: 'passivation',
-    name: 'Surface Passivation Oxide (SiO₂)',
-    title: 'Silicon Dioxide Passivation & Isolation',
-    layer: 'Dielectric Insulation',
-    role: 'Passivates silicon surface dangling bonds to suppress surface leakage and recombination.',
-    fn: 'Protects the metallurgical junction from ambient contamination and shorts between anode and cathode metallization.',
-    doping: 'Stoichiometric thermal/CVD SiO₂ (Dielectric constant εox ≈ 3.9)',
-    colorVar: '--c-oxide',
-    colorHex: '#38bdf8',
-    thickness: '0.35 μm',
-    area: 'Full wafer surface with etched contact cuts'
+    area: 'N-Well surrounding depletion shell'
   },
   breakdownGlow: {
     id: 'breakdownGlow',
     name: 'High-Field Breakdown Zone (Glow)',
     title: 'Electric Field Breakdown Ionization Glow',
-    layer: 'High-Field Physical Plasma',
+    layer: 'High-Field Plasma',
     role: 'Visualizes intense localized electric field exceeding critical field Ecrit during reverse breakdown.',
-    fn: 'Emits a volumetric high-energy glow when VA ≤ -VBR, denoting band-to-band tunneling (Zener) or cascading impact ionization (Avalanche).',
-    doping: 'Localized critical field threshold: Ecrit ≈ 4×10⁵ to 10⁶ V/cm',
+    fn: 'Concentrated along high-curvature junction sidewalls and corners when VA ≤ -VBR. Visualizes band-to-band tunneling (Zener) or avalanche impact ionization multiplication.',
+    doping: 'Critical electric field threshold: Ecrit ≈ 4×10⁵ to 10⁶ V/cm',
     colorVar: '--c-zener',
     colorHex: '#f43f5e',
-    thickness: 'Spans metallurgical junction',
-    area: 'Volumetric depletion cross-section'
+    thickness: 'Spans metallurgical junction boundary',
+    area: 'High-curvature junction perimeter'
+  },
+  sti: {
+    id: 'sti',
+    name: 'Shallow Trench Isolation (STI SiO₂)',
+    title: 'STI Oxide (Dielectric Field Isolation)',
+    layer: 'Dielectric',
+    role: 'Provides lateral dielectric isolation between active diffusion regions.',
+    fn: 'High-density plasma SiO₂ filled trenches (0.8 μm depth) separating the P+ Anode tub from the N+ Cathode tap to prevent surface punch-through and leakage.',
+    doping: 'CVD / Thermal SiO₂ (k ≈ 3.9)',
+    colorVar: '--c-oxide',
+    colorHex: '#38bdf8',
+    thickness: '0.80 μm trench depth',
+    area: 'Isolation moat between active regions'
+  },
+  passivation: {
+    id: 'passivation',
+    name: 'Surface Passivation / ILD (SiO₂)',
+    title: 'Interlayer Dielectric & Passivation (SiO₂)',
+    layer: 'Dielectric',
+    role: 'Passivates the silicon surface and isolates silicon from interconnect metallization.',
+    fn: 'Thick dielectric oxide (1.6 μm) covering the silicon wafer surface with etched vertical contact windows over the P+ Anode tub and N+ Cathode tap.',
+    doping: 'Stoichiometric TEOS / CVD SiO₂ (k ≈ 3.9)',
+    colorVar: '--c-oxide',
+    colorHex: '#38bdf8',
+    thickness: '1.60 μm ILD oxide height',
+    area: 'Wafer surface with etched via cuts'
+  },
+  tungstenVias: {
+    id: 'tungstenVias',
+    name: 'Tungsten Contact Vias (W Plugs)',
+    title: 'Vertical Tungsten Contact Plugs (W)',
+    layer: 'Contact Vias',
+    role: 'Provides low-resistance vertical electrical paths through the ILD down to active silicon.',
+    fn: 'CVD Tungsten plugs with Ti/TiN barrier/adhesion liners punching through the ILD oxide to contact the P+ Anode tub and N+ Cathode tap.',
+    doping: 'Pure CVD Tungsten (W) with Ti/TiN silicide liner',
+    colorVar: '--c-contact',
+    colorHex: '#94a3b8',
+    thickness: '1.80 μm vertical via height',
+    area: 'Standard 0.44 μm diameter plugs'
+  },
+  anodeMetal: {
+    id: 'anodeMetal',
+    name: 'Anode Terminal Pad (Metal-1)',
+    title: 'Anode Metal-1 Interconnect (VA)',
+    layer: 'Metallization',
+    role: 'First metallization layer routing external applied voltage VA to the P+ Anode tub.',
+    fn: 'Copper / Aluminum alloy ribbon pad resting atop the Anode Tungsten vias, connected to the external circuit anode lead.',
+    doping: 'Al-Cu / Damascene Copper (0.04 Ω/□ sheet resistance)',
+    colorVar: '--c-metal',
+    colorHex: '#4f86c9',
+    thickness: '0.40 μm Metal-1 ribbon',
+    area: '6.0 μm × 7.0 μm'
+  },
+  cathodeMetal: {
+    id: 'cathodeMetal',
+    name: 'Cathode Terminal Pad (Metal-1)',
+    title: 'Cathode Metal-1 Interconnect (GND / 0V)',
+    layer: 'Metallization',
+    role: 'First metallization layer routing the cathode reference voltage (GND) to the N+ Cathode tap.',
+    fn: 'Copper / Aluminum alloy ribbon pad resting atop the Cathode Tungsten vias, completing the circuit current return path.',
+    doping: 'Al-Cu / Damascene Copper (0.04 Ω/□ sheet resistance)',
+    colorVar: '--c-metal',
+    colorHex: '#4f86c9',
+    thickness: '0.40 μm Metal-1 ribbon',
+    area: '6.0 μm × 7.0 μm'
   }
 };
 
@@ -128,41 +181,58 @@ function idToInfo(id) {
 }
 
 var LAYERS_LIST = [
-  { id: 'semiconductor', name: 'Semiconductor Bulk (P & N)', color: '#cf8a4a', visible: true },
-  { id: 'depletion', name: 'Depletion Layer (Space Charge)', color: '#a855f7', visible: true },
-  { id: 'ions', name: 'Fixed Space-Charge Ions (±)', color: '#5fd9c4', visible: true },
-  { id: 'contacts', name: 'Metal Contacts (Anode & Cathode)', color: '#4f86c9', visible: true },
-  { id: 'passivation', name: 'Passivation Dielectric (SiO₂)', color: '#38bdf8', visible: true },
-  { id: 'field', name: 'High-Field Breakdown Glow', color: '#f43f5e', visible: true }
+  { id: 'substrate',   name: 'P-Substrate (Bulk Wafer)',      color: '#3a3f4b', visible: true },
+  { id: 'nwell',       name: 'N-Well (Cathode Body Tub)',     color: '#059669', visible: true },
+  { id: 'active',      name: 'Active Diffusions (P+ / N+)',   color: '#cf8a4a', visible: true },
+  { id: 'depletion',   name: 'Depletion Shell (Space Charge)',color: '#a855f7', visible: true },
+  { id: 'ions',        name: 'Fixed Space-Charge Ions (±)',   color: '#5fd9c4', visible: true },
+  { id: 'field',       name: 'High-Field Breakdown Glow',     color: '#f43f5e', visible: true },
+  { id: 'passivation', name: 'Dielectric Stack (STI & ILD)',  color: '#38bdf8', visible: true },
+  { id: 'contact',     name: 'Contacts (Tungsten W Vias)',    color: '#94a3b8', visible: true },
+  { id: 'metal',       name: 'Metal-1 Interconnects (A & K)', color: '#4f86c9', visible: true }
 ];
 
 var ARCHITECTURE_TREE = [
   {
-    name: 'PN Junction Diode Assembly',
+    name: 'Planar Silicon PN Diode Assembly',
     id: 'root',
     children: [
       {
-        name: 'Semiconductor Bodies',
+        name: 'Silicon Body & Well Structure',
         children: [
-          { name: 'P-Type Silicon (Anode side)', id: 'pRegion' },
-          { name: 'N-Type Silicon (Cathode side)', id: 'nRegion' }
+          { name: 'P-Type Silicon Substrate (Bulk)', id: 'substrate' },
+          { name: 'N-Well Cathode Body Tub', id: 'nwell' }
         ]
       },
       {
-        name: 'Metallurgical Junction & Space Charge',
+        name: 'Active Implanted Regions',
         children: [
-          { name: 'Depletion Zone (W = xp + xn)', id: 'depletionRegion' },
+          { name: 'P+ Anode Diffusion Tub', id: 'pRegion' },
+          { name: 'N+ Cathode Ohmic Contact Tap', id: 'nRegion' }
+        ]
+      },
+      {
+        name: 'Junction Space-Charge & Field',
+        children: [
+          { name: 'Conformal 3D Depletion Shell (W)', id: 'depletionRegion' },
           { name: 'Ionized Acceptor Cores (NA⁻)', id: 'fixedIonsP' },
           { name: 'Ionized Donor Cores (ND⁺)', id: 'fixedIonsN' },
-          { name: 'Critical Field Breakdown Zone', id: 'breakdownGlow' }
+          { name: 'High-Field Breakdown Zone (Ecrit)', id: 'breakdownGlow' }
         ]
       },
       {
-        name: 'Ohmic Metallization & Dielectric',
+        name: 'Dielectric Isolation & Surface Passivation',
         children: [
-          { name: 'Anode Contact Pad (Metal-1)', id: 'anodeMetal' },
-          { name: 'Cathode Contact Pad (Metal-1)', id: 'cathodeMetal' },
-          { name: 'Surface Passivation Oxide (SiO₂)', id: 'passivation' }
+          { name: 'Shallow Trench Isolation (STI SiO₂)', id: 'sti' },
+          { name: 'Interlayer Dielectric Passivation (ILD)', id: 'passivation' }
+        ]
+      },
+      {
+        name: 'Contacts & Metallization',
+        children: [
+          { name: 'Tungsten Contact Vias (W Plugs)', id: 'tungstenVias' },
+          { name: 'Anode Terminal Pad (Metal-1 · VA)', id: 'anodeMetal' },
+          { name: 'Cathode Terminal Pad (Metal-1 · GND)', id: 'cathodeMetal' }
         ]
       }
     ]
@@ -170,10 +240,12 @@ var ARCHITECTURE_TREE = [
 ];
 
 var LAMBDA_RULES = [
-  { rule: 'Semi Length (L_total)', lambda: '24 λ', desc: 'Total semiconductor physical block length' },
-  { rule: 'Semi Width (W_block)', lambda: '12 λ', desc: 'Cross-sectional lateral block width' },
-  { rule: 'Semi Height (H_block)', lambda: '5 λ', desc: 'Substrate vertical thickness' },
-  { rule: 'Contact Width', lambda: '4 λ', desc: 'Anode and Cathode contact pad width' },
-  { rule: 'Contact Inset', lambda: '1.5 λ', desc: 'Minimum clearance to wafer edge' },
-  { rule: 'Oxide Overlap', lambda: '2 λ', desc: 'Dielectric passivation overlap around contacts' }
+  { rule: 'Substrate Length (L_sub)', lambda: '26 λ', desc: 'Total silicon substrate physical block length' },
+  { rule: 'Substrate Width (W_sub)', lambda: '15 λ', desc: 'Cross-sectional lateral substrate width' },
+  { rule: 'N-Well Enclosure', lambda: '3 λ', desc: 'N-Well enclosure clearance around active P+ tub' },
+  { rule: 'P+ Anode Tub Width', lambda: '6.4 λ', desc: 'Active P+ anode diffusion window' },
+  { rule: 'N+ Cathode Tap Width', lambda: '5.6 λ', desc: 'Active N+ cathode ohmic tap window' },
+  { rule: 'Active Spacing (STI)', lambda: '3.6 λ', desc: 'STI isolation spacing between P+ tub and N+ tap' },
+  { rule: 'Via Dimension (W_ct)', lambda: '1.5 λ', desc: 'Tungsten contact via plug square size' },
+  { rule: 'Metal-1 Overlap of Via', lambda: '1.0 λ', desc: 'Metal-1 enclosure margin over contact vias' }
 ];

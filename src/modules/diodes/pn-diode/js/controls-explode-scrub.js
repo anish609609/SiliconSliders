@@ -1,7 +1,7 @@
 /**
  * controls-explode-scrub.js - PN Junction Diode CAD Viewer
  * Layer explosion offsets, clipping planes (section scrubbing),
- * and 3D floating billboard labels visibility toggle.
+ * and 3D floating billboard labels visibility toggle for planar diode model.
  */
 
 var clipPlaneX = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 30);
@@ -27,19 +27,41 @@ function initExplodeAndScrub() {
     if (expValY) expValY.textContent = Math.round(pctY * 100) + '%';
     if (expValZ) expValZ.textContent = Math.round(pctZ * 100) + '%';
 
-    // Displace layer groups
-    if (groups.contacts) {
-      groups.contacts.position.y = pctY * 5.0;
+    // Displace layer groups vertically along Y
+    if (groups.metal) {
+      groups.metal.position.y = pctY * 6.0;
+    }
+    if (groups.labels) {
+      groups.labels.position.y = pctY * 6.0;
+    }
+    if (groups.contact) {
+      groups.contact.position.y = pctY * 4.2;
     }
     if (groups.passivation) {
-      groups.passivation.position.y = pctY * 3.0;
+      groups.passivation.position.y = pctY * 2.8;
+    }
+    if (groups.active) {
+      groups.active.position.y = pctY * 1.6;
+    }
+    if (groups.depletion) {
+      groups.depletion.position.y = pctY * 1.6;
     }
     if (groups.ions) {
-      groups.ions.position.y = pctY * 1.5;
+      groups.ions.position.y = pctY * 1.6;
     }
-    if (groups.semiconductor) {
-      pBlockMesh.position.x = -BLOCK_HALF_L + pBlockMesh.scale.x / 2.0 - pctX * 3.5;
-      nBlockMesh.position.x = BLOCK_HALF_L - nBlockMesh.scale.x / 2.0 + pctX * 3.5;
+    if (groups.field) {
+      groups.field.position.y = pctY * 1.6;
+    }
+    if (groups.nwell) {
+      groups.nwell.position.y = pctY * 0.7;
+    }
+
+    // Lateral separation along X (Anode left, Cathode right)
+    if (pTubMesh) {
+      pTubMesh.position.x = -4.8 - pctX * 3.5;
+    }
+    if (nTapMesh) {
+      nTapMesh.position.x = 4.8 + pctX * 3.5;
     }
   }
 
@@ -56,13 +78,17 @@ function initExplodeAndScrub() {
   var scrubValY = document.getElementById('scrub-y-val');
   var scrubValZ = document.getElementById('scrub-z-val');
 
-  // Assign clipping planes to materials
+  // Assign clipping planes to all planar diode materials
   var allMats = [
+    diodeMaterials.substrate,
+    diodeMaterials.nwell,
     diodeMaterials.pRegion,
     diodeMaterials.nRegion,
     diodeMaterials.depletion,
-    diodeMaterials.metal,
-    diodeMaterials.passivation
+    diodeMaterials.sti,
+    diodeMaterials.passivation,
+    diodeMaterials.contact,
+    diodeMaterials.metal
   ];
 
   allMats.forEach(function (m) {
