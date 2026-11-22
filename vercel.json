@@ -74,6 +74,26 @@
       "source": "/CMOS_NAND/",
       "destination": "/src/modules/transistors/cmos/cmos-nand/index.html",
       "permanent": false
+    },
+    {
+      "source": "/diode",
+      "destination": "/src/modules/diodes/pn-diode/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/diode/",
+      "destination": "/src/modules/diodes/pn-diode/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/pn-diode",
+      "destination": "/src/modules/diodes/pn-diode/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/pn-diode/",
+      "destination": "/src/modules/diodes/pn-diode/index.html",
+      "permanent": false
     }
   ]
 }

@@ -63,6 +63,12 @@ SiliconSliders/
 │   │       └── home.js                  # Homepage interactive telemetry & navigation
 │   │
 │   └── modules/
+│       ├── diodes/                      # Diode Family (Junction Devices)
+│       │   └── pn-diode/                # 3D PN Junction Diode CAD viewer, depletion & breakdown
+│       │       ├── index.html           # CAD viewport, 2D schematic & theory overlay
+│       │       ├── css/style.css        # EDA dark/light theme
+│       │       ├── js/*.js              # Modular 3D geometry, Poisson physics & carrier flow
+│       │       └── api/voice-assistant.js
 │       ├── transistors/                 # Pillar 1: Transistors & Base Circuits
 │       │   ├── README.md                # Pillar 1 Guide & Mead-Conway Design Rules
 │       │   ├── mosfet/                  # MOSFET Family (Discrete Transistors)

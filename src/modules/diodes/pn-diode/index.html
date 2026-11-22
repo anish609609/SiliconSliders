@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PN Junction Diode — 3D Physical CAD, Depletion &amp; Breakdown Simulation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../../../shared/viewer/css/viewer-shell.css">
+<link rel="stylesheet" href="../../../shared/viewer/css/theory.css">
+<script>
+  (function(){
+    try {
+      var t = localStorage.getItem('silicon_sliders_theme') ||
+              localStorage.getItem('cmos_viewer_theme') ||
+              localStorage.getItem('cmos_nand_viewer_theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.setAttribute('data-theme', 'dark');
+    } catch(e){}
+  })();
+</script>
+</head>
+<body>
+
+<div id="loading"><div class="spin"></div><div>INITIALIZING PN DIODE VIEWPORT…</div></div>
+
+<div id="app">
+
+  <!-- Top Navigation Bar -->
+  <div id="topbar">
+    <a href="../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
+    <div class="brand"><span class="dot"></span><b class="brand-title-full">DIODE·VIEWER</b><b class="brand-title-compact">DIODE</b></div>
+
+    <div class="topbar-mode-row">
+      <div class="seg" id="mode-seg">
+        <button data-mode="theory">THEORY</button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">3D CAD</span></button>
+        <button data-mode="schematic"><span class="tab-label-full">CIRCUIT DIAGRAM</span><span class="tab-label-compact">SCHEMATIC</span></button>
+      </div>
+
+      <div class="seg" id="flow-seg" title="Conduction Simulation: Mobile Carrier Drift (e- / h+) vs Conventional Current (I)">
+        <button data-flow="carrier" class="active">CARRIERS</button>
+        <button data-flow="current">CURRENT</button>
+      </div>
+    </div>
+
+    <div class="spacer"></div>
+
+    <div class="right-cluster">
+      <button class="tbtn icon-btn" id="btn-theme-toggle" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
+        <svg id="theme-icon-sun" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <span id="theme-btn-label">LIGHT</span>
+      </button>
+      <button class="tbtn" id="btn-reset-cam">RESET</button>
+    </div>
+  </div>
+
+  <div id="body-row">
+
+    <!-- Panel Toggles -->
+    <button class="panel-toggle" id="left-toggle" title="Toggle layers &amp; legend panel" aria-label="Toggle layers panel" aria-expanded="false">
+      <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+    <button class="panel-toggle" id="right-toggle" title="Toggle inspector &amp; tree panel" aria-label="Toggle inspector panel" aria-expanded="false">
+      <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <!-- Left Panel: Layer Visibility, Legend & Dimensions -->
+    <div id="left-panel">
+      <div class="panel-section">
+        <div class="panel-head" data-target="layers-body"><h3>LAYER VISIBILITY</h3><span class="chev">▾</span></div>
+        <div class="panel-body" id="layers-body"></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-head" data-target="legend-body"><h3>LAYER LEGEND</h3><span class="chev">▾</span></div>
+        <div class="panel-body" id="legend-body"></div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-head" data-target="dims-body"><h3>DIMENSIONS (λ RULES)</h3><span class="chev">▾</span></div>
+        <div class="panel-body" id="dims-body">
+          <div class="dims-row-select">
+            <label for="lambda-select" class="dims-lbl">λ (LAMBDA)</label>
+            <select id="lambda-select"></select>
+          </div>
+          <div id="dims-table"></div>
+          <p class="dims-note">λ-scaled rules represent standard planar junction scaling. Click any layer in 3D or schematic to inspect its physical parameters.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Center Viewport -->
+    <div id="viewport-wrap">
+      <div id="canvas-host"></div>
+
+      <!-- 2D Schematic Overlay (Circuit Diagram) -->
+      <div id="schematic-overlay">
+        <svg id="schematic-svg" viewBox="0 0 460 360" width="100%" height="100%">
+          <pattern id="sch-grid-diode" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+          </pattern>
+          <rect width="460" height="360" fill="url(#sch-grid-diode)" />
+
+          <!-- ANODE (A) Net & Terminal Pad (Left) -->
+          <g class="sch-el" data-id="anodeMetal">
+            <rect x="40" y="155" width="90" height="36" rx="4" fill="rgba(74, 146, 201, 0.15)" stroke="#4a92c9" stroke-width="1.8"/>
+            <text x="85" y="178" fill="#4a92c9" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">ANODE (A)</text>
+            <line x1="130" y1="173" x2="190" y2="173" stroke="#4a92c9" stroke-width="3"/>
+            <circle cx="130" cy="173" r="4.5" fill="#4a92c9"/>
+          </g>
+
+          <!-- Standard Diode Symbol (Center) -->
+          <g class="sch-el" data-id="depletionRegion">
+            <!-- Triangle (Anode -> Cathode direction) -->
+            <polygon points="190,145 190,201 240,173" fill="rgba(95, 217, 196, 0.25)" stroke="#5fd9c4" stroke-width="2.5"/>
+            <!-- Cathode Vertical Bar -->
+            <line x1="240" y1="145" x2="240" y2="201" stroke="#5fd9c4" stroke-width="3.5"/>
+            <!-- Center metallurgical indicator -->
+            <circle cx="215" cy="173" r="3" fill="#ffffff" opacity="0.6"/>
+          </g>
+
+          <!-- CATHODE (K) Net & Terminal Pad (Right) -->
+          <g class="sch-el" data-id="cathodeMetal">
+            <line x1="240" y1="173" x2="330" y2="173" stroke="#57cf8f" stroke-width="3"/>
+            <circle cx="330" cy="173" r="4.5" fill="#57cf8f"/>
+            <rect x="330" y="155" width="95" height="36" rx="4" fill="rgba(87, 207, 143, 0.15)" stroke="#57cf8f" stroke-width="1.8"/>
+            <text x="377" y="178" fill="#57cf8f" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle">CATHODE (K)</text>
+          </g>
+
+          <!-- Animated Dynamic Current Arrow -->
+          <g id="sch-arrow-group">
+            <line id="sch-current-arrow" x1="130" y1="80" x2="240" y2="80" stroke="#57cf8f" stroke-width="2.5" stroke-dasharray="6,4"/>
+            <polygon id="sch-arrow-head" points="240,75 250,80 240,85" fill="#57cf8f"/>
+            <text x="230" y="65" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10.5" font-weight="600" text-anchor="middle">CONVENTIONAL CURRENT (I)</text>
+          </g>
+
+          <!-- Live Circuit Annotations -->
+          <text x="85" y="215" fill="#e6c94a" font-family="IBM Plex Mono" font-size="11" text-anchor="middle" id="sch-va-val">VA = 0.00 V</text>
+          <text x="377" y="215" fill="#8a95a6" font-family="IBM Plex Mono" font-size="10.5" text-anchor="middle">GND (0V)</text>
+          <text x="215" y="235" fill="#5fd9c4" font-family="IBM Plex Mono" font-size="12" font-weight="700" text-anchor="middle" id="sch-i-val">I = 0.00 mA</text>
+          <text x="215" y="260" fill="#5fd9c4" font-family="IBM Plex Mono" font-size="11" font-weight="700" text-anchor="middle" id="sch-diode-mode">THERMAL EQUILIBRIUM</text>
+        </svg>
+        <div class="cap">DISCRETE PN JUNCTION DIODE · SCHEMATIC · Triangle points in direction of forward conventional current (Anode to Cathode) · Click to inspect layers</div>
+      </div>
+
+      <!-- Full-Page Theory & Physical Models Overlay -->
+      <div id="theory-overlay">
+        <div class="theory-wrap">
+          <!-- Hero Banner -->
+          <div class="theory-hero">
+            <div class="theory-hero-header">
+              <div>
+                <h2 class="theory-hero-title">
+                  <span>PN Junction Diode Physics &amp; Breakdown Mechanisms</span>
+                </h2>
+                <p class="theory-hero-subtitle">
+                  Depletion region electrostatics, built-in barrier potential, Shockley forward conduction, and quantum Zener vs. Avalanche breakdown.
+                </p>
+              </div>
+              <span class="theory-badge">P-Type (Boron) · N-Type (Phosphorus) · Abrupt Junction</span>
+            </div>
+
+            <!-- Jump Chips -->
+            <div class="theory-jump-bar">
+              <span class="theory-jump-label">Jump to:</span>
+              <a href="#diode-formation" class="theory-jump-chip">1. Formation &amp; Doping</a>
+              <a href="#diode-vbi-depletion" class="theory-jump-chip">2. Vbi &amp; Depletion Width</a>
+              <a href="#diode-biasing" class="theory-jump-chip">3. Forward &amp; Reverse Bias</a>
+              <a href="#diode-shockley" class="theory-jump-chip">4. Shockley Equation</a>
+              <a href="#diode-breakdown" class="theory-jump-chip">5. Zener vs. Avalanche</a>
+              <a href="#diode-fields" class="theory-jump-chip">6. Electric Field &amp; Capacitance</a>
+            </div>
+          </div>
+
+          <!-- Section 1: Formation & Doping -->
+          <article id="diode-formation" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">1. Metallurgical Junction Formation &amp; Space-Charge Neutrality</h3>
+              <span class="theory-card-tag">NA = 10¹⁵–10¹⁹ cm⁻³, ND = 10¹⁵–10¹⁹ cm⁻³</span>
+            </div>
+            <p class="theory-p">
+              When a P-type semiconductor crystal containing trivalent acceptor atoms (Boron, <code>N<sub>A</sub></code>) is brought into metallurgical contact with an N-type crystal containing pentavalent donor atoms (Phosphorus or Arsenic, <code>N<sub>D</sub></code>), steep concentration gradients drive carrier diffusion. Mobile holes diffuse from the P-side into the N-side, while mobile electrons diffuse from the N-side into the P-side.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. Carrier Recombination</span>
+                <p class="theory-subcard-desc">Diffusing majority electrons and holes recombine near the metallurgical boundary (x = 0), annihilating mobile charge carriers.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Uncompensated Fixed Cores</span>
+                <p class="theory-subcard-desc">Recombination uncovers uncompensated negatively charged Boron acceptor anions (<code>N<sub>A</sub>⁻</code>) in the P-side and positively charged Phosphorus donor cations (<code>N<sub>D</sub>⁺</code>) in the N-side.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Space-Charge Neutrality</span>
+                <p class="theory-subcard-desc">Total negative space charge on the P-side must exactly equal total positive space charge on the N-side: <code>q · N<sub>A</sub> · x<sub>p</sub> = q · N<sub>D</sub> · x<sub>n</sub></code>.</p>
+              </div>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Global Charge Neutrality: q · N<sub>A</sub> · x<sub>p</sub> = q · N<sub>D</sub> · x<sub>n</sub> &nbsp;⟹&nbsp; x<sub>p</sub> / x<sub>n</sub> = N<sub>D</sub> / N<sub>A</sub></div>
+              <div class="theory-formula-sub">The space-charge depletion layer extends significantly further into the more lightly doped semiconductor side.</div>
+            </div>
+          </article>
+
+          <!-- Section 2: Vbi and Depletion Width -->
+          <article id="diode-vbi-depletion" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">2. Built-In Potential (Vbi) and Total Depletion Width (W)</h3>
+              <span class="theory-card-tag">Poisson Equation Formulation</span>
+            </div>
+            <p class="theory-p">
+              The fixed ionized cores establish an internal electric field pointing from the positive donors (N-side) to the negative acceptors (P-side). This field opposes further majority carrier diffusion. At thermal equilibrium, carrier diffusion is balanced by field drift, establishing the <b>built-in potential barrier</b> <code>V<sub>bi</sub></code>:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">V<sub>bi</sub> = (k·T / q) · ln[(N<sub>A</sub> · N<sub>D</sub>) / n<sub>i</sub>²] &nbsp;≈&nbsp; 0.65 – 0.95 V</div>
+              <div class="theory-formula-sub">Thermal voltage: V<sub>t</sub> = kT/q = 25.85 mV at 300K &nbsp;·&nbsp; Intrinsic concentration: n<sub>i</sub> ≈ 1.0×10¹⁰ cm⁻³ in Silicon at 300K</div>
+            </div>
+            <p class="theory-p">
+              Solving Poisson's equation <code>d²V/dx² = -ρ(x)/ε<sub>s</sub></code> across the step space-charge profile yields the total depletion width <code>W = x<sub>p</sub> + x<sub>n</sub></code> under applied voltage <code>V<sub>A</sub></code>:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">W = √[ (2·ε<sub>s</sub> / q) · (1/N<sub>A</sub> + 1/N<sub>D</sub>) · (V<sub>bi</sub> - V<sub>A</sub>) ]</div>
+              <div class="theory-formula-sub">One-sided extensions: x<sub>p</sub> = W · N<sub>D</sub> / (N<sub>A</sub> + N<sub>D</sub>) &nbsp;·&nbsp; x<sub>n</sub> = W · N<sub>A</sub> / (N<sub>A</sub> + N<sub>D</sub>) &nbsp;·&nbsp; ε<sub>s</sub> = 11.7·ε₀</div>
+            </div>
+          </article>
+
+          <!-- Section 3: Biasing Mechanics -->
+          <article id="diode-biasing" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">3. Forward Bias vs. Reverse Bias Electrostatics</h3>
+              <span class="theory-card-tag">Barrier Modulation</span>
+            </div>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Forward Bias (VA &gt; 0)</span>
+                <p class="theory-subcard-desc">Positive voltage applied to the Anode (P) lowers the electrostatic barrier from <code>V<sub>bi</sub></code> to <code>(V<sub>bi</sub> - V<sub>A</sub>)</code>. The depletion width <code>W</code> contracts. Majority holes in the P-region and electrons in the N-region easily overcome the reduced barrier, diffusing exponentially into the opposing neutral regions as injected minority carriers.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Reverse Bias (-VBR &lt; VA &lt; 0)</span>
+                <p class="theory-subcard-desc">Negative voltage applied to the Anode widens the barrier to <code>(V<sub>bi</sub> + |V<sub>A</sub>|)</code>. The depletion width <code>W</code> expands, pulling majority carriers further away from the metallurgical junction. Majority conduction is quenched, and only a minute reverse saturation leakage current <code>I<sub>s</sub></code> (generated by thermal minority electron-hole pairs) drifts across the barrier.</p>
+              </div>
+            </div>
+          </article>
+
+          <!-- Section 4: Shockley Diode Equation -->
+          <article id="diode-shockley" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">4. The Shockley Diode Equation &amp; Series Resistance</h3>
+              <span class="theory-card-tag">Exponential Conduction Formulation</span>
+            </div>
+            <p class="theory-p">
+              The ideal current-voltage relationship of a PN junction diode is governed by the <b>Shockley diode equation</b>:
+            </p>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">I = I<sub>s</sub>(T) · [ exp(q·V<sub>A</sub> / (n·k·T)) - 1 ]</div>
+              <div class="theory-formula-sub">I<sub>s</sub>(T) = q·A · [ (D<sub>p</sub>·p<sub>n0</sub> / L<sub>p</sub>) + (D<sub>n</sub>·n<sub>p0</sub> / L<sub>n</sub>) ] ∝ T³ · exp(-E<sub>g</sub> / kT) &nbsp;·&nbsp; Ideality factor n ≈ 1.0–1.1</div>
+            </div>
+            <p class="theory-p">
+              <b>High Current Series Resistance (Rs):</b> At high forward biases (<code>V<sub>A</sub> &gt; 0.7 V</code>), substantial current produces an ohmic voltage drop across the quasi-neutral bulk silicon and metal contact interfaces: <code>V<sub>junction</sub> = V<sub>A</sub> - I · R<sub>s</sub></code>. This transitions the exponential I-V curve into a linear series-resistance slope, preventing non-physical infinite current.
+            </p>
+          </article>
+
+          <!-- Section 5: Zener vs Avalanche Breakdown -->
+          <article id="diode-breakdown" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">5. Reverse Breakdown: Zener Tunneling vs. Avalanche Multiplication</h3>
+              <span class="theory-card-tag">Sze Empirical Formulation &amp; Tempco</span>
+            </div>
+            <p class="theory-p">
+              When reverse bias <code>|V<sub>A</sub>|</code> reaches the critical breakdown voltage <code>V<sub>BR</sub></code>, the junction enters reverse breakdown, conducting massive current with minimal increase in voltage. Two distinct quantum-physical mechanisms govern this transition:
+            </p>
+            <div class="theory-table-wrap">
+              <table class="theory-table">
+                <thead>
+                  <tr>
+                    <th>Parameter</th>
+                    <th>Zener Breakdown</th>
+                    <th>Avalanche Breakdown</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b>Primary Mechanism</b></td>
+                    <td>Direct band-to-band quantum mechanical electron tunneling</td>
+                    <td>Impact ionization and cascading electron-hole pair multiplication</td>
+                  </tr>
+                  <tr>
+                    <td><b>Breakdown Voltage Range</b></td>
+                    <td><code>V<sub>BR</sub> &lt; 5.0 V</code> (Heavily doped junctions)</td>
+                    <td><code>V<sub>BR</sub> &gt; 6.0 V</code> (Lightly / moderately doped junctions)</td>
+                  </tr>
+                  <tr>
+                    <td><b>Doping Requirement</b></td>
+                    <td>High doping: <code>N<sub>eff</sub> &gt; 10¹⁸ cm⁻³</code></td>
+                    <td>Moderate to low doping: <code>N<sub>eff</sub> &lt; 10¹⁷ cm⁻³</code></td>
+                  </tr>
+                  <tr>
+                    <td><b>Depletion Width (W)</b></td>
+                    <td>Extremely narrow: <code>W &lt; 10–15 nm</code></td>
+                    <td>Relatively wide: <code>W &gt; 100 nm</code></td>
+                  </tr>
+                  <tr>
+                    <td><b>Electric Field Threshold</b></td>
+                    <td>Intense: <code>|E<sub>max</sub>| &gt; 10⁶ V/cm (100 MV/m)</code></td>
+                    <td>Moderate critical field: <code>E<sub>crit</sub> ≈ 3–5 × 10⁵ V/cm</code></td>
+                  </tr>
+                  <tr>
+                    <td><b>Temperature Coefficient (αT)</b></td>
+                    <td><b>Negative (dVBR/dT &lt; 0):</b> Bandgap Eg narrows as temperature rises, increasing quantum tunneling probability at lower reverse voltage.</td>
+                    <td><b>Positive (dVBR/dT &gt; 0):</b> Increased thermal lattice vibrations (phonons) cause carrier scattering, shortening mean free path. Higher voltage is required to reach ionizing kinetic energy.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="theory-formula-box">
+              <div class="theory-formula-main">Sze Empirical Formula: V<sub>BR0</sub> ≈ 60 · (E<sub>g</sub> / 1.1 eV)<sup>1.5</sup> · (N<sub>eff</sub> / 10¹⁶ cm⁻³)<sup>-0.75</sup></div>
+              <div class="theory-formula-sub">Effective Doping: N<sub>eff</sub> = (N<sub>A</sub> · N<sub>D</sub>) / (N<sub>A</sub> + N<sub>D</sub>) &nbsp;·&nbsp; V<sub>BR</sub>(T) = V<sub>BR0</sub> · [ 1 + α<sub>T</sub> · (T - 300K) ]</div>
+            </div>
+          </article>
+
+          <!-- Section 6: Electric Field & Capacitance -->
+          <article id="diode-fields" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">6. Electric Field Profile |Emax| &amp; Junction Capacitance (Cj)</h3>
+              <span class="theory-card-tag">Poisson Field Integration</span>
+            </div>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Peak Electric Field</span>
+                <p class="theory-subcard-desc">The electric field reaches its maximum magnitude <code>|E<sub>max</sub>|</code> precisely at the metallurgical junction (x = 0):</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-cyan);">
+                  |E<sub>max</sub>| = (q · N<sub>A</sub> · x<sub>p</sub>) / ε<sub>s</sub> = 2 · (V<sub>bi</sub> - V<sub>A</sub>) / W
+                </div>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Junction Depletion Capacitance</span>
+                <p class="theory-subcard-desc">Modulation of space charge under small-signal ac voltage produces depletion capacitance <code>C<sub>j</sub> = dQ/dV<sub>A</sub></code>:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-cyan);">
+                  C<sub>j</sub> = ε<sub>s</sub> · A / W = C<sub>j0</sub> / √(1 - V<sub>A</sub> / V<sub>bi</sub>)
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+
+      <!-- Popover Card for Clicked 3D Components -->
+      <div id="popover">
+        <div class="pop-card">
+          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
+          <div id="popover-content"></div>
+        </div>
+      </div>
+
+      <!-- Top-Left Status Stack -->
+      <div class="hud-top-left-stack" id="top-left-hud">
+        <div class="hud-item" id="crumb">PN JUNCTION DIODE <span id="crumb-sel"></span></div>
+        <div class="hud-item" id="flow-caption">CARRIER FLOW: In equilibrium (VA = 0V), thermal jitter only with zero net current.</div>
+        <div class="hud-item" id="axis-indicator">
+          <div><b>X</b> — Anode (P) · Cathode (N) axis</div>
+          <div><b>Y</b> — Physical layer vertical thickness</div>
+          <div><b>Z</b> — Junction cross-sectional width</div>
+        </div>
+      </div>
+
+      <div class="hud" id="note">
+        Depletion width and space-charge dimensions are dynamically rendered using exact 1D Poisson equations for Silicon at temperature T.
+      </div>
+
+      <!-- Integrated Docked Right-Hand Panel (Physics & Controls) -->
+      <div class="hud interactive" id="docked-panel">
+        <div class="dp-header">
+          <div class="dp-tabs">
+            <button class="dp-tab-btn active" data-tab="physics" id="tab-btn-physics" title="Diode Operating Bias, Sliders &amp; Live Graph">
+              <span>PHYSICS &amp; GRAPH</span>
+            </button>
+            <button class="dp-tab-btn" data-tab="view" id="tab-btn-view" title="3D Layer Explode &amp; Section Scrub">
+              <span>VIEW CONTROLS</span>
+            </button>
+          </div>
+          <button class="dp-collapse-btn" id="dp-collapse-btn" title="Collapse / Expand Panel">▾</button>
+        </div>
+
+        <div class="dp-body" id="dp-body">
+          <!-- TAB 1: PHYSICS & GRAPH -->
+          <div class="dp-tab-content active" id="tab-content-physics">
+            <!-- Operating Region Status & Presets -->
+            <div class="dp-section">
+              <div class="dp-section-header">
+                <span class="dp-section-title">OPERATING REGIME</span>
+                <span class="region-pill equilibrium" id="diode-region-pill">EQUILIBRIUM</span>
+              </div>
+              <div class="seg dp-presets" id="diode-preset-seg">
+                <button data-preset="breakdown" class="dp-preset-btn" title="VA = -15V (Reverse Breakdown)">BREAKDOWN</button>
+                <button data-preset="reverse" class="dp-preset-btn" title="VA = -5V (Reverse Bias)">REVERSE</button>
+                <button data-preset="equilibrium" class="dp-preset-btn active" title="VA = 0V (Thermal Equilibrium)">EQUILIBRIUM</button>
+                <button data-preset="forward" class="dp-preset-btn" title="VA = +0.7V (Forward Conduction)">FORWARD</button>
+              </div>
+            </div>
+
+            <!-- Doping Configuration Presets -->
+            <div class="dp-section">
+              <div class="dp-section-header">
+                <span class="dp-section-title">DOPING PRESET</span>
+              </div>
+              <div class="seg dp-presets">
+                <button data-doping="standard" class="dp-preset-btn doping-preset-btn active" title="NA=10¹⁷, ND=10¹⁶ (Avalanche VBR > 6V)">STANDARD</button>
+                <button data-doping="zener" class="dp-preset-btn doping-preset-btn" title="NA=3×10¹⁸, ND=3×10¹⁸ (Heavy Doping, Zener VBR < 5V)">ZENER (HEAVY)</button>
+                <button data-doping="symmetric" class="dp-preset-btn doping-preset-btn" title="NA=10¹⁶, ND=10¹⁶ (Symmetric Junction)">SYMMETRIC</button>
+              </div>
+            </div>
+
+            <!-- 4 Interactive Physics Sliders -->
+            <div class="dp-section dp-bias-controls">
+              <!-- Slider 1: Applied Bias Voltage VA -->
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="va-slider">V<sub>A</sub> (Applied Bias)</label>
+                  <span class="dp-slider-val" id="va-val">0.00 V</span>
+                </div>
+                <input type="range" id="va-slider" min="-20.0" max="0.80" step="0.05" value="0.00" title="Applied Bias Voltage VA (-20V to +0.8V)">
+              </div>
+
+              <!-- Slider 2: Acceptor Doping NA -->
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="na-slider">N<sub>A</sub> (Acceptors · P-Side)</label>
+                  <span class="dp-slider-val" id="na-val">1.0×10¹⁷ cm⁻³</span>
+                </div>
+                <input type="range" id="na-slider" min="15.0" max="19.0" step="0.1" value="17.0" title="Acceptor Doping NA (10^15 to 10^19 cm^-3, log scale)">
+              </div>
+
+              <!-- Slider 3: Donor Doping ND -->
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="nd-slider">N<sub>D</sub> (Donors · N-Side)</label>
+                  <span class="dp-slider-val" id="nd-val">1.0×10¹⁶ cm⁻³</span>
+                </div>
+                <input type="range" id="nd-slider" min="15.0" max="19.0" step="0.1" value="16.0" title="Donor Doping ND (10^15 to 10^19 cm^-3, log scale)">
+              </div>
+
+              <!-- Slider 4: Temperature T -->
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="temp-slider">T (Temperature)</label>
+                  <span class="dp-slider-val" id="temp-val">300 K</span>
+                </div>
+                <input type="range" id="temp-slider" min="250" max="400" step="1" value="300" title="Temperature T (250K to 400K)">
+              </div>
+            </div>
+
+            <!-- Dual Interactive Graphs -->
+            <div class="dp-section">
+              <div class="iv-canvas-wrap">
+                <div class="iv-graph-header">
+                  <span class="dp-section-title">INTERACTIVE GRAPH</span>
+                  <div class="graph-tab-seg">
+                    <button id="btn-graph-iv" class="graph-tab-btn active">I-V CURVE</button>
+                    <button id="btn-graph-field" class="graph-tab-btn">ρ(x) &amp; E(x)</button>
+                  </div>
+                </div>
+                <canvas id="iv-canvas" width="296" height="140"></canvas>
+                <canvas id="field-canvas" width="296" height="140" style="display:none;"></canvas>
+                <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>A</sub>, I)</div>
+              </div>
+            </div>
+
+            <!-- Telemetry & Physics Readouts -->
+            <div class="dp-section dp-readouts">
+              <div class="iv-grid">
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>A</sub></span>
+                  <span class="iv-v" id="tele-va">0.00 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">Current (I)</span>
+                  <span class="iv-v" id="tele-i">0.00 mA</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>bi</sub></span>
+                  <span class="iv-v" id="tele-vbi">0.78 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">Depletion W</span>
+                  <span class="iv-v" id="tele-w">350 nm</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">x<sub>p</sub> (P-Side)</span>
+                  <span class="iv-v" id="tele-xp">35 nm</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">x<sub>n</sub> (N-Side)</span>
+                  <span class="iv-v" id="tele-xn">315 nm</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">|E<sub>max</sub>|</span>
+                  <span class="iv-v" id="tele-emax">4.4×10⁵ V/cm</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>BR</sub> (Breakdown)</span>
+                  <span class="iv-v" id="tele-vbr">12.4 V</span>
+                </div>
+              </div>
+              <div class="iv-state-line">
+                <span class="iv-k">STATE:</span>
+                <span class="iv-v-state" id="diode-state-desc">Thermal equilibrium · Barrier Vbi = 0.78V</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: VIEW CONTROLS -->
+          <div class="dp-tab-content" id="tab-content-view">
+            <div class="dp-section">
+              <div class="vh-section-title">EXPLODE LAYERS</div>
+              <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
+              <input type="range" id="explode-x-slider" min="0" max="100" value="0">
+              <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">0%</span></div>
+              <input type="range" id="explode-y-slider" min="0" max="100" value="0">
+              <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
+              <input type="range" id="explode-z-slider" min="0" max="100" value="0">
+            </div>
+
+            <div class="vh-sep"></div>
+
+            <div class="dp-section">
+              <div class="vh-section-title">SECTION SCRUB (CLIPPING)</div>
+              <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
+              <input type="range" id="scrub-x-slider" min="-15" max="30" value="30">
+              <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
+              <input type="range" id="scrub-y-slider" min="-5" max="30" value="30">
+              <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
+              <input type="range" id="scrub-z-slider" min="-10" max="30" value="30">
+            </div>
+
+            <div class="vh-sep"></div>
+
+            <div class="dp-section">
+              <label class="dp-checkbox-label">
+                <input type="checkbox" id="toggle-labels" checked>
+                <span>Show 3D Floating Labels</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Voice Assistant Widget (Sarvam Bulbul v4 Flash) -->
+      <div id="voice-assistant-widget" class="va-widget minimized">
+        <div class="va-header">
+          <div class="va-header-title">
+            <span class="va-pulse-icon">🎙️</span>
+            <b>AI VOICE TUTOR</b>
+            <span class="va-badge">bulbul:v4-flash</span>
+          </div>
+          <div class="va-header-controls">
+            <button class="va-hdr-btn" id="va-btn-settings" title="Sarvam API Key Settings" aria-label="API Key Settings">⚙️</button>
+            <button class="va-hdr-btn" id="va-btn-minimize" title="Minimize assistant" aria-label="Minimize">─</button>
+            <button class="va-hdr-btn" id="va-btn-close" title="Close assistant" aria-label="Close">✕</button>
+          </div>
+        </div>
+
+        <div class="va-context-bar">
+          <div class="va-ctx-line">
+            <span class="va-ctx-tag">CONTEXT</span>
+            <span class="va-ctx-val" id="va-ctx-val">PN Junction Diode</span>
+          </div>
+        </div>
+
+        <div class="va-settings-row">
+          <div class="va-setting-group">
+            <label for="va-lang-select">LANGUAGE</label>
+            <select id="va-lang-select" class="va-select">
+              <option value="en-IN" selected>English (en-IN)</option>
+              <option value="hi-IN">हिन्दी (hi-IN)</option>
+              <option value="te-IN">తెలుగు (te-IN)</option>
+            </select>
+          </div>
+          <div class="va-setting-group">
+            <label for="va-speaker-select">PERSONA</label>
+            <select id="va-speaker-select" class="va-select">
+              <option value="aparna_en_edtech" selected>Aparna (EdTech Tutor)</option>
+              <option value="aparna_en_companion">Aparna (Companion)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="va-status-bar">
+          <div class="va-status-pill ready" id="va-status-pill">
+            <span class="va-status-dot"></span>
+            <span class="va-status-text" id="va-status-text">AI Tutor Ready</span>
+          </div>
+          <div class="va-status-actions">
+            <button class="va-stop-btn" id="va-btn-stop" title="Stop audio playback" disabled>⏹ Stop</button>
+          </div>
+        </div>
+
+        <div class="va-chips-scroll">
+          <button class="va-chip" id="va-chip-selected" style="display:none;" data-q="">Explain Selected</button>
+          <button class="va-chip" data-q="Explain built-in potential Vbi and depletion width W.">Depletion &amp; Vbi</button>
+          <button class="va-chip" data-q="Why does depletion width extend further into the N-side?">Asymmetric Widths</button>
+          <button class="va-chip" data-q="Explain the Shockley diode equation under forward bias.">Shockley Equation</button>
+          <button class="va-chip" data-q="What is the difference between Zener and Avalanche breakdown?">Zener vs Avalanche</button>
+          <button class="va-chip" data-q="Why does Zener have a negative tempco while Avalanche has a positive tempco?">Temperature Coefficients</button>
+        </div>
+
+        <div class="va-response-area" id="va-response-area">
+          <div class="va-msg va-msg-ai">
+            <div class="va-msg-header">Sarvam AI Tutor</div>
+            <div class="va-msg-body">
+              Welcome to the PN Diode AI Tutor! Ask any question about semiconductor junction electrostatics, depletion width modulation, or Zener and Avalanche breakdown.
+            </div>
+          </div>
+        </div>
+
+        <div class="va-input-row">
+          <input type="text" id="va-input-text" placeholder="Ask about PN diode physics or breakdown..." autocomplete="off">
+          <button id="va-btn-send" class="va-send-btn" title="Ask question">Ask</button>
+        </div>
+      </div>
+
+      <!-- Floating Action Button (FAB) for AI Tutor -->
+      <button id="va-launcher-btn" class="va-launcher-btn visible" title="Open AI Voice Tutor" aria-label="Open AI Voice Tutor">
+        <svg class="va-fab-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
+
+    </div>
+
+    <!-- Right Panel: Property Inspector & Architecture Tree -->
+    <div id="right-panel">
+      <div class="panel-section">
+        <div class="panel-head" data-target="inspector-body"><h3>PROPERTY INSPECTOR</h3><span class="chev">▾</span></div>
+        <div class="panel-body" id="inspector-body">
+          <div id="inspector"><div class="empty">Click any layer in the 3D model, schematic, or tree to inspect its electrical role, doping, and physics.</div></div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <div class="panel-head" data-target="tree-body"><h3>ARCHITECTURE TREE</h3><span class="chev">▾</span></div>
+        <div class="panel-body" id="tree-body"><div id="tree"></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Sarvam AI API Key Modal -->
+  <div id="va-key-modal" class="va-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="va-modal-title">
+    <div class="va-modal-card">
+      <div class="va-modal-header">
+        <div class="va-modal-title">
+          <span class="va-modal-icon">🔑</span>
+          <h3 id="va-modal-title">Sarvam AI API Key Configuration</h3>
+        </div>
+        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">✕</button>
+      </div>
+
+      <div class="va-modal-body">
+        <p class="va-modal-desc">
+          To enable live spoken AI voice tutoring for PN Junction Diode physics, connect your Sarvam AI API subscription key.
+        </p>
+
+        <div class="va-modal-steps">
+          <div class="va-step-item">
+            <span class="va-step-num">1</span>
+            <span>Sign in or create an account at <a href="https://dashboard.sarvam.ai" target="_blank" rel="noopener noreferrer" class="va-link">https://dashboard.sarvam.ai ↗</a></span>
+          </div>
+          <div class="va-step-item">
+            <span class="va-step-num">2</span>
+            <span>Create a new API subscription key in your dashboard.</span>
+          </div>
+          <div class="va-step-item">
+            <span class="va-step-num">3</span>
+            <span>Paste your key below and click <b>Save Key</b>.</span>
+          </div>
+        </div>
+
+        <div class="va-modal-privacy-callout">
+          <span class="va-privacy-badge">🔒 Privacy Guarantee</span>
+          <p>
+            Your API key is stored securely in your browser and used directly to communicate with Sarvam AI. We never store or transmit your credentials to our servers.
+          </p>
+        </div>
+
+        <div class="va-modal-field">
+          <label for="va-input-apikey">SARVAM API SUBSCRIPTION KEY</label>
+          <div class="va-input-group">
+            <input type="password" id="va-input-apikey" placeholder="Paste your Sarvam API subscription key..." autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+
+        <div class="va-modal-options">
+          <label class="va-checkbox-label">
+            <input type="checkbox" id="va-chk-session-only" checked>
+            <span>Delete API key when exiting session (on browser close)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="va-modal-footer">
+        <button id="va-modal-clear-btn" class="va-btn-secondary">Clear Key</button>
+        <div class="va-footer-right">
+          <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
+          <button id="va-modal-save-btn" class="va-btn-primary">Save Key</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Scripts in exact load order -->
+<script src="js/data.js"></script>
+<script src="js/physics.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/theme.js"></script>
+<script src="../../../shared/viewer/js/viewer-core.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/ui-panels.js"></script>
+<script src="js/selection.js"></script>
+<script src="js/controls-explode-scrub.js"></script>
+<script src="js/dimensions.js"></script>
+<script src="js/view-mode.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/graph.js"></script>
+<script src="js/logic-state.js"></script>
+<script src="js/render-loop.js"></script>
+<script src="js/voice-assistant.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

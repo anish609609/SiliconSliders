@@ -60,6 +60,15 @@ let inverterVoiceHandler = null;
 let nandVoiceHandler = null;
 let nmosVoiceHandler = null;
 let pmosVoiceHandler = null;
+let diodeVoiceHandler = null;
+
+function getDiodeVoiceHandler() {
+  if (!diodeVoiceHandler) {
+    const p = path.join(ROOT, 'src', 'modules', 'diodes', 'pn-diode', 'api', 'voice-assistant.js');
+    if (fs.existsSync(p)) diodeVoiceHandler = require(p);
+  }
+  return diodeVoiceHandler;
+}
 
 function getInverterVoiceHandler() {
   if (!inverterVoiceHandler) {
@@ -147,6 +156,9 @@ const server = http.createServer(async (req, res) => {
       } else if (referer.includes('pmos')) {
         const h = getPmosVoiceHandler();
         if (h) return await h(req, res);
+      } else if (referer.includes('diode')) {
+        const h = getDiodeVoiceHandler();
+        if (h) return await h(req, res);
       } else {
         const h = getInverterVoiceHandler();
         if (h) return await h(req, res);
@@ -184,6 +196,9 @@ const server = http.createServer(async (req, res) => {
     return res.end();
   } else if (pathname === '/CMOS_NAND' || pathname === '/CMOS_NAND/') {
     res.writeHead(302, { Location: '/src/modules/transistors/cmos/cmos-nand/index.html' });
+    return res.end();
+  } else if (pathname === '/diode' || pathname === '/diode/' || pathname === '/pn-diode' || pathname === '/pn-diode/') {
+    res.writeHead(302, { Location: '/src/modules/diodes/pn-diode/index.html' });
     return res.end();
   }
 

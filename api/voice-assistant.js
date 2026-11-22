@@ -7,6 +7,18 @@ let inverterVoiceHandler = null;
 let nandVoiceHandler = null;
 let nmosVoiceHandler = null;
 let pmosVoiceHandler = null;
+let diodeVoiceHandler = null;
+
+function getDiodeVoiceHandler() {
+  if (!diodeVoiceHandler) {
+    try {
+      diodeVoiceHandler = require('../src/modules/diodes/pn-diode/api/voice-assistant.js');
+    } catch (err) {
+      console.warn('Could not load diode voice handler:', err.message);
+    }
+  }
+  return diodeVoiceHandler;
+}
 
 function getInverterVoiceHandler() {
   if (!inverterVoiceHandler) {
@@ -71,6 +83,9 @@ module.exports = async function handler(req, res) {
       if (h) return await h(req, res);
     } else if (referer.includes('pmos')) {
       const h = getPmosVoiceHandler();
+      if (h) return await h(req, res);
+    } else if (referer.includes('diode')) {
+      const h = getDiodeVoiceHandler();
       if (h) return await h(req, res);
     } else {
       const h = getInverterVoiceHandler();

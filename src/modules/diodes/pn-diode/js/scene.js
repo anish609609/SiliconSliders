@@ -1,0 +1,142 @@
+/**
+ * scene.js - PN Junction Diode CAD Viewer
+ * Three.js bootstrap: scene, perspective camera, OrbitControls, lights, ground grid, shadow plane, and theme lighting.
+ */
+
+var host = document.getElementById('canvas-host');
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0d12);
+scene.fog = new THREE.Fog(0x0a0d12, 50, 200);
+
+var W = function(){ return host.clientWidth || window.innerWidth; };
+var H = function(){ return host.clientHeight || window.innerHeight; };
+
+var camPersp = new THREE.PerspectiveCamera(40, W()/H(), 0.1, 1000);
+var INITIAL_POS = new THREE.Vector3(0, 24, 32);
+var INITIAL_TARGET = new THREE.Vector3(0, 0, 0);
+camPersp.position.copy(INITIAL_POS);
+
+var renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.localClippingEnabled = true;
+host.appendChild(renderer.domElement);
+
+var activeCamera = camPersp;
+var controls = new THREE.OrbitControls(activeCamera, renderer.domElement);
+controls.target.copy(INITIAL_TARGET);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 6;
+controls.maxDistance = 140;
+controls.maxPolarAngle = Math.PI; // Full orbit
+controls.minPolarAngle = 0;
+controls.update();
+
+function resize(){
+  if (!host) return;
+  var w = W(), h = H();
+  if (w <= 0 || h <= 0) return;
+  camPersp.aspect = w / h;
+  camPersp.updateProjectionMatrix();
+  renderer.setSize(w, h);
+}
+window.addEventListener('resize', resize);
+
+// Lights setup
+var ambientLight = new THREE.AmbientLight(0x2a3140, 1.2);
+scene.add(ambientLight);
+
+var key = new THREE.DirectionalLight(0xffffff, 1.25);
+key.position.set(16, 26, 18);
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -25; key.shadow.camera.right = 25;
+key.shadow.camera.top = 25; key.shadow.camera.bottom = -25;
+key.shadow.camera.far = 90;
+key.shadow.bias = -0.0015;
+scene.add(key);
+
+var fill = new THREE.DirectionalLight(0x5fa8d9, 0.4);
+fill.position.set(-16, 12, -12);
+scene.add(fill);
+
+var rim = new THREE.DirectionalLight(0x5fd9c4, 0.3);
+rim.position.set(0, 8, -20);
+scene.add(rim);
+
+// Subtle ground grid
+var grid = new THREE.GridHelper(50, 40, 0x1c2530, 0x141a22);
+grid.position.y = -3.5;
+grid.renderOrder = -10;
+if (grid.material) {
+  grid.material.depthTest = true;
+  grid.material.depthWrite = false;
+}
+scene.add(grid);
+
+// Ground shadow plane
+var shadowPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(80, 80),
+  new THREE.ShadowMaterial({ opacity: 0.25 })
+);
+shadowPlane.rotation.x = -Math.PI / 2;
+shadowPlane.position.y = -3.48;
+shadowPlane.receiveShadow = true;
+scene.add(shadowPlane);
+
+// Reset camera button hook
+var btnResetCam = document.getElementById('btn-reset-cam');
+if (btnResetCam) {
+  btnResetCam.addEventListener('click', function () {
+    controls.reset();
+    camPersp.position.copy(INITIAL_POS);
+    controls.target.copy(INITIAL_TARGET);
+    controls.update();
+  });
+}
+
+// Adaptive Theme Handler
+function applySceneTheme(theme) {
+  var isLight = theme === 'light';
+  if (isLight) {
+    scene.background = new THREE.Color(0xf4f6f8);
+    if (scene.fog) {
+      scene.fog.color.setHex(0xf4f6f8);
+      scene.fog.near = 50;
+      scene.fog.far = 220;
+    }
+    ambientLight.color.setHex(0xe2e8f0);
+    ambientLight.intensity = 1.7;
+    key.color.setHex(0xffffff);
+    key.intensity = 1.3;
+    fill.color.setHex(0x94a3b8);
+    fill.intensity = 0.5;
+    rim.color.setHex(0x0d9488);
+    rim.intensity = 0.35;
+    if (grid && grid.material) {
+      grid.material.color.setHex(0xcbd5e1);
+      grid.material.opacity = 0.6;
+    }
+  } else {
+    scene.background = new THREE.Color(0x0a0d12);
+    if (scene.fog) {
+      scene.fog.color.setHex(0x0a0d12);
+      scene.fog.near = 50;
+      scene.fog.far = 200;
+    }
+    ambientLight.color.setHex(0x2a3140);
+    ambientLight.intensity = 1.2;
+    key.color.setHex(0xffffff);
+    key.intensity = 1.25;
+    fill.color.setHex(0x5fa8d9);
+    fill.intensity = 0.4;
+    rim.color.setHex(0x5fd9c4);
+    rim.intensity = 0.3;
+    if (grid && grid.material) {
+      grid.material.color.setHex(0x1c2530);
+      grid.material.opacity = 1.0;
+    }
+  }
+}
