@@ -192,6 +192,8 @@ function applyLogicState() {
 // ---------------------------------------------------------------------------
 // LIVE IDS vs VDS CHARACTERISTIC GRAPH RENDERER
 // ---------------------------------------------------------------------------
+var IV_GRAPH_PAD = { L: 38, R: 36, T: 18, B: 28 };
+
 function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   var canvas = document.getElementById('iv-canvas');
   if (!canvas) return;
@@ -200,8 +202,8 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
 
   var dpr = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
-  var W = rect.width || 300;
-  var H = rect.height || 160;
+  var W = rect.width || 310;
+  var H = rect.height || 225;
 
   if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
     canvas.width = Math.round(W * dpr);
@@ -217,8 +219,8 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   var bgColor = isLight ? '#f8fafc' : '#080c12';
   var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
   var axisColor = isLight ? '#94a3b8' : '#232b38';
-  var textColor = isLight ? '#64748b' : '#64748b';
-  var dimmedCurveColor = isLight ? 'rgba(13,148,136,0.22)' : 'rgba(95,217,196,0.18)';
+  var textColor = isLight ? '#64748b' : '#7d8ba0';
+  var dimmedCurveColor = isLight ? 'rgba(13,148,136,0.24)' : 'rgba(95,217,196,0.20)';
   var activeCurveColor = isLight ? '#0d9488' : '#5fd9c4';
   var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
   var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#10b981' : '#0284c7');
@@ -227,10 +229,10 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.fillRect(0, 0, W, H);
 
   // Margins
-  var padL = 36;
-  var padR = 30;
-  var padT = 14;
-  var padB = 24;
+  var padL = IV_GRAPH_PAD.L;
+  var padR = IV_GRAPH_PAD.R;
+  var padT = IV_GRAPH_PAD.T;
+  var padB = IV_GRAPH_PAD.B;
   var plotW = W - padL - padR;
   var plotH = H - padT - padB;
 
@@ -244,7 +246,7 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
   ctx.fillStyle = textColor;
-  ctx.font = '9px "IBM Plex Mono", monospace';
+  ctx.font = '10px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
 
   // VDS ticks: 0, 0.6, 1.2, 1.8
@@ -254,11 +256,13 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     ctx.moveTo(x, padT);
     ctx.lineTo(x, padT + plotH);
     ctx.stroke();
-    ctx.fillText(v.toFixed(1), x, padT + plotH + 13);
+    ctx.fillText(v.toFixed(1), x, padT + plotH + 14);
   });
-  ctx.fillText('V_DS (V)', padL + plotW / 2, padT + plotH + 22);
+  ctx.font = '600 10px "IBM Plex Mono", monospace';
+  ctx.fillText('V_DS (V)', padL + plotW / 2, padT + plotH + 26);
 
   // IDS ticks: 0, 0.3, 0.6, 0.9
+  ctx.font = '10px "IBM Plex Mono", monospace';
   ctx.textAlign = 'right';
   [0, 0.3, 0.6, 0.9].forEach(function(i) {
     var y = toY(i);
@@ -266,23 +270,24 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + plotW, y);
     ctx.stroke();
-    ctx.fillText(i.toFixed(1), padL - 6, y + 3);
+    ctx.fillText(i.toFixed(1), padL - 6, y + 3.5);
   });
 
   ctx.save();
   ctx.translate(11, padT + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
+  ctx.font = '600 10px "IBM Plex Mono", monospace';
   ctx.fillText('I_DS (mA)', 0, 0);
   ctx.restore();
 
   // Draw Pinch-off Parabolic Boundary Curve: VDS = VGS - VTH => IDS = 0.5 * KN * VDS^2
   ctx.strokeStyle = pinchOffColor;
-  ctx.lineWidth = 1.2;
+  ctx.lineWidth = 1.3;
   ctx.setLineDash([3, 3]);
   ctx.beginPath();
   var startedPinch = false;
-  for (var v = 0; v <= vdsMax; v += 0.05) {
+  for (var v = 0; v <= vdsMax; v += 0.04) {
     var iBoundary = 0.5 * KN_PRIME * v * v;
     if (iBoundary > idsMax) break;
     var px = toX(v);
@@ -294,13 +299,13 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.setLineDash([]);
 
   // Labels for Linear and Saturation regions
-  ctx.font = '8px "IBM Plex Mono", monospace';
-  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.6)' : 'rgba(74,146,201,0.45)';
+  ctx.font = '8.5px "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.7)' : 'rgba(74,146,201,0.55)';
   ctx.textAlign = 'left';
-  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 16);
-  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.6)' : 'rgba(87,207,143,0.45)';
+  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 14);
+  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.7)' : 'rgba(87,207,143,0.55)';
   ctx.textAlign = 'right';
-  ctx.fillText('SATURATION', padL + plotW - 6, padT + 16);
+  ctx.fillText('SATURATION', padL + plotW - 6, padT + 14);
 
   // Helper to compute IDS(VDS) for a given VGS (Continuous at pinch-off VDS = VOV)
   function calcIds(testVgs, testVds) {
@@ -335,11 +340,13 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
 
   // Draw Family of VGS Curves
   var vgsFamily = [0.4, 0.7, 1.0, 1.3, 1.6];
+  var labelPositions = [];
+
   vgsFamily.forEach(function(fVgs) {
     var fVov = Math.max(0, fVgs - VTH);
     var pts = getSamplePoints(fVov, vdsMax, 0.04);
     ctx.strokeStyle = dimmedCurveColor;
-    ctx.lineWidth = 1.1;
+    ctx.lineWidth = 1.2;
     ctx.beginPath();
     for (var idx = 0; idx < pts.length; idx++) {
       var v = pts[idx];
@@ -351,15 +358,28 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     }
     ctx.stroke();
 
-    // End-of-curve label
     var endI = calcIds(fVgs, vdsMax);
-    if (endI < idsMax * 0.98) {
-      ctx.fillStyle = textColor;
-      ctx.font = '7.5px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(fVgs.toFixed(1) + 'V', toX(vdsMax) + 2, toY(endI) + 3);
-    }
+    labelPositions.push({
+      vgs: fVgs,
+      endI: endI,
+      rawY: toY(endI) + 3
+    });
   });
+
+  // Space curve labels cleanly to prevent overlapping (e.g. 0.4V and 0.7V near zero current)
+  // Process ascending by endI (bottom of graph to top)
+  var minSpacing = 13; // px
+  var lastY = toY(0) + 3;
+  for (var k = 0; k < labelPositions.length; k++) {
+    var lp = labelPositions[k];
+    if (lp.endI >= idsMax * 0.99) continue;
+    var finalY = Math.min(lp.rawY, lastY - (k > 0 ? minSpacing : 0));
+    lastY = finalY;
+    ctx.fillStyle = textColor;
+    ctx.font = '8.5px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(lp.vgs.toFixed(1) + 'V', toX(vdsMax) + 3, finalY);
+  }
 
   // Draw Highlighted Active VGS Curve
   var activeVov = Math.max(0, activeVgs - VTH);
@@ -469,16 +489,23 @@ function initLogicStateControls() {
 
     function handleGraphPointer(e) {
       var rect = canvas.getBoundingClientRect();
-      var padL = 36, padR = 30;
-      var padT = 14, padB = 24;
-      var plotW = rect.width - padL - padR;
-      var plotH = rect.height - padT - padB;
+      if (!rect.width || !rect.height) return;
+      var scaleX = canvas.width / rect.width;
+      var scaleY = canvas.height / rect.height;
 
       var clientX = e.touches ? e.touches[0].clientX : e.clientX;
       var clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-      var clickX = clientX - rect.left - padL;
-      var clickY = clientY - rect.top - padT;
+      var canvasX = (clientX - rect.left) * scaleX;
+      var canvasY = (clientY - rect.top) * scaleY;
+
+      var padL = IV_GRAPH_PAD.L, padR = IV_GRAPH_PAD.R;
+      var padT = IV_GRAPH_PAD.T, padB = IV_GRAPH_PAD.B;
+      var plotW = canvas.width - padL - padR;
+      var plotH = canvas.height - padT - padB;
+
+      var clickX = canvasX - padL;
+      var clickY = canvasY - padT;
 
       var normX = Math.max(0, Math.min(1.0, clickX / plotW));
       var normY = Math.max(0, Math.min(1.0, 1.0 - (clickY / plotH)));

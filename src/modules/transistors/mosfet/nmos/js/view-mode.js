@@ -54,25 +54,14 @@ function setViewMode(mode) {
   var topLeftHud = document.getElementById('top-left-hud') || document.querySelector('.hud-top-left-stack');
   if (topLeftHud) topLeftHud.style.display = isLayout ? '' : 'none';
 
-  var dockedPanel = document.getElementById('docked-panel');
-  if (dockedPanel) dockedPanel.style.display = isLayout ? '' : 'none';
+  var leftWorkbench = document.getElementById('left-workbench');
+  if (leftWorkbench) leftWorkbench.style.display = isTheory ? 'none' : '';
 
-  var leftToggle = document.getElementById('left-toggle');
-  if (leftToggle) leftToggle.style.display = isLayout ? '' : 'none';
+  var wbToggle = document.getElementById('workbench-toggle') || document.getElementById('left-toggle');
+  if (wbToggle) wbToggle.style.display = isTheory ? 'none' : '';
 
-  var rightToggle = document.getElementById('right-toggle');
-  if (rightToggle) rightToggle.style.display = isLayout ? '' : 'none';
-
-  var leftPanel = document.getElementById('left-panel');
-  if (leftPanel) {
-    if (isTheory) leftPanel.style.display = 'none';
-    else if (isLayout) leftPanel.style.display = '';
-  }
-
-  var rightPanel = document.getElementById('right-panel');
-  if (rightPanel) {
-    if (isTheory) rightPanel.style.display = 'none';
-    else if (isLayout) rightPanel.style.display = '';
+  if (isLayout && typeof expandWorkbench === 'function') {
+    expandWorkbench();
   }
 
   var btnBuildAnim = document.getElementById('btn-build-anim');

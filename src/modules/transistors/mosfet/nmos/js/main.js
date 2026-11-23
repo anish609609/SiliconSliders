@@ -4,89 +4,75 @@
  * and final bootstrap calls that start the application. Load this file LAST.
  */
 
-var leftPanel = document.getElementById('left-panel');
-var rightPanel = document.getElementById('right-panel');
-var leftToggleBtn = document.getElementById('left-toggle');
-var rightToggleBtn = document.getElementById('right-toggle');
+/**
+ * main.js - NMOS CAD Viewer
+ * Left Workbench collapse/expand toggles, smooth resize transition, Reset-to-default routine,
+ * and final bootstrap calls that start the application. Load this file LAST.
+ */
 
-if (leftToggleBtn && leftPanel) {
-  leftToggleBtn.addEventListener('click', function() {
-    var open = leftPanel.classList.toggle('open');
-    leftToggleBtn.classList.toggle('is-open', open);
-    leftToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-}
+var leftWorkbench = document.getElementById('left-workbench');
+var workbenchToggleBtn = document.getElementById('workbench-toggle') || document.getElementById('left-toggle');
 
-if (rightToggleBtn && rightPanel) {
-  rightToggleBtn.addEventListener('click', function() {
-    var open = rightPanel.classList.toggle('open');
-    rightToggleBtn.classList.toggle('is-open', open);
-    rightToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    updateViewHudPosition();
-  });
-}
-
-var dockedPanel = document.getElementById('docked-panel');
-var viewHud = document.getElementById('view-hud');
-function updateViewHudPosition() {
-  if (window.innerWidth < 768) {
-    if (dockedPanel) dockedPanel.style.right = '';
-    return;
-  }
-  var launcher = document.getElementById('va-launcher-btn');
-  var vaWidget = document.getElementById('voice-assistant-widget');
-  var ivHud = document.getElementById('ids-vds-hud');
-  if (rightPanel && rightPanel.classList.contains('open')) {
-    var w = rightPanel.getBoundingClientRect().width;
-    if (dockedPanel) dockedPanel.style.right = (w + 38) + 'px';
-    if (viewHud) viewHud.style.right = (w + 38) + 'px';
-    if (launcher) launcher.style.right = (w + 38) + 'px';
-    if (vaWidget) vaWidget.style.right = (w + 38) + 'px';
-    if (ivHud) ivHud.style.right = (w + 38) + 'px';
-  } else {
-    if (dockedPanel) dockedPanel.style.right = '';
-    if (viewHud) viewHud.style.right = '';
-    if (launcher) launcher.style.right = '';
-    if (vaWidget) vaWidget.style.right = '';
-    if (ivHud) ivHud.style.right = '';
-  }
-}
-window.addEventListener('resize', updateViewHudPosition);
-
-// Docked Panel Tabs & Collapse Controls
-var dpTabs = document.querySelectorAll('.dp-tab-btn');
-var dpContents = document.querySelectorAll('.dp-tab-content');
-var dpCollapseBtn = document.getElementById('dp-collapse-btn');
-var dpBody = document.getElementById('dp-body');
-
-// Collapse floating panels by default on mobile viewports (< 768px)
-if (window.innerWidth < 768 && dpBody && dpCollapseBtn) {
-  dpBody.classList.add('collapsed');
-  dpCollapseBtn.textContent = '▸';
-}
-
-dpTabs.forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    var target = tab.dataset.tab;
-    dpTabs.forEach(function(t) { t.classList.toggle('active', t === tab); });
-    dpContents.forEach(function(c) {
-      c.classList.toggle('active', c.id === 'tab-content-' + target);
-    });
-    if (dpBody && dpBody.classList.contains('collapsed')) {
-      dpBody.classList.remove('collapsed');
-      if (dpCollapseBtn) dpCollapseBtn.textContent = '▾';
+var resizeAnimId = null;
+function animateResizeTransition() {
+  var start = performance.now();
+  var duration = 280; // ms
+  if (resizeAnimId) cancelAnimationFrame(resizeAnimId);
+  function step(now) {
+    if (typeof resize === 'function') resize();
+    if (now - start < duration) {
+      resizeAnimId = requestAnimationFrame(step);
+    } else {
+      if (typeof resize === 'function') resize();
+      resizeAnimId = null;
     }
-    if (target === 'physics' && typeof applyLogicState === 'function') {
-      setTimeout(applyLogicState, 10);
-    }
-  });
-});
+  }
+  resizeAnimId = requestAnimationFrame(step);
+}
+window.animateResizeTransition = animateResizeTransition;
 
-if (dpCollapseBtn && dpBody) {
-  dpCollapseBtn.addEventListener('click', function() {
-    var collapsed = dpBody.classList.toggle('collapsed');
-    dpCollapseBtn.textContent = collapsed ? '▸' : '▾';
+function toggleWorkbench(forceExpanded) {
+  if (!leftWorkbench) return;
+  var willBeCollapsed = (typeof forceExpanded === 'boolean') ? !forceExpanded : !leftWorkbench.classList.contains('collapsed');
+  leftWorkbench.classList.toggle('collapsed', willBeCollapsed);
+  if (workbenchToggleBtn) {
+    workbenchToggleBtn.setAttribute('aria-expanded', willBeCollapsed ? 'false' : 'true');
+  }
+  // When expanding workbench, hide floating popover; if a component is selected, ensure inspect tab is active
+  if (!willBeCollapsed) {
+    if (typeof hidePopover === 'function') hidePopover();
+    if (typeof lastSelectedId !== 'undefined' && lastSelectedId) {
+      if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('inspect');
+    }
+  }
+  animateResizeTransition();
+}
+window.toggleWorkbench = toggleWorkbench;
+
+function expandWorkbench() {
+  if (!leftWorkbench) return;
+  if (leftWorkbench.classList.contains('collapsed')) {
+    toggleWorkbench(true);
+  }
+}
+window.expandWorkbench = expandWorkbench;
+
+if (workbenchToggleBtn) {
+  workbenchToggleBtn.addEventListener('click', function() {
+    toggleWorkbench();
   });
+}
+
+if (leftWorkbench) {
+  leftWorkbench.addEventListener('transitionend', function() {
+    if (typeof resize === 'function') resize();
+  });
+}
+
+// Default entry state: Left Workbench is expanded by default in SLIDERS mode
+if (leftWorkbench) {
+  leftWorkbench.classList.remove('collapsed');
+  if (workbenchToggleBtn) workbenchToggleBtn.setAttribute('aria-expanded', 'true');
 }
 
 // =====================================================================
@@ -137,6 +123,14 @@ function resetAll() {
   }
   var crumbSel = document.getElementById('crumb-sel');
   if (crumbSel) crumbSel.textContent = '';
+
+  // Reset workbench tab to Controls (default)
+  if (typeof switchWorkbenchTab === 'function') {
+    switchWorkbenchTab('controls');
+  }
+
+  // Sliders mode: workbench is expanded by default
+  expandWorkbench();
 }
 
 // Collapsible Scale Note Popover Handler
@@ -170,6 +164,11 @@ if (typeof initTheme === 'function') initTheme();
 var sb = document.getElementById('state-badge');
 if (sb) sb.classList.add('visible');
 resetAll();
+
+// Direct to SLIDERS mode with Controls tab active and workbench expanded
+if (typeof setViewMode === 'function') setViewMode('layout');
+if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+expandWorkbench();
 
 requestAnimationFrame(function() {
   var loading = document.getElementById('loading');

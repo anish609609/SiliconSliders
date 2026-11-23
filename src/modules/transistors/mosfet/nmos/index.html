@@ -36,7 +36,7 @@
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
         <button data-mode="theory">THEORY</button>
-        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">SLIDERS</span><span class="tab-label-compact">SLIDERS</span></button>
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
@@ -66,7 +66,6 @@
         <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <span id="theme-btn-label">LIGHT</span>
       </button>
       <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence with AI Voice Tutor" aria-label="Play 3D Fabrication Tour">
         <span class="play-icon">▶</span>
@@ -78,41 +77,243 @@
 
   <div id="body-row">
 
-    <button class="panel-toggle" id="left-toggle" title="Toggle layers &amp; legend panel" aria-label="Toggle layers panel" aria-expanded="false">
-      <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="9 18 15 12 9 6"></polyline>
-      </svg>
-    </button>
-    <button class="panel-toggle" id="right-toggle" title="Toggle inspector &amp; tree panel" aria-label="Toggle inspector panel" aria-expanded="false">
+    <!-- Single Docked Left Workbench -->
+    <aside id="left-workbench" class="workbench" aria-label="NMOS Workbench Controls">
+      
+      <!-- 3-Tab Header -->
+      <div class="wb-header">
+        <div class="wb-tabs" role="tablist">
+          <button class="wb-tab-btn active" data-tab="controls" id="wb-tab-controls" role="tab" aria-selected="true" aria-controls="wb-pane-controls">
+            <span>Controls</span>
+          </button>
+          <button class="wb-tab-btn" data-tab="layers" id="wb-tab-layers" role="tab" aria-selected="false" aria-controls="wb-pane-layers">
+            <span>Layers</span>
+          </button>
+          <button class="wb-tab-btn" data-tab="inspect" id="wb-tab-inspect" role="tab" aria-selected="false" aria-controls="wb-pane-inspect">
+            <span>Inspect</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Workbench Body (Scrollable container for active tab pane) -->
+      <div class="wb-body" id="wb-body">
+
+        <!-- TAB 1: CONTROLS (Default active tab) -->
+        <div class="wb-pane active" id="wb-pane-controls" role="tabpanel" aria-labelledby="wb-tab-controls">
+          
+          <!-- Physics & Graph Section -->
+          <div class="wb-section" id="wb-physics-section">
+            <div class="wb-section-header">
+              <span class="wb-section-title">OPERATING REGION</span>
+              <span class="region-pill saturation" id="iv-hud-region-pill">SATURATION</span>
+            </div>
+            <div class="seg wb-presets" id="region-preset-seg">
+              <button data-preset="cutoff" class="dp-preset-btn" title="VGS = 0V (Cutoff Region)">CUTOFF</button>
+              <button data-preset="linear" class="dp-preset-btn" title="VGS = 1.0V, VDS = 0.3V (Linear Region)">LINEAR</button>
+              <button data-preset="saturation" class="dp-preset-btn active" title="VGS = 1.0V, VDS = 0.8V (Saturation Region)">SATURATION</button>
+            </div>
+
+            <!-- Voltage Bias Sliders (VGS & VDS) -->
+            <div class="wb-bias-controls">
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
+                  <span class="dp-slider-val" id="vgs-val">1.00V</span>
+                </div>
+                <input type="range" id="vgs-slider" min="0" max="1.8" step="0.05" value="1.00" title="Gate-to-Source Voltage VGS">
+              </div>
+
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
+                  <span class="dp-slider-val" id="vds-val">0.80V</span>
+                </div>
+                <input type="range" id="vds-slider" min="0" max="1.8" step="0.05" value="0.80" title="Drain-to-Source Voltage VDS">
+              </div>
+            </div>
+
+            <!-- Live IDS vs VDS Graph -->
+            <div class="iv-canvas-wrap">
+              <canvas id="iv-canvas" width="310" height="225"></canvas>
+              <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>DS</sub>, I<sub>DS</sub>)</div>
+            </div>
+
+            <!-- Telemetry & Readouts -->
+            <div class="dp-readouts">
+              <div class="iv-grid">
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>GS</sub></span>
+                  <span class="iv-v" id="iv-vgs-readout">1.00 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>DS</sub></span>
+                  <span class="iv-v" id="iv-vds-readout">0.80 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>TH</sub></span>
+                  <span class="iv-v">0.40 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>OV</sub></span>
+                  <span class="iv-v" id="iv-vov-readout">0.60 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">I<sub>DS</sub></span>
+                  <span class="iv-v" id="iv-ids-readout">0.20 mA</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">L<sub>eff</sub></span>
+                  <span class="iv-v" id="iv-leff-readout">26.8 nm</span>
+                </div>
+              </div>
+              <div class="iv-state-line">
+                <span class="iv-k">STATE:</span>
+                <span class="iv-v-state" id="iv-state-desc">Pinch-off · High-field drift</span>
+              </div>
+            </div>
+
+            <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
+            <div style="display:none;" id="state-badge">
+              <span id="badge-vgs"></span><span id="badge-state"></span><span id="badge-chan"></span><span id="badge-ids"></span><span id="region-badge"></span>
+            </div>
+          </div>
+
+          <!-- View Controls (Collapsible accordion section directly below Physics & Graph) -->
+          <div class="wb-accordion-section" id="wb-view-controls-section">
+            <div class="wb-accordion-head" data-target="view-controls-body">
+              <span class="wb-accordion-title">VIEW CONTROLS</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="view-controls-body">
+              <!-- Explode Sliders -->
+              <div class="dp-section">
+                <div class="vh-section-title">EXPLODE LAYERS</div>
+                <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
+                <input type="range" id="explode-x-slider" min="0" max="100" value="0">
+                <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
+                <input type="range" id="explode-y-slider" min="0" max="100" value="1">
+                <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
+                <input type="range" id="explode-z-slider" min="0" max="100" value="0">
+              </div>
+
+              <div class="vh-sep"></div>
+
+              <!-- Section Scrub Sliders -->
+              <div class="dp-section">
+                <div class="vh-section-title">SECTION SCRUB (CLIPPING)</div>
+                <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
+                <input type="range" id="scrub-x-slider" min="-1250" max="3500" value="3500">
+                <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
+                <input type="range" id="scrub-y-slider" min="-100" max="5000" value="5000">
+                <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
+                <input type="range" id="scrub-z-slider" min="-1800" max="3500" value="3500">
+              </div>
+
+              <div class="vh-sep"></div>
+
+              <!-- 3D Floating Labels Checkbox -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="toggle-labels" checked>
+                  <span>Show 3D Floating Labels</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 2: LAYERS (Merged Visibility + Legend + Dimensions) -->
+        <div class="wb-pane" id="wb-pane-layers" role="tabpanel" aria-labelledby="wb-tab-layers">
+          
+          <!-- Unified Layer List (9 toggleable layers) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">LAYER VISIBILITY &amp; STRUCTURE</span>
+            </div>
+            <div class="wb-section-body" id="layers-body">
+              <!-- Dynamically populated by ui-panels.js with [Checkbox] + [Color Swatch] + Layer Name + [▾] chevron and expandable inline description -->
+            </div>
+          </div>
+
+          <!-- Terminals & Channel Reference (5 non-toggleable items) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head" data-target="ref-legend-body">
+              <span class="wb-accordion-title">TERMINALS &amp; CHANNEL REFERENCE</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="ref-legend-body">
+              <!-- Dynamically populated by ui-panels.js with non-toggleable reference items -->
+            </div>
+          </div>
+
+          <!-- Dimensions (λ Rules) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head" data-target="dims-body">
+              <span class="wb-accordion-title">DIMENSIONS (λ RULES)</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="dims-body">
+              <div class="dims-row-select">
+                <label for="lambda-select" class="dims-lbl">λ (LAMBDA)</label>
+                <select id="lambda-select"></select>
+              </div>
+              <div id="dims-table"></div>
+              <p class="dims-note">λ-scaled Mead–Conway style rules, illustrative only — not a specific fabricated PDK. Click any component in the 3D view (or the schematic, or the tree) to see its own dimensions in the Property Inspector.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 3: INSPECT (Property Inspector + Architecture Tree) -->
+        <div class="wb-pane" id="wb-pane-inspect" role="tabpanel" aria-labelledby="wb-tab-inspect">
+          
+          <!-- Property Inspector (Top) -->
+          <div class="wb-accordion-section inspector-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">PROPERTY INSPECTOR</span>
+            </div>
+            <div class="wb-section-body" id="inspector-body">
+              <div id="inspector">
+                <div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture Tree (Bottom) -->
+          <div class="wb-accordion-section tree-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">ARCHITECTURE TREE</span>
+            </div>
+            <div class="wb-section-body" id="tree-body">
+              <div id="tree"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </aside>
+
+    <!-- Workbench Collapse / Expand Edge Toggle Button -->
+    <button class="workbench-toggle-btn" id="workbench-toggle" title="Collapse / Expand Workbench" aria-label="Toggle Left Workbench" aria-expanded="true">
       <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="15 18 9 12 15 6"></polyline>
       </svg>
     </button>
 
-    <div id="left-panel">
-      <div class="panel-section">
-        <div class="panel-head" data-target="layers-body"><h3>LAYER VISIBILITY</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="layers-body"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-head" data-target="legend-body"><h3>LAYER LEGEND</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="legend-body"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-head" data-target="dims-body"><h3>DIMENSIONS (λ RULES)</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="dims-body">
-          <div class="dims-row-select">
-            <label for="lambda-select" class="dims-lbl">λ (LAMBDA)</label>
-            <select id="lambda-select"></select>
-          </div>
-          <div id="dims-table"></div>
-          <p class="dims-note">λ-scaled Mead–Conway style rules, illustrative only — not a specific fabricated PDK. Click any component in the 3D view (or the schematic, or the tree) to see its own dimensions in the Property Inspector.</p>
-        </div>
-      </div>
-    </div>
-
     <div id="viewport-wrap">
       <div id="canvas-host"></div>
+
+      <!-- Anchored Popover (shown when Left Workbench is collapsed) -->
+      <div id="popover">
+        <div class="pop-card">
+          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
+          <div id="popover-content"></div>
+        </div>
+        <div class="pop-arrow"></div>
+      </div>
 
       <div id="schematic-overlay">
         <svg id="schematic-svg" viewBox="0 0 400 360" width="100%" height="100%">
@@ -408,13 +609,7 @@
       </div>
 
 
-      <div id="popover">
-        <div class="pop-card">
-          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
-          <div id="popover-content"></div>
-        </div>
-        <div class="pop-arrow"></div>
-      </div>
+
 
       <!-- Clean Top-Left Status & Axis Information Stack (Zero Collision) -->
       <div class="hud-top-left-stack" id="top-left-hud">
@@ -460,141 +655,7 @@
         </div>
       </div>
 
-      <!-- Integrated Docked Right-Hand Panel (Tabs: Physics & Graph vs. View Controls) -->
-      <div class="hud interactive" id="docked-panel">
-        <div class="dp-header">
-          <div class="dp-tabs">
-            <button class="dp-tab-btn active" data-tab="physics" id="tab-btn-physics" title="Transistor Operating Bias, Presets & live IV Graph">
-              <span>PHYSICS &amp; GRAPH</span>
-            </button>
-            <button class="dp-tab-btn" data-tab="view" id="tab-btn-view" title="3D Layer Explode & Section Scrub">
-              <span>VIEW CONTROLS</span>
-            </button>
-          </div>
-          <button class="dp-collapse-btn" id="dp-collapse-btn" title="Collapse / Expand Panel">▾</button>
-        </div>
 
-        <div class="dp-body" id="dp-body">
-          <!-- TAB 1: PHYSICS & GRAPH -->
-          <div class="dp-tab-content active" id="tab-content-physics">
-            <!-- Region Presets -->
-            <div class="dp-section">
-              <div class="dp-section-header">
-                <span class="dp-section-title">OPERATING REGION</span>
-                <span class="region-pill saturation" id="iv-hud-region-pill">SATURATION</span>
-              </div>
-              <div class="seg dp-presets" id="region-preset-seg">
-                <button data-preset="cutoff" class="dp-preset-btn" title="VGS = 0V (Cutoff Region)">CUTOFF</button>
-                <button data-preset="linear" class="dp-preset-btn" title="VGS = 1.0V, VDS = 0.3V (Linear Region)">LINEAR</button>
-                <button data-preset="saturation" class="dp-preset-btn active" title="VGS = 1.0V, VDS = 0.8V (Saturation Region)">SATURATION</button>
-              </div>
-            </div>
-
-            <!-- Voltage Bias Sliders (VGS & VDS) -->
-            <div class="dp-section dp-bias-controls">
-              <div class="dp-slider-row">
-                <div class="dp-slider-lbl">
-                  <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
-                  <span class="dp-slider-val" id="vgs-val">1.00V</span>
-                </div>
-                <input type="range" id="vgs-slider" min="0" max="1.8" step="0.05" value="1.00" title="Gate-to-Source Voltage VGS">
-              </div>
-
-              <div class="dp-slider-row">
-                <div class="dp-slider-lbl">
-                  <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
-                  <span class="dp-slider-val" id="vds-val">0.80V</span>
-                </div>
-                <input type="range" id="vds-slider" min="0" max="1.8" step="0.05" value="0.80" title="Drain-to-Source Voltage VDS">
-              </div>
-            </div>
-
-            <!-- Live IDS vs VDS Graph -->
-            <div class="dp-section">
-              <div class="iv-canvas-wrap">
-                <canvas id="iv-canvas" width="296" height="150"></canvas>
-                <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>DS</sub>, I<sub>DS</sub>)</div>
-              </div>
-            </div>
-
-            <!-- Telemetry & Readouts -->
-            <div class="dp-section dp-readouts">
-              <div class="iv-grid">
-                <div class="iv-item">
-                  <span class="iv-k">V<sub>GS</sub></span>
-                  <span class="iv-v" id="iv-vgs-readout">1.00 V</span>
-                </div>
-                <div class="iv-item">
-                  <span class="iv-k">V<sub>DS</sub></span>
-                  <span class="iv-v" id="iv-vds-readout">0.80 V</span>
-                </div>
-                <div class="iv-item">
-                  <span class="iv-k">V<sub>TH</sub></span>
-                  <span class="iv-v">0.40 V</span>
-                </div>
-                <div class="iv-item">
-                  <span class="iv-k">V<sub>OV</sub></span>
-                  <span class="iv-v" id="iv-vov-readout">0.60 V</span>
-                </div>
-                <div class="iv-item">
-                  <span class="iv-k">I<sub>DS</sub></span>
-                  <span class="iv-v" id="iv-ids-readout">0.20 mA</span>
-                </div>
-                <div class="iv-item">
-                  <span class="iv-k">L<sub>eff</sub></span>
-                  <span class="iv-v" id="iv-leff-readout">26.8 nm</span>
-                </div>
-              </div>
-              <div class="iv-state-line">
-                <span class="iv-k">STATE:</span>
-                <span class="iv-v-state" id="iv-state-desc">Pinch-off · High-field drift</span>
-              </div>
-            </div>
-
-            <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
-            <div style="display:none;" id="state-badge">
-              <span id="badge-vgs"></span><span id="badge-state"></span><span id="badge-chan"></span><span id="badge-ids"></span><span id="region-badge"></span>
-            </div>
-          </div>
-
-          <!-- TAB 2: VIEW CONTROLS -->
-          <div class="dp-tab-content" id="tab-content-view">
-            <!-- Explode Sliders -->
-            <div class="dp-section">
-              <div class="vh-section-title">EXPLODE LAYERS</div>
-              <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
-              <input type="range" id="explode-x-slider" min="0" max="100" value="0">
-              <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
-              <input type="range" id="explode-y-slider" min="0" max="100" value="1">
-              <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
-              <input type="range" id="explode-z-slider" min="0" max="100" value="0">
-            </div>
-
-            <div class="vh-sep"></div>
-
-            <!-- Section Scrub Sliders -->
-            <div class="dp-section">
-              <div class="vh-section-title">SECTION SCRUB (CLIPPING)</div>
-              <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
-              <input type="range" id="scrub-x-slider" min="-1250" max="3500" value="3500">
-              <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
-              <input type="range" id="scrub-y-slider" min="-100" max="5000" value="5000">
-              <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
-              <input type="range" id="scrub-z-slider" min="-1800" max="3500" value="3500">
-            </div>
-
-            <div class="vh-sep"></div>
-
-            <!-- 3D Floating Labels Checkbox -->
-            <div class="dp-section dp-labels-toggle-row">
-              <label class="dp-checkbox-label">
-                <input type="checkbox" id="toggle-labels" checked>
-                <span>Show 3D Floating Labels</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
 
       <!-- AI Voice Assistant Widget (Sarvam Bulbul v4 Flash) -->
       <div id="voice-assistant-widget" class="va-widget minimized">
@@ -691,18 +752,7 @@
 
     </div>
 
-    <div id="right-panel">
-      <div class="panel-section">
-        <div class="panel-head" data-target="inspector-body"><h3>PROPERTY INSPECTOR</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="inspector-body">
-          <div id="inspector"><div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div></div>
-        </div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-head" data-target="tree-body"><h3>ARCHITECTURE TREE</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="tree-body"><div id="tree"></div></div>
-      </div>
-    </div>
+
 
   </div>
 
