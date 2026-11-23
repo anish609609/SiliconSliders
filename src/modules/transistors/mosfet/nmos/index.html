@@ -67,6 +67,14 @@
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
       </button>
+      <button class="tbtn icon-btn" id="va-launcher-btn" title="AI Voice Tutor (Sarvam Voice)" aria-label="Open AI Voice Tutor">
+        <svg class="va-topbar-mic-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
+      </button>
       <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence with AI Voice Tutor" aria-label="Play 3D Fabrication Tour">
         <span class="play-icon">▶</span>
         <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>
@@ -105,7 +113,6 @@
           <div class="wb-section" id="wb-physics-section">
             <div class="wb-section-header">
               <span class="wb-section-title">OPERATING REGION</span>
-              <span class="region-pill saturation" id="iv-hud-region-pill">SATURATION</span>
             </div>
             <div class="seg wb-presets" id="region-preset-seg">
               <button data-preset="cutoff" class="dp-preset-btn" title="VGS = 0V (Cutoff Region)">CUTOFF</button>
@@ -134,6 +141,14 @@
 
             <!-- Live IDS vs VDS Graph -->
             <div class="iv-canvas-wrap">
+              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand graph" aria-label="Expand graph">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <polyline points="9 21 3 21 3 15"></polyline>
+                  <line x1="21" y1="3" x2="14" y2="10"></line>
+                  <line x1="3" y1="21" x2="10" y2="14"></line>
+                </svg>
+              </button>
               <canvas id="iv-canvas" width="310" height="225"></canvas>
               <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>DS</sub>, I<sub>DS</sub>)</div>
             </div>
@@ -293,6 +308,9 @@
         </div>
 
       </div>
+
+      <!-- Drag Resize Handle -->
+      <div class="wb-resize-handle" id="wb-resize-handle" title="Drag to resize sidebar (Double-click to reset)"></div>
 
     </aside>
 
@@ -655,6 +673,11 @@
         </div>
       </div>
 
+      <!-- Subtle 1-Line Camera Controls Hint -->
+      <div class="camera-hint" id="camera-hint" aria-hidden="true">
+        <span class="camera-hint-text"><b>Drag</b> Orbit · <b>Shift + Drag</b> Pan · <b>Scroll</b> Zoom</span>
+      </div>
+
 
 
       <!-- AI Voice Assistant Widget (Sarvam Bulbul v4 Flash) -->
@@ -740,20 +763,35 @@
         </div>
       </div>
 
-      <!-- Sleek Floating Action Button (FAB) for AI Voice Tutor -->
-      <button id="va-launcher-btn" class="va-launcher-btn visible" title="Open AI Voice Tutor" aria-label="Open AI Voice Tutor">
-        <svg class="va-fab-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-          <line x1="12" y1="19" x2="12" y2="23"></line>
-          <line x1="8" y1="23" x2="16" y2="23"></line>
-        </svg>
-      </button>
-
     </div>
 
+  </div>
 
-
+  <!-- Expandable IDS-VDS Graph Modal -->
+  <div id="iv-modal-backdrop" class="iv-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="iv-modal-title">
+    <div class="iv-modal-card">
+      <div class="iv-modal-header">
+        <div class="iv-modal-title" id="iv-modal-title">
+          <span class="iv-modal-icon">📈</span>
+          <span>I<sub>DS</sub> – V<sub>DS</sub> Output Characteristics (N-Channel MOSFET)</span>
+        </div>
+        <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">✕</button>
+      </div>
+      <div class="iv-modal-body">
+        <div class="iv-modal-canvas-wrap">
+          <canvas id="iv-modal-canvas" width="560" height="380"></canvas>
+        </div>
+        <div class="iv-modal-footer">
+          <div class="iv-modal-hint">Drag or click anywhere on the graph to modulate V<sub>DS</sub> and set operating point. Fully synced with sliders &amp; 3D model.</div>
+          <div class="iv-modal-readouts">
+            <span class="iv-m-item">V<sub>GS</sub> = <b id="iv-m-vgs">1.00 V</b></span>
+            <span class="iv-m-item">V<sub>DS</sub> = <b id="iv-m-vds">0.80 V</b></span>
+            <span class="iv-m-item">I<sub>DS</sub> = <b id="iv-m-ids">0.20 mA</b></span>
+            <span class="iv-m-item">REGION: <b id="iv-m-region">SATURATION</b></span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Interactive Sarvam AI API Key Modal (Exact Parity with CMOS Inverter) -->

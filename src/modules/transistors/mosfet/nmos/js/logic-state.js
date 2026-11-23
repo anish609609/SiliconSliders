@@ -17,6 +17,8 @@ var MODEL_L = 2.0;       // 3D coordinate length along X
 // Active continuous bias states
 var currentVgs = 1.00;   // Gate-to-Source bias (0.00V to 1.80V)
 var currentVds = 0.80;   // Drain-to-Source bias (0.00V to 1.80V)
+var currentIds = 0.20;   // Drain current (mA)
+var currentRegion = 'SATURATION'; // Active operating region
 var currentIn = 1;       // Backward-compatibility flag (1 = ON, 0 = OFF/Cutoff)
 
 // Public accessor for other modules (e.g. flow.js)
@@ -69,6 +71,8 @@ function applyLogicState() {
   var leff = phys.leff;
 
   currentIn = (region === 'CUTOFF') ? 0 : 1;
+  currentIds = ids;
+  currentRegion = region;
 
   // 1. Update Topbar Sliders & Value Readouts
   var vgsSlider = document.getElementById('vgs-slider');
@@ -192,18 +196,17 @@ function applyLogicState() {
 // ---------------------------------------------------------------------------
 // LIVE IDS vs VDS CHARACTERISTIC GRAPH RENDERER
 // ---------------------------------------------------------------------------
-var IV_GRAPH_PAD = { L: 38, R: 36, T: 18, B: 28 };
+var IV_GRAPH_PAD = { L: 32, R: 28, T: 16, B: 24 };
 
-function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
-  var canvas = document.getElementById('iv-canvas');
+function renderSingleGraph(canvas, activeVgs, activeVds, activeIds, activeRegion, isModal) {
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
   var dpr = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
-  var W = rect.width || 310;
-  var H = rect.height || 225;
+  var W = rect.width || (isModal ? 560 : 310);
+  var H = rect.height || (isModal ? 380 : 225);
 
   if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
     canvas.width = Math.round(W * dpr);
@@ -228,11 +231,11 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, W, H);
 
-  // Margins
-  var padL = IV_GRAPH_PAD.L;
-  var padR = IV_GRAPH_PAD.R;
-  var padT = IV_GRAPH_PAD.T;
-  var padB = IV_GRAPH_PAD.B;
+  // Margins: Trimmed for inline, slightly more generous for modal
+  var padL = isModal ? 40 : IV_GRAPH_PAD.L;
+  var padR = isModal ? 34 : IV_GRAPH_PAD.R;
+  var padT = isModal ? 18 : IV_GRAPH_PAD.T;
+  var padB = isModal ? 26 : IV_GRAPH_PAD.B;
   var plotW = W - padL - padR;
   var plotH = H - padT - padB;
 
@@ -246,7 +249,9 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.strokeStyle = gridColor;
   ctx.lineWidth = 1;
   ctx.fillStyle = textColor;
-  ctx.font = '10px "IBM Plex Mono", monospace';
+  var tickFont = isModal ? '11px "IBM Plex Mono", monospace' : '9.5px "IBM Plex Mono", monospace';
+  var axisFont = isModal ? '600 11px "IBM Plex Mono", monospace' : '600 9.5px "IBM Plex Mono", monospace';
+  ctx.font = tickFont;
   ctx.textAlign = 'center';
 
   // VDS ticks: 0, 0.6, 1.2, 1.8
@@ -256,13 +261,13 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     ctx.moveTo(x, padT);
     ctx.lineTo(x, padT + plotH);
     ctx.stroke();
-    ctx.fillText(v.toFixed(1), x, padT + plotH + 14);
+    ctx.fillText(v.toFixed(1), x, padT + plotH + (isModal ? 15 : 13));
   });
-  ctx.font = '600 10px "IBM Plex Mono", monospace';
-  ctx.fillText('V_DS (V)', padL + plotW / 2, padT + plotH + 26);
+  ctx.font = axisFont;
+  ctx.fillText('V_DS (V)', padL + plotW / 2, padT + plotH + (isModal ? 26 : 23));
 
   // IDS ticks: 0, 0.3, 0.6, 0.9
-  ctx.font = '10px "IBM Plex Mono", monospace';
+  ctx.font = tickFont;
   ctx.textAlign = 'right';
   [0, 0.3, 0.6, 0.9].forEach(function(i) {
     var y = toY(i);
@@ -270,20 +275,20 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + plotW, y);
     ctx.stroke();
-    ctx.fillText(i.toFixed(1), padL - 6, y + 3.5);
+    ctx.fillText(i.toFixed(1), padL - 5, y + 3.5);
   });
 
   ctx.save();
-  ctx.translate(11, padT + plotH / 2);
+  ctx.translate(isModal ? 12 : 9, padT + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.font = '600 10px "IBM Plex Mono", monospace';
+  ctx.font = axisFont;
   ctx.fillText('I_DS (mA)', 0, 0);
   ctx.restore();
 
   // Draw Pinch-off Parabolic Boundary Curve: VDS = VGS - VTH => IDS = 0.5 * KN * VDS^2
   ctx.strokeStyle = pinchOffColor;
-  ctx.lineWidth = 1.3;
+  ctx.lineWidth = isModal ? 1.5 : 1.3;
   ctx.setLineDash([3, 3]);
   ctx.beginPath();
   var startedPinch = false;
@@ -299,13 +304,14 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.setLineDash([]);
 
   // Labels for Linear and Saturation regions
-  ctx.font = '8.5px "IBM Plex Mono", monospace';
-  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.7)' : 'rgba(74,146,201,0.55)';
+  // Repositioned SATURATION deep into upper saturation zone away from pinch-off curve
+  ctx.font = (isModal ? '10px' : '8.5px') + ' "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.75)' : 'rgba(74,146,201,0.60)';
   ctx.textAlign = 'left';
-  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 14);
-  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.7)' : 'rgba(87,207,143,0.55)';
-  ctx.textAlign = 'right';
-  ctx.fillText('SATURATION', padL + plotW - 6, padT + 14);
+  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 13);
+  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.80)' : 'rgba(87,207,143,0.65)';
+  ctx.textAlign = 'center';
+  ctx.fillText('SATURATION', toX(1.35), padT + 13);
 
   // Helper to compute IDS(VDS) for a given VGS (Continuous at pinch-off VDS = VOV)
   function calcIds(testVgs, testVds) {
@@ -319,7 +325,7 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     }
   }
 
-  // Generates curve sampling coordinates that strictly include the boundary point v = vov
+  // Generates curve sampling coordinates that strictly include boundary point v = vov
   function getSamplePoints(vov, maxV, baseStep) {
     var pts = [];
     for (var v = 0; v <= maxV + 0.0001; v += baseStep) {
@@ -346,7 +352,7 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     var fVov = Math.max(0, fVgs - VTH);
     var pts = getSamplePoints(fVov, vdsMax, 0.04);
     ctx.strokeStyle = dimmedCurveColor;
-    ctx.lineWidth = 1.2;
+    ctx.lineWidth = isModal ? 1.4 : 1.2;
     ctx.beginPath();
     for (var idx = 0; idx < pts.length; idx++) {
       var v = pts[idx];
@@ -368,7 +374,7 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
 
   // Space curve labels cleanly to prevent overlapping (e.g. 0.4V and 0.7V near zero current)
   // Process ascending by endI (bottom of graph to top)
-  var minSpacing = 13; // px
+  var minSpacing = isModal ? 17 : 15; // px
   var lastY = toY(0) + 3;
   for (var k = 0; k < labelPositions.length; k++) {
     var lp = labelPositions[k];
@@ -376,7 +382,7 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
     var finalY = Math.min(lp.rawY, lastY - (k > 0 ? minSpacing : 0));
     lastY = finalY;
     ctx.fillStyle = textColor;
-    ctx.font = '8.5px "IBM Plex Mono", monospace';
+    ctx.font = (isModal ? '9.5px' : '8.5px') + ' "IBM Plex Mono", monospace';
     ctx.textAlign = 'left';
     ctx.fillText(lp.vgs.toFixed(1) + 'V', toX(vdsMax) + 3, finalY);
   }
@@ -385,7 +391,7 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   var activeVov = Math.max(0, activeVgs - VTH);
   var activePts = getSamplePoints(activeVov, vdsMax, 0.03);
   ctx.strokeStyle = activeCurveColor;
-  ctx.lineWidth = 2.4;
+  ctx.lineWidth = isModal ? 2.8 : 2.4;
   ctx.beginPath();
   for (var idx = 0; idx < activePts.length; idx++) {
     var v = activePts[idx];
@@ -413,12 +419,12 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
 
   // Draw Glowing Active Operating Point Dot (VDS, IDS)
   ctx.beginPath();
-  ctx.arc(dotX, dotY, 7, 0, Math.PI * 2);
+  ctx.arc(dotX, dotY, isModal ? 8 : 7, 0, Math.PI * 2);
   ctx.fillStyle = isLight ? 'rgba(13,148,136,0.25)' : 'rgba(95,217,196,0.30)';
   ctx.fill();
 
   ctx.beginPath();
-  ctx.arc(dotX, dotY, 4.5, 0, Math.PI * 2);
+  ctx.arc(dotX, dotY, isModal ? 5 : 4.5, 0, Math.PI * 2);
   ctx.fillStyle = dotColor;
   ctx.fill();
   ctx.strokeStyle = '#ffffff';
@@ -426,6 +432,35 @@ function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
   ctx.stroke();
 
   ctx.restore();
+}
+
+function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
+  var phys = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
+  var vgs = (typeof activeVgs === 'number') ? activeVgs : (phys ? phys.vgs : currentVgs);
+  var vds = (typeof activeVds === 'number') ? activeVds : (phys ? phys.vds : currentVds);
+  var ids = (typeof activeIds === 'number') ? activeIds : (phys ? phys.ids : (typeof currentIds === 'number' ? currentIds : 0.20));
+  var reg = activeRegion || (phys ? phys.region : (typeof currentRegion === 'string' ? currentRegion : 'SATURATION'));
+
+  var inlineCanvas = document.getElementById('iv-canvas');
+  if (inlineCanvas) {
+    renderSingleGraph(inlineCanvas, vgs, vds, ids, reg, false);
+  }
+
+  var modalBackdrop = document.getElementById('iv-modal-backdrop');
+  var modalCanvas = document.getElementById('iv-modal-canvas');
+  if (modalCanvas && modalBackdrop && modalBackdrop.style.display !== 'none') {
+    renderSingleGraph(modalCanvas, vgs, vds, ids, reg, true);
+  }
+
+  // Update modal readouts if present
+  var mVgs = document.getElementById('iv-m-vgs');
+  var mVds = document.getElementById('iv-m-vds');
+  var mIds = document.getElementById('iv-m-ids');
+  var mReg = document.getElementById('iv-m-region');
+  if (mVgs) mVgs.textContent = vgs.toFixed(2) + ' V';
+  if (mVds) mVds.textContent = vds.toFixed(2) + ' V';
+  if (mIds) mIds.textContent = (ids || 0).toFixed(2) + ' mA';
+  if (mReg) mReg.textContent = reg;
 }
 
 // ---------------------------------------------------------------------------
@@ -483,15 +518,15 @@ function initLogicStateControls() {
   }
 
   // Interactive Graph Canvas: Drag or Click to modulate VDS and VGS
-  var canvas = document.getElementById('iv-canvas');
-  if (canvas) {
+  function bindCanvasPointer(c, isModal) {
+    if (!c) return;
     var isDragging = false;
 
     function handleGraphPointer(e) {
-      var rect = canvas.getBoundingClientRect();
+      var rect = c.getBoundingClientRect();
       if (!rect.width || !rect.height) return;
-      var scaleX = canvas.width / rect.width;
-      var scaleY = canvas.height / rect.height;
+      var scaleX = c.width / rect.width;
+      var scaleY = c.height / rect.height;
 
       var clientX = e.touches ? e.touches[0].clientX : e.clientX;
       var clientY = e.touches ? e.touches[0].clientY : e.clientY;
@@ -499,10 +534,12 @@ function initLogicStateControls() {
       var canvasX = (clientX - rect.left) * scaleX;
       var canvasY = (clientY - rect.top) * scaleY;
 
-      var padL = IV_GRAPH_PAD.L, padR = IV_GRAPH_PAD.R;
-      var padT = IV_GRAPH_PAD.T, padB = IV_GRAPH_PAD.B;
-      var plotW = canvas.width - padL - padR;
-      var plotH = canvas.height - padT - padB;
+      var padL = (isModal ? 40 : IV_GRAPH_PAD.L) * (scaleX || 1);
+      var padR = (isModal ? 34 : IV_GRAPH_PAD.R) * (scaleX || 1);
+      var padT = (isModal ? 18 : IV_GRAPH_PAD.T) * (scaleY || 1);
+      var padB = (isModal ? 26 : IV_GRAPH_PAD.B) * (scaleY || 1);
+      var plotW = c.width - padL - padR;
+      var plotH = c.height - padT - padB;
 
       var clickX = canvasX - padL;
       var clickY = canvasY - padT;
@@ -514,7 +551,7 @@ function initLogicStateControls() {
       applyLogicState();
     }
 
-    canvas.addEventListener('mousedown', function(e) {
+    c.addEventListener('mousedown', function(e) {
       isDragging = true;
       handleGraphPointer(e);
     });
@@ -525,7 +562,7 @@ function initLogicStateControls() {
       isDragging = false;
     });
 
-    canvas.addEventListener('touchstart', function(e) {
+    c.addEventListener('touchstart', function(e) {
       isDragging = true;
       handleGraphPointer(e);
       e.preventDefault();
@@ -540,6 +577,40 @@ function initLogicStateControls() {
       isDragging = false;
     });
   }
+
+  var canvas = document.getElementById('iv-canvas');
+  if (canvas) bindCanvasPointer(canvas, false);
+
+  var modalCanvas = document.getElementById('iv-modal-canvas');
+  if (modalCanvas) bindCanvasPointer(modalCanvas, true);
+
+  // Expandable Graph Modal Controls
+  var expandBtn = document.getElementById('iv-expand-btn');
+  var modalBackdrop = document.getElementById('iv-modal-backdrop');
+  var modalCloseBtn = document.getElementById('iv-modal-close');
+
+  function openIvModal() {
+    if (!modalBackdrop) return;
+    modalBackdrop.style.display = 'flex';
+    drawIdsVdsGraph();
+  }
+  function closeIvModal() {
+    if (!modalBackdrop) return;
+    modalBackdrop.style.display = 'none';
+  }
+
+  if (expandBtn) expandBtn.addEventListener('click', openIvModal);
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeIvModal);
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', function(e) {
+      if (e.target === modalBackdrop) closeIvModal();
+    });
+  }
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modalBackdrop && modalBackdrop.style.display !== 'none') {
+      closeIvModal();
+    }
+  });
 }
 
 if (document.readyState === 'loading') {

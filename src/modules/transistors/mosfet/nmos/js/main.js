@@ -20,16 +20,94 @@ function animateResizeTransition() {
   if (resizeAnimId) cancelAnimationFrame(resizeAnimId);
   function step(now) {
     if (typeof resize === 'function') resize();
+    if (typeof drawIdsVdsGraph === 'function') drawIdsVdsGraph();
     if (now - start < duration) {
       resizeAnimId = requestAnimationFrame(step);
     } else {
       if (typeof resize === 'function') resize();
+      if (typeof drawIdsVdsGraph === 'function') drawIdsVdsGraph();
       resizeAnimId = null;
     }
   }
   resizeAnimId = requestAnimationFrame(step);
 }
 window.animateResizeTransition = animateResizeTransition;
+
+// =====================================================================
+// DRAG-TO-RESIZE LEFT WORKBENCH
+// =====================================================================
+var DEFAULT_WB_WIDTH = 330;
+var MIN_WB_WIDTH = 300;
+
+function getMaxWbWidth() {
+  return Math.min(520, Math.round(window.innerWidth * 0.45));
+}
+
+function setWorkbenchWidth(w) {
+  var clamped = Math.max(MIN_WB_WIDTH, Math.min(getMaxWbWidth(), Math.round(w)));
+  document.documentElement.style.setProperty('--wb-width', clamped + 'px');
+  if (typeof resize === 'function') resize();
+  if (typeof drawIdsVdsGraph === 'function') drawIdsVdsGraph();
+  return clamped;
+}
+window.setWorkbenchWidth = setWorkbenchWidth;
+
+function initWorkbenchResize() {
+  var handle = document.getElementById('wb-resize-handle');
+  if (!handle || !leftWorkbench) return;
+
+  var isResizing = false;
+
+  function onPointerMove(e) {
+    if (!isResizing) return;
+    var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+    if (clientX === undefined) return;
+    setWorkbenchWidth(clientX);
+  }
+
+  function onPointerUp() {
+    if (!isResizing) return;
+    isResizing = false;
+    leftWorkbench.classList.remove('resizing');
+    document.body.classList.remove('wb-resizing');
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('touchmove', onPointerMove);
+    window.removeEventListener('touchend', onPointerUp);
+    if (typeof resize === 'function') resize();
+    if (typeof drawIdsVdsGraph === 'function') drawIdsVdsGraph();
+  }
+
+  handle.addEventListener('pointerdown', function(e) {
+    if (e.button !== 0) return;
+    if (leftWorkbench.classList.contains('collapsed')) return;
+    isResizing = true;
+    leftWorkbench.classList.add('resizing');
+    document.body.classList.add('wb-resizing');
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    e.preventDefault();
+  });
+
+  handle.addEventListener('touchstart', function(e) {
+    if (leftWorkbench.classList.contains('collapsed')) return;
+    isResizing = true;
+    leftWorkbench.classList.add('resizing');
+    document.body.classList.add('wb-resizing');
+    window.addEventListener('touchmove', onPointerMove, { passive: false });
+    window.addEventListener('touchend', onPointerUp);
+  }, { passive: false });
+
+  // Double-click resets to default width
+  handle.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    leftWorkbench.classList.remove('resizing');
+    document.body.classList.remove('wb-resizing');
+    setWorkbenchWidth(DEFAULT_WB_WIDTH);
+    animateResizeTransition();
+  });
+}
+initWorkbenchResize();
 
 function toggleWorkbench(forceExpanded) {
   if (!leftWorkbench) return;
@@ -131,7 +209,26 @@ function resetAll() {
 
   // Sliders mode: workbench is expanded by default
   expandWorkbench();
+  setWorkbenchWidth(DEFAULT_WB_WIDTH);
 }
+
+// =====================================================================
+// SUBTLE 1-LINE CAMERA CONTROLS HINT
+// =====================================================================
+function initCameraHint() {
+  var hint = document.getElementById('camera-hint');
+  if (!hint) return;
+  var isCoarse = window.matchMedia('(pointer: coarse)').matches;
+  if (isCoarse) {
+    hint.innerHTML = '<span class="camera-hint-text"><b>1-Finger</b> Orbit · <b>2-Finger</b> Pan &amp; Zoom</span>';
+  } else {
+    hint.innerHTML = '<span class="camera-hint-text"><b>Drag</b> Orbit · <b>Shift + Drag</b> Pan · <b>Scroll</b> Zoom</span>';
+  }
+}
+initCameraHint();
+window.addEventListener('resize', function() {
+  initCameraHint();
+});
 
 // Collapsible Scale Note Popover Handler
 function initScaleNote() {

@@ -103,9 +103,14 @@
   }
 
   function updateStatus(state, label) {
-    if (!statusPill || !statusText) return;
-    statusPill.className = 'va-status-pill ' + state;
-    statusText.textContent = label;
+    if (statusPill && statusText) {
+      statusPill.className = 'va-status-pill ' + state;
+      statusText.textContent = label;
+    }
+    if (launcherEl) {
+      launcherEl.classList.toggle('listening', state === 'listening');
+      launcherEl.classList.toggle('speaking', state === 'speaking');
+    }
   }
 
   function appendMessage(sender, text) {
@@ -641,14 +646,20 @@
       stopBtn.addEventListener('click', stopAudio);
     }
 
-    // Launcher button (restore)
+    // Launcher button (toggle open / minimized)
     if (launcherEl && widgetEl) {
       launcherEl.addEventListener('click', function () {
-        widgetEl.classList.remove('minimized');
-        widgetEl.classList.add('open');
-        launcherEl.classList.remove('visible');
-        launcherEl.classList.add('active');
-        if (inputField) inputField.focus();
+        var isOpen = widgetEl.classList.contains('open') && !widgetEl.classList.contains('minimized');
+        if (isOpen) {
+          widgetEl.classList.add('minimized');
+          widgetEl.classList.remove('open');
+          launcherEl.classList.remove('active');
+        } else {
+          widgetEl.classList.remove('minimized');
+          widgetEl.classList.add('open');
+          launcherEl.classList.add('active');
+          if (inputField) inputField.focus();
+        }
       });
     }
 
@@ -659,7 +670,6 @@
         widgetEl.classList.add('minimized');
         widgetEl.classList.remove('open');
         if (launcherEl) {
-          launcherEl.classList.add('visible');
           launcherEl.classList.remove('active');
         }
       });
@@ -673,7 +683,6 @@
         widgetEl.classList.add('minimized');
         widgetEl.classList.remove('open');
         if (launcherEl) {
-          launcherEl.classList.add('visible');
           launcherEl.classList.remove('active');
         }
       });
