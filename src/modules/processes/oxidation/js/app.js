@@ -1710,6 +1710,7 @@
               <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs font-mono">
                 <span className="text-[11px] text-slate-400 mr-1 uppercase font-semibold">Jump to:</span>
                 {[
+                  { id: 'theory-origin-story', label: '0. Origin Story' },
                   { id: 'theory-deal-grove', label: '1. Deal-Grove Kinetics' },
                   { id: 'theory-volumetric', label: '2. Volumetric Expansion' },
                   { id: 'theory-arrhenius', label: '3. Arrhenius Kinetics' },
@@ -1739,6 +1740,50 @@
                 })}
               </div>
             </div>
+
+            {/* Section 0: The Origin Story: How Deal & Grove Saved the MOSFET */}
+            <article
+              id="theory-origin-story"
+              className={
+                'theory-section-anchor bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm transition-all ' +
+                (highlightedSection === 'theory-origin-story' ? 'section-highlight-pulse' : '')
+              }
+            >
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2 mb-3">
+                <h3 className="font-mono font-bold text-sm sm:text-base text-sky-600 dark:text-cyan-400 flex items-center gap-2">
+                  <span>0. The Origin Story: How Deal &amp; Grove Saved the MOSFET</span>
+                </h3>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-cyan-300 border border-sky-300 dark:border-sky-700">
+                  Fairchild, 1965
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-3">
+                In the early 1960s, thermal oxidation was the make-or-break bottleneck of the semiconductor industry. <b>Fairchild Semiconductor</b> had just pioneered the planar process using SiO₂ as a protective mask and was racing to commercialize the <b>MOSFET</b>. Early devices were a nightmare—threshold voltages drifted wildly, wafers failed unpredictably, and engineers baked oxide by trial and error with no unified model explaining why growth looked linear in some tests and parabolic in others.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 my-3 text-xs font-mono">
+                <div className="p-3 bg-slate-50 dark:bg-[#090d15] rounded-lg border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-sky-600 dark:text-cyan-400 block mb-1">1. The Odd Couple (1963)</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
+                    <b>Gordon Moore</b> (head of Fairchild R&amp;D) paired <b>Bruce Deal</b>, a meticulous physical chemist obsessed with ultra-clean, repeatable furnace data, with <b>Andy Grove</b> (future Intel CEO), a fresh UC Berkeley chemical engineering PhD specializing in fluid dynamics and mass transport.
+                  </p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-[#090d15] rounded-lg border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-amber-600 dark:text-amber-400 block mb-1">2. The &ldquo;Aha!&rdquo; Moment (1965)</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
+                    Looking at Deal&apos;s exhaustive oxidation curves, Grove saw a classic chemical engineering traffic jam: gas transport, solid diffusion, and interface reaction. Balancing those three fluxes produced one quadratic equation unifying both linear and parabolic regimes (<i>Journal of Applied Physics</i>, Dec 1965).
+                  </p>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-[#090d15] rounded-lg border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-purple-600 dark:text-purple-400 block mb-1">3. The Hidden Second Mystery</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans leading-relaxed">
+                    Alongside <b>Ed Snow</b>, they also solved why MOSFET threshold voltages kept drifting: microscopic <b>sodium ions</b> from dirty quartz tubes, chemicals, and even human sweat were migrating through the oxide under electric fields.
+                  </p>
+                </div>
+              </div>
+              <div className="bg-sky-50 dark:bg-sky-950/20 border border-sky-200 dark:border-sky-900/50 p-3 rounded-lg text-xs text-sky-900 dark:text-cyan-300 leading-relaxed">
+                <b>Why It Matters:</b> By solving both <i>how to grow SiO₂ predictably</i> (the Deal-Grove model) and <i>how to keep it electrically pure</i>, they turned the MOSFET from a fragile lab curiosity into the foundation of the entire digital age.
+              </div>
+            </article>
 
             {/* Section 1: Deal-Grove Linear vs. Parabolic Regimes */}
             <article
