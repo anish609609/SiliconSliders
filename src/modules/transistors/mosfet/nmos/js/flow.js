@@ -18,9 +18,34 @@ var flowMarkers = [];
 
 // Fine, small particle sphere geometry (very small fine particles, not bowling balls)
 var markerGeom = new THREE.SphereGeometry(0.045, 8, 8);
-var carrierMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, depthTest: true, depthWrite: false });
-var currentMat = new THREE.MeshBasicMaterial({ color: 0xffcf4d, depthTest: true, depthWrite: false });
+var CARRIER_COLOR_DARK = 0x38bdf8;
+var CARRIER_COLOR_LIGHT = 0x0052cc; // Deep royal / cobalt blue for high contrast on light backgrounds
+var CURRENT_COLOR_DARK = 0xffcf4d;
+var CURRENT_COLOR_LIGHT = 0xb45309; // Warm bronze / amber for high contrast on light backgrounds
+
+var isInitialLight = document.documentElement.getAttribute('data-theme') === 'light';
+var carrierMat = new THREE.MeshBasicMaterial({
+  color: isInitialLight ? CARRIER_COLOR_LIGHT : CARRIER_COLOR_DARK,
+  depthTest: true,
+  depthWrite: false
+});
+var currentMat = new THREE.MeshBasicMaterial({
+  color: isInitialLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK,
+  depthTest: true,
+  depthWrite: false
+});
 flowGroup.renderOrder = 999;
+
+function updateFlowTheme(theme) {
+  var isLight = theme === 'light';
+  if (carrierMat) {
+    carrierMat.color.setHex(isLight ? CARRIER_COLOR_LIGHT : CARRIER_COLOR_DARK);
+  }
+  if (currentMat) {
+    currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+  }
+}
+window.updateFlowTheme = updateFlowTheme;
 
 function createFlowCurve(points) {
   return new THREE.CatmullRomCurve3(points);

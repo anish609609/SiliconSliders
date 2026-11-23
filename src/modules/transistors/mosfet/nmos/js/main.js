@@ -36,11 +36,14 @@ window.animateResizeTransition = animateResizeTransition;
 // =====================================================================
 // DRAG-TO-RESIZE LEFT WORKBENCH
 // =====================================================================
-var DEFAULT_WB_WIDTH = 330;
 var MIN_WB_WIDTH = 300;
 
 function getMaxWbWidth() {
   return Math.min(520, Math.round(window.innerWidth * 0.45));
+}
+
+function getDefaultWbWidth() {
+  return window.innerWidth >= 768 ? getMaxWbWidth() : 330;
 }
 
 function setWorkbenchWidth(w) {
@@ -98,12 +101,12 @@ function initWorkbenchResize() {
     window.addEventListener('touchend', onPointerUp);
   }, { passive: false });
 
-  // Double-click resets to default width
+  // Double-click resets to default width (max width on desktop)
   handle.addEventListener('dblclick', function(e) {
     e.stopPropagation();
     leftWorkbench.classList.remove('resizing');
     document.body.classList.remove('wb-resizing');
-    setWorkbenchWidth(DEFAULT_WB_WIDTH);
+    setWorkbenchWidth(getDefaultWbWidth());
     animateResizeTransition();
   });
 }
@@ -207,9 +210,9 @@ function resetAll() {
     switchWorkbenchTab('controls');
   }
 
-  // Sliders mode: workbench is expanded by default
+  // Sliders mode: workbench is expanded by default at max desktop width
   expandWorkbench();
-  setWorkbenchWidth(DEFAULT_WB_WIDTH);
+  setWorkbenchWidth(getDefaultWbWidth());
 }
 
 // =====================================================================

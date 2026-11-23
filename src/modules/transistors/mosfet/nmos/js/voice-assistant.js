@@ -342,7 +342,7 @@
     }
     if (keyModalSaveBtn) {
       keyModalSaveBtn.disabled = false;
-      keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+      keyModalSaveBtn.innerHTML = 'Save &amp; Test Voice';
     }
 
     keyModalBackdrop.style.display = 'flex';
@@ -377,7 +377,7 @@
 
     if (keyModalSaveBtn) {
       keyModalSaveBtn.disabled = true;
-      keyModalSaveBtn.innerHTML = '⏳ Verifying with Sarvam...';
+      keyModalSaveBtn.innerHTML = 'Verifying with Sarvam...';
     }
     showModalStatus('info', 'Connecting to Sarvam AI voice service to verify credentials...');
 
@@ -415,7 +415,7 @@
       var sessionOnly = keyModalSessionOnlyChk ? keyModalSessionOnlyChk.checked : true;
       setSavedApiKey(key, sessionOnly);
 
-      showModalStatus('success', '✓ API key verified! Playing sample voice...');
+      showModalStatus('success', 'API key verified! Playing sample voice...');
 
       try {
         var blob = base64ToWavBlob(data.audios[0]);
@@ -438,10 +438,10 @@
 
     } catch (err) {
       console.error('[VoiceAssistant] Key verification error:', err);
-      showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
+      showModalStatus('error', 'Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
       if (keyModalSaveBtn) {
         keyModalSaveBtn.disabled = false;
-        keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+        keyModalSaveBtn.innerHTML = 'Save &amp; Test Voice';
       }
     }
   }

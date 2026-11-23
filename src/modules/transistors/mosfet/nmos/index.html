@@ -31,7 +31,7 @@
 
   <div id="topbar">
     <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
-    <div class="brand"><span class="dot"></span><b class="brand-title-full">NMOS·VIEWER</b><b class="brand-title-compact">NMOS</b></div>
+    <div class="brand"><span class="dot"></span><b class="brand-title-full">E-NMOS·VIEWER</b><b class="brand-title-compact">E-NMOS</b></div>
 
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
@@ -203,10 +203,10 @@
               <!-- Explode Sliders -->
               <div class="dp-section">
                 <div class="vh-section-title">EXPLODE LAYERS</div>
-                <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
-                <input type="range" id="explode-x-slider" min="0" max="100" value="0">
                 <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
                 <input type="range" id="explode-y-slider" min="0" max="100" value="1">
+                <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
+                <input type="range" id="explode-x-slider" min="0" max="100" value="0">
                 <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
                 <input type="range" id="explode-z-slider" min="0" max="100" value="0">
               </div>
@@ -648,8 +648,8 @@
             <b class="tb-title" id="tb-step-title">P-Substrate Preparation</b>
           </div>
           <div class="tb-controls">
-            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour">⏸</button>
-            <button id="tb-btn-close" class="tb-btn" title="Close tour">✕</button>
+            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
+            <button id="tb-btn-close" class="tb-btn" title="Close tour">&times;</button>
           </div>
         </div>
         <div class="tb-desc" id="tb-step-desc">
@@ -684,7 +684,12 @@
       <div id="voice-assistant-widget" class="va-widget minimized">
         <div class="va-header">
           <div class="va-header-title">
-            <span class="va-pulse-icon">🎙️</span>
+            <svg class="va-pulse-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
             <b>AI VOICE TUTOR</b>
             <span class="va-badge">bulbul:v4-flash</span>
           </div>
@@ -696,9 +701,11 @@
               <span class="bar"></span>
               <span class="bar"></span>
             </div>
-            <button class="va-hdr-btn" id="va-btn-settings" title="Sarvam API Key Settings" aria-label="API Key Settings">⚙️</button>
+            <button class="va-hdr-btn" id="va-btn-settings" title="Sarvam API Key Settings" aria-label="API Key Settings">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
             <button class="va-hdr-btn" id="va-btn-minimize" title="Minimize assistant" aria-label="Minimize">─</button>
-            <button class="va-hdr-btn" id="va-btn-close" title="Close assistant" aria-label="Close">✕</button>
+            <button class="va-hdr-btn" id="va-btn-close" title="Close assistant" aria-label="Close">&times;</button>
           </div>
         </div>
 
@@ -758,8 +765,10 @@
 
         <div class="va-input-row">
           <input type="text" id="va-input-text" placeholder="Ask about NMOS physics or layout..." autocomplete="off">
-          <button id="va-btn-mic" class="va-mic-btn" title="Voice Input (Mic)">🎙️</button>
-          <button id="va-btn-send" class="va-send-btn" title="Ask and listen">Ask &amp; Speak 🔊</button>
+          <button id="va-btn-mic" class="va-mic-btn" title="Voice Input (Mic)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+          <button id="va-btn-send" class="va-send-btn" title="Ask and listen">Ask &amp; Speak</button>
         </div>
       </div>
 
@@ -772,10 +781,9 @@
     <div class="iv-modal-card">
       <div class="iv-modal-header">
         <div class="iv-modal-title" id="iv-modal-title">
-          <span class="iv-modal-icon">📈</span>
           <span>I<sub>DS</sub> – V<sub>DS</sub> Output Characteristics (N-Channel MOSFET)</span>
         </div>
-        <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">✕</button>
+        <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">&times;</button>
       </div>
       <div class="iv-modal-body">
         <div class="iv-modal-canvas-wrap">
@@ -799,10 +807,9 @@
     <div class="va-modal-card">
       <div class="va-modal-header">
         <div class="va-modal-title">
-          <span class="va-modal-icon">🔑</span>
           <h3 id="va-modal-title">Sarvam AI API Key Required</h3>
         </div>
-        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">✕</button>
+        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">&times;</button>
       </div>
 
       <div class="va-modal-body">
@@ -826,7 +833,7 @@
         </div>
 
         <div class="va-modal-privacy-callout">
-          <span class="va-privacy-badge">🔒 Privacy Guarantee</span>
+          <span class="va-privacy-badge">Privacy Guarantee</span>
           <p>
             Your API key will <b>not be used by us</b> — it is stored securely on your local device and used directly to communicate with Sarvam AI. It will be deleted after you exit the session. We never save, store, or transmit your credentials to our servers.
           </p>
@@ -862,7 +869,7 @@
         <button id="va-modal-clear-btn" class="va-btn-secondary" style="display:none;">Clear Key</button>
         <div class="va-footer-right">
           <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
-          <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice 🔊</button>
+          <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice</button>
         </div>
       </div>
     </div>

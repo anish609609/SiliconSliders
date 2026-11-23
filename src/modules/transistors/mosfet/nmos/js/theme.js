@@ -102,4 +102,9 @@ function applyTheme(theme, savePreference){
   if (typeof applyLogicState === 'function'){
     applyLogicState();
   }
+
+  // 5. Adapt carrier / current flow particle colors
+  if (typeof updateFlowTheme === 'function'){
+    updateFlowTheme(theme);
+  }
 }
