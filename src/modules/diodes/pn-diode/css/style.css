@@ -16,24 +16,26 @@
   --mono: 'IBM Plex Mono', ui-monospace, monospace;
   --sans: 'Inter', -apple-system, sans-serif;
 
-  --c-substrate: #3a3f4b;
-  --c-well: #059669;
-  --c-active-p: #cf8a4a;
-  --c-active-n: #4a92c9;
-  --c-sde-p: #f0b47a;
-  --c-sde-n: #8fd0f8;
-  --c-oxide: #38bdf8;
+  --c-substrate: #2B3442;
+  --c-well: #2D5A4C;
+  --c-active-p: #EA580C;
+  --c-active-n: #2563EB;
+  --c-sde-p: #FB923C;
+  --c-sde-n: #38BDF8;
+  --c-oxide: #475569;
   --c-highk: #a855f7;
-  --c-poly: #d8503c;
-  --c-contact: #94a3b8;
-  --c-metal: #4f86c9;
+  --c-poly: #DC2626;
+  --c-contact: #CBD5E1;
+  --c-metal: #94A3B8;
   --c-vdd: #e35d5d;
   --c-gnd: #6b7686;
   --c-in: #e6c94a;
   --c-out: #57cf8f;
-  --c-depletion: rgba(168, 85, 247, 0.35);
+  --c-depletion: rgba(100, 116, 139, 0.26);
   --c-zener: #f43f5e;
   --c-avalanche: #8b5cf6;
+  --c-electron: #F59E0B;
+  --c-hole: #F43F5E;
 }
 
 :root[data-theme="light"] {
@@ -52,24 +54,26 @@
   --warn: #d97706;
   --danger: #dc2626;
 
-  --c-substrate: #475569;
-  --c-well: #059669;
-  --c-active-p: #d97706;
-  --c-active-n: #0284c7;
-  --c-sde-p: #f59e0b;
-  --c-sde-n: #38bdf8;
-  --c-oxide: #0284c7;
+  --c-substrate: #64748B;
+  --c-well: #52B788;
+  --c-active-p: #C2410C;
+  --c-active-n: #1D4ED8;
+  --c-sde-p: #D97706;
+  --c-sde-n: #0284C7;
+  --c-oxide: #64748B;
   --c-highk: #7c3aed;
-  --c-poly: #dc2626;
+  --c-poly: #B91C1C;
   --c-contact: #334155;
-  --c-metal: #2563eb;
+  --c-metal: #475569;
   --c-vdd: #dc2626;
   --c-gnd: #475569;
   --c-in: #d97706;
   --c-out: #16a34a;
-  --c-depletion: rgba(168, 85, 247, 0.25);
+  --c-depletion: rgba(71, 85, 105, 0.26);
   --c-zener: #e11d48;
   --c-avalanche: #7c3aed;
+  --c-electron: #D97706;
+  --c-hole: #BE123C;
 }
 
 * { box-sizing: border-box; }
@@ -590,6 +594,48 @@ input[type="range"]::-webkit-slider-thumb:hover { transform:scale(1.2); }
 .dp-checkbox-label {
   display:flex; align-items:center; gap:6px; font-family:var(--mono);
   font-size:11px; color:var(--text); cursor:pointer;
+}
+
+/* ---------- 2D Dedicated Junction Overlay ---------- */
+#junction-2d-overlay {
+  position: absolute; inset: 0; z-index: 6;
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#junction-2d-overlay.visible {
+  display: flex;
+}
+#canvas-2d-junction {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Floating View Toggle Overlay Pill in Canvas */
+.canvas-view-toggle-bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 15;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2px 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  pointer-events: auto;
+}
+.canvas-view-toggle-bar .seg {
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 /* ---------- 2D Schematic Overlay ---------- */

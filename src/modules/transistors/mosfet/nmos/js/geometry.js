@@ -623,15 +623,18 @@ reg(sdeDrnMesh, 'sdeDrn', 'sde');
 // ---------------------------------------------------------------------------
 // A dynamic multi-segmented channel mesh whose length, taper, and pinch-off
 // profile dynamically respond to continuous (VGS, VDS) operating regions.
+var isInitLightNMOS = (typeof currentTheme !== 'undefined' ? currentTheme : document.documentElement.getAttribute('data-theme')) === 'light';
+var palInitNMOS = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLightNMOS ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLightNMOS ? 'light' : 'dark') : null);
+
 var chanGeom = new THREE.BoxGeometry(2.0, 0.18, actD, 32, 1, 2);
 var chanMat = new THREE.MeshStandardMaterial({
-  color: 0x38bdf8,
-  emissive: 0x0284c7,
-  emissiveIntensity: 0.45,
+  color: palInitNMOS ? palInitNMOS.implantedNChannel : 0x38bdf8,
+  emissive: palInitNMOS ? palInitNMOS.implantedNChannel : 0x0284c7,
+  emissiveIntensity: 0.35,
   transparent: true,
-  opacity: 0.80,
+  opacity: 0.55,
   depthWrite: false,
-  roughness: 0.50,
+  roughness: 0.40,
   metalness: 0.15,
   side: THREE.DoubleSide
 });
@@ -645,21 +648,31 @@ reg(channelMesh, 'channel', 'active');
 // Base width is 1.0 along X so scale.x corresponds directly to physical deltaL
 var pinchGeom = new THREE.BoxGeometry(1.0, 0.16, actD, 12, 1, 2);
 var pinchMat = new THREE.MeshStandardMaterial({
-  color: 0xf59e0b,
-  emissive: 0xd97706,
-  emissiveIntensity: 0.50,
+  color: palInitNMOS ? palInitNMOS.depletion : 0x64748b,
+  emissive: 0x1e293b,
+  emissiveIntensity: 0.15,
   transparent: true,
-  opacity: 0.85,
+  opacity: palInitNMOS ? palInitNMOS.depletionOpacity : 0.26,
   depthWrite: false,
   roughness: 0.50,
-  metalness: 0.15,
+  metalness: 0.10,
   side: THREE.DoubleSide
 });
 var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
 pinchMesh.position.set(0.6, 2.918, 0);
 pinchMesh.renderOrder = 3;
 pinchMesh.visible = false;
-groups['active'].add(pinchMesh);
+reg(pinchMesh, 'depletion', 'active');
+
+// Subtle edge highlight for the depletion region
+var pinchEdgeGeo = new THREE.EdgesGeometry(pinchGeom);
+var pinchEdgeMat = new THREE.LineBasicMaterial({
+  color: 0x64748b,
+  transparent: true,
+  opacity: 0.40
+});
+var pinchEdgeLine = new THREE.LineSegments(pinchEdgeGeo, pinchEdgeMat);
+pinchMesh.add(pinchEdgeLine);
 
 // Function to dynamically deform channel thickness and taper based on MOSFET physics
 window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
@@ -761,18 +774,18 @@ reg(tapMesh, 'subtap', 'active');
 var gateL = 2.0;    // Gate length along X
 var gateW = 7.6;    // Dielectric width along Z
 
-// Interfacial Gate Oxide (SiO2) - Clean refined translucent blue finish matching CMOS Inverter
+// Interfacial Gate Oxide (SiO2) - Frosted white/silver glass finish
 var oxMesh = box(gateL, Y.oxTop - Y.oxBot, gateW, '--c-oxide', {
   transparent: true,
-  opacity: 0.82,
-  roughness: 0.32,  // subtle specular response matching CMOS Inverter, eliminates white blowout/glare
-  metalness: 0.02,
+  opacity: 0.75,
+  roughness: 0.25,
+  metalness: 0.05,
   depthWrite: false,
   polygonOffset: true,
   polygonOffsetFactor: -1.0,
   polygonOffsetUnits: -1.0,
-  outlineColor: '#7dd3fc',
-  outlineOpacity: 0.30
+  outlineColor: '#cbd5e1',
+  outlineOpacity: 0.35
 });
 oxMesh.position.set(0, (Y.oxTop + Y.oxBot) / 2, 0);
 reg(oxMesh, 'oxide', 'oxide');
@@ -1028,15 +1041,27 @@ function updateLabelSprite(sprite, text, colorHex, isLight) {
 
 function updateMaterialsTheme() {
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
+
   selectable.forEach(function(m) {
     if (m && m.userData && m.userData.colorVar && m.material && m.material.color) {
-      var hex = cssVar(m.userData.colorVar);
+      var hex = (m.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) ? pal.pSubstrate : cssVar(m.userData.colorVar);
       if (hex) {
         m.material.color.set(hex);
+        if (m.userData.colorVar === '--c-substrate') {
+          m.material.roughness = 0.85;
+          if (m.material.emissive) m.material.emissive.set(0x000000);
+          m.material.emissiveIntensity = 0;
+        }
         if (m.children) {
           m.children.forEach(function(child) {
             if (child.isMesh && child.material && child.material.color) {
               child.material.color.set(hex);
+              if (m.userData.colorVar === '--c-substrate') {
+                child.material.roughness = 0.85;
+                if (child.material.emissive) child.material.emissive.set(0x000000);
+                child.material.emissiveIntensity = 0;
+              }
             }
           });
         }
@@ -1044,19 +1069,60 @@ function updateMaterialsTheme() {
     } else if (m && m.isGroup) {
       m.traverse(function(child) {
         if (child.isMesh && child.userData && child.userData.colorVar && child.material && child.material.color) {
-          var hex = cssVar(child.userData.colorVar);
-          if (hex) child.material.color.set(hex);
+          var hex = (child.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) ? pal.pSubstrate : cssVar(child.userData.colorVar);
+          if (hex) {
+            child.material.color.set(hex);
+            if (child.userData.colorVar === '--c-substrate') {
+              child.material.roughness = 0.85;
+              if (child.material.emissive) child.material.emissive.set(0x000000);
+              child.material.emissiveIntensity = 0;
+            }
+          }
         }
       });
     }
   });
+
+  if (typeof subMesh !== 'undefined' && subMesh && subMesh.material) {
+    if (pal && pal.pSubstrate) subMesh.material.color.set(pal.pSubstrate);
+    subMesh.material.roughness = 0.85;
+    if (subMesh.material.emissive) subMesh.material.emissive.set(0x000000);
+    subMesh.material.emissiveIntensity = 0;
+  }
+
+  if (typeof oxMesh !== 'undefined' && oxMesh && oxMesh.material) {
+    if (pal) {
+      oxMesh.material.color.set(pal.gateOxide);
+      oxMesh.material.opacity = pal.gateOxideOpacity || (isLight ? 0.28 : 0.35);
+    }
+  }
+
+  if (typeof pinchMat !== 'undefined' && pinchMat) {
+    if (pal) {
+      pinchMat.color.set(pal.depletion);
+      pinchMat.opacity = pal.depletionOpacity || 0.26;
+    }
+  }
+
+  if (typeof chanMat !== 'undefined' && chanMat && chanMat.emissive) {
+    if (pal) {
+      chanMat.color.set(pal.implantedNChannel || pal.electronChannel);
+      chanMat.emissive.set(pal.implantedNChannel || pal.electronChannel);
+    }
+  }
+
   labelSprites.forEach(function(s) {
     if (s && s.userData && s.userData.labelText && s.userData.colorHex) {
       updateLabelSprite(s, s.userData.labelText, s.userData.colorHex, isLight);
     }
   });
-  if (typeof chanMat !== 'undefined' && chanMat.emissive) {
-    chanMat.emissive.set(0x0284c7);
+
+  if (typeof updateLayersListTheme === 'function') {
+    updateLayersListTheme(pal);
+  }
+
+  if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
+    renderer.render(scene, activeCamera);
   }
 }
 window.updateMaterialsTheme = updateMaterialsTheme;
@@ -1098,7 +1164,7 @@ function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
 
 // Attach terminal tags to groups['metal'] so they move synchronously with exploded layers
 // Separate spatial quadrants guarantee zero collision or overlap between badges
-var srcCallout = createTerminalCallout('SOURCE (S)', '#4a92c9', srcX, Y.m1Top, 0, { x: -1.2, y: 1.6, z: -1.8 });
+var srcCallout = createTerminalCallout('SOURCE (S)', '#1d4ed8', srcX, Y.m1Top, 0, { x: -1.2, y: 1.6, z: -1.8 });
 groups['metal'].add(srcCallout);
 
 var drnCallout = createTerminalCallout('DRAIN (D)', '#57cf8f', drnX, Y.m1Top, 0, { x: 1.2, y: 1.6, z: -1.8 });

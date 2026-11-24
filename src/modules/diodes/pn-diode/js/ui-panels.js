@@ -37,21 +37,83 @@ function setupWorkbenchTabs() {
   });
 }
 
+function getLayerColor(layerId, pal) {
+  if (!pal) {
+    pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
+  }
+  if (!pal) return null;
+  switch (layerId) {
+    case 'substrate': return pal.pSubstrate;
+    case 'nwell': return pal.nWell;
+    case 'active': return pal.pPlusDiffusion;
+    case 'pRegion': return pal.pPlusDiffusion;
+    case 'nRegion': return pal.nPlusDiffusion;
+    case 'depletion': return pal.depletion;
+    case 'passivation': return pal.fieldOxide;
+    case 'sti': return pal.fieldOxide;
+    case 'contact': return pal.via;
+    case 'metal': return pal.metal;
+    case 'ions': return '#14b8a6';
+    case 'field': return '#f43f5e';
+    default: return null;
+  }
+}
+
+function updateLayersListTheme(pal) {
+  if (!pal) {
+    pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
+  }
+  if (!pal) return;
+
+  var layersBody = document.getElementById('layers-body');
+  if (layersBody) {
+    layersBody.querySelectorAll('.unified-layer-item').forEach(function(item) {
+      var input = item.querySelector('input[data-layer]');
+      var swatch = item.querySelector('.swatch');
+      if (input && swatch) {
+        var c = getLayerColor(input.dataset.layer, pal);
+        if (c) swatch.style.background = c;
+      }
+    });
+  }
+
+  var refLegendBody = document.getElementById('ref-legend-body');
+  if (refLegendBody && typeof COMPONENTS !== 'undefined') {
+    refLegendBody.querySelectorAll('.ref-legend-item').forEach(function(item) {
+      var titleEl = item.querySelector('.lh b');
+      var swatch = item.querySelector('.swatch');
+      if (titleEl && swatch) {
+        var name = titleEl.textContent;
+        var matchedKey = Object.keys(COMPONENTS).find(function(k) { return COMPONENTS[k].name === name; });
+        if (matchedKey) {
+          var c = getLayerColor(matchedKey, pal);
+          if (c) swatch.style.background = c;
+        }
+      }
+    });
+  }
+}
+window.updateLayersListTheme = updateLayersListTheme;
+
 function buildLayersList() {
   var layersBody = document.getElementById('layers-body');
   if (!layersBody) return;
   layersBody.className = 'unified-layers-list';
   layersBody.innerHTML = '';
 
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
+
   LAYERS_LIST.forEach(function (layer) {
     var item = document.createElement('div');
     item.className = 'unified-layer-item';
+
+    var swatchCol = getLayerColor(layer.id, pal) || layer.color;
 
     var row = document.createElement('div');
     row.className = 'unified-layer-row';
     row.innerHTML =
       '<input type="checkbox" ' + (layer.visible ? 'checked' : '') + ' data-layer="' + layer.id + '" title="Toggle ' + layer.name + ' visibility">' +
-      '<span class="swatch" style="background:' + layer.color + '"></span>' +
+      '<span class="swatch" style="background:' + swatchCol + '"></span>' +
       '<span class="layer-name" title="Toggle visibility">' + layer.name + '</span>';
 
     var descText = '';
@@ -86,12 +148,15 @@ function buildLegendList() {
   if (!refLegendBody || typeof COMPONENTS === 'undefined') return;
   refLegendBody.innerHTML = '';
 
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
+
   Object.keys(COMPONENTS).forEach(function (key) {
     var c = COMPONENTS[key];
     var div = document.createElement('div');
     div.className = 'ref-legend-item';
+    var swatchCol = getLayerColor(key, pal) || c.colorHex;
     div.innerHTML =
-      '<div class="lh"><span class="swatch" style="background:' + c.colorHex + '"></span><b>' + c.name + '</b></div>' +
+      '<div class="lh"><span class="swatch" style="background:' + swatchCol + '"></span><b>' + c.name + '</b></div>' +
       '<p>' + (c.role || c.fn || '') + '</p>';
     refLegendBody.appendChild(div);
   });

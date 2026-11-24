@@ -235,7 +235,14 @@ window.addEventListener('DOMContentLoaded', function () {
     initCameraHint();
     initWorkbenchResize();
 
-    window.addEventListener('resize', initCameraHint);
+    if (window.View2DJunction) {
+      window.View2DJunction.init();
+    }
+
+    window.addEventListener('resize', function () {
+      initCameraHint();
+      if (window.View2DJunction) window.View2DJunction.resize();
+    });
 
     // Initial sizing and workbench setup
     expandWorkbench();

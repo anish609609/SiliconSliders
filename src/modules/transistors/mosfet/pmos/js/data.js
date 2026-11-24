@@ -16,7 +16,7 @@ var LEGEND = [
   { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep P+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
   { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion, well tap, and poly layers to the first metal interconnect.' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/VDD), Drain (D/OUT), Gate (G/VG), and N-Well Tap (B/VDD) terminals.' },
-  { key: 'src',       name: 'SOURCE TERMINAL (S / VDD)', color: '#cf8a4a', desc: 'Supplies carrier holes into the channel; tied to positive supply rail VDD (1.0V).' },
+  { key: 'src',       name: 'SOURCE TERMINAL (S / VDD)', color: '#ea580c', desc: 'Supplies carrier holes into the channel; tied to positive supply rail VDD (1.0V).' },
   { key: 'drn',       name: 'DRAIN TERMINAL (D / OUT)', color: '#e6a23c', desc: 'Collects holes from the channel; pulls output up to VDD when PMOS conducts.' },
   { key: 'gate',      name: 'GATE TERMINAL (G / VG)', color: '#e6c94a', desc: 'Active-low voltage input terminal. Low VG (0V) turns PMOS ON; High VG (VDD) turns PMOS OFF.' },
   { key: 'welltap',   name: 'N-WELL TAP (B / VDD)', color: '#3f8f6f', desc: 'Ohmic N+ contact biasing N-well tub to VDD to prevent forward-biasing the source-well junction.' }
@@ -77,7 +77,15 @@ var INFO = {
     role: 'When VSG > |VTH,p| (0.40V), negative gate-to-channel potential induces an accumulation of mobile holes (p-channel inversion). In Linear/Triode (VSD < VSG - |VTH,p|), channel is continuous from Source to Drain. In Saturation (VSD ≥ VSG - |VTH,p|), channel pinches off near the drain (effective length Leff = L - ΔL) and mobile holes accelerate across the space-charge depletion field.',
     conn: 'Conductive p-type bridge between P+ Source and P+ Drain.',
     rel: 'Modulated dynamically by gate overdrive (VOV = VSG - |VTH,p|) and drain bias (VSD).',
-    doping: 'N-Well bulk background (Nd ≈ 1×10¹⁷ cm⁻³) with threshold adjust implant'
+    doping: 'Induced mobile holes — p-channel active inversion layer'
+  },
+  depletion: {
+    title: 'SATURATION PINCH-OFF DEPLETION REGION',
+    fn: 'Space-charge depletion region formed near the drain edge when VSD ≥ VSG - |VTH,p|.',
+    role: 'At pinch-off, the hole channel inversion layer terminates at Leff = L - ΔL. The remaining gap ΔL is depleted of mobile holes; a strong electric field sweeps velocity-saturated holes across the depletion region into the Drain.',
+    conn: 'High-field space-charge region bridging pinched hole channel to P+ Drain.',
+    rel: 'Expands with drain bias (VSD - VOV) toward the source, causing channel length modulation (CLM).',
+    doping: 'High-field ionized space-charge region (depleted of mobile holes)'
   },
   oxide: {
     title: 'GATE OXIDE (INTERFACIAL SiO2)',

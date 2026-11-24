@@ -79,11 +79,13 @@ var rim = new THREE.DirectionalLight(0x5fd9c4, 0.3);
 rim.position.set(0, 8, -20);
 scene.add(rim);
 
-// Subtle ground grid
-var grid = new THREE.GridHelper(50, 40, 0x1c2530, 0x141a22);
+// Subtle ground grid (soft studio floor)
+var grid = new THREE.GridHelper(50, 40, 0x475569, 0x334155);
 grid.position.y = -3.5;
 grid.renderOrder = -10;
 if (grid.material) {
+  grid.material.transparent = true;
+  grid.material.opacity = 0.10;
   grid.material.depthTest = true;
   grid.material.depthWrite = false;
 }
@@ -92,7 +94,7 @@ scene.add(grid);
 // Ground shadow plane
 var shadowPlane = new THREE.Mesh(
   new THREE.PlaneGeometry(80, 80),
-  new THREE.ShadowMaterial({ opacity: 0.25 })
+  new THREE.ShadowMaterial({ opacity: 0.16 })
 );
 shadowPlane.rotation.x = -Math.PI / 2;
 shadowPlane.position.y = -3.48;
@@ -122,16 +124,16 @@ function applySceneTheme(theme) {
       scene.fog.far = 220;
     }
     ambientLight.color.setHex(0xe2e8f0);
-    ambientLight.intensity = 1.7;
+    ambientLight.intensity = 1.15;
     key.color.setHex(0xffffff);
-    key.intensity = 1.3;
+    key.intensity = 1.15;
     fill.color.setHex(0x94a3b8);
-    fill.intensity = 0.5;
+    fill.intensity = 0.35;
     rim.color.setHex(0x0d9488);
-    rim.intensity = 0.35;
+    rim.intensity = 0.25;
     if (grid && grid.material) {
-      grid.material.color.setHex(0xcbd5e1);
-      grid.material.opacity = 0.6;
+      grid.material.color.setHex(0x94a3b8);
+      grid.material.opacity = 0.12;
     }
   } else {
     scene.background = new THREE.Color(0x0a0d12);
@@ -149,8 +151,8 @@ function applySceneTheme(theme) {
     rim.color.setHex(0x5fd9c4);
     rim.intensity = 0.3;
     if (grid && grid.material) {
-      grid.material.color.setHex(0x1c2530);
-      grid.material.opacity = 1.0;
+      grid.material.color.setHex(0x475569);
+      grid.material.opacity = 0.10;
     }
   }
 }

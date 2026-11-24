@@ -34,15 +34,16 @@ var METAL_FLOW_Y = (Y.metalTop + Y.metalBot) / 2;
 // Fine spherical particle geometry (quantum charge carrier spheres)
 var carrierGeom = new THREE.SphereGeometry(0.045, 8, 8);
 
-// Colors: High contrast in both dark and light modes
-var ELECTRON_COLOR_DARK = 0x38bdf8;
-var ELECTRON_COLOR_LIGHT = 0x0052cc; // Deep royal cobalt blue
-var HOLE_COLOR_DARK = 0xff4fbf;
-var HOLE_COLOR_LIGHT = 0xb91c1c;     // Deep crimson
-var CURRENT_COLOR_DARK = 0xffcf4d;
-var CURRENT_COLOR_LIGHT = 0xb45309;  // Warm deep bronze / amber
-
 var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
+var palInitFlow = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLight ? 'light' : 'dark') : null);
+
+// Colors: High contrast unified palette in both dark and light modes
+var ELECTRON_COLOR_DARK = palInitFlow ? palInitFlow.electronFlow : '#F59E0B';
+var ELECTRON_COLOR_LIGHT = '#D97706';
+var HOLE_COLOR_DARK = palInitFlow ? palInitFlow.holeFlow : '#F43F5E';
+var HOLE_COLOR_LIGHT = '#BE123C';     // Deep crimson
+var CURRENT_COLOR_DARK = '#FFCF4D';
+var CURRENT_COLOR_LIGHT = '#D97706';
 
 var electronMat = new THREE.MeshBasicMaterial({
   color: isInitLight ? ELECTRON_COLOR_LIGHT : ELECTRON_COLOR_DARK,
@@ -64,9 +65,13 @@ markerGroup.renderOrder = 999;
 
 function updateFlowTheme(theme) {
   var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
-  if (electronMat) electronMat.color.setHex(isLight ? ELECTRON_COLOR_LIGHT : ELECTRON_COLOR_DARK);
-  if (holeMat) holeMat.color.setHex(isLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK);
-  if (currentMat) currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
+  var eCol = pal ? pal.electronFlow : (isLight ? ELECTRON_COLOR_LIGHT : ELECTRON_COLOR_DARK);
+  var hCol = pal ? pal.holeFlow : (isLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK);
+
+  if (electronMat) electronMat.color.set(eCol);
+  if (holeMat) holeMat.color.set(hCol);
+  if (currentMat) currentMat.color.set(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
   if (typeof refreshConnections === 'function') refreshConnections();
 }
 window.updateFlowTheme = updateFlowTheme;

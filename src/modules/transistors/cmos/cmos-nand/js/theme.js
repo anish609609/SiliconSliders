@@ -24,8 +24,8 @@ var THEME_COLOR_FALLBACKS = {
     '--accent': '#5fd9c4'
   },
   light: {
-    '--c-substrate': '#475569',
-    '--c-well': '#059669',
+    '--c-substrate': '#64748B',
+    '--c-well': '#52B788',
     '--c-active-p': '#d97706',
     '--c-active-n': '#0284c7',
     '--c-sde-p': '#f59e0b',

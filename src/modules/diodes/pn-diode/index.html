@@ -44,6 +44,13 @@
 
       <div class="topbar-divider" aria-hidden="true"></div>
 
+      <div class="seg" id="view-toggle-seg" title="Switch View: 3D Silicon IC vs. 2D Abrupt PN Junction">
+        <button data-subview="3d" class="active">3D IC VIEW</button>
+        <button data-subview="2d">2D JUNCTION</button>
+      </div>
+
+      <div class="topbar-divider" aria-hidden="true"></div>
+
       <div class="seg" id="flow-seg" title="Conduction Simulation: Mobile Carrier Drift (e- / h+) vs Conventional Current (I)">
         <button data-flow="carrier" class="active">CARRIERS</button>
         <button data-flow="current">CURRENT</button>
@@ -348,6 +355,11 @@
 
     <div id="viewport-wrap">
       <div id="canvas-host"></div>
+
+      <!-- Dedicated 2D Abrupt PN Junction Overlay -->
+      <div id="junction-2d-overlay">
+        <canvas id="canvas-2d-junction"></canvas>
+      </div>
 
       <!-- 2D Schematic Overlay (Circuit Diagram) -->
       <div id="schematic-overlay">
@@ -836,6 +848,7 @@
 <script src="js/controls-explode-scrub.js"></script>
 <script src="js/dimensions.js"></script>
 <script src="js/view-mode.js"></script>
+<script src="js/view-2d-junction.js"></script>
 <script src="js/flow.js"></script>
 <script src="js/graph.js"></script>
 <script src="js/logic-state.js"></script>

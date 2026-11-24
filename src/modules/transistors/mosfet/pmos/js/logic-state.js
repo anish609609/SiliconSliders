@@ -53,15 +53,15 @@ function renderSinglePmosGraph(canvas, activeVsg, activeVsd, activeIsd, activeRe
 
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
-  // Palette
+  // Palette - Standardized D-NMOS teal-green & warm amber palette
   var bgColor = isLight ? '#f8fafc' : '#080c12';
   var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
   var axisColor = isLight ? '#94a3b8' : '#232b38';
-  var textColor = isLight ? '#64748b' : '#64748b';
-  var dimmedCurveColor = isLight ? 'rgba(219,39,119,0.22)' : 'rgba(255,79,191,0.20)';
-  var activeCurveColor = isLight ? '#db2777' : '#ff4fbf';
+  var textColor = isLight ? '#64748b' : '#7d8ba0';
+  var dimmedCurveColor = isLight ? 'rgba(13,148,136,0.24)' : 'rgba(95,217,196,0.20)';
+  var activeCurveColor = isLight ? '#0d9488' : '#5fd9c4';
   var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
-  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#ff4fbf' : '#cf8a4a');
+  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#10b981' : '#0284c7');
 
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, W, H);
@@ -134,7 +134,7 @@ function renderSinglePmosGraph(canvas, activeVsg, activeVsd, activeIsd, activeRe
   ctx.fillStyle = isLight ? 'rgba(74,146,201,0.75)' : 'rgba(74,146,201,0.60)';
   ctx.textAlign = 'left';
   ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 13);
-  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.75)' : 'rgba(255,79,191,0.65)';
+  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.80)' : 'rgba(87,207,143,0.65)';
   ctx.textAlign = 'center';
   ctx.fillText('SATURATION', toX(1.35), padT + 13);
 
@@ -234,15 +234,15 @@ function renderSinglePmosGraph(canvas, activeVsg, activeVsd, activeIsd, activeRe
   // Operating Point Dot (glowing outer + solid inner)
   ctx.beginPath();
   ctx.arc(opX, opY, isModal ? 8 : 7, 0, Math.PI * 2);
-  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.25)' : 'rgba(255,79,191,0.30)';
+  ctx.fillStyle = isLight ? 'rgba(13,148,136,0.25)' : 'rgba(95,217,196,0.30)';
   ctx.fill();
 
   ctx.fillStyle = dotColor;
   ctx.beginPath();
   ctx.arc(opX, opY, isModal ? 5 : 4.5, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = isLight ? '#ffffff' : '#080c12';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
   // Operating point label
@@ -452,9 +452,14 @@ function applyLogicState() {
     rebuildFlowCurves(isd, region, deltaL);
   }
 
-  // 9. Update Context for AI Voice Assistant
-  if (typeof lastSelectedId !== 'undefined' && lastSelectedId && typeof window.updateVoiceAssistantContext === 'function') {
-    window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
+  // 9. Update Context for AI Voice Assistant and Inspector
+  if (typeof lastSelectedId !== 'undefined' && lastSelectedId) {
+    if (typeof window.updateVoiceAssistantContext === 'function') {
+      window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
+    }
+    if ((lastSelectedId === 'channel' || lastSelectedId === 'depletion') && typeof showInspector === 'function') {
+      showInspector(lastSelectedId, idToInfo(lastSelectedId));
+    }
   }
 }
 

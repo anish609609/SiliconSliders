@@ -107,13 +107,13 @@ function applySceneTheme(theme){
       scene.fog.far = 240;
     }
     ambientLight.color.setHex(0xe2e8f0);
-    ambientLight.intensity = 1.7; // Enhanced ambient illumination for crisp light mode
+    ambientLight.intensity = 1.15;
     key.color.setHex(0xffffff);
-    key.intensity = 1.25;
+    key.intensity = 1.15;
     fill.color.setHex(0x94a3b8);
-    fill.intensity = 0.45;
+    fill.intensity = 0.35;
     rim.color.setHex(0x64748b);
-    rim.intensity = 0.30;
+    rim.intensity = 0.25;
     shadowPlane.material.opacity = 0.16;
   } else {
     scene.background = new THREE.Color(0x0a0d12);

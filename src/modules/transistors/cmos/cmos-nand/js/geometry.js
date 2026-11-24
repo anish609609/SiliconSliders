@@ -583,14 +583,24 @@ function refreshAllLabelSprites() {
 
 function updateMaterialsTheme() {
   if (typeof THREE === 'undefined') return;
+  var isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLightTheme ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLightTheme ? 'light' : 'dark') : null);
+
   for (var i = 0; i < allMeshes.length; i++) {
     var m = allMeshes[i];
     var colorVar = m.userData.colorVar;
     if (!colorVar || !m.material) continue;
 
-    var nextColor = new THREE.Color(cssVar(colorVar));
+    var nextColor = (colorVar === '--c-substrate' && pal && pal.pSubstrate)
+      ? new THREE.Color(pal.pSubstrate)
+      : new THREE.Color(cssVar(colorVar));
     if (m.material.color) {
       m.material.color.copy(nextColor);
+    }
+    if (colorVar === '--c-substrate') {
+      m.material.roughness = 0.85;
+      if (m.material.emissive) m.material.emissive.set(0x000000);
+      m.material.emissiveIntensity = 0;
     }
     m.userData.baseColor = nextColor.getHex();
 
@@ -626,6 +636,17 @@ function updateMaterialsTheme() {
     for (var s = 0; s < selectedMeshes.length; s++) {
       setMeshHighlight(selectedMeshes[s], true);
     }
+  }
+
+  var isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLightTheme ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLightTheme ? 'light' : 'dark') : null);
+
+  if (typeof updateLayersListTheme === 'function') {
+    updateLayersListTheme(pal);
+  }
+
+  if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
+    renderer.render(scene, activeCamera);
   }
 }
 
@@ -698,7 +719,7 @@ function buildNand2Cell() {
   nwell.position.set(wellX, wellMidY, PMOS_ZC);
   registerMesh(nwell, 'nwell', 'well');
 
-  var pwell = gaussianDopingMesh(wellW, wellH, wellD, '--c-substrate', {
+  var pwell = gaussianDopingMesh(wellW, wellH, wellD, '--c-pwell', {
     peakV: 0.35,
     sigmaV: 0.28,
     straggle: 0.08,

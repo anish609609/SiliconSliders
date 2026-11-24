@@ -18,12 +18,19 @@ var flowMarkers = [];
 
 // Fine, small particle sphere geometry (very small fine particles, not bowling balls)
 var markerGeom = new THREE.SphereGeometry(0.045, 8, 8);
-var CARRIER_COLOR_DARK = 0x38bdf8;
-var CARRIER_COLOR_LIGHT = 0x0052cc; // Deep royal / cobalt blue for high contrast on light backgrounds
+var CARRIER_COLOR_DARK = 0xe0f2fe; // High-luminance bright white-cyan
+var CARRIER_COLOR_LIGHT = 0x0284c7; // High-contrast deep cyan/blue on light background
 var CURRENT_COLOR_DARK = 0xffcf4d;
 var CURRENT_COLOR_LIGHT = 0xb45309; // Warm bronze / amber for high contrast on light backgrounds
 
 var isInitialLight = document.documentElement.getAttribute('data-theme') === 'light';
+var palInitFlow = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitialLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitialLight ? 'light' : 'dark') : null);
+
+var CARRIER_COLOR_DARK = palInitFlow ? palInitFlow.electronFlow : '#F59E0B';
+var CARRIER_COLOR_LIGHT = '#D97706';
+var CURRENT_COLOR_DARK = '#FFCF4D';
+var CURRENT_COLOR_LIGHT = '#D97706';
+
 var carrierMat = new THREE.MeshBasicMaterial({
   color: isInitialLight ? CARRIER_COLOR_LIGHT : CARRIER_COLOR_DARK,
   depthTest: true,
@@ -38,11 +45,14 @@ flowGroup.renderOrder = 999;
 
 function updateFlowTheme(theme) {
   var isLight = theme === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(theme) : (window.getMaterialPalette ? window.getMaterialPalette(theme) : null);
+  var cCol = pal ? pal.electronFlow : (isLight ? CARRIER_COLOR_LIGHT : CARRIER_COLOR_DARK);
+
   if (carrierMat) {
-    carrierMat.color.setHex(isLight ? CARRIER_COLOR_LIGHT : CARRIER_COLOR_DARK);
+    carrierMat.color.set(cCol);
   }
   if (currentMat) {
-    currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+    currentMat.color.set(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
   }
 }
 window.updateFlowTheme = updateFlowTheme;

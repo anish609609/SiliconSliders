@@ -17,19 +17,21 @@ flowGroup.name = 'flowGroup';
 scene.add(flowGroup);
 
 // Particle geometries and materials
-var particleGeom = new THREE.SphereGeometry(0.075, 8, 8);
-var CARRIER_ELECTRON_DARK = 0x38bdf8;
-var CARRIER_ELECTRON_LIGHT = 0x0052cc; // Deep royal blue for high contrast on light bg
-var CARRIER_HOLE_DARK = 0xf97316;
-var CARRIER_HOLE_LIGHT = 0xc2410c;     // Deep burnt orange/crimson for high contrast on light bg
-var CURRENT_COLOR_DARK = 0xffcf4d;
-var CURRENT_COLOR_LIGHT = 0xb45309;     // Warm bronze/amber
-var ZENER_COLOR_DARK = 0xf43f5e;
-var ZENER_COLOR_LIGHT = 0xbe123c;
-var AVALANCHE_COLOR_DARK = 0xa855f7;
-var AVALANCHE_COLOR_LIGHT = 0x7e22ce;
-
+var particleGeom = new THREE.SphereGeometry(0.09, 8, 8);
 var isInitialLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+var palInitial = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitialLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitialLight ? 'light' : 'dark') : null);
+
+var CARRIER_ELECTRON_DARK = palInitial ? palInitial.electronFlow : '#F59E0B';
+var CARRIER_ELECTRON_LIGHT = '#D97706';
+var CARRIER_HOLE_DARK = palInitial ? palInitial.holeFlow : '#F43F5E';
+var CARRIER_HOLE_LIGHT = '#BE123C';
+var CURRENT_COLOR_DARK = '#FDE047';     // Radiant gold
+var CURRENT_COLOR_LIGHT = '#D97706';    // Warm amber
+var ZENER_COLOR_DARK = '#F43F5E';
+var ZENER_COLOR_LIGHT = '#BE123C';
+var AVALANCHE_COLOR_DARK = '#A855F7';
+var AVALANCHE_COLOR_LIGHT = '#7E22CE';
 
 var electronMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? CARRIER_ELECTRON_LIGHT : CARRIER_ELECTRON_DARK, depthTest: true, depthWrite: false });
 var holeMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? CARRIER_HOLE_LIGHT : CARRIER_HOLE_DARK, depthTest: true, depthWrite: false });
@@ -39,11 +41,15 @@ var avalancheMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? AVALANC
 
 function updateFlowTheme(theme) {
   var isLight = theme === 'light';
-  if (electronMat) electronMat.color.setHex(isLight ? CARRIER_ELECTRON_LIGHT : CARRIER_ELECTRON_DARK);
-  if (holeMat) holeMat.color.setHex(isLight ? CARRIER_HOLE_LIGHT : CARRIER_HOLE_DARK);
-  if (currentMat) currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
-  if (zenerMat) zenerMat.color.setHex(isLight ? ZENER_COLOR_LIGHT : ZENER_COLOR_DARK);
-  if (avalancheMat) avalancheMat.color.setHex(isLight ? AVALANCHE_COLOR_LIGHT : AVALANCHE_COLOR_DARK);
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(theme) : (window.getMaterialPalette ? window.getMaterialPalette(theme) : null);
+  var eCol = pal ? pal.electronFlow : (isLight ? CARRIER_ELECTRON_LIGHT : CARRIER_ELECTRON_DARK);
+  var hCol = pal ? pal.holeFlow : (isLight ? CARRIER_HOLE_LIGHT : CARRIER_HOLE_DARK);
+
+  if (electronMat) electronMat.color.set(eCol);
+  if (holeMat) holeMat.color.set(hCol);
+  if (currentMat) currentMat.color.set(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+  if (zenerMat) zenerMat.color.set(isLight ? ZENER_COLOR_LIGHT : ZENER_COLOR_DARK);
+  if (avalancheMat) avalancheMat.color.set(isLight ? AVALANCHE_COLOR_LIGHT : AVALANCHE_COLOR_DARK);
 }
 window.updateFlowTheme = updateFlowTheme;
 

@@ -14,7 +14,7 @@ var COMPONENTS = {
     fn: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) lightly doped with Boron. Hosts the implanted N-Well tub.',
     doping: 'Boron (NA): ~10¹⁵ cm⁻³ (Lightly doped P-type bulk)',
     colorVar: '--c-substrate',
-    colorHex: '#3a3f4b',
+    colorHex: '#94a3b8',
     thickness: '4.0 μm (CAD normalized)',
     area: '26 μm × 15 μm'
   },
@@ -40,7 +40,7 @@ var COMPONENTS = {
     fn: 'Heavily doped with Boron (NA ≈ 10¹⁵–10¹⁹ cm⁻³). In forward bias (VA > 0), injects majority holes across the lowered depletion barrier into the N-Well.',
     doping: 'Boron (NA): 10¹⁵ – 10¹⁹ cm⁻³ (Adjustable via NA slider)',
     colorVar: '--c-active-p',
-    colorHex: '#cf8a4a',
+    colorHex: '#ea580c',
     thickness: '1.6 μm junction depth (xj)',
     area: '6.4 μm × 9.0 μm'
   },
@@ -53,7 +53,7 @@ var COMPONENTS = {
     fn: 'Heavily doped with Arsenic (N+ ≈ 1×10²⁰ cm⁻³) to suppress Schottky barrier formation, ensuring ideal ohmic contact to the Cathode Tungsten plug.',
     doping: 'Arsenic/Phosphorus (N+): ~1×10²⁰ cm⁻³ (Degenerate N+)',
     colorVar: '--c-active-n',
-    colorHex: '#4a92c9',
+    colorHex: '#1d4ed8',
     thickness: '1.3 μm junction depth',
     area: '5.6 μm × 9.0 μm'
   },
@@ -66,7 +66,7 @@ var COMPONENTS = {
     fn: 'Conformal shell wrapping around the P+ Anode tub (bottom and sidewalls) inside the N-Well. Width W = xp + xn dynamically expands under reverse bias and contracts under forward bias, establishing junction capacitance Cj.',
     doping: 'Swept free of mobile carriers; contains uncompensated fixed ionized cores NA⁻ and ND⁺',
     colorVar: '--c-depletion',
-    colorHex: '#a855f7',
+    colorHex: '#334155',
     thickness: 'W = xp + xn (Dynamic: 0.05 μm to > 3.0 μm)',
     area: 'Conformal tub perimeter & bottom'
   },
@@ -118,7 +118,7 @@ var COMPONENTS = {
     fn: 'High-density plasma SiO₂ filled trenches (0.8 μm depth) separating the P+ Anode tub from the N+ Cathode tap to prevent surface punch-through and leakage.',
     doping: 'CVD / Thermal SiO₂ (k ≈ 3.9)',
     colorVar: '--c-oxide',
-    colorHex: '#38bdf8',
+    colorHex: '#e2e8f0',
     thickness: '0.80 μm trench depth',
     area: 'Isolation moat between active regions'
   },
@@ -131,7 +131,7 @@ var COMPONENTS = {
     fn: 'Thick dielectric oxide (1.6 μm) covering the silicon wafer surface with etched vertical contact windows over the P+ Anode tub and N+ Cathode tap.',
     doping: 'Stoichiometric TEOS / CVD SiO₂ (k ≈ 3.9)',
     colorVar: '--c-oxide',
-    colorHex: '#38bdf8',
+    colorHex: '#e2e8f0',
     thickness: '1.60 μm ILD oxide height',
     area: 'Wafer surface with etched via cuts'
   },
@@ -181,15 +181,15 @@ function idToInfo(id) {
 }
 
 var LAYERS_LIST = [
-  { id: 'substrate',   name: 'P-Substrate (Bulk Wafer)',      color: '#3a3f4b', visible: true },
-  { id: 'nwell',       name: 'N-Well (Cathode Body Tub)',     color: '#059669', visible: true },
-  { id: 'active',      name: 'Active Diffusions (P+ / N+)',   color: '#cf8a4a', visible: true },
-  { id: 'depletion',   name: 'Depletion Shell (Space Charge)',color: '#a855f7', visible: true },
-  { id: 'ions',        name: 'Fixed Space-Charge Ions (±)',   color: '#5fd9c4', visible: true },
-  { id: 'field',       name: 'High-Field Breakdown Glow',     color: '#f43f5e', visible: true },
-  { id: 'passivation', name: 'Dielectric Stack (STI & ILD)',  color: '#38bdf8', visible: true },
-  { id: 'contact',     name: 'Contacts (Tungsten W Vias)',    color: '#94a3b8', visible: true },
-  { id: 'metal',       name: 'Metal-1 Interconnects (A & K)', color: '#4f86c9', visible: true }
+  { id: 'substrate',   name: 'P-Substrate (Bulk Wafer)',      color: '#2B3442', visible: true },
+  { id: 'nwell',       name: 'N-Well (Cathode Body Tub)',     color: '#2D5A4C', visible: true },
+  { id: 'active',      name: 'Active Diffusions (P+ / N+)',   color: '#EA580C', visible: true },
+  { id: 'depletion',   name: 'Depletion Shell (Space Charge)',color: '#64748B', visible: true },
+  { id: 'ions',        name: 'Fixed Space-Charge Ions (±)',   color: '#14B8A6', visible: true },
+  { id: 'field',       name: 'High-Field Breakdown Glow',     color: '#F43F5E', visible: true },
+  { id: 'passivation', name: 'Dielectric Stack (STI & ILD)',  color: '#475569', visible: true },
+  { id: 'contact',     name: 'Contacts (Tungsten W Vias)',    color: '#CBD5E1', visible: true },
+  { id: 'metal',       name: 'Metal-1 Interconnects (A & K)', color: '#94A3B8', visible: true }
 ];
 
 var ARCHITECTURE_TREE = [

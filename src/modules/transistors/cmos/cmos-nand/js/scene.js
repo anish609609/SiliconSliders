@@ -180,13 +180,13 @@ function applySceneTheme(theme) {
 
   if (isLight) {
     ambientLight.color.setHex(0xe2e8f0);
-    ambientLight.intensity = 1.7;
+    ambientLight.intensity = 1.15;
     keyLight.color.setHex(0xffffff);
-    keyLight.intensity = 1.25;
+    keyLight.intensity = 1.15;
     fillLight.color.setHex(0x94a3b8);
-    fillLight.intensity = 0.45;
+    fillLight.intensity = 0.35;
     rimLight.color.setHex(0x64748b);
-    rimLight.intensity = 0.30;
+    rimLight.intensity = 0.25;
     shadowMat.opacity = 0.16;
     rebuildGrid(0x94a3b8, 0xcbd5e1);
   } else {

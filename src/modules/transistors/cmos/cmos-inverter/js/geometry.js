@@ -624,20 +624,53 @@ function updateLabelSprite(sprite, text, colorHex, isLight){
 
 function updateMaterialsTheme(){
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
+
   selectable.forEach(function(m){
     if (m && m.userData && m.userData.colorVar && m.material && m.material.color){
-      var hex = cssVar(m.userData.colorVar);
+      var hex = (m.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) ? pal.pSubstrate : cssVar(m.userData.colorVar);
       if (hex){
         m.material.color.set(hex);
       }
+      if (m.userData.colorVar === '--c-substrate') {
+        m.material.roughness = 0.85;
+        if (m.material.emissive) m.material.emissive.set(0x000000);
+        m.material.emissiveIntensity = 0;
+      }
     }
   });
+
+  if (typeof subMesh !== 'undefined' && subMesh && subMesh.material) {
+    if (pal && pal.pSubstrate) subMesh.material.color.set(pal.pSubstrate);
+    subMesh.material.roughness = 0.85;
+    if (subMesh.material.emissive) subMesh.material.emissive.set(0x000000);
+    subMesh.material.emissiveIntensity = 0;
+  }
+
+  if (typeof oxidePmos !== 'undefined' && oxidePmos && oxidePmos.material && pal) {
+    oxidePmos.material.color.set(pal.gateOxide);
+    oxidePmos.material.opacity = pal.gateOxideOpacity || (isLight ? 0.28 : 0.35);
+  }
+  if (typeof oxideNmos !== 'undefined' && oxideNmos && oxideNmos.material && pal) {
+    oxideNmos.material.color.set(pal.gateOxide);
+    oxideNmos.material.opacity = pal.gateOxideOpacity || (isLight ? 0.28 : 0.35);
+  }
+
   labelSprites.forEach(function(s){
     if (s && s.userData && s.userData.labelText && s.userData.colorHex){
       updateLabelSprite(s, s.userData.labelText, s.userData.colorHex, isLight);
     }
   });
+
+  if (typeof updateLayersListTheme === 'function') {
+    updateLayersListTheme(pal);
+  }
+
+  if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
+    renderer.render(scene, activeCamera);
+  }
 }
+window.updateMaterialsTheme = updateMaterialsTheme;
 
 // =====================================================================
 // LAYOUT CONSTANTS
@@ -722,7 +755,7 @@ put(wellMesh, wellX, (Y.wellTop+Y.wellBot)/2, nwellZC);
 reg(wellMesh, 'nwell', 'well');
 
 // P-WELL (Boron retrograde implant for NMOS in twin-well CMOS)
-var pwellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-substrate', {
+var pwellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-pwell', {
   peakV: 0.35,
   sigmaV: 0.28,
   straggle: 0.08,

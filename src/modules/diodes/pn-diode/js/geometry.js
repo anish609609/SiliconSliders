@@ -263,21 +263,26 @@ function buildDiodeGeometry() {
 
   var metalTex = getBrushedMetalTexture();
   var isLight = (currentTheme === 'light');
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
 
-  // Theme-sensitive colors
-  var subColor = isLight ? 0x475569 : 0x3a3f4b;
-  var wellColor = isLight ? 0x059669 : 0x1e4a38;
-  var pColor = isLight ? 0xd97706 : 0xcf8a4a;
-  var nColor = isLight ? 0x0284c7 : 0x4a92c9;
-  var depletColor = 0x9333ea;
-  var metalColor = isLight ? 0x2563eb : 0x4f86c9;
-  var oxideColor = isLight ? 0x0284c7 : 0x38bdf8;
-  var viaColor = isLight ? 0x94a3b8 : 0x64748b;
+  // Theme-sensitive colors from unified palette
+  var subColor = pal ? pal.pSubstrate : (isLight ? 0x64748b : 0x2b3442);
+  var wellColor = pal ? pal.nWell : (isLight ? 0x52b788 : 0x2d5a4c);
+  var pColor = pal ? pal.pPlusDiffusion : (isLight ? 0xc2410c : 0xea580c);
+  var nColor = pal ? pal.nPlusDiffusion : (isLight ? 0x1d4ed8 : 0x2563eb);
+  var depletColor = pal ? pal.depletion : (isLight ? 0x475569 : 0x64748b);
+  var metalColor = pal ? pal.metal : (isLight ? 0x475569 : 0x94a3b8);
+  var oxideColor = pal ? pal.fieldOxide : (isLight ? 0x64748b : 0x475569);
+  var viaColor = pal ? pal.via : (isLight ? 0x334155 : 0xcbd5e1);
+  var fieldOpacity = pal ? pal.fieldOxideOpacity : (isLight ? 0.35 : 0.45);
+  var depletOpacity = pal ? pal.depletionOpacity : 0.26;
 
   diodeMaterials.substrate = new THREE.MeshStandardMaterial({
     color: subColor,
-    roughness: 0.65,
-    metalness: 0.15
+    roughness: 0.85,
+    metalness: 0.05,
+    emissive: 0x000000,
+    emissiveIntensity: 0
   });
 
   diodeMaterials.nwell = new THREE.MeshStandardMaterial({
@@ -302,10 +307,12 @@ function buildDiodeGeometry() {
 
   diodeMaterials.depletion = new THREE.MeshStandardMaterial({
     color: depletColor,
-    roughness: 0.30,
-    metalness: 0.25,
+    emissive: 0x1e293b,
+    emissiveIntensity: 0.15,
+    roughness: 0.40,
+    metalness: 0.10,
     transparent: true,
-    opacity: 0.45,
+    opacity: depletOpacity,
     depthWrite: false
   });
 
@@ -319,19 +326,19 @@ function buildDiodeGeometry() {
 
   diodeMaterials.sti = new THREE.MeshStandardMaterial({
     color: oxideColor,
-    roughness: 0.20,
-    metalness: 0.10,
+    roughness: 0.25,
+    metalness: 0.05,
     transparent: true,
-    opacity: 0.48,
+    opacity: fieldOpacity,
     depthWrite: false
   });
 
   diodeMaterials.passivation = new THREE.MeshStandardMaterial({
     color: oxideColor,
-    roughness: 0.20,
-    metalness: 0.10,
+    roughness: 0.25,
+    metalness: 0.05,
     transparent: true,
-    opacity: 0.35,
+    opacity: fieldOpacity * 0.8,
     depthWrite: false
   });
 
@@ -363,6 +370,7 @@ function buildDiodeGeometry() {
     new THREE.EdgesGeometry(subGeo),
     new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.18 })
   );
+  subEdges.raycast = function () {};
   subMesh.add(subEdges);
 
   // =========================================================================
@@ -385,6 +393,7 @@ function buildDiodeGeometry() {
     new THREE.EdgesGeometry(wellGeo),
     new THREE.LineBasicMaterial({ color: 0x10b981, transparent: true, opacity: 0.35 })
   );
+  wellEdges.raycast = function () {};
   nwellMesh.add(wellEdges);
 
   // =========================================================================
@@ -409,6 +418,7 @@ function buildDiodeGeometry() {
     new THREE.EdgesGeometry(pTubGeo),
     new THREE.LineBasicMaterial({ color: 0xffedd5, transparent: true, opacity: 0.32 })
   );
+  pEdges.raycast = function () {};
   pTubMesh.add(pEdges);
 
   // 3b. N+ Cathode Tap (Implanted on Right, center X = +4.8)
@@ -430,6 +440,7 @@ function buildDiodeGeometry() {
     new THREE.EdgesGeometry(nTapGeo),
     new THREE.LineBasicMaterial({ color: 0xe0f2fe, transparent: true, opacity: 0.32 })
   );
+  nEdges.raycast = function () {};
   nTapMesh.add(nEdges);
 
   // =========================================================================
@@ -451,8 +462,9 @@ function buildDiodeGeometry() {
 
   var depEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(depGeo),
-    new THREE.LineBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.55 })
+    new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.35, depthWrite: false })
   );
+  depEdges.raycast = function () {};
   depletionShellMesh.add(depEdges);
 
   // =========================================================================
@@ -573,6 +585,7 @@ function buildDiodeGeometry() {
     new THREE.EdgesGeometry(anodePadGeo),
     new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.6 })
   );
+  anodeEdges.raycast = function () {};
   anodeMesh.add(anodeEdges);
 
   // Cathode Metal-1 Pad (Right, X = +4.8, atop vias at Y = viaH + padH/2)
@@ -588,48 +601,66 @@ function buildDiodeGeometry() {
     new THREE.EdgesGeometry(cathodePadGeo),
     new THREE.LineBasicMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.6 })
   );
+  cathodeEdges.raycast = function () {};
   cathodeMesh.add(cathodeEdges);
 
   // =========================================================================
   // 10. 3D FLOATING TERMINAL LABELS
   // =========================================================================
-  var lblAnode = makeLabelSprite('ANODE (A)', '#4a92c9', 'P+ Anode Terminal (VA)');
+  var lblAnode = makeLabelSprite('ANODE (A)', '#ea580c', 'P+ Anode Terminal (VA)');
   lblAnode.position.set(-4.8, viaH + padH + 1.8, 0);
   groups.labels.add(lblAnode);
   interactiveLabels.push(lblAnode);
 
-  var lblCathode = makeLabelSprite('CATHODE (K)', '#57cf8f', 'N+ Cathode Terminal (GND)');
+  var lblCathode = makeLabelSprite('CATHODE (K)', '#1d4ed8', 'N+ Cathode Terminal (GND)');
   lblCathode.position.set(4.8, viaH + padH + 1.8, 0);
   groups.labels.add(lblCathode);
   interactiveLabels.push(lblCathode);
 
-  var lblJunction = makeLabelSprite('P+/N JUNCTION', '#c084fc', 'Metallurgical Boundary');
+  var lblJunction = makeLabelSprite('P+/N JUNCTION', '#94a3b8', 'Metallurgical Boundary');
   lblJunction.position.set(-1.6, -P_TUB_D - 1.2, 0);
   groups.depletion.add(lblJunction);
   interactiveLabels.push(lblJunction);
 }
 
 // ---------------------------------------------------------------------------
-// BUILD SPACE CHARGE ION MARKERS (CONFORMAL TO TUB JUNCTION)
+// BUILD SPACE CHARGE ION MARKERS (CONFORMAL ORDERLY CRYSTAL LATTICE)
 // ---------------------------------------------------------------------------
 var ionPTexture = null;
 var ionNTexture = null;
 
-function buildIonMarkers() {
-  if (!ionPTexture) ionPTexture = createIonTexture('−', '#e11d48', '#ffffff');
-  if (!ionNTexture) ionNTexture = createIonTexture('+', '#0284c7', '#ffffff');
+var ION_COLS_X = 3;
+var ION_ROWS_Y = 3;
+var ION_PLANES_Z = 4;
+var TOTAL_IONS_PER_SIDE = ION_COLS_X * ION_ROWS_Y * ION_PLANES_Z; // 36
 
-  // Pre-create 24 sprites on each side conforming along the tub boundary
-  for (var i = 0; i < 24; i++) {
-    var pMat = new THREE.SpriteMaterial({ map: ionPTexture, depthTest: true, depthWrite: false });
+function buildIonMarkers() {
+  if (!ionPTexture) ionPTexture = createIonTexture('−', '#ea580c', '#ffffff');
+  if (!ionNTexture) ionNTexture = createIonTexture('+', '#1d4ed8', '#ffffff');
+
+  // Pre-create 36 sprites per side arranged in an orderly crystallographic lattice
+  for (var i = 0; i < TOTAL_IONS_PER_SIDE; i++) {
+    var pMat = new THREE.SpriteMaterial({
+      map: ionPTexture,
+      depthTest: true,
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.75
+    });
     var pSprite = new THREE.Sprite(pMat);
-    pSprite.scale.set(0.55, 0.55, 1.0);
+    pSprite.scale.set(0.44, 0.44, 1.0);
     pSprite.userData = { id: 'fixedIonsP', idx: i };
     fixedIonsPGroup.add(pSprite);
 
-    var nMat = new THREE.SpriteMaterial({ map: ionNTexture, depthTest: true, depthWrite: false });
+    var nMat = new THREE.SpriteMaterial({
+      map: ionNTexture,
+      depthTest: true,
+      depthWrite: false,
+      transparent: true,
+      opacity: 0.75
+    });
     var nSprite = new THREE.Sprite(nMat);
-    nSprite.scale.set(0.55, 0.55, 1.0);
+    nSprite.scale.set(0.44, 0.44, 1.0);
     nSprite.userData = { id: 'fixedIonsN', idx: i };
     fixedIonsNGroup.add(nSprite);
   }
@@ -647,8 +678,8 @@ function updateDiode3DGeometry(state) {
 
   // Physical to visual scale factor
   var scaleFactor = 7.0;
-  var xpVis = Math.max(0.12, Math.min(3.0, xpUm * scaleFactor));
-  var xnVis = Math.max(0.15, Math.min(4.5, xnUm * scaleFactor));
+  var xpVis = Math.max(0.10, Math.min(3.2, xpUm * scaleFactor));
+  var xnVis = Math.max(0.12, Math.min(4.8, xnUm * scaleFactor));
   var totalWVis = xpVis + xnVis;
 
   // 1. Conformal Depletion Shell Scaling
@@ -663,54 +694,51 @@ function updateDiode3DGeometry(state) {
   // Shift center slightly toward right (+X) and downward (-Y) as xn expands outward
   depletionShellMesh.position.set(-4.8 + xnVis * 0.35, -P_TUB_D / 2 - xnVis * 0.25, 0);
 
-  // 2. Position Fixed Space-Charge Ions
-  // P-side negative ions (-) lie on inner margin of the P+ tub boundary
+  // 2. Position Fixed Space-Charge Ions in an Orderly Lattice
+  // 3 columns in X, 3 rows in Y, 4 planes in Z
   var pSprites = fixedIonsPGroup.children;
   var nSprites = fixedIonsNGroup.children;
 
-  var zCoords = [-3.0, -1.8, -0.6, 0.6, 1.8, 3.0];
+  var zCoords = [-3.0, -1.0, 1.0, 3.0];
+  var yCoords = [-0.35, -0.80, -1.25];
 
   for (var i = 0; i < pSprites.length; i++) {
-    var s = pSprites[i];
-    var zIdx = i % zCoords.length;
-    var zPos = zCoords[zIdx];
+    var sp = pSprites[i];
+    var colX = i % ION_COLS_X;                     // 0, 1, 2
+    var rowY = Math.floor(i / ION_COLS_X) % ION_ROWS_Y; // 0, 1, 2
+    var planeZ = Math.floor(i / (ION_COLS_X * ION_ROWS_Y)); // 0, 1, 2, 3
 
-    if (i < 12) {
-      // Right sidewall boundary (X ≈ -1.6, P-side margin: -1.6 - xpVis)
-      var frac = (i % 3) / 2.0;
-      var yPos = -0.3 - frac * 1.1;
-      var xPos = -1.6 - xpVis * (0.3 + 0.5 * (Math.floor(i / 3) / 4.0));
-      s.position.set(xPos, yPos, zPos);
-    } else {
-      // Bottom junction boundary (Y ≈ -1.6, P-side margin: -1.6 + xpVis)
-      var fracX = (i - 12) / 12.0;
-      var xPos = -7.4 + fracX * 5.6;
-      var yPos = -P_TUB_D + xpVis * 0.4;
-      s.position.set(xPos, yPos, zPos);
-    }
-    s.visible = xpVis > 0.14;
+    // P-side negative ions (Acceptors NA-): extend left from metallurgical junction (X = -1.6)
+    var fracP = (colX + 0.5) / ION_COLS_X;
+    var xPosP = -1.6 - fracP * xpVis;
+    var yPosP = yCoords[rowY];
+    var zPosP = zCoords[planeZ];
+
+    sp.position.set(xPosP, yPosP, zPosP);
+    // Smooth fade in / out based on depletion penetration
+    var pVisRatio = xpVis / (0.15 + (colX / ION_COLS_X) * 0.8);
+    var pAlpha = Math.max(0.0, Math.min(0.85, pVisRatio * 0.8));
+    sp.material.opacity = pAlpha;
+    sp.visible = pAlpha > 0.05;
   }
 
-  // N-side positive ions (+) lie in N-Well outside the P+ tub boundary
   for (var j = 0; j < nSprites.length; j++) {
     var sn = nSprites[j];
-    var zIdxN = j % zCoords.length;
-    var zPosN = zCoords[zIdxN];
+    var colXn = j % ION_COLS_X;
+    var rowYn = Math.floor(j / ION_COLS_X) % ION_ROWS_Y;
+    var planeZn = Math.floor(j / (ION_COLS_X * ION_ROWS_Y));
 
-    if (j < 12) {
-      // Right sidewall in N-Well (X: -1.6 to -1.6 + xnVis)
-      var fracY = (j % 3) / 2.0;
-      var yPosN = -0.3 - fracY * 1.1;
-      var xPosN = -1.6 + xnVis * (0.2 + 0.6 * (Math.floor(j / 3) / 4.0));
-      sn.position.set(xPosN, yPosN, zPosN);
-    } else {
-      // Bottom boundary in N-Well (Y: -P_TUB_D - xnVis)
-      var fracXN = (j - 12) / 12.0;
-      var xPosN = -7.4 + fracXN * 5.6;
-      var yPosN = -P_TUB_D - xnVis * 0.45;
-      sn.position.set(xPosN, yPosN, zPosN);
-    }
-    sn.visible = xnVis > 0.14;
+    // N-side positive ions (Donors ND+): extend right from metallurgical junction (X = -1.6)
+    var fracN = (colXn + 0.5) / ION_COLS_X;
+    var xPosN = -1.6 + fracN * xnVis;
+    var yPosN = yCoords[rowYn];
+    var zPosN = zCoords[planeZn];
+
+    sn.position.set(xPosN, yPosN, zPosN);
+    var nVisRatio = xnVis / (0.15 + (colXn / ION_COLS_X) * 1.2);
+    var nAlpha = Math.max(0.0, Math.min(0.85, nVisRatio * 0.8));
+    sn.material.opacity = nAlpha;
+    sn.visible = nAlpha > 0.05;
   }
 
   // 3. High-Field Breakdown Glow
@@ -738,12 +766,50 @@ function updateMaterialsTheme() {
   var isLight = (currentTheme === 'light');
   if (!diodeMaterials.substrate) return;
 
-  diodeMaterials.substrate.color.setHex(isLight ? 0x475569 : 0x3a3f4b);
-  diodeMaterials.nwell.color.setHex(isLight ? 0x059669 : 0x1e4a38);
-  diodeMaterials.pRegion.color.setHex(isLight ? 0xd97706 : 0xcf8a4a);
-  diodeMaterials.nRegion.color.setHex(isLight ? 0x0284c7 : 0x4a92c9);
-  diodeMaterials.metal.color.setHex(isLight ? 0x2563eb : 0x4f86c9);
-  diodeMaterials.contact.color.setHex(isLight ? 0x94a3b8 : 0x64748b);
-  diodeMaterials.passivation.color.setHex(isLight ? 0x0284c7 : 0x38bdf8);
-  diodeMaterials.sti.color.setHex(isLight ? 0x0284c7 : 0x38bdf8);
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
+  if (!pal) {
+    pal = {
+      pSubstrate: isLight ? '#64748B' : '#2B3442',
+      nWell: isLight ? '#52B788' : '#2D5A4C',
+      pPlusDiffusion: isLight ? '#C2410C' : '#EA580C',
+      nPlusDiffusion: isLight ? '#1D4ED8' : '#2563EB',
+      depletion: isLight ? '#475569' : '#64748B',
+      depletionOpacity: 0.26,
+      fieldOxide: isLight ? '#64748B' : '#475569',
+      fieldOxideOpacity: isLight ? 0.35 : 0.45,
+      metal: isLight ? '#475569' : '#94A3B8',
+      via: isLight ? '#334155' : '#CBD5E1'
+    };
+  }
+
+  diodeMaterials.substrate.color.set(pal.pSubstrate);
+  diodeMaterials.substrate.roughness = 0.85;
+  diodeMaterials.substrate.metalness = 0.05;
+  if (diodeMaterials.substrate.emissive) diodeMaterials.substrate.emissive.set(0x000000);
+  diodeMaterials.substrate.emissiveIntensity = 0;
+  if (diodeMaterials.nwell) diodeMaterials.nwell.color.set(pal.nWell);
+  if (diodeMaterials.pRegion) diodeMaterials.pRegion.color.set(pal.pPlusDiffusion);
+  if (diodeMaterials.nRegion) diodeMaterials.nRegion.color.set(pal.nPlusDiffusion);
+  if (diodeMaterials.metal) diodeMaterials.metal.color.set(pal.metal);
+  if (diodeMaterials.contact) diodeMaterials.contact.color.set(pal.via);
+  if (diodeMaterials.passivation) {
+    diodeMaterials.passivation.color.set(pal.fieldOxide);
+    diodeMaterials.passivation.opacity = (pal.fieldOxideOpacity || 0.45) * 0.8;
+  }
+  if (diodeMaterials.sti) {
+    diodeMaterials.sti.color.set(pal.fieldOxide);
+    diodeMaterials.sti.opacity = pal.fieldOxideOpacity || 0.45;
+  }
+  if (diodeMaterials.depletion) {
+    diodeMaterials.depletion.color.set(pal.depletion);
+    diodeMaterials.depletion.opacity = pal.depletionOpacity || 0.26;
+  }
+
+  if (typeof updateLayersListTheme === 'function') {
+    updateLayersListTheme(pal);
+  }
+
+  if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
+    renderer.render(scene, activeCamera);
+  }
 }

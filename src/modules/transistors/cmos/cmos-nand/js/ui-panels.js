@@ -252,6 +252,48 @@ function buildUiPanels() {
   }
 
   /* Collapsible Accordion Section Headers */
+  function updateLayersListTheme(pal) {
+    if (!pal) {
+      var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+      pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
+    }
+    if (!pal) return;
+
+    var colorMap = {
+      substrate: pal.pSubstrate,
+      well: pal.nWell,
+      active: pal.nPlusDiffusion,
+      sde: pal.implantedNChannel,
+      oxide: pal.gateOxide,
+      poly: pal.polysilicon,
+      contact: pal.via,
+      metal: pal.metal
+    };
+
+    var layersBody = document.getElementById('layers-body');
+    if (layersBody) {
+      layersBody.querySelectorAll('.unified-layer-item').forEach(function(item) {
+        var input = item.querySelector('input[data-layer]');
+        var swatch = item.querySelector('.swatch');
+        if (input && swatch && colorMap[input.dataset.layer]) {
+          swatch.style.background = colorMap[input.dataset.layer];
+        }
+      });
+    }
+
+    var refLegendBody = document.getElementById('ref-legend-body');
+    if (refLegendBody) {
+      refLegendBody.querySelectorAll('.ref-legend-item').forEach(function(item) {
+        var nameEl = item.querySelector('.lh b');
+        var swatch = item.querySelector('.swatch');
+        if (nameEl && swatch && nameEl.textContent.indexOf('SERIES N+ BRIDGE') !== -1) {
+          swatch.style.background = pal.nPlusDiffusion;
+        }
+      });
+    }
+  }
+  window.updateLayersListTheme = updateLayersListTheme;
+
   document.querySelectorAll('.wb-accordion-head, .panel-head').forEach(function(h) {
     h.addEventListener('click', function() {
       if (h.classList.contains('static-head')) return;

@@ -187,9 +187,14 @@ function applyLogicState() {
     rebuildFlowCurves(ids, region, deltaL);
   }
 
-  // 9. Update Context for AI Voice Assistant
-  if (typeof lastSelectedId !== 'undefined' && lastSelectedId && typeof window.updateVoiceAssistantContext === 'function') {
-    window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
+  // 9. Update Context for AI Voice Assistant and Inspector
+  if (typeof lastSelectedId !== 'undefined' && lastSelectedId) {
+    if (typeof window.updateVoiceAssistantContext === 'function') {
+      window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
+    }
+    if ((lastSelectedId === 'channel' || lastSelectedId === 'depletion') && typeof showInspector === 'function') {
+      showInspector(lastSelectedId, idToInfo(lastSelectedId));
+    }
   }
 }
 

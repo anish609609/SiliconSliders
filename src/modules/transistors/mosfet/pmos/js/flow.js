@@ -19,17 +19,23 @@ var flowMarkers = [];
 // Fine, small particle sphere geometry (very small fine particles, not bowling balls)
 var markerGeom = new THREE.SphereGeometry(0.042, 8, 8);
 var isInitialLight = (document.documentElement.getAttribute('data-theme') === 'light');
-var holeMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? 0xb91c1c : 0xff4fbf });    // Crimson #B91C1C in Light Mode, Magenta/rose in Dark Mode
-var currentMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? 0xb45309 : 0xffcf4d }); // Deep amber in Light Mode, Warm amber in Dark Mode
+var palInitFlow = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitialLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitialLight ? 'light' : 'dark') : null);
+
+var HOLE_COLOR_DARK = palInitFlow ? palInitFlow.holeFlow : '#F43F5E';
+var HOLE_COLOR_LIGHT = '#BE123C';
+var holeMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK });
+var currentMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? 0xb45309 : 0xffcf4d });
 
 function updateFlowTheme(theme) {
-  var isLight = theme === 'light';
-  if (isLight) {
-    holeMat.color.setHex(0xb91c1c);    // deep crimson for high contrast on light canvas
-    currentMat.color.setHex(0xb45309); // deep warm amber
-  } else {
-    holeMat.color.setHex(0xff4fbf);    // bright magenta/rose on dark canvas
-    currentMat.color.setHex(0xffcf4d); // golden amber on dark canvas
+  var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
+  var hCol = pal ? pal.holeFlow : (isLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK);
+
+  if (holeMat) {
+    holeMat.color.set(hCol);
+  }
+  if (currentMat) {
+    currentMat.color.set(isLight ? 0xb45309 : 0xffcf4d);
   }
 }
 window.updateFlowTheme = updateFlowTheme;

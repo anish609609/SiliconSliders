@@ -22,13 +22,13 @@ var _upVec = new THREE.Vector3(0, 1, 0);
 var _tmpPt = new THREE.Vector3();
 var _tmpTan = new THREE.Vector3();
 
-// High contrast palette:
-var ELECTRON_COLOR_DARK = 0x38bdf8;
-var ELECTRON_COLOR_LIGHT = 0x0052cc; // Deep royal cobalt blue
-var HOLE_COLOR_DARK = 0xff4fbf;
-var HOLE_COLOR_LIGHT = 0xb91c1c;     // Deep crimson
+// High contrast unified palette:
+var ELECTRON_COLOR_DARK = 0xf59e0b; // Saffron electron flow in NMOS branches
+var ELECTRON_COLOR_LIGHT = 0xd97706;
+var HOLE_COLOR_DARK = 0xf43f5e;     // Crimson hole flow in PMOS branches
+var HOLE_COLOR_LIGHT = 0xbe123c;
 var CURRENT_COLOR_DARK = 0xffcf4d;
-var CURRENT_COLOR_LIGHT = 0xb45309;  // Warm deep bronze / amber
+var CURRENT_COLOR_LIGHT = 0xd97706;  // Warm deep bronze / amber
 
 function pOf(id) {
   var m = meshById[id];

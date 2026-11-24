@@ -166,6 +166,12 @@ function applyDiodeState() {
   if (typeof renderGraphs === 'function') {
     renderGraphs();
   }
+
+  // 11. Live refresh of active Property Inspector card
+  if (typeof lastSelectedId !== 'undefined' && lastSelectedId && typeof idToInfo === 'function' && typeof updateInspector === 'function') {
+    var info = idToInfo(lastSelectedId);
+    if (info) updateInspector(info);
+  }
 }
 
 /**

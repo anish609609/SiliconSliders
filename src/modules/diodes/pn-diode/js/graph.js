@@ -276,8 +276,8 @@ function renderIVCurve(state, targetCanvas) {
   // 5. Draw Complete I-V Curve
   var curve = DiodePhysics.generateIVCurve(state.na, state.nd, state.temperature, 240);
   ctx.beginPath();
-  ctx.strokeStyle = isLight ? '#0284c7' : '#38bdf8';
-  ctx.lineWidth = 2.2;
+  ctx.strokeStyle = isLight ? '#0d9488' : '#14b8a6';
+  ctx.lineWidth = 2.4;
   for (var k = 0; k < curve.length; k++) {
     var pt = curve[k];
     var px = xToPx(pt.v);
@@ -293,17 +293,17 @@ function renderIVCurve(state, targetCanvas) {
 
   // Pulsing glow outer ring
   var pulseR = 7 + 2 * Math.sin(Date.now() * 0.008);
-  ctx.fillStyle = 'rgba(95, 217, 196, 0.35)';
+  ctx.fillStyle = isLight ? 'rgba(13, 148, 136, 0.28)' : 'rgba(20, 184, 166, 0.35)';
   ctx.beginPath();
   ctx.arc(markerX, markerY, pulseR, 0, Math.PI * 2);
   ctx.fill();
 
   // Center solid dot
-  ctx.fillStyle = '#5fd9c4';
+  ctx.fillStyle = isLight ? '#0d9488' : '#5fd9c4';
   ctx.beginPath();
   ctx.arc(markerX, markerY, 4.5, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = '#0b0e13';
+  ctx.strokeStyle = isLight ? '#ffffff' : '#0b0e13';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
@@ -381,15 +381,15 @@ function renderFieldProfile(state) {
 
   // P-Side space charge (-q*NA) step block
   var pHeight = halfH * 0.40;
-  ctx.fillStyle = 'rgba(239, 68, 68, 0.25)';
-  ctx.strokeStyle = '#ef4444';
+  ctx.fillStyle = 'rgba(234, 88, 12, 0.22)';
+  ctx.strokeStyle = '#ea580c';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.rect(xP, yRhoZero, Math.max(1, xJunction - xP), pHeight);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#ef4444';
+  ctx.fillStyle = '#ea580c';
   ctx.font = '8px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.fillText('-q·NA', (xP + xJunction) / 2, yRhoZero + pHeight / 2 + 3);
@@ -398,14 +398,14 @@ function renderFieldProfile(state) {
   // Note: Area conservation! q*NA*xp = q*ND*xn
   var nHeight = pHeight * (xpNm / Math.max(1, xnNm));
   nHeight = Math.max(6, Math.min(halfH * 0.48, nHeight));
-  ctx.fillStyle = 'rgba(2, 132, 199, 0.25)';
-  ctx.strokeStyle = '#0284c7';
+  ctx.fillStyle = 'rgba(29, 78, 216, 0.22)';
+  ctx.strokeStyle = '#1d4ed8';
   ctx.beginPath();
   ctx.rect(xJunction, yRhoZero - nHeight, Math.max(1, xN - xJunction), nHeight);
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = '#0284c7';
+  ctx.fillStyle = '#1d4ed8';
   ctx.fillText('+q·ND', (xJunction + xN) / 2, yRhoZero - nHeight / 2 + 3);
 
   // BOTTOM HALF: Electric Field Profile E(x)
@@ -428,9 +428,9 @@ function renderFieldProfile(state) {
   // Peak field point
   var peakY = yFieldBase - (emax / maxFieldSpan) * (halfH - 14);
 
-  // Triangular E(x) profile
-  ctx.fillStyle = 'rgba(168, 85, 247, 0.2)';
-  ctx.strokeStyle = '#a855f7';
+  // Triangular E(x) profile (Unified Teal-Green Palette)
+  ctx.fillStyle = isLight ? 'rgba(13, 148, 136, 0.20)' : 'rgba(20, 184, 166, 0.24)';
+  ctx.strokeStyle = isLight ? '#0d9488' : '#14b8a6';
   ctx.lineWidth = 2.0;
   ctx.beginPath();
   ctx.moveTo(xP, yFieldBase);

@@ -36,7 +36,11 @@ function onCanvasPointerDown(e) {
 
   if (hits.length > 0) {
     var hitObj = hits[0].object;
-    var targetId = hitObj.userData ? hitObj.userData.id : null;
+    // Climb up to find userData.id if child line or sub-mesh was clicked
+    while (hitObj && (!hitObj.userData || !hitObj.userData.id) && hitObj.parent && hitObj.parent !== scene) {
+      hitObj = hitObj.parent;
+    }
+    var targetId = hitObj && hitObj.userData ? hitObj.userData.id : null;
     if (targetId) {
       selectComponentById(targetId, e.clientX, e.clientY);
     }
@@ -88,12 +92,24 @@ function updateInspector(info) {
   var inspector = document.getElementById('inspector');
   if (!inspector) return;
 
+  var state = (typeof window.getDiodeState === 'function') ? window.getDiodeState() : null;
+
   var html = '<div class="insp-title">' + info.title + '</div>';
   html += '<div class="insp-meta">';
   html += '<div class="insp-row"><span class="insp-key">LAYER</span><span class="insp-val">' + info.layer + '</span></div>';
   html += '<div class="insp-row"><span class="insp-key">THICKNESS</span><span class="insp-val">' + info.thickness + '</span></div>';
   html += '<div class="insp-row"><span class="insp-key">AREA</span><span class="insp-val">' + info.area + '</span></div>';
   html += '<div class="insp-row"><span class="insp-key">DOPING</span><span class="insp-val">' + info.doping + '</span></div>';
+
+  if (state && (info.id === 'depletionRegion' || info.id === 'fixedIonsP' || info.id === 'fixedIonsN' || info.id === 'breakdownGlow')) {
+    html += '<div class="insp-row"><span class="insp-key">BIAS VA</span><span class="insp-val" style="color:var(--accent); font-weight:700;">' + (state.va >= 0 ? '+' : '') + state.va.toFixed(2) + ' V</span></div>';
+    html += '<div class="insp-row"><span class="insp-key">WIDTH W</span><span class="insp-val" style="color:var(--accent); font-weight:700;">' + (state.wNm < 1000 ? state.wNm.toFixed(0) + ' nm' : state.wUm.toFixed(2) + ' μm') + '</span></div>';
+    html += '<div class="insp-row"><span class="insp-key">xp (P-SIDE)</span><span class="insp-val">' + state.xpNm.toFixed(0) + ' nm</span></div>';
+    html += '<div class="insp-row"><span class="insp-key">xn (N-SIDE)</span><span class="insp-val">' + state.xnNm.toFixed(0) + ' nm</span></div>';
+    html += '<div class="insp-row"><span class="insp-key">|E_MAX|</span><span class="insp-val">' + (state.emax / 1e5).toFixed(1) + '×10⁵ V/cm</span></div>';
+    html += '<div class="insp-row"><span class="insp-key">REGIME</span><span class="insp-val" style="color:var(--accent); font-weight:700;">' + state.regimeLabel + '</span></div>';
+  }
+
   html += '</div>';
   html += '<p class="insp-desc"><b>Function:</b> ' + info.fn + '</p>';
   html += '<p class="insp-desc"><b>Physical Role:</b> ' + info.role + '</p>';
@@ -111,9 +127,17 @@ function highlightTreeNode(id) {
 function showPopover(info, clientX, clientY) {
   if (!popoverEl || !popoverContentEl) return;
 
+  var state = (typeof window.getDiodeState === 'function') ? window.getDiodeState() : null;
+
   var html = '<div style="font-family:var(--mono); font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px;">' + info.name + '</div>';
   html += '<div style="font-size:11px; color:var(--text-dim); line-height:1.4;">' + info.fn + '</div>';
-  html += '<div style="margin-top:6px; font-family:var(--mono); font-size:10px; color:var(--accent);">' + info.doping + '</div>';
+
+  if (state && (info.id === 'depletionRegion' || info.id === 'fixedIonsP' || info.id === 'fixedIonsN')) {
+    html += '<div style="margin-top:6px; font-family:var(--mono); font-size:10.5px; color:var(--accent); font-weight:600;">' +
+      'W = ' + state.wNm.toFixed(0) + ' nm (xp = ' + state.xpNm.toFixed(0) + ' nm, xn = ' + state.xnNm.toFixed(0) + ' nm) · ' + state.regimeLabel + '</div>';
+  } else {
+    html += '<div style="margin-top:6px; font-family:var(--mono); font-size:10px; color:var(--accent);">' + info.doping + '</div>';
+  }
 
   popoverContentEl.innerHTML = html;
 

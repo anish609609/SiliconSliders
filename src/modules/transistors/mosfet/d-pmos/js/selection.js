@@ -58,7 +58,23 @@ var lastSelectedId = null;
 
 function buildInfoHtml(id, info){
   if (!info) return '<div class="empty">No inspector data for this element.</div>';
+  var liveHtml = '';
+  if ((id === 'channel' || id === 'depletion') && typeof window.getMosfetPhysicsState === 'function') {
+    var phys = window.getMosfetPhysicsState();
+    if (phys) {
+      liveHtml = '<div class="field"><div class="k">OPERATING STATE</div><div class="v">' +
+        'Region: <b>' + phys.region + '</b> &nbsp;|&nbsp; ' +
+        'Mode: <b>' + (phys.mode ? phys.mode.toUpperCase() : 'NORMAL') + '</b> &nbsp;|&nbsp; ' +
+        'Leff: <b>' + (phys.leff ? phys.leff.toFixed(1) : '40.0') + ' nm</b> &nbsp;|&nbsp; ' +
+        'Pinch-off &Delta;L: <b>' + (phys.deltaL ? (phys.deltaL * 20).toFixed(1) : '0.0') + ' nm</b><br>' +
+        'VGS: <b>' + phys.vgs.toFixed(2) + ' V</b> &nbsp;|&nbsp; ' +
+        'VSD: <b>' + phys.vsd.toFixed(2) + ' V</b> &nbsp;|&nbsp; ' +
+        'ISD: <b>' + (phys.isd >= 0.01 ? phys.isd.toFixed(2) : '0.00') + ' mA</b>' +
+        '</div></div>';
+    }
+  }
   return '<div class="title">'+info.title+'</div>'+
+    liveHtml +
     '<div class="field"><div class="k">FUNCTION</div><div class="v">'+info.fn+'</div></div>'+
     '<div class="field"><div class="k">ELECTRICAL ROLE</div><div class="v">'+info.role+'</div></div>'+
     '<div class="field"><div class="k">CONNECTION</div><div class="v">'+info.conn+'</div></div>'+
@@ -233,6 +249,13 @@ renderer.domElement.addEventListener('click', function(e){
       cur = cur.parent;
     }
     if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
+    // Dynamic channel & depletion visibility gating
+    if (h.object.userData && h.object.userData.id === 'depletion') {
+      if (!h.object.visible || h.object.scale.x <= 0.001) return false;
+    }
+    if (h.object.userData && h.object.userData.id === 'channel') {
+      if (!h.object.visible) return false;
+    }
     return true;
   });
 
