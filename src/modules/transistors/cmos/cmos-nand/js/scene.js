@@ -1,6 +1,6 @@
 /* Three.js scene, camera, renderer, OrbitControls, 3-point lighting, grid & theme sync */
 
-var wrapEl = document.getElementById('canvas-wrap');
+var wrapEl = document.getElementById('canvas-host') || document.getElementById('canvas-wrap');
 
 function W() {
   return (wrapEl && wrapEl.clientWidth) || window.innerWidth;
@@ -11,7 +11,7 @@ function H() {
 }
 
 var TOP_VIEW_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 58, 0.05) : null;
-var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(25.3, 18, 28) : null;
+var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 58, 0.05) : null;
 var INITIAL_TARGET = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 1.5, 0) : null;
 
 var scene = null;
@@ -201,6 +201,9 @@ function applySceneTheme(theme) {
     shadowMat.opacity = 0.28;
     rebuildGrid(0x1c2530, 0x141a22);
   }
+
+  if (typeof window.updateFlowTheme === 'function') window.updateFlowTheme(theme);
+  if (typeof window.updateNandChannelThemes === 'function') window.updateNandChannelThemes(theme);
 
   if (renderer && scene && camera) {
     renderer.render(scene, camera);

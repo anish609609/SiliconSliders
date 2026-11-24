@@ -219,6 +219,11 @@ function applyLogicState() {
     });
   }
 
+  // Update dynamic 3D inversion channel geometries & pinch-off regions
+  if (typeof window.updateInverterChannels === 'function') {
+    window.updateInverterChannels(st.vin, st.vout, st.nmosRegion, st.pmosRegion);
+  }
+
   // Sync carrier flow
   window.currentIn = (st.vin === 'off') ? 'off' : st.vin;
   if (typeof refreshConnections === 'function') {

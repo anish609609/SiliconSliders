@@ -114,23 +114,34 @@
   .seg button:last-child{ border-right:none; }
   .seg button:hover{ color:var(--text); background:#1b2230; transform:translateY(-1px); }
   .seg button.active{ color:#08110f; background:var(--accent); font-weight:600; }
-  .seg button[data-in="off"].active{ color:#1c1303; background:#f59e0b; font-weight:600; }
-  .seg button[data-in="off"].active:hover{ box-shadow:0 0 10px rgba(245,158,11,.5); }
+  .seg button[data-in="off"].active{ color:#061512; background:var(--accent); font-weight:600; }
+  .seg button[data-in="off"].active:hover{ box-shadow:0 0 10px rgba(95,217,196,.5); }
   .seg button.active:hover{ transform:translateY(-1px) scale(1.02); box-shadow:0 0 10px rgba(95,217,196,.4); }
 
-  /* Topbar active mode tab accent: match slider green in dark mode */
+  /* Topbar active mode tab accent & inputs: match slider green in dark mode */
   #mode-seg button.active,
   #mode-seg .seg-btn.active,
+  #input-a-group button.active,
+  #input-b-group button.active,
+  #flow-mode-group button.active,
   [data-theme="dark"] #mode-seg button.active,
-  [data-theme="dark"] #mode-seg .seg-btn.active,
-  :root:not([data-theme="light"]) #mode-seg button.active {
+  [data-theme="dark"] #input-a-group button.active,
+  [data-theme="dark"] #input-b-group button.active,
+  [data-theme="dark"] #flow-mode-group button.active,
+  :root:not([data-theme="light"]) #mode-seg button.active,
+  :root:not([data-theme="light"]) #input-a-group button.active,
+  :root:not([data-theme="light"]) #input-b-group button.active,
+  :root:not([data-theme="light"]) #flow-mode-group button.active {
     background: var(--accent) !important;
     color: #061512 !important;
     font-weight: 700 !important;
     box-shadow: 0 1px 6px rgba(95, 217, 196, 0.45) !important;
   }
   :root[data-theme="light"] #mode-seg button.active,
-  :root[data-theme="light"] #mode-seg .seg-btn.active {
+  :root[data-theme="light"] #mode-seg .seg-btn.active,
+  :root[data-theme="light"] #input-a-group button.active,
+  :root[data-theme="light"] #input-b-group button.active,
+  :root[data-theme="light"] #flow-mode-group button.active {
     background: #0d9488 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
@@ -2724,9 +2735,11 @@
 .wb-in-btn:hover { color: var(--text); border-color: var(--accent); }
 .wb-in-btn.active { background: var(--accent); color: #08110f; border-color: var(--accent); font-weight: 600; }
 :root[data-theme="light"] .wb-in-btn.active { background: var(--accent); color: #ffffff; }
-.wb-in-btn[data-a="off"].active, .wb-in-btn[data-b="off"].active { background: #f59e0b; color: #1c1303; border-color: #f59e0b; }
-.seg button[data-a="off"].active, .seg button[data-b="off"].active { color: #1c1303; background: #f59e0b; font-weight: 600; }
-.seg button[data-a="off"].active:hover, .seg button[data-b="off"].active:hover { box-shadow: 0 0 10px rgba(245,158,11,.5); }
+.wb-in-btn[data-a="off"].active, .wb-in-btn[data-b="off"].active { background: var(--accent); color: #061512; border-color: var(--accent); }
+:root[data-theme="light"] .wb-in-btn[data-a="off"].active, :root[data-theme="light"] .wb-in-btn[data-b="off"].active { background: #0d9488; color: #ffffff; border-color: #0d9488; }
+.seg button[data-a="off"].active, .seg button[data-b="off"].active { color: #061512; background: var(--accent); font-weight: 600; }
+:root[data-theme="light"] .seg button[data-a="off"].active, :root[data-theme="light"] .seg button[data-b="off"].active { color: #ffffff; background: #0d9488; font-weight: 600; }
+.seg button[data-a="off"].active:hover, .seg button[data-b="off"].active:hover { box-shadow: 0 0 10px rgba(95,217,196,.5); }
 
 /* VTC Sweep Segment */
 .wb-sweep-seg {

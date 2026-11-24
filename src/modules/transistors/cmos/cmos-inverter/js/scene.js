@@ -15,10 +15,10 @@ var W = function(){ return host.clientWidth; };
 var H = function(){ return host.clientHeight; };
 
 var camPersp = new THREE.PerspectiveCamera(42, W()/H(), 0.1, 1000);
-var INITIAL_POS = new THREE.Vector3(21.3, 16, 25);
-var INITIAL_TARGET = new THREE.Vector3(0.8, 1.9, 0);
 var TOP_VIEW_POS = new THREE.Vector3(0.8, 52, 0.05); // straight overhead, captures full 100% exploded stack
-camPersp.position.copy(INITIAL_POS);
+var INITIAL_POS = new THREE.Vector3(0.8, 52, 0.05);  // default overhead top view on initial load and reset
+var INITIAL_TARGET = new THREE.Vector3(0.8, 1.9, 0);
+camPersp.position.copy(TOP_VIEW_POS);
 
 var renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -128,6 +128,8 @@ function applySceneTheme(theme){
     shadowPlane.material.opacity = 0.28;
   }
   updateGridTheme(isLight);
+  if (typeof window.updateFlowTheme === 'function') window.updateFlowTheme(theme);
+  if (typeof window.updateChannelThemes === 'function') window.updateChannelThemes(theme);
   if (renderer && scene && activeCamera) {
     renderer.render(scene, activeCamera);
   }

@@ -835,6 +835,190 @@ var subTapPad = gaussianDopingMesh(1.3, Y.actTop-Y.actBot, 1.3, '--c-substrate',
 put(subTapPad, TAP_X, (Y.actTop+Y.actBot)/2, NMOS_ZC);
 reg(subTapPad, 'subtapAct', 'active');
 
+// ---------- 3D DYNAMIC INVERSION CHANNELS & PINCH-OFF REGIONS ----------
+var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+// NMOS Channel (Electron Inversion Layer)
+var nmosChanGeom = new THREE.BoxGeometry(CH.max - CH.min, 0.12, ACTIVE_W, 24, 1, 2);
+var nmosChanMat = new THREE.MeshStandardMaterial({
+  color: isInitLight ? 0x0052cc : 0x38bdf8,
+  emissive: isInitLight ? 0x003399 : 0x0284c7,
+  emissiveIntensity: 0.50,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  roughness: 0.40,
+  metalness: 0.15,
+  side: THREE.DoubleSide
+});
+var nmosChanMesh = new THREE.Mesh(nmosChanGeom, nmosChanMat);
+put(nmosChanMesh, 0, Y.actTop - 0.05, NMOS_ZC);
+nmosChanMesh.renderOrder = 4;
+nmosChanMesh.userData.colorVar = '--c-sde-n';
+reg(nmosChanMesh, 'nmosChannel', 'active');
+
+var nmosPinchGeom = new THREE.BoxGeometry(0.7, 0.12, ACTIVE_W, 12, 1, 2);
+var nmosPinchMat = new THREE.MeshStandardMaterial({
+  color: isInitLight ? 0xb45309 : 0xf59e0b,
+  emissive: 0xd97706,
+  emissiveIntensity: 0.55,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  roughness: 0.40,
+  metalness: 0.15,
+  side: THREE.DoubleSide
+});
+var nmosPinchMesh = new THREE.Mesh(nmosPinchGeom, nmosPinchMat);
+put(nmosPinchMesh, 0.65, Y.actTop - 0.05, NMOS_ZC);
+nmosPinchMesh.renderOrder = 4;
+nmosPinchMesh.visible = false;
+groups['active'].add(nmosPinchMesh);
+
+// PMOS Channel (Hole Inversion Layer)
+var pmosChanGeom = new THREE.BoxGeometry(CH.max - CH.min, 0.12, ACTIVE_W, 24, 1, 2);
+var pmosChanMat = new THREE.MeshStandardMaterial({
+  color: isInitLight ? 0xb91c1c : 0xff4fbf,
+  emissive: isInitLight ? 0x991b1b : 0xdb2777,
+  emissiveIntensity: 0.50,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  roughness: 0.40,
+  metalness: 0.15,
+  side: THREE.DoubleSide
+});
+var pmosChanMesh = new THREE.Mesh(pmosChanGeom, pmosChanMat);
+put(pmosChanMesh, 0, Y.actTop - 0.05, PMOS_ZC);
+pmosChanMesh.renderOrder = 4;
+pmosChanMesh.userData.colorVar = '--c-sde-p';
+reg(pmosChanMesh, 'pmosChannel', 'active');
+
+var pmosPinchGeom = new THREE.BoxGeometry(0.7, 0.12, ACTIVE_W, 12, 1, 2);
+var pmosPinchMat = new THREE.MeshStandardMaterial({
+  color: isInitLight ? 0xb45309 : 0xf59e0b,
+  emissive: 0xd97706,
+  emissiveIntensity: 0.55,
+  transparent: true,
+  opacity: 0.85,
+  depthWrite: false,
+  roughness: 0.40,
+  metalness: 0.15,
+  side: THREE.DoubleSide
+});
+var pmosPinchMesh = new THREE.Mesh(pmosPinchGeom, pmosPinchMat);
+put(pmosPinchMesh, 0.65, Y.actTop - 0.05, PMOS_ZC);
+pmosPinchMesh.renderOrder = 4;
+pmosPinchMesh.visible = false;
+groups['active'].add(pmosPinchMesh);
+
+// Function to dynamically update channel inversion profiles based on CMOS operating regions
+window.updateInverterChannels = function(vin, vout, nmosReg, pmosReg) {
+  if (vin === 'off') {
+    nmosChanMesh.visible = false;
+    nmosPinchMesh.visible = false;
+    pmosChanMesh.visible = false;
+    pmosPinchMesh.visible = false;
+    return;
+  }
+
+  var maxH = 0.12;
+
+  // 1. NMOS Channel (Source at X = -1.0, Drain at X = +1.0)
+  if (nmosReg === 'CUTOFF' || nmosReg === 'SUBTHRESHOLD') {
+    nmosChanMesh.visible = false;
+    nmosPinchMesh.visible = false;
+  } else {
+    nmosChanMesh.visible = true;
+    var npos = nmosChanGeom.attributes.position;
+    var pinchX = (nmosReg === 'SATURATION') ? 0.35 : 1.0;
+
+    for (var i = 0; i < npos.count; i++) {
+      var x = npos.getX(i);
+      var u = (x + 1.0) / 2.0; // 0 at Source (-1.0), 1 at Drain (+1.0)
+      var thickness = 0;
+      if (nmosReg === 'LINEAR') {
+        var localCharge = Math.max(0.15, 1.0 - 0.65 * u * (vout / Math.max(0.1, vin - 0.40)));
+        thickness = maxH * Math.min(1.0, Math.max(0.2, localCharge));
+      } else {
+        if (x <= pinchX) {
+          var frac = (x + 1.0) / (pinchX + 1.0);
+          thickness = maxH * Math.pow(Math.max(0.05, 1.0 - frac * 0.92), 0.7);
+        } else {
+          thickness = 0.01;
+        }
+      }
+      var signY = npos.getY(i) >= 0 ? 1 : -1;
+      npos.setY(i, (signY * thickness) / 2);
+    }
+    npos.needsUpdate = true;
+    nmosChanGeom.computeVertexNormals();
+
+    if (nmosReg === 'SATURATION') {
+      nmosPinchMesh.visible = true;
+    } else {
+      nmosPinchMesh.visible = false;
+    }
+  }
+
+  // 2. PMOS Channel (Source at X = -1.0, Drain at X = +1.0)
+  if (pmosReg === 'CUTOFF' || pmosReg === 'SUBTHRESHOLD') {
+    pmosChanMesh.visible = false;
+    pmosPinchMesh.visible = false;
+  } else {
+    pmosChanMesh.visible = true;
+    var ppos = pmosChanGeom.attributes.position;
+    var pinchX = (pmosReg === 'SATURATION') ? 0.35 : 1.0;
+    var vsd = 1.00 - vout;
+    var vsg = 1.00 - vin;
+
+    for (var j = 0; j < ppos.count; j++) {
+      var x = ppos.getX(j);
+      var u = (x + 1.0) / 2.0; // 0 at Source (-1.0), 1 at Drain (+1.0)
+      var thickness = 0;
+      if (pmosReg === 'LINEAR') {
+        var localCharge = Math.max(0.15, 1.0 - 0.65 * u * (vsd / Math.max(0.1, vsg - 0.40)));
+        thickness = maxH * Math.min(1.0, Math.max(0.2, localCharge));
+      } else {
+        if (x <= pinchX) {
+          var frac = (x + 1.0) / (pinchX + 1.0);
+          thickness = maxH * Math.pow(Math.max(0.05, 1.0 - frac * 0.92), 0.7);
+        } else {
+          thickness = 0.01;
+        }
+      }
+      var signY = ppos.getY(j) >= 0 ? 1 : -1;
+      ppos.setY(j, (signY * thickness) / 2);
+    }
+    ppos.needsUpdate = true;
+    pmosChanGeom.computeVertexNormals();
+
+    if (pmosReg === 'SATURATION') {
+      pmosPinchMesh.visible = true;
+    } else {
+      pmosPinchMesh.visible = false;
+    }
+  }
+};
+
+window.updateChannelThemes = function(theme) {
+  var isLight = theme === 'light';
+  if (typeof nmosChanMat !== 'undefined' && nmosChanMat) {
+    nmosChanMat.color.setHex(isLight ? 0x0052cc : 0x38bdf8);
+    nmosChanMat.emissive.setHex(isLight ? 0x003399 : 0x0284c7);
+  }
+  if (typeof pmosChanMat !== 'undefined' && pmosChanMat) {
+    pmosChanMat.color.setHex(isLight ? 0xb91c1c : 0xff4fbf);
+    pmosChanMat.emissive.setHex(isLight ? 0x991b1b : 0xdb2777);
+  }
+  if (typeof nmosPinchMat !== 'undefined' && nmosPinchMat) {
+    nmosPinchMat.color.setHex(isLight ? 0xb45309 : 0xf59e0b);
+  }
+  if (typeof pmosPinchMat !== 'undefined' && pmosPinchMat) {
+    pmosPinchMat.color.setHex(isLight ? 0xb45309 : 0xf59e0b);
+  }
+};
+
 // ---------- GATE OXIDE (Interfacial SiO2) ----------
 var oxideH = Y.oxideTop - Y.oxideBot;
 var oxideMidY = (Y.oxideTop + Y.oxideBot) / 2;

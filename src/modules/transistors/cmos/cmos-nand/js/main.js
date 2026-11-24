@@ -265,7 +265,7 @@ function initMainUi() {
     btnTheme.addEventListener('click', toggleTheme);
   }
 
-  var btnReset = document.getElementById('btn-reset');
+  var btnReset = document.getElementById('btn-reset') || document.getElementById('btn-reset-cam');
   if (btnReset) {
     btnReset.addEventListener('click', resetAll);
   }

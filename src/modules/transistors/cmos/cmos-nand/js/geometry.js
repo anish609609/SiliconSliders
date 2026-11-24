@@ -826,34 +826,105 @@ function buildNand2Cell() {
     registerMesh(sdeMesh, sp.id, 'sde', { explodeLayer: 'active' });
   }
 
-  /* Gate Channel Segs directly under Gate A & Gate B (Sharp BoxGeometry, no outline) */
+  /* Gate Channel Inversion Layers under Gate A & Gate B */
+  var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+  var pmosChanMat = new THREE.MeshStandardMaterial({
+    color: isInitLight ? 0xb91c1c : 0xff4fbf,
+    roughness: 0.40,
+    metalness: 0.15,
+    emissive: isInitLight ? 0x991b1b : 0xdb2777,
+    emissiveIntensity: 0.55,
+    opacity: 0.85,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    clippingPlanes: activeClipPlanes
+  });
+
+  var nmosChanMat = new THREE.MeshStandardMaterial({
+    color: isInitLight ? 0x0052cc : 0x38bdf8,
+    roughness: 0.40,
+    metalness: 0.15,
+    emissive: isInitLight ? 0x003399 : 0x0284c7,
+    emissiveIntensity: 0.55,
+    opacity: 0.85,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    clippingPlanes: activeClipPlanes
+  });
+
   var chSpecs = [
-    { id: 'chMP1', x: GATE_A_X, z: PMOS_ZC, colorVar: '--c-active-p' },
-    { id: 'chMP2', x: GATE_B_X, z: PMOS_ZC, colorVar: '--c-active-p' },
-    { id: 'chMN1', x: GATE_A_X, z: NMOS_ZC, colorVar: '--c-active-n' },
-    { id: 'chMN2', x: GATE_B_X, z: NMOS_ZC, colorVar: '--c-active-n' }
+    { id: 'chMP1', x: GATE_A_X, z: PMOS_ZC, mat: pmosChanMat, colorVar: '--c-sde-p' },
+    { id: 'chMP2', x: GATE_B_X, z: PMOS_ZC, mat: pmosChanMat, colorVar: '--c-sde-p' },
+    { id: 'chMN1', x: GATE_A_X, z: NMOS_ZC, mat: nmosChanMat, colorVar: '--c-sde-n' },
+    { id: 'chMN2', x: GATE_B_X, z: NMOS_ZC, mat: nmosChanMat, colorVar: '--c-sde-n' }
   ];
+
+  var nandChannelMeshes = {};
+
   for (var chi = 0; chi < chSpecs.length; chi++) {
     var ch = chSpecs[chi];
-    var chGeo = new THREE.BoxGeometry(2.0, 0.12, ACTIVE_W - 0.14);
-    var chMat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(cssVar(ch.colorVar)),
-      roughness: 0.50,
-      metalness: 0.15,
-      emissive: 0x000000,
-      emissiveIntensity: 0,
-      opacity: 0.28,
-      transparent: true,
-      side: THREE.FrontSide,
-      depthWrite: true,
-      clippingPlanes: activeClipPlanes
-    });
-    var chMesh = new THREE.Mesh(chGeo, chMat);
-    chMesh.position.set(ch.x, Y.actTop - 0.06, ch.z);
-    chMesh.renderOrder = 3;
+    var chGeo = new THREE.BoxGeometry(2.0, 0.12, ACTIVE_W - 0.14, 16, 1, 2);
+    var chMesh = new THREE.Mesh(chGeo, ch.mat.clone());
+    chMesh.position.set(ch.x, Y.actTop - 0.05, ch.z);
+    chMesh.renderOrder = 4;
     chMesh.userData.colorVar = ch.colorVar;
-    registerMesh(chMesh, ch.id, 'active', { decorative: true });
+    registerMesh(chMesh, ch.id, 'active', { decorative: false });
+    nandChannelMeshes[ch.id] = chMesh;
   }
+
+  // Dynamic channel updater called on logic state transitions
+  window.updateNandChannels = function(st) {
+    if (!st || st.frozen || st.a === 'off' || st.b === 'off') {
+      if (nandChannelMeshes['chMP1']) nandChannelMeshes['chMP1'].visible = false;
+      if (nandChannelMeshes['chMP2']) nandChannelMeshes['chMP2'].visible = false;
+      if (nandChannelMeshes['chMN1']) nandChannelMeshes['chMN1'].visible = false;
+      if (nandChannelMeshes['chMN2']) nandChannelMeshes['chMN2'].visible = false;
+      return;
+    }
+
+    var regs = st.regions || {};
+
+    // MP1 (PMOS A): ON when A is LOW (VA < VDD - |VTHP|)
+    if (nandChannelMeshes['chMP1']) {
+      nandChannelMeshes['chMP1'].visible = (regs.mp1 !== 'CUTOFF' && regs.mp1 !== 'SUBTHRESHOLD');
+    }
+
+    // MP2 (PMOS B): ON when B is LOW (VB < VDD - |VTHP|)
+    if (nandChannelMeshes['chMP2']) {
+      nandChannelMeshes['chMP2'].visible = (regs.mp2 !== 'CUTOFF' && regs.mp2 !== 'SUBTHRESHOLD');
+    }
+
+    // MN1 (NMOS A): ON when A is HIGH (VA > VTN)
+    if (nandChannelMeshes['chMN1']) {
+      nandChannelMeshes['chMN1'].visible = (regs.mn1 !== 'CUTOFF' && regs.mn1 !== 'SUBTHRESHOLD');
+    }
+
+    // MN2 (NMOS B): ON when B is HIGH (VB > VTN)
+    if (nandChannelMeshes['chMN2']) {
+      nandChannelMeshes['chMN2'].visible = (regs.mn2 !== 'CUTOFF' && regs.mn2 !== 'SUBTHRESHOLD');
+    }
+  };
+
+  window.updateNandChannelThemes = function(theme) {
+    var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
+    ['chMP1', 'chMP2'].forEach(function(id) {
+      var m = nandChannelMeshes[id];
+      if (m && m.material) {
+        m.material.color.setHex(isLight ? 0xb91c1c : 0xff4fbf);
+        m.material.emissive.setHex(isLight ? 0x991b1b : 0xdb2777);
+      }
+    });
+    ['chMN1', 'chMN2'].forEach(function(id) {
+      var m = nandChannelMeshes[id];
+      if (m && m.material) {
+        m.material.color.setHex(isLight ? 0x0052cc : 0x38bdf8);
+        m.material.emissive.setHex(isLight ? 0x003399 : 0x0284c7);
+      }
+    });
+  };
 
   /* 5. Gate Oxide (SiO2) & High-K (HfO2) (Sharp BoxGeometry, no outline) */
   var oxH = Y.oxideTop - Y.oxideBot;

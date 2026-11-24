@@ -1,4 +1,4 @@
-/* CatmullRomCurve3 conduction paths for MP1, MP2, and series MN2->MN1, dual parallel pools & Current/Electrons toggle */
+/* CatmullRomCurve3 conduction paths for MP1, MP2, and series MN2->MN1, dual parallel pools & Current/Carriers toggle */
 
 var flowMode = 'current'; /* 'current' | 'electron' */
 var pmosACurve = null;
@@ -8,10 +8,11 @@ var nmosSeriesCurve = null;
 var branchMarkersA = [];
 var branchMarkersB = [];
 var flowGroup = new THREE.Group();
+flowGroup.name = 'flowGroup';
 scene.add(flowGroup);
 
-var FLOW_MARKER_COUNT = 6;
-var FLOW_SPEED = 0.075;
+var FLOW_MARKER_COUNT = 14;
+var FLOW_SPEED = 0.085;
 var flowPhase = 0;
 
 var guideLineA = null;
@@ -21,38 +22,50 @@ var _upVec = new THREE.Vector3(0, 1, 0);
 var _tmpPt = new THREE.Vector3();
 var _tmpTan = new THREE.Vector3();
 
+// High contrast palette:
+var ELECTRON_COLOR_DARK = 0x38bdf8;
+var ELECTRON_COLOR_LIGHT = 0x0052cc; // Deep royal cobalt blue
+var HOLE_COLOR_DARK = 0xff4fbf;
+var HOLE_COLOR_LIGHT = 0xb91c1c;     // Deep crimson
+var CURRENT_COLOR_DARK = 0xffcf4d;
+var CURRENT_COLOR_LIGHT = 0xb45309;  // Warm deep bronze / amber
+
 function pOf(id) {
   var m = meshById[id];
   return m ? m.position : new THREE.Vector3();
 }
 
 function buildFlowPools() {
-  var coneGeo = new THREE.ConeGeometry(0.14, 0.34, 10);
+  while (flowGroup.children.length > 0) {
+    flowGroup.remove(flowGroup.children[0]);
+  }
+  branchMarkersA = [];
+  branchMarkersB = [];
+
+  var carrierGeo = new THREE.SphereGeometry(0.045, 8, 8);
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var initColor = isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK;
 
   for (var i = 0; i < FLOW_MARKER_COUNT; i++) {
-    var matA = new THREE.MeshStandardMaterial({
-      color: 0xffcf4d,
-      emissive: 0xffcf4d,
-      emissiveIntensity: 0.9,
-      roughness: 0.50,
-      metalness: 0.0
+    var matA = new THREE.MeshBasicMaterial({
+      color: initColor,
+      depthTest: true,
+      depthWrite: false
     });
-    var coneA = new THREE.Mesh(coneGeo, matA);
-    coneA.visible = false;
-    flowGroup.add(coneA);
-    branchMarkersA.push(coneA);
+    var sphereA = new THREE.Mesh(carrierGeo, matA);
+    sphereA.visible = false;
+    flowGroup.add(sphereA);
+    branchMarkersA.push(sphereA);
 
-    var matB = new THREE.MeshStandardMaterial({
-      color: 0xffcf4d,
-      emissive: 0xffcf4d,
-      emissiveIntensity: 0.9,
-      roughness: 0.50,
-      metalness: 0.0
+    var matB = new THREE.MeshBasicMaterial({
+      color: initColor,
+      depthTest: true,
+      depthWrite: false
     });
-    var coneB = new THREE.Mesh(coneGeo, matB);
-    coneB.visible = false;
-    flowGroup.add(coneB);
-    branchMarkersB.push(coneB);
+    var sphereB = new THREE.Mesh(carrierGeo, matB);
+    sphereB.visible = false;
+    flowGroup.add(sphereB);
+    branchMarkersB.push(sphereB);
   }
 }
 
@@ -62,7 +75,7 @@ function makeGuideTube(curve, colorHex) {
   var mat = new THREE.LineBasicMaterial({
     color: colorHex,
     transparent: true,
-    opacity: 0.42
+    opacity: 0.38
   });
   return new THREE.Line(geo, mat);
 }
@@ -103,6 +116,7 @@ function rebuildFlowCurves() {
     new THREE.Vector3(pOf('outNmosBranch').x, outY, outZ),
     new THREE.Vector3(outEndX, outY, outZ)
   ], false, 'catmullrom', 0.12);
+  pmosACurve.userData = { type: 'pmos' };
 
   /* 2. MP2 Pull-Up Curve: VDD -> vddStubPmosB -> pmosBSrcCt -> pmosBSrc -> Gate B channel -> pmosSharedDrn -> pmosSharedDrnCt -> outPmosBranch -> outSpine -> outPin */
   pmosBCurve = new THREE.CatmullRomCurve3([
@@ -117,6 +131,7 @@ function rebuildFlowCurves() {
     new THREE.Vector3(pOf('outNmosBranch').x, outY, outZ),
     new THREE.Vector3(outEndX, outY, outZ)
   ], false, 'catmullrom', 0.12);
+  pmosBCurve.userData = { type: 'pmos' };
 
   /* 3. Series NMOS Pull-Down Curve: outPin -> outSpine -> outNmosBranch -> nmosBDrnCt -> nmosBDrn -> Gate B channel -> nmosMidNode -> Gate A channel -> nmosASrc -> nmosASrcCt -> gndStubNmosA -> gndRail */
   var nB_x = pOf('nmosBDrnCt').x;
@@ -147,6 +162,7 @@ function rebuildFlowCurves() {
     new THREE.Vector3(nA_x, gndY, gndZ),
     new THREE.Vector3(nA_x - 5.0, gndY, gndZ)
   ], false, 'catmullrom', 0.12);
+  nmosSeriesCurve.userData = { type: 'nmos' };
 
   refreshFlowGuides();
 }
@@ -185,18 +201,27 @@ function clearGuideLines() {
   }
 }
 
+function getCurveColor(curve) {
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var isCarrier = (flowMode === 'electron' || flowMode === 'carrier');
+  if (!isCarrier) {
+    return isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK;
+  }
+  if (curve && curve.userData && curve.userData.type === 'pmos') {
+    return isLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK;
+  }
+  return isLight ? ELECTRON_COLOR_LIGHT : ELECTRON_COLOR_DARK;
+}
+
 function refreshFlowGuides() {
   clearGuideLines();
   var active = getActiveCurves();
-  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var colorHex = flowMode === 'electron' ? (isLight ? 0x0052cc : 0x4fd1ff) : (isLight ? 0xb45309 : 0xffcf4d);
-
   if (active.length >= 1) {
-    guideLineA = makeGuideTube(active[0], colorHex);
+    guideLineA = makeGuideTube(active[0], getCurveColor(active[0]));
     flowGroup.add(guideLineA);
   }
   if (active.length >= 2) {
-    guideLineB = makeGuideTube(active[1], colorHex);
+    guideLineB = makeGuideTube(active[1], getCurveColor(active[1]));
     flowGroup.add(guideLineB);
   }
 }
@@ -208,27 +233,31 @@ function hideAllFlowMarkers() {
   }
 }
 
-function positionPoolOnCurve(pool, curve, colorHex) {
-  var isElectron = flowMode === 'electron';
+function positionPoolOnCurve(pool, curve) {
+  var isCarrier = (flowMode === 'electron' || flowMode === 'carrier');
+  var isPmos = curve && curve.userData && curve.userData.type === 'pmos';
+  var colorHex = getCurveColor(curve);
+
   for (var i = 0; i < pool.length; i++) {
-    var cone = pool[i];
+    var sphere = pool[i];
     var u = (flowPhase + i / pool.length) % 1.0;
-    var t = isElectron ? (1.0 - u) : u;
+
+    // Conduction direction:
+    // In PMOS: Holes (and current) flow VDD -> OUT (forward along curve, u)
+    // In NMOS: Conventional current flows OUT -> GND (forward along curve, u)
+    //          Electrons drift from GND -> OUT (reverse along curve, 1.0 - u)
+    var t;
+    if (isPmos) {
+      t = u;
+    } else {
+      t = isCarrier ? (1.0 - u) : u;
+    }
     t = Math.max(0.001, Math.min(0.999, t));
 
     curve.getPointAt(t, _tmpPt);
-    curve.getTangentAt(t, _tmpTan);
-    if (isElectron) _tmpTan.negate();
-    _tmpTan.normalize();
-
-    cone.position.copy(_tmpPt);
-    cone.quaternion.setFromUnitVectors(_upVec, _tmpTan);
-    cone.material.color.setHex(colorHex);
-    if (cone.material.emissive) {
-      cone.material.emissive.setHex(colorHex);
-      cone.material.emissiveIntensity = 0.9;
-    }
-    cone.visible = true;
+    sphere.position.copy(_tmpPt);
+    sphere.material.color.setHex(colorHex);
+    sphere.visible = true;
   }
 }
 
@@ -240,14 +269,10 @@ function updateFlowMarkers(dt) {
   }
 
   flowPhase = (flowPhase + dt * FLOW_SPEED) % 1.0;
-  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var colorHex = flowMode === 'electron'
-    ? (isLight ? 0x0052cc : 0x4fd1ff)
-    : (isLight ? 0xb45309 : 0xffcf4d);
 
-  positionPoolOnCurve(branchMarkersA, active[0], colorHex);
+  positionPoolOnCurve(branchMarkersA, active[0]);
   if (active.length >= 2) {
-    positionPoolOnCurve(branchMarkersB, active[1], colorHex);
+    positionPoolOnCurve(branchMarkersB, active[1]);
   } else {
     for (var i = 0; i < branchMarkersB.length; i++) {
       branchMarkersB[i].visible = false;
@@ -256,10 +281,12 @@ function updateFlowMarkers(dt) {
 }
 
 function setFlowMode(mode) {
-  flowMode = mode === 'electron' ? 'electron' : 'current';
-  var btns = document.querySelectorAll('#flow-mode-group .seg-btn[data-flow]');
+  flowMode = (mode === 'electron' || mode === 'carrier') ? 'electron' : 'current';
+  var btns = document.querySelectorAll('#flow-mode-group button[data-flow], #flow-mode-group .seg-btn[data-flow]');
   for (var i = 0; i < btns.length; i++) {
-    btns[i].classList.toggle('active', btns[i].getAttribute('data-flow') === flowMode);
+    var attr = btns[i].getAttribute('data-flow');
+    var isMatch = (flowMode === 'electron') ? (attr === 'electron' || attr === 'carrier') : (attr === 'current');
+    btns[i].classList.toggle('active', isMatch);
   }
   refreshFlowGuides();
 }
@@ -271,7 +298,7 @@ function initFlowControls() {
   var grp = document.getElementById('flow-mode-group');
   if (grp) {
     grp.addEventListener('click', function (e) {
-      var btn = e.target.closest('.seg-btn[data-flow]');
+      var btn = e.target.closest('button[data-flow], .seg-btn[data-flow]');
       if (!btn) return;
       setFlowMode(btn.getAttribute('data-flow'));
     });

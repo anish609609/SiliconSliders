@@ -1,24 +1,28 @@
 /**
- * flow.js
- * Animated current/electron flow: builds the conventional-current-direction curves for each transistor,
- * including shoot-through leakage current for High-Z floating input (IN = OFF), rebuilds them whenever
- * Explode changes, and steps the arrow markers each frame.
+ * flow.js - CMOS Inverter CAD Viewer
+ * Dynamic 3D carrier flow & conventional current simulation:
+ * - Ultra-fine quantum carrier particles (radius 0.045) streaming through PMOS and NMOS channels.
+ * - Accurate physical carrier transport:
+ *     * PMOS: Mobile holes (h+) drift from Source (+VDD) through channel to Drain (OUT).
+ *     * NMOS: Mobile electrons (e-) drift from Source (GND) through channel to Drain (OUT).
+ *     * Transition (Region B-D): Simultaneous conduction forming peak shoot-through current at VM.
+ * - Dynamic path updates when layers are exploded.
+ * - High-contrast palette in both Dark and Light modes.
  */
 
 // =====================================================================
-// SHOW CONNECTIONS — animated current / electron flow
+// CARRIER & CURRENT FLOW SIMULATION
 // =====================================================================
 if (typeof window.currentIn === 'undefined') window.currentIn = 'off';
 var flowMode = 'current'; // 'current' | 'electron'
 var flowSeg = document.getElementById('flow-seg');
 var flowCaption = document.getElementById('flow-caption');
-var markerGroup = new THREE.Group(); scene.add(markerGroup);
+var markerGroup = new THREE.Group();
+markerGroup.name = 'flowGroup';
+scene.add(markerGroup);
 
 var PMOS_PATH_IDS = ['vddRail','vddStubPmos','pmosSrcCt','pmosSrc','pmosDrn','pmosDrnCt','outSpine'];
 var NMOS_PATH_IDS = ['outSpine','nmosDrnCt','nmosDrn','nmosSrc','nmosSrcCt','gndStubNmos','gndRail'];
-
-// Shoot-through / leakage current path when IN = OFF (floating gate):
-// Direct conduction from VDD rail through PMOS down through OUT spine into NMOS and sinking into GND
 var SHOOT_THROUGH_PATH_IDS = [
   'vddRail','vddStubPmos','pmosSrcCt','pmosSrc','pmosDrn','pmosDrnCt',
   'outSpine',
@@ -27,126 +31,197 @@ var SHOOT_THROUGH_PATH_IDS = [
 
 var METAL_FLOW_Y = (Y.metalTop + Y.metalBot) / 2;
 
-var PMOS_PATH_BASE = [
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, RAIL_Z), layer:'metal' },
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, PMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(SRC_X, Y.actTop+0.15, PMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(0,      Y.actTop+0.15, PMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(DRN_X, Y.actTop+0.15, PMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, PMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, 0), layer:'metal' }
-];
+// Fine spherical particle geometry (quantum charge carrier spheres)
+var carrierGeom = new THREE.SphereGeometry(0.045, 8, 8);
 
-var NMOS_PATH_BASE = [
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, 0), layer:'metal' },
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, NMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(DRN_X, Y.actTop+0.15, NMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(0,      Y.actTop+0.15, NMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(SRC_X, Y.actTop+0.15, NMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, NMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, -RAIL_Z), layer:'metal' }
-];
+// Colors: High contrast in both dark and light modes
+var ELECTRON_COLOR_DARK = 0x38bdf8;
+var ELECTRON_COLOR_LIGHT = 0x0052cc; // Deep royal cobalt blue
+var HOLE_COLOR_DARK = 0xff4fbf;
+var HOLE_COLOR_LIGHT = 0xb91c1c;     // Deep crimson
+var CURRENT_COLOR_DARK = 0xffcf4d;
+var CURRENT_COLOR_LIGHT = 0xb45309;  // Warm deep bronze / amber
 
-var SHOOT_THROUGH_PATH_BASE = [
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, RAIL_Z), layer:'metal' },
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, PMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(SRC_X, Y.actTop+0.15, PMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(0,      Y.actTop+0.15, PMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(DRN_X, Y.actTop+0.15, PMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, PMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, 0), layer:'metal' },
-  { p:new THREE.Vector3(DRN_X, METAL_FLOW_Y, NMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(DRN_X, Y.actTop+0.15, NMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(0,      Y.actTop+0.15, NMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(SRC_X, Y.actTop+0.15, NMOS_ZC), layer:'active' },
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, NMOS_ZC), layer:'metal' },
-  { p:new THREE.Vector3(SRC_X, METAL_FLOW_Y, -RAIL_Z), layer:'metal' }
-];
+var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
 
-var pmosCurve, nmosCurve, shootThroughCurve;
-function rebuildFlowCurves(){
-  function build(base){
-    var pts = base.map(function(pt){
-      var grp = groups[pt.layer];
-      var offsetX = grp ? grp.position.x : 0;
-      var offsetY = grp ? grp.position.y : 0;
-      var offsetZ = grp ? grp.position.z : 0;
-      return new THREE.Vector3(pt.p.x + offsetX, pt.p.y + offsetY, pt.p.z + offsetZ);
-    });
-    return new THREE.CatmullRomCurve3(pts);
-  }
-  pmosCurve = build(PMOS_PATH_BASE);
-  nmosCurve = build(NMOS_PATH_BASE);
-  shootThroughCurve = build(SHOOT_THROUGH_PATH_BASE);
+var electronMat = new THREE.MeshBasicMaterial({
+  color: isInitLight ? ELECTRON_COLOR_LIGHT : ELECTRON_COLOR_DARK,
+  depthTest: true,
+  depthWrite: false
+});
+var holeMat = new THREE.MeshBasicMaterial({
+  color: isInitLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK,
+  depthTest: true,
+  depthWrite: false
+});
+var currentMat = new THREE.MeshBasicMaterial({
+  color: isInitLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK,
+  depthTest: true,
+  depthWrite: false
+});
+
+markerGroup.renderOrder = 999;
+
+function updateFlowTheme(theme) {
+  var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
+  if (electronMat) electronMat.color.setHex(isLight ? ELECTRON_COLOR_LIGHT : ELECTRON_COLOR_DARK);
+  if (holeMat) holeMat.color.setHex(isLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK);
+  if (currentMat) currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+  if (typeof refreshConnections === 'function') refreshConnections();
+}
+window.updateFlowTheme = updateFlowTheme;
+
+// Multi-track curve collections
+var pmosTracks = [];
+var nmosTracks = [];
+var shootTracks = [];
+
+function rebuildFlowCurves() {
+  pmosTracks = [];
+  nmosTracks = [];
+  shootTracks = [];
+
+  var actOffset = groups['active'] ? groups['active'].position : new THREE.Vector3();
+  var metalOffset = groups['metal'] ? groups['metal'].position : new THREE.Vector3();
+
+  var zOffsets = [-1.8, -0.9, 0.0, 0.9, 1.8];
+
+  // 1. PMOS Tracks (Source at X = -2.5, VDD; Drain at X = +2.5, OUT)
+  zOffsets.forEach(function(dz) {
+    var pz = PMOS_ZC + dz;
+    var pts = [
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, RAIL_Z + metalOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(-0.9 + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(0.9  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0  + metalOffset.z)
+    ];
+    pmosTracks.push(new THREE.CatmullRomCurve3(pts));
+  });
+
+  // 2. NMOS Tracks (Source at X = -2.5, GND; Drain at X = +2.5, OUT)
+  zOffsets.forEach(function(dz) {
+    var nz = NMOS_ZC + dz;
+    var pts = [
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, -RAIL_Z + metalOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(-0.9 + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(0.9  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0  + metalOffset.z)
+    ];
+    nmosTracks.push(new THREE.CatmullRomCurve3(pts));
+  });
+
+  // 3. Shoot-Through Tracks (VDD -> PMOS -> OUT -> NMOS -> GND)
+  zOffsets.forEach(function(dz) {
+    var pz = PMOS_ZC + dz;
+    var nz = NMOS_ZC + dz;
+    var pts = [
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, RAIL_Z + metalOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0  + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, -RAIL_Z + metalOffset.z)
+    ];
+    shootTracks.push(new THREE.CatmullRomCurve3(pts));
+  });
 }
 rebuildFlowCurves();
 
-var N_MARKERS = 6;
-var flowMarkers = [];
-for (var fi=0; fi<N_MARKERS; fi++){
-  var coneGeo = new THREE.ConeGeometry(0.14, 0.34, 10);
-  var coneMat = new THREE.MeshStandardMaterial({ color:0xffcf4d, emissive:0xffcf4d, emissiveIntensity:0.9 });
-  var cone = new THREE.Mesh(coneGeo, coneMat);
-  markerGroup.add(cone);
-  flowMarkers.push({ mesh:cone, t: fi / N_MARKERS });
-}
+var flowParticles = [];
+var PARTICLES_PER_TRACK = 6;
 
-function activePathIds(){
+function initFlowParticles() {
+  while (markerGroup.children.length > 0) {
+    markerGroup.remove(markerGroup.children[0]);
+  }
+  flowParticles = [];
+
+  // Create a pool of particles capable of displaying PMOS, NMOS, and Shoot-through
+  var totalTracks = Math.max(pmosTracks.length, nmosTracks.length, shootTracks.length);
+  for (var ti = 0; ti < totalTracks; ti++) {
+    for (var pi = 0; pi < PARTICLES_PER_TRACK; pi++) {
+      var m = new THREE.Mesh(carrierGeom, currentMat);
+      m.visible = false;
+      m.userData = {
+        trackIdx: ti,
+        progress: (pi / PARTICLES_PER_TRACK) + Math.random() * 0.03,
+        speed: 0.006 + Math.random() * 0.002
+      };
+      markerGroup.add(m);
+      flowParticles.push(m);
+    }
+  }
+}
+initFlowParticles();
+
+function activePathIds() {
   var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
   if (cur === 'off') return SHOOT_THROUGH_PATH_IDS;
   if (typeof cur === 'number') {
-    if (cur < 0.45) return PMOS_PATH_IDS;
-    if (cur > 0.55) return NMOS_PATH_IDS;
+    if (cur < 0.40) return PMOS_PATH_IDS;
+    if (cur > 0.60) return NMOS_PATH_IDS;
     return SHOOT_THROUGH_PATH_IDS;
   }
   return cur === 0 ? PMOS_PATH_IDS : NMOS_PATH_IDS;
 }
-function activeCurve(){
-  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
-  if (cur === 'off') return shootThroughCurve;
-  if (typeof cur === 'number') {
-    if (cur < 0.45) return pmosCurve;
-    if (cur > 0.55) return nmosCurve;
-    return shootThroughCurve;
-  }
-  return cur === 0 ? pmosCurve : nmosCurve;
-}
 
-function updateFlowCaption(){
+function updateFlowCaption() {
+  if (!flowCaption) return;
   flowCaption.classList.add('visible');
   var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
-  var modeLabel = flowMode === 'current' ? 'CONVENTIONAL CURRENT' : 'ELECTRON FLOW';
-  var desc;
-  if (cur === 'off'){
-    modeLabel += ' [HIGH-Z LEAKAGE]';
-    desc = flowMode === 'current'
-      ? 'VDD \u2192 PMOS \u2192 OUT \u2192 NMOS \u2192 GND (SHOOT-THROUGH LEAKAGE)'
-      : 'GND \u2192 NMOS \u2192 OUT \u2192 PMOS \u2192 VDD (SHOOT-THROUGH LEAKAGE)';
-  } else if (typeof cur === 'number' && cur >= 0.45 && cur <= 0.55){
-    modeLabel += ' [PEAK SHOOT-THROUGH]';
-    desc = flowMode === 'current'
-      ? 'VDD \u2192 PMOS \u2192 OUT \u2192 NMOS \u2192 GND (BOTH SATURATION \u00b7 PEAK IDD)'
-      : 'GND \u2192 NMOS \u2192 OUT \u2192 PMOS \u2192 VDD (BOTH SATURATION \u00b7 PEAK IDD)';
-  } else if (cur === 0 || (typeof cur === 'number' && cur < 0.5)){
-    desc = flowMode === 'current' ? 'VDD \u2192 PMOS \u2192 OUT' : 'OUT \u2192 PMOS \u2192 VDD';
-  } else {
-    desc = flowMode === 'current' ? 'OUT \u2192 NMOS \u2192 GND' : 'GND \u2192 NMOS \u2192 OUT';
+  var isCarrier = (flowMode === 'electron' || flowMode === 'carrier');
+  var modeLabel = isCarrier ? 'CARRIER DRIFT' : 'CONVENTIONAL CURRENT';
+  var desc = '';
+
+  if (cur === 'off') {
+    flowCaption.textContent = 'CIRCUIT STATE: OFF / HIGH-Z (STATIONARY · FLOW INACTIVE)';
+    return;
   }
-  flowCaption.textContent = modeLabel + ':  ' + desc;
+
+  if (typeof cur === 'number' && cur >= 0.40 && cur <= 0.60) {
+    modeLabel += ' [PEAK SHOOT-THROUGH]';
+    desc = isCarrier
+      ? 'PMOS: Holes (VDD \u2192 OUT) · NMOS: Electrons (GND \u2192 OUT) · Simultaneous Conduction'
+      : 'VDD \u2192 PMOS \u2192 OUT \u2192 NMOS \u2192 GND (Both Saturated \u00b7 Peak IDD)';
+  } else if (cur === 0 || (typeof cur === 'number' && cur < 0.40)) {
+    desc = isCarrier
+      ? 'PMOS: Mobile Holes (h+) drift from Source (+VDD) \u2192 Inversion Channel \u2192 Drain (OUT)'
+      : 'Positive Current ID flows from VDD Rail \u2192 PMOS \u2192 OUT (Pulling Output HIGH)';
+  } else {
+    desc = isCarrier
+      ? 'NMOS: Mobile Electrons (e-) drift from Source (GND) \u2192 Inversion Channel \u2192 Drain (OUT)'
+      : 'Positive Current ID flows from OUT \u2192 NMOS \u2192 GND (Pulling Output LOW)';
+  }
+
+  flowCaption.textContent = modeLabel + ': ' + desc;
 }
 
-function refreshConnections(){
-  // clear pulsing on everything
-  selectable.forEach(function(m){ m.userData.pulsing = false; });
+function refreshConnections() {
+  selectable.forEach(function(m) { m.userData.pulsing = false; });
 
   var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
-  if (cur === 'off'){
-    // In OFF state, all flow is deactivated, particles are hidden and frozen
-    flowMarkers.forEach(function(fm){ fm.mesh.visible = false; });
-    flowCaption.classList.add('visible');
-    flowCaption.textContent = 'CIRCUIT STATE: OFF / HIGH-Z (STATIONARY — ALL FLOW INACTIVE)';
-    selectable.forEach(function(m){
-      if (m && m.material && m.material.emissive && selectedMeshes.indexOf(m) === -1){
+  if (cur === 'off') {
+    flowParticles.forEach(function(p) { p.visible = false; });
+    updateFlowCaption();
+    selectable.forEach(function(m) {
+      if (m && m.material && m.material.emissive && selectedMeshes.indexOf(m) === -1) {
         m.material.emissive.setHex(m.userData.baseEmissive || 0);
         m.material.emissiveIntensity = m.userData.baseEmissiveIntensity || 0;
       }
@@ -154,54 +229,96 @@ function refreshConnections(){
     return;
   }
 
-  activePathIds().forEach(function(id){
+  activePathIds().forEach(function(id) {
     var m = findMesh(id);
     if (m) m.userData.pulsing = true;
   });
-  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var col;
-  if (flowMode === 'current') {
-    col = isLight ? 0xb45309 : 0xffcf4d;
-  } else {
-    col = isLight ? 0x0052cc : 0x4fd1ff;
-  }
-  flowMarkers.forEach(function(fm){
-    fm.mesh.visible = true;
-    fm.mesh.material.color.setHex(col);
-    fm.mesh.material.emissive.setHex(col);
-  });
+
   updateFlowCaption();
 }
 
-flowSeg.addEventListener('click', function(e){
-  var btn = e.target.closest('button'); if (!btn) return;
-  flowSeg.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  flowMode = btn.dataset.flow === 'electron' ? 'electron' : 'current';
-  refreshConnections();
-});
-
-var UP_AXIS = new THREE.Vector3(0,1,0);
-function stepFlowMarkers(dt){
-  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
-  if (cur === 'off') return; // Completely freeze in OFF state
-  var curve = activeCurve();
-  var reversed = flowMode === 'electron';
-  var speed = 0.075; // Calm, human-readable flow speed
-  flowMarkers.forEach(function(fm){
-    fm.t += dt * speed;
-    if (fm.t > 1) fm.t -= 1;
-    var sampleT = reversed ? (1 - fm.t) : fm.t;
-    var p = curve.getPointAt(Math.min(Math.max(sampleT,0.0001),0.9999));
-    var tan = curve.getTangentAt(Math.min(Math.max(sampleT,0.0001),0.9999)).normalize();
-    if (reversed) tan.multiplyScalar(-1);
-    fm.mesh.position.copy(p);
-    var q = new THREE.Quaternion().setFromUnitVectors(UP_AXIS, tan);
-    fm.mesh.quaternion.copy(q);
+if (flowSeg) {
+  flowSeg.addEventListener('click', function(e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    flowSeg.querySelectorAll('button').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    flowMode = (btn.dataset.flow === 'electron' || btn.dataset.flow === 'carrier') ? 'electron' : 'current';
+    refreshConnections();
   });
 }
 
-window.updateFlowTheme = function(theme) {
-  if (typeof refreshConnections === 'function') refreshConnections();
-};
-if (typeof window.updateFlowTheme === 'function') window.updateFlowTheme();
+function stepFlowMarkers(dt) {
+  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
+  if (cur === 'off') return;
+
+  var isCarrier = (flowMode === 'electron' || flowMode === 'carrier');
+  var isShootThrough = (typeof cur === 'number' && cur >= 0.40 && cur <= 0.60);
+  var isPmosOn = (cur === 0 || (typeof cur === 'number' && cur < 0.60));
+  var isNmosOn = (cur === 1 || (typeof cur === 'number' && cur > 0.40));
+
+  var speedFactor = 0.08;
+
+  for (var i = 0; i < flowParticles.length; i++) {
+    var p = flowParticles[i];
+    var ti = p.userData.trackIdx;
+
+    if (isShootThrough) {
+      // Both PMOS and NMOS conduct
+      var track = shootTracks[ti % shootTracks.length];
+      if (!track) continue;
+
+      p.userData.progress += dt * speedFactor * 0.9;
+      if (p.userData.progress > 1.0) p.userData.progress -= 1.0;
+
+      var prog = p.userData.progress;
+      var pt = track.getPointAt(Math.max(0.001, Math.min(0.999, prog)));
+      if (pt) p.position.copy(pt);
+
+      if (isCarrier) {
+        // Upper half (VDD to OUT) is holes; lower half (OUT to GND) is electrons
+        p.material = (prog < 0.5) ? holeMat : electronMat;
+      } else {
+        p.material = currentMat;
+      }
+      p.visible = true;
+
+    } else if (isPmosOn && !isNmosOn) {
+      // Region A: PMOS conduction only
+      var track = pmosTracks[ti % pmosTracks.length];
+      if (!track) continue;
+
+      p.userData.progress += dt * speedFactor;
+      if (p.userData.progress > 1.0) p.userData.progress -= 1.0;
+
+      // In PMOS, both holes and current flow Source (VDD) -> Drain (OUT)
+      var prog = p.userData.progress;
+      var pt = track.getPointAt(Math.max(0.001, Math.min(0.999, prog)));
+      if (pt) p.position.copy(pt);
+
+      p.material = isCarrier ? holeMat : currentMat;
+      p.visible = true;
+
+    } else if (isNmosOn && !isPmosOn) {
+      // Region E: NMOS conduction only
+      var track = nmosTracks[ti % nmosTracks.length];
+      if (!track) continue;
+
+      p.userData.progress += dt * speedFactor;
+      if (p.userData.progress > 1.0) p.userData.progress -= 1.0;
+
+      var prog = p.userData.progress;
+      // In NMOS: electrons flow Source (GND) -> Drain (OUT) [forward along track]
+      // Conventional current flows Drain (OUT) -> Source (GND) [reverse along track]
+      var sampleProg = isCarrier ? prog : (1.0 - prog);
+      var pt = track.getPointAt(Math.max(0.001, Math.min(0.999, sampleProg)));
+      if (pt) p.position.copy(pt);
+
+      p.material = isCarrier ? electronMat : currentMat;
+      p.visible = true;
+
+    } else {
+      p.visible = false;
+    }
+  }
+}

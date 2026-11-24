@@ -90,6 +90,10 @@
     if (!statusPill || !statusText) return;
     statusPill.className = 'va-status-pill ' + state;
     statusText.textContent = label;
+    if (launcherEl) {
+      launcherEl.classList.toggle('listening', state === 'listening');
+      launcherEl.classList.toggle('speaking', state === 'speaking');
+    }
   }
 
   function appendMessage(sender, text) {
@@ -388,6 +392,96 @@
   }
 
   // =========================================================================
+  // SPEECH RECOGNITION (STT)
+  // =========================================================================
+  function initSpeechRecognition() {
+    var SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) {
+      console.error('Speech recognition not supported in this browser.');
+      updateStatus('error', 'Speech recognition not supported');
+      return null;
+    }
+
+    var recognition = new SpeechRecognitionClass();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = currentLang || 'en-IN';
+
+    recognition.onstart = function () {
+      isRecognizing = true;
+      if (micBtn) {
+        micBtn.classList.add('recording');
+        micBtn.title = 'Listening... Click to finish speaking';
+      }
+      updateStatus('listening', 'Listening...');
+    };
+
+    recognition.onresult = function (event) {
+      var transcript = '';
+      for (var i = event.resultIndex; i < event.results.length; ++i) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (inputField && transcript) {
+        inputField.value = transcript;
+      }
+    };
+
+    recognition.onerror = function (event) {
+      isRecognizing = false;
+      if (micBtn) {
+        micBtn.classList.remove('recording');
+        micBtn.title = 'Voice Input (Mic)';
+      }
+      var errMsg = event.error === 'not-allowed' ? 'Mic permission denied' : ('STT error: ' + event.error);
+      console.error('Speech recognition error:', event.error, errMsg);
+      updateStatus('error', errMsg);
+    };
+
+    recognition.onend = function () {
+      isRecognizing = false;
+      if (micBtn) {
+        micBtn.classList.remove('recording');
+        micBtn.title = 'Voice Input (Mic)';
+      }
+      if (inputField && inputField.value.trim()) {
+        updateStatus('ready', 'Transcribed - Click Ask & Speak');
+      } else {
+        updateStatus('ready', 'AI Tutor Ready');
+      }
+    };
+
+    return recognition;
+  }
+
+  function toggleSpeechRecognition() {
+    if (isRecognizing && speechRecognition) {
+      try {
+        speechRecognition.stop();
+      } catch (e) {
+        console.error('Error stopping speech recognition:', e);
+      }
+      return;
+    }
+
+    if (!speechRecognition) {
+      speechRecognition = initSpeechRecognition();
+    }
+    if (!speechRecognition) {
+      alert('Speech-to-text recognition is not supported in this browser. Please type your question.');
+      return;
+    }
+
+    stopAudio();
+    speechRecognition.lang = currentLang || 'en-IN';
+    try {
+      speechRecognition.start();
+    } catch (e) {
+      console.error('Error starting speech recognition:', e);
+      updateStatus('error', 'Mic error: ' + e.message);
+    }
+  }
+
+  // =========================================================================
   // INITIALIZATION & DOM BINDINGS
   // =========================================================================
   function init() {
@@ -397,7 +491,7 @@
     speakerSelect = document.getElementById('va-speaker-select');
     statusPill = document.getElementById('va-status-pill');
     statusText = document.getElementById('va-status-text');
-    inputField = document.getElementById('va-input');
+    inputField = document.getElementById('va-input-text') || document.getElementById('va-input');
     sendBtn = document.getElementById('va-btn-send');
     micBtn = document.getElementById('va-btn-mic');
     stopBtn = document.getElementById('va-btn-stop');
@@ -417,18 +511,51 @@
     keyModalSaveBtn = document.getElementById('va-modal-save-btn');
     var settingsBtn = document.getElementById('va-btn-settings');
 
+    // Launcher button (toggle open / minimized)
     if (launcherEl && widgetEl) {
       launcherEl.addEventListener('click', function () {
-        var open = widgetEl.classList.toggle('open');
-        launcherEl.classList.toggle('active', open);
+        var isOpen = widgetEl.classList.contains('open') && !widgetEl.classList.contains('minimized');
+        if (isOpen) {
+          widgetEl.classList.add('minimized');
+          widgetEl.classList.remove('open');
+          launcherEl.classList.remove('active');
+        } else {
+          widgetEl.classList.remove('minimized');
+          widgetEl.classList.add('open');
+          launcherEl.classList.add('active');
+          if (inputField) inputField.focus();
+        }
       });
     }
 
-    var hdrClose = document.getElementById('va-hdr-close');
+    // Minimize button
+    var minBtn = document.getElementById('va-btn-minimize');
+    if (minBtn && widgetEl) {
+      minBtn.addEventListener('click', function () {
+        widgetEl.classList.add('minimized');
+        widgetEl.classList.remove('open');
+        if (launcherEl) {
+          launcherEl.classList.remove('active');
+        }
+      });
+    }
+
+    // Close button
+    var hdrClose = document.getElementById('va-btn-close') || document.getElementById('va-hdr-close');
     if (hdrClose && widgetEl) {
       hdrClose.addEventListener('click', function () {
+        stopAudio();
+        widgetEl.classList.add('minimized');
         widgetEl.classList.remove('open');
-        if (launcherEl) launcherEl.classList.remove('active');
+        if (launcherEl) {
+          launcherEl.classList.remove('active');
+        }
+      });
+    }
+
+    if (micBtn) {
+      micBtn.addEventListener('click', function () {
+        toggleSpeechRecognition();
       });
     }
 

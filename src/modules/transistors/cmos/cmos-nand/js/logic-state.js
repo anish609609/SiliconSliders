@@ -237,6 +237,11 @@ function applyLogicTint() {
   }
   setMetalPulsing(pulseIds);
 
+  /* Update dynamic 3D inversion channel visibility & physics */
+  if (typeof window.updateNandChannels === 'function') {
+    window.updateNandChannels(s);
+  }
+
   if (s.frozen && typeof hideAllFlowMarkers === 'function') {
     hideAllFlowMarkers();
   }
@@ -249,7 +254,7 @@ function updateTelemetryAndUi() {
   var s = computeNand2State(currentA, currentB);
 
   // Topbar input buttons
-  var aBtns = document.querySelectorAll('#input-a-group .seg-btn[data-a]');
+  var aBtns = document.querySelectorAll('#input-a-group button[data-a], #input-a-group .seg-btn[data-a]');
   for (var i = 0; i < aBtns.length; i++) {
     var vaAttr = aBtns[i].getAttribute('data-a');
     var isMatchA = (vaAttr === 'off' && currentA === 'off') ||
@@ -258,7 +263,7 @@ function updateTelemetryAndUi() {
     aBtns[i].classList.toggle('active', isMatchA);
   }
 
-  var bBtns = document.querySelectorAll('#input-b-group .seg-btn[data-b]');
+  var bBtns = document.querySelectorAll('#input-b-group button[data-b], #input-b-group .seg-btn[data-b]');
   for (var j = 0; j < bBtns.length; j++) {
     var vbAttr = bBtns[j].getAttribute('data-b');
     var isMatchB = (vbAttr === 'off' && currentB === 'off') ||
@@ -659,14 +664,14 @@ function setupCanvasDrag(canvasId) {
 /* Initialize all Logic State, Sliders, Sweep, and Modal controls */
 function initLogicStateControls() {
   // Topbar Input Buttons
-  document.querySelectorAll('#input-a-group .seg-btn[data-a]').forEach(function(btn) {
+  document.querySelectorAll('#input-a-group button[data-a], #input-a-group .seg-btn[data-a]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var val = btn.getAttribute('data-a');
       setInputs(val === 'off' ? 'off' : Number(val), currentB);
     });
   });
 
-  document.querySelectorAll('#input-b-group .seg-btn[data-b]').forEach(function(btn) {
+  document.querySelectorAll('#input-b-group button[data-b], #input-b-group .seg-btn[data-b]').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var val = btn.getAttribute('data-b');
       setInputs(currentA, val === 'off' ? 'off' : Number(val));

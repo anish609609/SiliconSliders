@@ -45,24 +45,24 @@
       <div class="in-toggle">
         A =
         <div class="seg" id="input-a-group">
-          <button data-a="0">0</button>
-          <button data-a="1">1</button>
-          <button data-a="off" class="active">OFF</button>
+          <button class="seg-btn" data-a="0">0</button>
+          <button class="seg-btn" data-a="1">1</button>
+          <button class="seg-btn active" data-a="off">OFF</button>
         </div>
       </div>
 
       <div class="in-toggle">
         B =
         <div class="seg" id="input-b-group">
-          <button data-b="0">0</button>
-          <button data-b="1">1</button>
-          <button data-b="off" class="active">OFF</button>
+          <button class="seg-btn" data-b="0">0</button>
+          <button class="seg-btn" data-b="1">1</button>
+          <button class="seg-btn active" data-b="off">OFF</button>
         </div>
       </div>
 
       <div class="seg" id="flow-mode-group" title="Direction convention for the animated flow markers">
-        <button data-flow="current" class="active">CURRENT</button>
-        <button data-flow="electron">ELECTRONS</button>
+        <button class="seg-btn active" data-flow="current">CURRENT</button>
+        <button class="seg-btn" data-flow="electron">CARRIERS</button>
       </div>
     </div>
 
@@ -97,7 +97,7 @@
         <span class="play-icon">▶</span>
         <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>
       </button>
-      <button class="tbtn" id="btn-reset-cam">RESET</button>
+      <button class="tbtn" id="btn-reset">RESET</button>
     </div>
   </div>
 
@@ -362,7 +362,6 @@
 
     <div id="viewport-wrap">
       <div id="canvas-host"></div>
-      <div id="canvas-wrap" style="display:none;"></div>
 
       <!-- Anchored Popover (shown when Left Workbench is collapsed) -->
       <div id="popover" class="popover hidden" role="dialog" aria-label="Selected Component">
