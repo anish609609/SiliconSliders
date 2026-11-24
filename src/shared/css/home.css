@@ -516,8 +516,9 @@
 
 .family-card-btn {
   display: flex;
-  flex-direction: column;
-  padding: 7px 9px;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 12px;
   background: var(--btn-bg);
   border: 1px solid var(--btn-border);
   border-radius: 6px;
@@ -538,26 +539,12 @@
   color: var(--text-heading);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-}
-
-.family-card-btn .btn-text::after {
-  content: '→';
-  font-size: 11px;
-  color: var(--text-muted);
-  transition: transform var(--transition-fast), color var(--transition-fast);
-}
-
-.family-card-btn:hover .btn-text::after {
-  transform: translateX(3px);
-  color: var(--accent-cyan);
+  justify-content: center;
+  text-align: center;
 }
 
 .family-card-btn .btn-sub {
-  font-size: 9.5px;
-  color: var(--text-muted);
-  margin-top: 2px;
-  font-family: var(--font-sans);
+  display: none;
 }
 
 .family-card-btn.active-btn {
@@ -583,10 +570,6 @@
   border-color: var(--border-color);
   transform: none;
   box-shadow: none;
-}
-
-.family-card-btn.disabled .btn-text::after {
-  display: none;
 }
 
 .family-card-btn.disabled .btn-text {

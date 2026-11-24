@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CMOS 2-Input NAND (NAND2) — 3D Physical Layout &amp; Semiconductor CAD</title>
+<script>
+  (function(){
+    try {
+      var t = localStorage.getItem('siliconsliders-theme') ||
+              localStorage.getItem('silicon_sliders_theme') ||
+              localStorage.getItem('cmos_nand_viewer_theme') ||
+              localStorage.getItem('cmos_viewer_theme');
+      if (t === 'light') {
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.documentElement.classList.remove('light');
+      }
+    } catch(e){}
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -11,17 +28,6 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
-<script>
-  (function(){
-    try {
-      var t = localStorage.getItem('silicon_sliders_theme') ||
-              localStorage.getItem('cmos_nand_viewer_theme') ||
-              localStorage.getItem('cmos_viewer_theme');
-      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
-      else document.documentElement.setAttribute('data-theme', 'dark');
-    } catch(e){}
-  })();
-</script>
 </head>
 <body>
 

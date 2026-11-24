@@ -1,19 +1,25 @@
 /**
  * materialPalette.js - Unified 3D Material Palette for Silicon Sliders
  * Single source of truth for Dark & Light Mode 3D material colors and dielectrics.
+ * Follows strict doping rule: Blue = P-Type, Green = N-Type.
+ * Doping hierarchy (Lighter -> Darker = Lower -> Higher Doping): Substrate < Well < SDE < Implant.
  */
 
 export const MATERIAL_PALETTE = {
   dark: {
-    // Silicon Regions
-    pSubstrate: '#2B3442',
-    nWell: '#2D5A4C',
-    nSubstrate: '#2D5A4C',
-    pWell: '#2E4366',
-    nPlusDiffusion: '#2563EB',
-    pPlusDiffusion: '#EA580C',
-    implantedNChannel: '#38BDF8',
-    implantedPChannel: '#FB923C',
+    // P-Type Silicon (Blue Family)
+    pSubstrate: '#1E3A5F',
+    pWell: '#1D4ED8',
+    pSDE: '#60A5FA',
+    pPlusDiffusion: '#3B82F6',
+    implantedPChannel: '#60A5FA',
+
+    // N-Type Silicon (Green Family)
+    nSubstrate: '#14532D',
+    nWell: '#166534',
+    nSDE: '#4ADE80',
+    nPlusDiffusion: '#22C55E',
+    implantedNChannel: '#4ADE80',
 
     // Dielectrics, Gate & Interconnects
     gateOxide: '#67E8F9',
@@ -24,24 +30,28 @@ export const MATERIAL_PALETTE = {
     metal: '#94A3B8',
     via: '#CBD5E1',
 
-    // Dynamic Physics (Channels, Depletion & Carriers)
+    // Dynamic Physics (Carriers & Depletion)
     electronFlow: '#F59E0B',
-    electronChannel: '#F59E0B',
+    electronChannel: '#34D399',
     holeFlow: '#F43F5E',
-    holeChannel: '#F43F5E',
+    holeChannel: '#38BDF8',
     depletion: '#64748B',
     depletionOpacity: 0.26
   },
   light: {
-    // Silicon Regions
-    pSubstrate: '#64748B',
-    nWell: '#52B788',
-    nSubstrate: '#52B788',
-    pWell: '#93C5FD',
-    nPlusDiffusion: '#1D4ED8',
-    pPlusDiffusion: '#C2410C',
-    implantedNChannel: '#0284C7',
-    implantedPChannel: '#D97706',
+    // P-Type Silicon (Blue Family)
+    pSubstrate: '#7BA7E1',
+    pWell: '#4A86E8',
+    pSDE: '#3B82F6',
+    pPlusDiffusion: '#2563EB',
+    implantedPChannel: '#2563EB',
+
+    // N-Type Silicon (Green Family)
+    nSubstrate: '#86EFAC',
+    nWell: '#4ADE80',
+    nSDE: '#22C55E',
+    nPlusDiffusion: '#16A34A',
+    implantedNChannel: '#16A34A',
 
     // Dielectrics, Gate & Interconnects
     gateOxide: '#0891B2',
@@ -52,11 +62,11 @@ export const MATERIAL_PALETTE = {
     metal: '#475569',
     via: '#334155',
 
-    // Dynamic Physics (Channels, Depletion & Carriers)
+    // Dynamic Physics (Carriers & Depletion)
     electronFlow: '#D97706',
-    electronChannel: '#D97706',
+    electronChannel: '#4ADE80',
     holeFlow: '#BE123C',
-    holeChannel: '#BE123C',
+    holeChannel: '#60A5FA',
     depletion: '#475569',
     depletionOpacity: 0.26
   }

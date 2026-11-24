@@ -58,10 +58,10 @@ if (window.ResizeObserver && host) {
 }
 
 // Lights setup
-var ambientLight = new THREE.AmbientLight(0x2a3140, 1.2);
+var ambientLight = new THREE.AmbientLight(0x384152, 1.55);
 scene.add(ambientLight);
 
-var key = new THREE.DirectionalLight(0xffffff, 1.25);
+var key = new THREE.DirectionalLight(0xffffff, 1.60);
 key.position.set(16, 26, 18);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
@@ -71,11 +71,11 @@ key.shadow.camera.far = 90;
 key.shadow.bias = -0.0015;
 scene.add(key);
 
-var fill = new THREE.DirectionalLight(0x5fa8d9, 0.4);
+var fill = new THREE.DirectionalLight(0x5fa8d9, 0.55);
 fill.position.set(-16, 12, -12);
 scene.add(fill);
 
-var rim = new THREE.DirectionalLight(0x5fd9c4, 0.3);
+var rim = new THREE.DirectionalLight(0x5fd9c4, 0.40);
 rim.position.set(0, 8, -20);
 scene.add(rim);
 
@@ -124,13 +124,13 @@ function applySceneTheme(theme) {
       scene.fog.far = 220;
     }
     ambientLight.color.setHex(0xe2e8f0);
-    ambientLight.intensity = 1.15;
+    ambientLight.intensity = 0.92;
     key.color.setHex(0xffffff);
-    key.intensity = 1.15;
+    key.intensity = 0.92;
     fill.color.setHex(0x94a3b8);
-    fill.intensity = 0.35;
+    fill.intensity = 0.30;
     rim.color.setHex(0x0d9488);
-    rim.intensity = 0.25;
+    rim.intensity = 0.20;
     if (grid && grid.material) {
       grid.material.color.setHex(0x94a3b8);
       grid.material.opacity = 0.12;
@@ -142,14 +142,14 @@ function applySceneTheme(theme) {
       scene.fog.near = 50;
       scene.fog.far = 200;
     }
-    ambientLight.color.setHex(0x2a3140);
-    ambientLight.intensity = 1.2;
+    ambientLight.color.setHex(0x384152);
+    ambientLight.intensity = 1.55;
     key.color.setHex(0xffffff);
-    key.intensity = 1.25;
+    key.intensity = 1.60;
     fill.color.setHex(0x5fa8d9);
-    fill.intensity = 0.4;
+    fill.intensity = 0.55;
     rim.color.setHex(0x5fd9c4);
-    rim.intensity = 0.3;
+    rim.intensity = 0.40;
     if (grid && grid.material) {
       grid.material.color.setHex(0x475569);
       grid.material.opacity = 0.10;

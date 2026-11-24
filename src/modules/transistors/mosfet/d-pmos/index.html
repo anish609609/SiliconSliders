@@ -1,9 +1,27 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Depletion PMOS Transistor (D-PMOS) · 3D CAD Viewer &amp; VLSI Inspector</title>
+
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('siliconsliders-theme') ||
+                localStorage.getItem('silicon_sliders_theme') ||
+                localStorage.getItem('cmos_viewer_theme') ||
+                localStorage.getItem('cmos_nand_viewer_theme');
+        if (t === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.classList.add('light');
+        } else {
+          document.documentElement.setAttribute('data-theme', 'dark');
+          document.documentElement.classList.remove('light');
+        }
+      } catch(e){}
+    })();
+  </script>
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">

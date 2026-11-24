@@ -229,9 +229,10 @@ function updateLayersListTheme(pal) {
   var colorMap = {
     substrate: pal.pSubstrate,
     nwell: pal.nWell,
+    well: pal.nWell,
     active: pal.pPlusDiffusion,
-    sde: pal.implantedPChannel,
-    channel: pal.holeChannel || pal.implantedPChannel,
+    sde: pal.pSDE || pal.implantedPChannel,
+    channel: pal.holeChannel,
     oxide: pal.gateOxide,
     poly: pal.polysilicon,
     contact: pal.via,

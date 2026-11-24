@@ -197,9 +197,9 @@ function updateLayersListTheme(pal) {
 
   var colorMap = {
     substrate: pal.pSubstrate,
-    well: pal.nWell,
-    active: pal.nPlusDiffusion,
-    sde: pal.implantedNChannel,
+    well: 'linear-gradient(135deg, ' + pal.nWell + ' 50%, ' + pal.pWell + ' 50%)',
+    active: 'linear-gradient(135deg, ' + pal.pPlusDiffusion + ' 50%, ' + pal.nPlusDiffusion + ' 50%)',
+    sde: 'linear-gradient(135deg, ' + pal.pSDE + ' 50%, ' + pal.nSDE + ' 50%)',
     oxide: pal.gateOxide,
     poly: pal.polysilicon,
     contact: pal.via,
@@ -232,6 +232,7 @@ function updateLayersListTheme(pal) {
   }
 }
 window.updateLayersListTheme = updateLayersListTheme;
+updateLayersListTheme();
 
 document.querySelectorAll('.wb-accordion-head, .panel-head').forEach(function(h) {
   h.addEventListener('click', function() {

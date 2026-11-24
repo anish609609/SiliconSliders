@@ -17,7 +17,7 @@ var LEGEND = [
     key: 'active',
     label: 'Active S/D & Taps',
     color: 'linear-gradient(135deg, var(--c-active-p) 50%, var(--c-active-n) 50%)',
-    note: 'Heavy P+ (amber) & N+ (blue) source/drain diffusions & series N+ bridge'
+    note: 'Heavy P+ (blue) & N+ (green) source/drain diffusions & series N+ bridge'
   },
   {
     key: 'sde',

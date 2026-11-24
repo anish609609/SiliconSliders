@@ -192,7 +192,7 @@ function rebuildFlowSimulation() {
 
     if (caption) {
       caption.textContent = isCarrier
-        ? 'FORWARD BIAS (VA = +' + va.toFixed(2) + 'V, I = ' + absI.toFixed(2) + 'mA): Holes (orange) flow Anode->Cathode; Electrons (cyan) flow Cathode->Anode along planar path.'
+        ? 'FORWARD BIAS (VA = +' + va.toFixed(2) + 'V, I = ' + absI.toFixed(2) + 'mA): Holes (crimson) flow Anode->Cathode; Electrons (saffron) flow Cathode->Anode along planar path.'
         : 'CONVENTIONAL CURRENT: Anode (+) -> Cathode (-) planar current flowing with I = ' + absI.toFixed(2) + ' mA.';
     }
 

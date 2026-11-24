@@ -67,10 +67,10 @@ try {
   }
 
   /* 3-Point Studio Lighting */
-  ambientLight = new THREE.AmbientLight(0x2a3140, 1.1);
+  ambientLight = new THREE.AmbientLight(0x384152, 1.45);
   scene.add(ambientLight);
 
-  keyLight = new THREE.DirectionalLight(0xffffff, 1.15);
+  keyLight = new THREE.DirectionalLight(0xffffff, 1.50);
   keyLight.position.set(16, 24, 12);
   keyLight.castShadow = true;
   keyLight.shadow.mapSize.set(2048, 2048);
@@ -83,11 +83,11 @@ try {
   keyLight.shadow.bias = -0.0015;
   scene.add(keyLight);
 
-  fillLight = new THREE.DirectionalLight(0x5fa8d9, 0.35);
+  fillLight = new THREE.DirectionalLight(0x5fa8d9, 0.48);
   fillLight.position.set(-14, 10, -10);
   scene.add(fillLight);
 
-  rimLight = new THREE.DirectionalLight(0x5fd9c4, 0.25);
+  rimLight = new THREE.DirectionalLight(0x5fd9c4, 0.35);
   rimLight.position.set(0, 6, -18);
   scene.add(rimLight);
 
@@ -180,24 +180,24 @@ function applySceneTheme(theme) {
 
   if (isLight) {
     ambientLight.color.setHex(0xe2e8f0);
-    ambientLight.intensity = 1.15;
+    ambientLight.intensity = 0.92;
     keyLight.color.setHex(0xffffff);
-    keyLight.intensity = 1.15;
+    keyLight.intensity = 0.92;
     fillLight.color.setHex(0x94a3b8);
-    fillLight.intensity = 0.35;
+    fillLight.intensity = 0.30;
     rimLight.color.setHex(0x64748b);
-    rimLight.intensity = 0.25;
+    rimLight.intensity = 0.20;
     shadowMat.opacity = 0.16;
     rebuildGrid(0x94a3b8, 0xcbd5e1);
   } else {
-    ambientLight.color.setHex(0x2a3140);
-    ambientLight.intensity = 1.1;
+    ambientLight.color.setHex(0x384152);
+    ambientLight.intensity = 1.45;
     keyLight.color.setHex(0xffffff);
-    keyLight.intensity = 1.15;
+    keyLight.intensity = 1.50;
     fillLight.color.setHex(0x5fa8d9);
-    fillLight.intensity = 0.35;
+    fillLight.intensity = 0.48;
     rimLight.color.setHex(0x5fd9c4);
-    rimLight.intensity = 0.25;
+    rimLight.intensity = 0.35;
     shadowMat.opacity = 0.28;
     rebuildGrid(0x1c2530, 0x141a22);
   }

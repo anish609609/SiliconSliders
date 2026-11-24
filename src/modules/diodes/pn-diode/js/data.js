@@ -14,7 +14,7 @@ var COMPONENTS = {
     fn: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) lightly doped with Boron. Hosts the implanted N-Well tub.',
     doping: 'Boron (NA): ~10¹⁵ cm⁻³ (Lightly doped P-type bulk)',
     colorVar: '--c-substrate',
-    colorHex: '#94a3b8',
+    colorHex: '#1E3A5F',
     thickness: '4.0 μm (CAD normalized)',
     area: '26 μm × 15 μm'
   },
@@ -27,7 +27,7 @@ var COMPONENTS = {
     fn: 'Formed by high-energy Phosphorus/Arsenic ion implantation and high-temperature thermal drive-in diffusion. Encapsulates the P+ anode tub and N+ cathode tap.',
     doping: 'Phosphorus (ND): 10¹⁵ – 10¹⁹ cm⁻³ (Adjustable via ND slider)',
     colorVar: '--c-well',
-    colorHex: '#059669',
+    colorHex: '#166534',
     thickness: '3.0 μm depth into silicon',
     area: '21 μm × 12 μm'
   },
@@ -40,7 +40,7 @@ var COMPONENTS = {
     fn: 'Heavily doped with Boron (NA ≈ 10¹⁵–10¹⁹ cm⁻³). In forward bias (VA > 0), injects majority holes across the lowered depletion barrier into the N-Well.',
     doping: 'Boron (NA): 10¹⁵ – 10¹⁹ cm⁻³ (Adjustable via NA slider)',
     colorVar: '--c-active-p',
-    colorHex: '#ea580c',
+    colorHex: '#2563EB',
     thickness: '1.6 μm junction depth (xj)',
     area: '6.4 μm × 9.0 μm'
   },
@@ -53,7 +53,7 @@ var COMPONENTS = {
     fn: 'Heavily doped with Arsenic (N+ ≈ 1×10²⁰ cm⁻³) to suppress Schottky barrier formation, ensuring ideal ohmic contact to the Cathode Tungsten plug.',
     doping: 'Arsenic/Phosphorus (N+): ~1×10²⁰ cm⁻³ (Degenerate N+)',
     colorVar: '--c-active-n',
-    colorHex: '#1d4ed8',
+    colorHex: '#15803D',
     thickness: '1.3 μm junction depth',
     area: '5.6 μm × 9.0 μm'
   },
@@ -66,7 +66,7 @@ var COMPONENTS = {
     fn: 'Conformal shell wrapping around the P+ Anode tub (bottom and sidewalls) inside the N-Well. Width W = xp + xn dynamically expands under reverse bias and contracts under forward bias, establishing junction capacitance Cj.',
     doping: 'Swept free of mobile carriers; contains uncompensated fixed ionized cores NA⁻ and ND⁺',
     colorVar: '--c-depletion',
-    colorHex: '#334155',
+    colorHex: '#64748B',
     thickness: 'W = xp + xn (Dynamic: 0.05 μm to > 3.0 μm)',
     area: 'Conformal tub perimeter & bottom'
   },

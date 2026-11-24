@@ -16,13 +16,13 @@
     --mono: 'IBM Plex Mono', ui-monospace, monospace;
     --sans: 'Inter', -apple-system, sans-serif;
 
-    --c-substrate: #2B3442;
-    --c-well: #2D5A4C;
-    --c-pwell: #2E4366;
-    --c-active-p: #EA580C;
-    --c-active-n: #2563EB;
-    --c-sde-p: #FB923C;
-    --c-sde-n: #38BDF8;
+    --c-substrate: #1E3A5F;
+    --c-well: #166534;
+    --c-pwell: #1D4ED8;
+    --c-active-p: #2563EB;
+    --c-active-n: #15803D;
+    --c-sde-p: #3B82F6;
+    --c-sde-n: #22C55E;
     --c-oxide: #67E8F9;
     --c-highk: #a855f7;
     --c-poly: #DC2626;
@@ -54,13 +54,13 @@
     --danger: #dc2626;
 
     /* High-contrast semiconductor layer colors for light background */
-    --c-substrate: #64748B;
-    --c-well: #52B788;
-    --c-pwell: #93C5FD;
-    --c-active-p: #C2410C;
-    --c-active-n: #1D4ED8;
-    --c-sde-p: #FB923C;
-    --c-sde-n: #0284C7;
+    --c-substrate: #7BA7E1;
+    --c-well: #4ADE80;
+    --c-pwell: #4A86E8;
+    --c-active-p: #1E3A8A;
+    --c-active-n: #15803D;
+    --c-sde-p: #2563EB;
+    --c-sde-n: #22C55E;
     --c-oxide: #0891B2;
     --c-highk: #7c3aed;
     --c-poly: #B91C1C;

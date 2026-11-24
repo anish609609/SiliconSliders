@@ -269,6 +269,9 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
   mesh.userData.baseEmissiveIntensity = 0;
   mesh.userData.isGaussianDoping = true;
   mesh.userData.colorVar = colorVar;
+  mesh.userData.peakV = peakV;
+  mesh.userData.sigmaV = sigmaV;
+  mesh.userData.opts = opts;
   mesh.userData.outlineColor = opts.outlineColor;
   mesh.renderOrder = opts.renderOrder || 2;
 
@@ -628,12 +631,38 @@ function updateMaterialsTheme(){
 
   selectable.forEach(function(m){
     if (m && m.userData && m.userData.colorVar && m.material && m.material.color){
-      var hex = (m.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) ? pal.pSubstrate : cssVar(m.userData.colorVar);
+      if (typeof nmosChanMesh !== 'undefined' && m === nmosChanMesh) return;
+      if (typeof pmosChanMesh !== 'undefined' && m === pmosChanMesh) return;
+      var cv = m.userData.colorVar;
+      var hex = cssVar(cv);
+      if (cv === '--c-substrate' && pal && pal.pSubstrate) hex = pal.pSubstrate;
+      else if (cv === '--c-well' && pal && pal.nWell) hex = pal.nWell;
+      else if (cv === '--c-pwell' && pal && pal.pWell) hex = pal.pWell;
+      else if (cv === '--c-active-p' && pal && pal.pPlusDiffusion) hex = pal.pPlusDiffusion;
+      else if (cv === '--c-active-n' && pal && pal.nPlusDiffusion) hex = pal.nPlusDiffusion;
+      else if (cv === '--c-sde-p' && pal && pal.pSDE) hex = pal.pSDE;
+      else if (cv === '--c-sde-n' && pal && pal.nSDE) hex = pal.nSDE;
+
       if (hex){
         m.material.color.set(hex);
       }
-      if (m.userData.colorVar === '--c-substrate') {
+
+      if (m.userData.isGaussianDoping) {
+        try {
+          var newTex = gaussianDepthTexture(cv, m.userData.peakV || 0.25, m.userData.sigmaV || 0.25, m.userData.opts || {});
+          if (newTex) {
+            m.material.map = newTex;
+            m.material.needsUpdate = true;
+          }
+        } catch (_) {}
+      }
+
+      if (cv === '--c-substrate') {
         m.material.roughness = 0.85;
+        if (m.material.emissive) m.material.emissive.set(0x000000);
+        m.material.emissiveIntensity = 0;
+      } else if (cv === '--c-well' || cv === '--c-pwell') {
+        m.material.roughness = isLight ? 0.75 : 0.50;
         if (m.material.emissive) m.material.emissive.set(0x000000);
         m.material.emissiveIntensity = 0;
       }
@@ -643,6 +672,7 @@ function updateMaterialsTheme(){
   if (typeof subMesh !== 'undefined' && subMesh && subMesh.material) {
     if (pal && pal.pSubstrate) subMesh.material.color.set(pal.pSubstrate);
     subMesh.material.roughness = 0.85;
+    subMesh.material.metalness = 0.05;
     if (subMesh.material.emissive) subMesh.material.emissive.set(0x000000);
     subMesh.material.emissiveIntensity = 0;
   }
@@ -664,6 +694,10 @@ function updateMaterialsTheme(){
 
   if (typeof updateLayersListTheme === 'function') {
     updateLayersListTheme(pal);
+  }
+
+  if (typeof window.updateChannelThemes === 'function') {
+    window.updateChannelThemes(isLight ? 'light' : 'dark');
   }
 
   if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
@@ -852,8 +886,8 @@ function buildActiveRow(zc, srcColorVar, sdeColorVar, idPrefix, layerKey, doping
 
   return { src:src, drn:drn, srcSde:srcSde, drnSde:drnSde };
 }
-var pmosAct = buildActiveRow(PMOS_ZC, '--c-active-p', '--c-sde-p', 'pmos', 'active', '#f0b877', '#fcd34d');
-var nmosAct = buildActiveRow(NMOS_ZC, '--c-active-n', '--c-sde-n', 'nmos', 'active', '#7fc3ec', '#bae6fd');
+var pmosAct = buildActiveRow(PMOS_ZC, '--c-active-p', '--c-sde-p', 'pmos', 'active', '#60a5fa', '#93c5fd');
+var nmosAct = buildActiveRow(NMOS_ZC, '--c-active-n', '--c-sde-n', 'nmos', 'active', '#22c55e', '#4ade80');
 
 // ---------- WELL TAP / SUBSTRATE TAP — Gaussian ohmic contact diffusions ----------
 var wellTapPad = gaussianDopingMesh(1.3, Y.actTop-Y.actBot, 1.3, '--c-well', {
@@ -870,13 +904,14 @@ reg(subTapPad, 'subtapAct', 'active');
 
 // ---------- 3D DYNAMIC INVERSION CHANNELS & PINCH-OFF REGIONS ----------
 var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
+var palInitCMOS = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLight ? 'light' : 'dark') : null);
 
 // NMOS Channel (Electron Inversion Layer)
 var nmosChanGeom = new THREE.BoxGeometry(CH.max - CH.min, 0.12, ACTIVE_W, 24, 1, 2);
 var nmosChanMat = new THREE.MeshStandardMaterial({
-  color: isInitLight ? 0x0052cc : 0x38bdf8,
-  emissive: isInitLight ? 0x003399 : 0x0284c7,
-  emissiveIntensity: 0.50,
+  color: palInitCMOS ? palInitCMOS.electronChannel : (isInitLight ? 0x4ADE80 : 0x34D399),
+  emissive: palInitCMOS ? palInitCMOS.electronChannel : (isInitLight ? 0x4ADE80 : 0x34D399),
+  emissiveIntensity: isInitLight ? 0.15 : 0.40,
   transparent: true,
   opacity: 0.85,
   depthWrite: false,
@@ -887,7 +922,6 @@ var nmosChanMat = new THREE.MeshStandardMaterial({
 var nmosChanMesh = new THREE.Mesh(nmosChanGeom, nmosChanMat);
 put(nmosChanMesh, 0, Y.actTop - 0.05, NMOS_ZC);
 nmosChanMesh.renderOrder = 4;
-nmosChanMesh.userData.colorVar = '--c-sde-n';
 reg(nmosChanMesh, 'nmosChannel', 'active');
 
 var nmosPinchGeom = new THREE.BoxGeometry(1.0, 0.12, ACTIVE_W, 12, 1, 2);
@@ -911,9 +945,9 @@ groups['active'].add(nmosPinchMesh);
 // PMOS Channel (Hole Inversion Layer)
 var pmosChanGeom = new THREE.BoxGeometry(CH.max - CH.min, 0.12, ACTIVE_W, 24, 1, 2);
 var pmosChanMat = new THREE.MeshStandardMaterial({
-  color: isInitLight ? 0xb91c1c : 0xff4fbf,
-  emissive: isInitLight ? 0x991b1b : 0xdb2777,
-  emissiveIntensity: 0.50,
+  color: palInitCMOS ? palInitCMOS.holeChannel : (isInitLight ? 0x60A5FA : 0x38BDF8),
+  emissive: palInitCMOS ? palInitCMOS.holeChannel : (isInitLight ? 0x60A5FA : 0x38BDF8),
+  emissiveIntensity: isInitLight ? 0.15 : 0.40,
   transparent: true,
   opacity: 0.85,
   depthWrite: false,
@@ -924,7 +958,6 @@ var pmosChanMat = new THREE.MeshStandardMaterial({
 var pmosChanMesh = new THREE.Mesh(pmosChanGeom, pmosChanMat);
 put(pmosChanMesh, 0, Y.actTop - 0.05, PMOS_ZC);
 pmosChanMesh.renderOrder = 4;
-pmosChanMesh.userData.colorVar = '--c-sde-p';
 reg(pmosChanMesh, 'pmosChannel', 'active');
 
 var pmosPinchGeom = new THREE.BoxGeometry(1.0, 0.12, ACTIVE_W, 12, 1, 2);
@@ -1062,14 +1095,19 @@ window.updateInverterChannels = function(vin, vout, nmosReg, pmosReg) {
 };
 
 window.updateChannelThemes = function(theme) {
-  var isLight = theme === 'light';
+  var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
+  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
   if (typeof nmosChanMat !== 'undefined' && nmosChanMat) {
-    nmosChanMat.color.setHex(isLight ? 0x0052cc : 0x38bdf8);
-    nmosChanMat.emissive.setHex(isLight ? 0x003399 : 0x0284c7);
+    var cN = pal ? pal.electronChannel : (isLight ? 0x4ADE80 : 0x34D399);
+    nmosChanMat.color.set(cN);
+    nmosChanMat.emissive.set(cN);
+    nmosChanMat.emissiveIntensity = isLight ? 0.15 : 0.40;
   }
   if (typeof pmosChanMat !== 'undefined' && pmosChanMat) {
-    pmosChanMat.color.setHex(isLight ? 0xb91c1c : 0xff4fbf);
-    pmosChanMat.emissive.setHex(isLight ? 0x991b1b : 0xdb2777);
+    var cP = pal ? pal.holeChannel : (isLight ? 0x60A5FA : 0x38BDF8);
+    pmosChanMat.color.set(cP);
+    pmosChanMat.emissive.set(cP);
+    pmosChanMat.emissiveIntensity = isLight ? 0.15 : 0.40;
   }
   if (typeof nmosPinchMat !== 'undefined' && nmosPinchMat) {
     nmosPinchMat.color.setHex(isLight ? 0xb45309 : 0xf59e0b);

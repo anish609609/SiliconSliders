@@ -55,9 +55,9 @@ if (typeof ResizeObserver !== 'undefined' && host) {
 }
 
 // lights
-var ambientLight = new THREE.AmbientLight(0x2a3140, 1.1);
+var ambientLight = new THREE.AmbientLight(0x384152, 1.45);
 scene.add(ambientLight);
-var key = new THREE.DirectionalLight(0xffffff, 1.15);
+var key = new THREE.DirectionalLight(0xffffff, 1.50);
 key.position.set(16, 24, 12);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
@@ -66,10 +66,10 @@ key.shadow.camera.top = 24; key.shadow.camera.bottom = -24;
 key.shadow.camera.far = 85;
 key.shadow.bias = -0.0015;
 scene.add(key);
-var fill = new THREE.DirectionalLight(0x5fa8d9, 0.35);
+var fill = new THREE.DirectionalLight(0x5fa8d9, 0.48);
 fill.position.set(-14, 10, -10);
 scene.add(fill);
-var rim = new THREE.DirectionalLight(0x5fd9c4, 0.25);
+var rim = new THREE.DirectionalLight(0x5fd9c4, 0.35);
 rim.position.set(0, 6, -18);
 scene.add(rim);
 
@@ -102,13 +102,13 @@ function applySceneTheme(theme){
       scene.fog.far = 240;
     }
     ambientLight.color.setHex(0xe2e8f0);
-    ambientLight.intensity = 1.15;
+    ambientLight.intensity = 0.92;
     key.color.setHex(0xffffff);
-    key.intensity = 1.15;
+    key.intensity = 0.92;
     fill.color.setHex(0x94a3b8);
-    fill.intensity = 0.35;
+    fill.intensity = 0.30;
     rim.color.setHex(0x64748b);
-    rim.intensity = 0.25;
+    rim.intensity = 0.20;
     shadowPlane.material.opacity = 0.16;
   } else {
     scene.background = new THREE.Color(0x0a0d12);
@@ -117,14 +117,14 @@ function applySceneTheme(theme){
       scene.fog.near = 60;
       scene.fog.far = 220;
     }
-    ambientLight.color.setHex(0x2a3140);
-    ambientLight.intensity = 1.1;
+    ambientLight.color.setHex(0x384152);
+    ambientLight.intensity = 1.45;
     key.color.setHex(0xffffff);
-    key.intensity = 1.15;
+    key.intensity = 1.50;
     fill.color.setHex(0x5fa8d9);
-    fill.intensity = 0.35;
+    fill.intensity = 0.48;
     rim.color.setHex(0x5fd9c4);
-    rim.intensity = 0.25;
+    rim.intensity = 0.35;
     shadowPlane.material.opacity = 0.28;
   }
   updateGridTheme(isLight);

@@ -297,6 +297,9 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
   mesh.userData.baseEmissiveIntensity = 0;
   mesh.userData.isGaussianDoping = true;
   mesh.userData.colorVar = colorVar;
+  mesh.userData.peakV = peakV;
+  mesh.userData.sigmaV = sigmaV;
+  mesh.userData.opts = opts;
   mesh.userData.outlineColor = opts.outlineColor;
   mesh.renderOrder = opts.renderOrder !== undefined ? opts.renderOrder : 3;
 
@@ -628,9 +631,9 @@ var palInitDNMOS = (typeof getMaterialPalette === 'function') ? getMaterialPalet
 
 var chanGeom = new THREE.BoxGeometry(2.0, 0.18, actD, 32, 1, 2);
 var chanMat = new THREE.MeshStandardMaterial({
-  color: palInitDNMOS ? palInitDNMOS.implantedNChannel : 0x38bdf8,
-  emissive: palInitDNMOS ? palInitDNMOS.implantedNChannel : 0x2563eb,
-  emissiveIntensity: 0.25,
+  color: palInitDNMOS ? palInitDNMOS.electronChannel : (isInitLightDNMOS ? 0x4ADE80 : 0x34D399),
+  emissive: palInitDNMOS ? palInitDNMOS.electronChannel : (isInitLightDNMOS ? 0x4ADE80 : 0x34D399),
+  emissiveIntensity: isInitLightDNMOS ? 0.15 : 0.40,
   transparent: true,
   opacity: 0.85,
   depthWrite: false,
@@ -1050,13 +1053,28 @@ function updateMaterialsTheme() {
 
   selectable.forEach(function(m) {
     if (m && m.userData && m.userData.colorVar && m.material && m.material.color) {
-      var hex = (m.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) ? pal.pSubstrate : cssVar(m.userData.colorVar);
+      var hex = cssVar(m.userData.colorVar);
+      if (m.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) {
+        hex = pal.pSubstrate;
+      } else if (m.userData.colorVar === '--c-active-n' && pal && pal.nPlusDiffusion) {
+        hex = pal.nPlusDiffusion;
+      } else if (m.userData.colorVar === '--c-sde-n' && pal && pal.nSDE) {
+        hex = pal.nSDE;
+      } else if (m.userData.colorVar === '--c-active-p' && pal && pal.pPlusDiffusion) {
+        hex = pal.pPlusDiffusion;
+      } else if (m.userData.colorVar === '--c-sde-p' && pal && pal.pSDE) {
+        hex = pal.pSDE;
+      }
       if (hex) {
         m.material.color.set(hex);
         if (m.userData.colorVar === '--c-substrate') {
           m.material.roughness = 0.85;
           if (m.material.emissive) m.material.emissive.set(0x000000);
           m.material.emissiveIntensity = 0;
+        }
+        if (m.userData.isGaussianDoping && m.userData.peakV !== undefined) {
+          m.material.map = gaussianDepthTexture(m.userData.colorVar, m.userData.peakV, m.userData.sigmaV, m.userData.opts);
+          m.material.needsUpdate = true;
         }
         if (m.children) {
           m.children.forEach(function(child) {
@@ -1067,6 +1085,8 @@ function updateMaterialsTheme() {
                 if (child.material.emissive) child.material.emissive.set(0x000000);
                 child.material.emissiveIntensity = 0;
               }
+            } else if (child.isLineLoop && child.material && child.material.color) {
+              child.material.color.set(hex);
             }
           });
         }
@@ -1074,7 +1094,18 @@ function updateMaterialsTheme() {
     } else if (m && m.isGroup) {
       m.traverse(function(child) {
         if (child.isMesh && child.userData && child.userData.colorVar && child.material && child.material.color) {
-          var hex = (child.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) ? pal.pSubstrate : cssVar(child.userData.colorVar);
+          var hex = cssVar(child.userData.colorVar);
+          if (child.userData.colorVar === '--c-substrate' && pal && pal.pSubstrate) {
+            hex = pal.pSubstrate;
+          } else if (child.userData.colorVar === '--c-active-n' && pal && pal.nPlusDiffusion) {
+            hex = pal.nPlusDiffusion;
+          } else if (child.userData.colorVar === '--c-sde-n' && pal && pal.nSDE) {
+            hex = pal.nSDE;
+          } else if (child.userData.colorVar === '--c-active-p' && pal && pal.pPlusDiffusion) {
+            hex = pal.pPlusDiffusion;
+          } else if (child.userData.colorVar === '--c-sde-p' && pal && pal.pSDE) {
+            hex = pal.pSDE;
+          }
           if (hex) {
             child.material.color.set(hex);
             if (child.userData.colorVar === '--c-substrate') {
@@ -1083,6 +1114,9 @@ function updateMaterialsTheme() {
               child.material.emissiveIntensity = 0;
             }
           }
+        } else if (child.isLineLoop && child.material && child.material.color && child.parent && child.parent.userData && child.parent.userData.colorVar) {
+          var parentHex = cssVar(child.parent.userData.colorVar);
+          if (parentHex) child.material.color.set(parentHex);
         }
       });
     }
@@ -1091,6 +1125,7 @@ function updateMaterialsTheme() {
   if (typeof subMesh !== 'undefined' && subMesh && subMesh.material) {
     if (pal && pal.pSubstrate) subMesh.material.color.set(pal.pSubstrate);
     subMesh.material.roughness = 0.85;
+    subMesh.material.metalness = 0.05;
     if (subMesh.material.emissive) subMesh.material.emissive.set(0x000000);
     subMesh.material.emissiveIntensity = 0;
   }
@@ -1111,8 +1146,9 @@ function updateMaterialsTheme() {
 
   if (typeof chanMat !== 'undefined' && chanMat && chanMat.emissive) {
     if (pal) {
-      chanMat.color.set(pal.implantedNChannel);
-      chanMat.emissive.set(pal.implantedNChannel);
+      chanMat.color.set(pal.electronChannel);
+      chanMat.emissive.set(pal.electronChannel);
+      chanMat.emissiveIntensity = isLight ? 0.15 : 0.40;
     }
   }
 

@@ -12,7 +12,8 @@
   <script>
     (function () {
       try {
-        var t = localStorage.getItem('silicon_sliders_theme') ||
+        var t = localStorage.getItem('siliconsliders-theme') ||
+                localStorage.getItem('silicon_sliders_theme') ||
                 localStorage.getItem('cmos_viewer_theme') ||
                 localStorage.getItem('cmos_nand_viewer_theme');
         if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
@@ -111,7 +112,6 @@
               <div class="family-btn-grid" style="grid-template-columns: 1fr;">
                 <a href="src/modules/diodes/pn-diode/index.html" class="family-card-btn active-btn" title="PN Junction Diode 3D Physical CAD">
                   <span class="btn-text">PN Diode</span>
-                  <span class="btn-sub">P-N Junction · Depletion</span>
                 </a>
               </div>
             </div>
@@ -131,11 +131,9 @@
                 <div class="family-btn-grid">
                   <a href="src/modules/transistors/mosfet/nmos/index.html" class="family-card-btn active-btn" title="NMOS Transistor (Enhancement Mode) 3D Physical CAD">
                     <span class="btn-text">NMOS</span>
-                    <span class="btn-sub">P-Substrate · N⁺ S/D</span>
                   </a>
                   <a href="src/modules/transistors/mosfet/pmos/index.html" class="family-card-btn active-btn" title="PMOS Transistor (Enhancement Mode) 3D Physical CAD">
                     <span class="btn-text">PMOS</span>
-                    <span class="btn-sub">N-Well · P⁺ S/D</span>
                   </a>
                 </div>
               </div>
@@ -149,11 +147,9 @@
                 <div class="family-btn-grid">
                   <a href="src/modules/transistors/mosfet/d-nmos/index.html" class="family-card-btn active-btn" title="Depletion-Mode NMOS (D-NMOS) 3D Physical CAD">
                     <span class="btn-text">NMOS</span>
-                    <span class="btn-sub">Implanted N-Ch · Normally ON</span>
                   </a>
                   <a href="src/modules/transistors/mosfet/d-pmos/index.html" class="family-card-btn active-btn" title="Depletion-Mode PMOS (D-PMOS) 3D Physical CAD">
                     <span class="btn-text">PMOS</span>
-                    <span class="btn-sub">Implanted P-Ch · Normally ON</span>
                   </a>
                 </div>
               </div>
@@ -167,11 +163,9 @@
               <div class="family-btn-grid">
                 <a href="src/modules/transistors/cmos/cmos-inverter/index.html" class="family-card-btn active-btn" title="CMOS Inverter 3D Physical Layout Viewer">
                   <span class="btn-text">Inverter</span>
-                  <span class="btn-sub">NOT Gate · HKMG</span>
                 </a>
                 <a href="src/modules/transistors/cmos/cmos-nand/index.html" class="family-card-btn active-btn" title="CMOS NAND2 3D Physical Layout Viewer">
                   <span class="btn-text">NAND2</span>
-                  <span class="btn-sub">Euler Path · Dual Gate</span>
                 </a>
               </div>
             </div>

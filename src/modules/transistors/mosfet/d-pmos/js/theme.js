@@ -9,6 +9,7 @@ var currentTheme = 'dark';
 
 function setAllThemeKeys(theme) {
   try {
+    localStorage.setItem('siliconsliders-theme', theme);
     localStorage.setItem('silicon_sliders_theme', theme);
     localStorage.setItem('cmos_viewer_theme', theme);
     localStorage.setItem('cmos_nand_viewer_theme', theme);
@@ -17,7 +18,8 @@ function setAllThemeKeys(theme) {
 
 function getStoredTheme() {
   try {
-    var saved = localStorage.getItem('silicon_sliders_theme') ||
+    var saved = localStorage.getItem('siliconsliders-theme') ||
+                localStorage.getItem('silicon_sliders_theme') ||
                 localStorage.getItem('cmos_viewer_theme') ||
                 localStorage.getItem('cmos_nand_viewer_theme');
     if (saved === 'light' || saved === 'dark') {

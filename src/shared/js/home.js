@@ -6,13 +6,15 @@
 (function () {
   'use strict';
 
-  var THEME_KEY = 'silicon_sliders_theme';
+  var THEME_KEY = 'siliconsliders-theme';
+  var LEGACY_KEY_UNDERSCORE = 'silicon_sliders_theme';
   var LEGACY_KEY_INVERTER = 'cmos_viewer_theme';
   var LEGACY_KEY_NAND = 'cmos_nand_viewer_theme';
 
   function getStoredTheme() {
     try {
       var saved = localStorage.getItem(THEME_KEY) ||
+                  localStorage.getItem(LEGACY_KEY_UNDERSCORE) ||
                   localStorage.getItem(LEGACY_KEY_INVERTER) ||
                   localStorage.getItem(LEGACY_KEY_NAND);
       if (saved === 'light' || saved === 'dark') return saved;
@@ -23,6 +25,7 @@
   function setStoredTheme(theme) {
     try {
       localStorage.setItem(THEME_KEY, theme);
+      localStorage.setItem(LEGACY_KEY_UNDERSCORE, theme);
       localStorage.setItem(LEGACY_KEY_INVERTER, theme);
       localStorage.setItem(LEGACY_KEY_NAND, theme);
     } catch (_) {}

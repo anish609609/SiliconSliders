@@ -22,7 +22,8 @@
   --v-btn-hover: rgba(255, 255, 255, 0.08);
 }
 
-[data-theme="light"] {
+[data-theme="light"],
+html.light {
   --v-bg-base: #f8fafc;
   --v-bg-panel: rgba(255, 255, 255, 0.94);
   --v-bg-panel-solid: #ffffff;
@@ -37,6 +38,18 @@
   --v-accent-green: #059669;
   --v-slider-track: #e2e8f0;
   --v-btn-hover: rgba(0, 0, 0, 0.05);
+}
+
+/* Zero-Flash Theme-Aware Loading Overlay */
+html[data-theme="light"] #loading,
+html.light #loading {
+  background: #f4f6f8 !important;
+  color: #475569 !important;
+}
+html[data-theme="light"] #loading .spin,
+html.light #loading .spin {
+  border-color: #cbd5e1 !important;
+  border-top-color: #0284c7 !important;
 }
 
 /* Subtle Back-Navigation Link */

@@ -73,6 +73,7 @@ function cssVar(name) {
 }
 
 function setAllThemeKeys(theme) {
+  safeStorageSet('siliconsliders-theme', theme);
   safeStorageSet('silicon_sliders_theme', theme);
   safeStorageSet('cmos_viewer_theme', theme);
   safeStorageSet('cmos_nand_viewer_theme', theme);
@@ -80,7 +81,7 @@ function setAllThemeKeys(theme) {
 }
 
 function loadSavedTheme() {
-  var saved = safeStorageGet('silicon_sliders_theme') || safeStorageGet(THEME_STORAGE_KEY) || safeStorageGet('cmos_viewer_theme');
+  var saved = safeStorageGet('siliconsliders-theme') || safeStorageGet('silicon_sliders_theme') || safeStorageGet(THEME_STORAGE_KEY) || safeStorageGet('cmos_viewer_theme');
   if (saved === 'light' || saved === 'dark') {
     return saved;
   }

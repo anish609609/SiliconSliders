@@ -266,10 +266,10 @@ function buildDiodeGeometry() {
   var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
 
   // Theme-sensitive colors from unified palette
-  var subColor = pal ? pal.pSubstrate : (isLight ? 0x64748b : 0x2b3442);
-  var wellColor = pal ? pal.nWell : (isLight ? 0x52b788 : 0x2d5a4c);
-  var pColor = pal ? pal.pPlusDiffusion : (isLight ? 0xc2410c : 0xea580c);
-  var nColor = pal ? pal.nPlusDiffusion : (isLight ? 0x1d4ed8 : 0x2563eb);
+  var subColor = pal ? pal.pSubstrate : (isLight ? 0x93c5fd : 0x1e3a5f);
+  var wellColor = pal ? pal.nWell : (isLight ? 0x4ade80 : 0x166534);
+  var pColor = pal ? pal.pPlusDiffusion : (isLight ? 0x1d4ed8 : 0x2563eb);
+  var nColor = pal ? pal.nPlusDiffusion : (isLight ? 0x15803d : 0x15803d);
   var depletColor = pal ? pal.depletion : (isLight ? 0x475569 : 0x64748b);
   var metalColor = pal ? pal.metal : (isLight ? 0x475569 : 0x94a3b8);
   var oxideColor = pal ? pal.fieldOxide : (isLight ? 0x64748b : 0x475569);
@@ -769,10 +769,10 @@ function updateMaterialsTheme() {
   var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
   if (!pal) {
     pal = {
-      pSubstrate: isLight ? '#64748B' : '#2B3442',
-      nWell: isLight ? '#52B788' : '#2D5A4C',
-      pPlusDiffusion: isLight ? '#C2410C' : '#EA580C',
-      nPlusDiffusion: isLight ? '#1D4ED8' : '#2563EB',
+      pSubstrate: isLight ? '#93C5FD' : '#1E3A5F',
+      nWell: isLight ? '#4ADE80' : '#166534',
+      pPlusDiffusion: isLight ? '#1D4ED8' : '#2563EB',
+      nPlusDiffusion: isLight ? '#15803D' : '#15803D',
       depletion: isLight ? '#475569' : '#64748B',
       depletionOpacity: 0.26,
       fieldOxide: isLight ? '#64748B' : '#475569',
@@ -787,7 +787,13 @@ function updateMaterialsTheme() {
   diodeMaterials.substrate.metalness = 0.05;
   if (diodeMaterials.substrate.emissive) diodeMaterials.substrate.emissive.set(0x000000);
   diodeMaterials.substrate.emissiveIntensity = 0;
-  if (diodeMaterials.nwell) diodeMaterials.nwell.color.set(pal.nWell);
+  if (diodeMaterials.nwell) {
+    diodeMaterials.nwell.color.set(pal.nWell);
+    diodeMaterials.nwell.roughness = isLight ? 0.75 : 0.50;
+    diodeMaterials.nwell.metalness = isLight ? 0.05 : 0.20;
+    if (diodeMaterials.nwell.emissive) diodeMaterials.nwell.emissive.set(0x000000);
+    diodeMaterials.nwell.emissiveIntensity = 0;
+  }
   if (diodeMaterials.pRegion) diodeMaterials.pRegion.color.set(pal.pPlusDiffusion);
   if (diodeMaterials.nRegion) diodeMaterials.nRegion.color.set(pal.nPlusDiffusion);
   if (diodeMaterials.metal) diodeMaterials.metal.color.set(pal.metal);

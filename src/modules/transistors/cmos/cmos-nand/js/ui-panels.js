@@ -261,9 +261,9 @@ function buildUiPanels() {
 
     var colorMap = {
       substrate: pal.pSubstrate,
-      well: pal.nWell,
-      active: pal.nPlusDiffusion,
-      sde: pal.implantedNChannel,
+      well: 'linear-gradient(135deg, ' + pal.nWell + ' 50%, ' + pal.pWell + ' 50%)',
+      active: 'linear-gradient(135deg, ' + pal.pPlusDiffusion + ' 50%, ' + pal.nPlusDiffusion + ' 50%)',
+      sde: 'linear-gradient(135deg, ' + pal.pSDE + ' 50%, ' + pal.nSDE + ' 50%)',
       oxide: pal.gateOxide,
       poly: pal.polysilicon,
       contact: pal.via,
@@ -332,3 +332,4 @@ function buildUiPanels() {
 }
 
 buildUiPanels();
+if (typeof updateLayersListTheme === 'function') updateLayersListTheme();

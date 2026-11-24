@@ -588,17 +588,30 @@ function updateMaterialsTheme() {
 
   for (var i = 0; i < allMeshes.length; i++) {
     var m = allMeshes[i];
+    if (m && m.userData && (m.userData.id === 'chMP1' || m.userData.id === 'chMP2' || m.userData.id === 'chMN1' || m.userData.id === 'chMN2')) continue;
     var colorVar = m.userData.colorVar;
     if (!colorVar || !m.material) continue;
 
-    var nextColor = (colorVar === '--c-substrate' && pal && pal.pSubstrate)
-      ? new THREE.Color(pal.pSubstrate)
-      : new THREE.Color(cssVar(colorVar));
+    var nextColorStr = cssVar(colorVar);
+    if (colorVar === '--c-substrate' && pal && pal.pSubstrate) nextColorStr = pal.pSubstrate;
+    else if (colorVar === '--c-well' && pal && pal.nWell) nextColorStr = pal.nWell;
+    else if (colorVar === '--c-pwell' && pal && pal.pWell) nextColorStr = pal.pWell;
+    else if (colorVar === '--c-active-p' && pal && pal.pPlusDiffusion) nextColorStr = pal.pPlusDiffusion;
+    else if (colorVar === '--c-active-n' && pal && pal.nPlusDiffusion) nextColorStr = pal.nPlusDiffusion;
+    else if (colorVar === '--c-sde-p' && pal && pal.pSDE) nextColorStr = pal.pSDE;
+    else if (colorVar === '--c-sde-n' && pal && pal.nSDE) nextColorStr = pal.nSDE;
+
+    var nextColor = new THREE.Color(nextColorStr);
     if (m.material.color) {
       m.material.color.copy(nextColor);
     }
     if (colorVar === '--c-substrate') {
       m.material.roughness = 0.85;
+      m.material.metalness = 0.05;
+      if (m.material.emissive) m.material.emissive.set(0x000000);
+      m.material.emissiveIntensity = 0;
+    } else if (colorVar === '--c-well' || colorVar === '--c-pwell') {
+      m.material.roughness = isLightTheme ? 0.75 : 0.50;
       if (m.material.emissive) m.material.emissive.set(0x000000);
       m.material.emissiveIntensity = 0;
     }
@@ -643,6 +656,10 @@ function updateMaterialsTheme() {
 
   if (typeof updateLayersListTheme === 'function') {
     updateLayersListTheme(pal);
+  }
+
+  if (typeof window.updateNandChannelThemes === 'function') {
+    window.updateNandChannelThemes(isLightTheme ? 'light' : 'dark');
   }
 
   if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
@@ -766,7 +783,7 @@ function buildNand2Cell() {
     straggle: 0.16,
     cornerR: 0.5,
     opacity: 0.88,
-    outlineColor: '#f0b877',
+    outlineColor: '#60a5fa',
     renderOrder: 3
   };
 
@@ -789,7 +806,7 @@ function buildNand2Cell() {
     straggle: 0.16,
     cornerR: 0.5,
     opacity: 0.88,
-    outlineColor: '#7fc3ec',
+    outlineColor: '#22c55e',
     renderOrder: 3
   };
 
@@ -816,7 +833,7 @@ function buildNand2Cell() {
     straggle: 0.12,
     cornerR: 0.25,
     opacity: 0.72,
-    outlineColor: '#fcd34d',
+    outlineColor: '#93c5fd',
     renderOrder: 4
   };
   var nSdeOpts = {
@@ -825,7 +842,7 @@ function buildNand2Cell() {
     straggle: 0.12,
     cornerR: 0.25,
     opacity: 0.72,
-    outlineColor: '#bae6fd',
+    outlineColor: '#4ade80',
     renderOrder: 4
   };
 
@@ -849,13 +866,14 @@ function buildNand2Cell() {
 
   /* Gate Channel Inversion Layers under Gate A & Gate B */
   var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var palInitNAND = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLight ? 'light' : 'dark') : null);
 
   var pmosChanMat = new THREE.MeshStandardMaterial({
-    color: isInitLight ? 0xb91c1c : 0xff4fbf,
+    color: palInitNAND ? palInitNAND.holeChannel : (isInitLight ? 0x60A5FA : 0x38BDF8),
     roughness: 0.40,
     metalness: 0.15,
-    emissive: isInitLight ? 0x991b1b : 0xdb2777,
-    emissiveIntensity: 0.55,
+    emissive: palInitNAND ? palInitNAND.holeChannel : (isInitLight ? 0x60A5FA : 0x38BDF8),
+    emissiveIntensity: isInitLight ? 0.15 : 0.40,
     opacity: 0.85,
     transparent: true,
     side: THREE.DoubleSide,
@@ -864,11 +882,11 @@ function buildNand2Cell() {
   });
 
   var nmosChanMat = new THREE.MeshStandardMaterial({
-    color: isInitLight ? 0x0052cc : 0x38bdf8,
+    color: palInitNAND ? palInitNAND.electronChannel : (isInitLight ? 0x4ADE80 : 0x34D399),
     roughness: 0.40,
     metalness: 0.15,
-    emissive: isInitLight ? 0x003399 : 0x0284c7,
-    emissiveIntensity: 0.55,
+    emissive: palInitNAND ? palInitNAND.electronChannel : (isInitLight ? 0x4ADE80 : 0x34D399),
+    emissiveIntensity: isInitLight ? 0.15 : 0.40,
     opacity: 0.85,
     transparent: true,
     side: THREE.DoubleSide,
@@ -1012,18 +1030,23 @@ function buildNand2Cell() {
 
   window.updateNandChannelThemes = function(theme) {
     var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
+    var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
     ['chMP1', 'chMP2'].forEach(function(id) {
       var m = nandChannelMeshes[id];
       if (m && m.material) {
-        m.material.color.setHex(isLight ? 0xb91c1c : 0xff4fbf);
-        m.material.emissive.setHex(isLight ? 0x991b1b : 0xdb2777);
+        var cP = pal ? pal.holeChannel : (isLight ? 0x60A5FA : 0x38BDF8);
+        m.material.color.set(cP);
+        m.material.emissive.set(cP);
+        m.material.emissiveIntensity = isLight ? 0.15 : 0.40;
       }
     });
     ['chMN1', 'chMN2'].forEach(function(id) {
       var m = nandChannelMeshes[id];
       if (m && m.material) {
-        m.material.color.setHex(isLight ? 0x0052cc : 0x38bdf8);
-        m.material.emissive.setHex(isLight ? 0x003399 : 0x0284c7);
+        var cN = pal ? pal.electronChannel : (isLight ? 0x4ADE80 : 0x34D399);
+        m.material.color.set(cN);
+        m.material.emissive.set(cN);
+        m.material.emissiveIntensity = isLight ? 0.15 : 0.40;
       }
     });
   };

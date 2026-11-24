@@ -15,7 +15,7 @@ var LEGEND = [
   { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep N+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
   { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion and poly layers to the first metal interconnect.' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body Tap (B/GND) terminals.' },
-  { key: 'src',       name: 'SOURCE TERMINAL (S)', color: '#1d4ed8', desc: 'Supplies carrier electrons into the channel; typically tied to circuit ground (0V).' },
+  { key: 'src',       name: 'SOURCE TERMINAL (S)', color: 'var(--c-active-n)', desc: 'Supplies carrier electrons into the channel; typically tied to circuit ground (0V).' },
   { key: 'drn',       name: 'DRAIN TERMINAL (D)', color: '#57cf8f', desc: 'Collects electrons from the channel; biased at VDS > 0V.' },
   { key: 'gate',      name: 'GATE TERMINAL (G)', color: '#e6c94a', desc: 'Voltage input terminal (VGS). Electrostatic field depletes or enhances the implanted N-channel.' },
   { key: 'body',      name: 'BODY / SUBSTRATE TAP (B)', color: '#9aa6b6', desc: 'Ohmic P+ contact biasing bulk substrate to GND to avoid forward-biasing the source-body junction.' }
