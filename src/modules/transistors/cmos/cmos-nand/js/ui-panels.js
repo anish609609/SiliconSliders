@@ -122,7 +122,7 @@ function applyLayerVisibility() {
 }
 
 function syncVisibilityCheckboxes() {
-  var checks = document.querySelectorAll('#layer-toggles input[data-layer]');
+  var checks = document.querySelectorAll('#layers-body input[data-layer]');
   for (var i = 0; i < checks.length; i++) {
     var key = checks[i].getAttribute('data-layer');
     checks[i].checked = layerVisibility[key] !== false;
@@ -131,6 +131,23 @@ function syncVisibilityCheckboxes() {
   if (lblChk) lblChk.checked = showLabels3D;
   applyLayerVisibility();
 }
+
+function switchWorkbenchTab(tabKey) {
+  var tabBtns = document.querySelectorAll('.wb-tab-btn');
+  var panes = document.querySelectorAll('.wb-pane');
+  tabBtns.forEach(function(btn) {
+    var active = (btn.dataset.tab === tabKey);
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  panes.forEach(function(pane) {
+    pane.classList.toggle('active', pane.id === 'wb-pane-' + tabKey);
+  });
+  if (tabKey === 'controls' && typeof applyLogicState === 'function') {
+    setTimeout(applyLogicState, 10);
+  }
+}
+window.switchWorkbenchTab = switchWorkbenchTab;
 
 function buildUiPanels() {
   /* Build Architecture Tree */
@@ -168,70 +185,96 @@ function buildUiPanels() {
     });
   }
 
-  /* Build Layer Visibility Toggles */
-  var togglesEl = document.getElementById('layer-toggles');
-  if (togglesEl) {
-    var th = '';
-    for (var i = 0; i < LEGEND.length; i++) {
-      var leg = LEGEND[i];
-      th += '<label class="layer-row">' +
-        '<input type="checkbox" data-layer="' + leg.key + '" checked />' +
-        '<span class="layer-swatch" style="background:' + leg.color + '"></span>' +
-        '<span>' + leg.label + '</span>' +
-        '</label>';
-    }
-    togglesEl.innerHTML = th;
+  // Workbench Tab Switching Buttons
+  document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      switchWorkbenchTab(btn.dataset.tab);
+    });
+  });
 
-    togglesEl.addEventListener('change', function (e) {
-      var chk = e.target;
-      if (chk && chk.hasAttribute('data-layer')) {
-        layerVisibility[chk.getAttribute('data-layer')] = chk.checked;
+  /* Unified Layer List in Tab 2 (#layers-body) */
+  var layersBody = document.getElementById('layers-body');
+  if (layersBody && typeof LEGEND !== 'undefined') {
+    layersBody.className = 'unified-layers-list';
+    layersBody.innerHTML = '';
+    LEGEND.forEach(function(l) {
+      var item = document.createElement('div');
+      item.className = 'unified-layer-item';
+
+      var row = document.createElement('div');
+      row.className = 'unified-layer-row';
+      row.innerHTML =
+        '<input type="checkbox" checked data-layer="' + l.key + '" title="Toggle ' + l.label + ' visibility">' +
+        '<span class="swatch" style="background:' + l.color + '"></span>' +
+        '<span class="layer-name" title="Toggle visibility">' + l.label + '</span>';
+
+      var desc = document.createElement('div');
+      desc.className = 'unified-layer-desc';
+      desc.textContent = l.note || '';
+
+      item.appendChild(row);
+      item.appendChild(desc);
+      layersBody.appendChild(item);
+
+      var cb = row.querySelector('input');
+      cb.addEventListener('change', function(e) {
+        layerVisibility[l.key] = e.target.checked;
         applyLayerVisibility();
-      }
+      });
+
+      row.querySelector('.layer-name').addEventListener('click', function() {
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change'));
+      });
     });
   }
 
-  var btnAllOn = document.getElementById('btn-layers-all');
-  if (btnAllOn) {
-    btnAllOn.addEventListener('click', function () {
-      for (var k in layerVisibility) {
-        if (Object.prototype.hasOwnProperty.call(layerVisibility, k)) {
-          layerVisibility[k] = true;
+  /* Terminals & Net Reference (#ref-legend-body) */
+  var refLegendBody = document.getElementById('ref-legend-body');
+  if (refLegendBody) {
+    var terminalsList = [
+      { name: 'VDD RAIL (+Z)', color: 'var(--c-vdd)', desc: 'Supply voltage rail (+1.00V) routing to MP1/MP2 source diffusions and N-Well body tap.' },
+      { name: 'GND RAIL (-Z)', color: 'var(--c-gnd)', desc: 'Ground return rail (0.00V) routing to MN1 source diffusion and P-Well body tap.' },
+      { name: 'INPUT A (GATE A)', color: 'var(--c-in)', desc: 'Polysilicon gate A controlling pull-up MP1 and bottom series pull-down MN1.' },
+      { name: 'INPUT B (GATE B)', color: 'var(--c-in)', desc: 'Polysilicon gate B controlling pull-up MP2 and top series pull-down MN2.' },
+      { name: 'OUTPUT NET (OUT)', color: 'var(--c-out)', desc: 'Common output node driven by parallel PMOS pull-up or series NMOS pull-down.' },
+      { name: 'SERIES N+ BRIDGE', color: 'var(--c-active-n)', desc: 'Intermediate internal diffusion node Vx between series NMOS transistors MN1 and MN2.' }
+    ];
+    refLegendBody.innerHTML = '';
+    terminalsList.forEach(function(t) {
+      var div = document.createElement('div');
+      div.className = 'ref-legend-item';
+      div.innerHTML =
+        '<div class="lh"><span class="swatch" style="background:' + t.color + '"></span><b>' + t.name + '</b></div>' +
+        '<p>' + t.desc + '</p>';
+      refLegendBody.appendChild(div);
+    });
+  }
+
+  /* Collapsible Accordion Section Headers */
+  document.querySelectorAll('.wb-accordion-head, .panel-head').forEach(function(h) {
+    h.addEventListener('click', function() {
+      if (h.classList.contains('static-head')) return;
+      var targetId = h.dataset.target || h.getAttribute('data-sec');
+      if (!targetId) return;
+      var body = document.getElementById(targetId);
+      var chev = h.querySelector('.wb-chev, .sec-chevron, .chev');
+      if (body) {
+        var isHidden = body.classList.toggle('hidden');
+        if (chev) {
+          chev.classList.toggle('closed', isHidden);
+          chev.textContent = isHidden ? '▸' : '▾';
         }
       }
-      showLabels3D = true;
-      syncVisibilityCheckboxes();
     });
-  }
+  });
 
+  /* 3D Floating Labels Checkbox */
   var chkLabels = document.getElementById('chk-labels');
   if (chkLabels) {
     chkLabels.addEventListener('change', function () {
       showLabels3D = chkLabels.checked;
       applyLayerVisibility();
-    });
-  }
-
-  /* Build Legend List */
-  var legendEl = document.getElementById('legend-list');
-  if (legendEl) {
-    var lh = '';
-    for (var j = 0; j < LEGEND.length; j++) {
-      var l = LEGEND[j];
-      lh += '<div class="legend-row">' +
-        '<span class="layer-swatch" style="background:' + l.color + ';margin-top:2px;"></span>' +
-        '<div><div class="legend-name">' + l.label + '</div>' +
-        '<div class="legend-note">' + l.note + '</div></div>' +
-        '</div>';
-    }
-    legendEl.innerHTML = lh;
-  }
-
-  /* Collapsible Panel Section Headers */
-  var hdrs = document.querySelectorAll('.panel-sec .sec-hdr');
-  for (var hi = 0; hi < hdrs.length; hi++) {
-    hdrs[hi].addEventListener('click', function () {
-      this.closest('.panel-sec').classList.toggle('collapsed');
     });
   }
 }

@@ -146,7 +146,7 @@
     }
     isPlaying = false;
     if (playBtn) {
-      playBtn.textContent = '▶ Play';
+      playBtn.textContent = ' Play';
       playBtn.disabled = true;
     }
     if (stopBtn) {
@@ -160,12 +160,12 @@
     if (isPlaying) {
       currentAudioInstance.pause();
       isPlaying = false;
-      if (playBtn) playBtn.textContent = '▶ Play';
+      if (playBtn) playBtn.textContent = ' Play';
       updateStatus('ready', 'Playback Paused');
     } else {
       currentAudioInstance.play().then(function () {
         isPlaying = true;
-        if (playBtn) playBtn.textContent = '⏸ Pause';
+        if (playBtn) playBtn.textContent = ' Pause';
         if (stopBtn) stopBtn.disabled = false;
         updateStatus('speaking', 'Speaking Voice...');
       }).catch(function (err) {
@@ -191,7 +191,7 @@
 
     if (playBtn) {
       playBtn.disabled = false;
-      playBtn.textContent = '⏸ Pause';
+      playBtn.textContent = ' Pause';
     }
     if (stopBtn) {
       stopBtn.disabled = false;
@@ -205,9 +205,9 @@
       isPlaying = false;
       if (playBtn) {
         playBtn.disabled = false;
-        playBtn.textContent = '▶ Play';
+        playBtn.textContent = ' Play';
       }
-      updateStatus('ready', 'Voice Ready — Click ▶ Play');
+      updateStatus('ready', 'Voice Ready — Click  Play');
     });
   }
 
@@ -337,7 +337,7 @@
     }
     if (keyModalSaveBtn) {
       keyModalSaveBtn.disabled = false;
-      keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+      keyModalSaveBtn.innerHTML = 'Save & Test Voice ';
     }
 
     keyModalBackdrop.style.display = 'flex';
@@ -410,7 +410,7 @@
       var sessionOnly = keyModalSessionOnlyChk ? keyModalSessionOnlyChk.checked : true;
       setSavedApiKey(key, sessionOnly);
 
-      showModalStatus('success', '✓ API key verified! Playing sample voice...');
+      showModalStatus('success', ' API key verified! Playing sample voice...');
 
       try {
         var blob = base64ToWavBlob(data.audios[0]);
@@ -433,10 +433,10 @@
 
     } catch (err) {
       console.error('[VoiceAssistant] Key verification error:', err);
-      showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
+      showModalStatus('error', ' Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
       if (keyModalSaveBtn) {
         keyModalSaveBtn.disabled = false;
-        keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+        keyModalSaveBtn.innerHTML = 'Save & Test Voice ';
       }
     }
   }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>CMOS Inverter — Physical Layout Viewer</title>
+<title>CMOS Inverter — 3D Physical Layout &amp; Semiconductor CAD</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,33 +34,36 @@
 </head>
 <body>
 
-<div id="loading"><div class="spin"></div><div>INITIALIZING VIEWPORT…</div></div>
+<div id="loading"><div class="spin"></div><div>INITIALIZING INVERTER VIEWPORT…</div></div>
 
 <div id="app">
 
   <div id="topbar">
-    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
-    <div class="brand"><span class="dot"></span><b>CMOS·VIEWER</b><span>inverter / rev 01</span></div>
+    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
+    <div class="brand"><span class="dot"></span><b class="brand-title-full">INVERTER·VIEWER</b><b class="brand-title-compact">INVERTER</b></div>
 
-    <div class="seg" id="mode-seg">
+    <div class="topbar-mode-row">
+      <div class="seg" id="mode-seg">
         <button data-mode="theory">THEORY</button>
-        <button data-mode="layout" class="active"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
+        <button data-mode="layout" class="active"><span class="tab-label-full">SLIDERS</span><span class="tab-label-compact">SLIDERS</span></button>
         <button data-mode="schematic">SCHEMATIC</button>
       </div>
 
-    <div class="topbar-divider" aria-hidden="true"></div>
+      <div class="topbar-divider" aria-hidden="true"></div>
 
-    <div class="in-toggle">
-      IN =
-      <div class="seg" id="in-seg">
-        <button data-in="0">0</button>
-        <button data-in="1">1</button>
-        <button data-in="off" class="active">OFF</button>
+      <div class="in-toggle">
+        IN =
+        <div class="seg" id="in-seg">
+          <button data-in="0">0</button>
+          <button data-in="1">1</button>
+          <button data-in="off" class="active">OFF</button>
+        </div>
       </div>
-    </div>
-    <div class="seg" id="flow-seg" title="Direction convention for the animated flow markers on whichever transistor is ON">
-      <button data-flow="current" class="active">CURRENT</button>
-      <button data-flow="electron">ELECTRONS</button>
+
+      <div class="seg" id="flow-seg" title="Direction convention for the animated flow markers on whichever transistor is ON">
+        <button data-flow="current" class="active">CURRENT</button>
+        <button data-flow="electron">ELECTRONS</button>
+      </div>
     </div>
 
     <div class="spacer"></div>
@@ -81,7 +84,14 @@
         <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <span id="theme-btn-label">LIGHT</span>
+      </button>
+      <button class="tbtn icon-btn" id="va-launcher-btn" title="AI Voice Tutor (Sarvam Voice)" aria-label="Open AI Voice Tutor">
+        <svg class="va-topbar-mic-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
       </button>
       <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence with AI Voice Tutor" aria-label="Play 3D Fabrication Tour">
         <span class="play-icon">▶</span>
@@ -93,41 +103,246 @@
 
   <div id="body-row">
 
-    <button class="panel-toggle" id="left-toggle" title="Toggle layers &amp; legend panel" aria-label="Toggle layers panel" aria-expanded="false">
-      <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <polyline points="9 18 15 12 9 6"></polyline>
-      </svg>
-    </button>
-    <button class="panel-toggle" id="right-toggle" title="Toggle inspector &amp; tree panel" aria-label="Toggle inspector panel" aria-expanded="false">
+    <!-- Single Docked Left Workbench -->
+    <aside id="left-workbench" class="workbench" aria-label="CMOS Inverter Workbench Controls">
+      
+      <!-- 3-Tab Header -->
+      <div class="wb-header">
+        <div class="wb-tabs" role="tablist">
+          <button class="wb-tab-btn active" data-tab="controls" id="wb-tab-controls" role="tab" aria-selected="true" aria-controls="wb-pane-controls">
+            <span>Controls</span>
+          </button>
+          <button class="wb-tab-btn" data-tab="layers" id="wb-tab-layers" role="tab" aria-selected="false" aria-controls="wb-pane-layers">
+            <span>Layers</span>
+          </button>
+          <button class="wb-tab-btn" data-tab="inspect" id="wb-tab-inspect" role="tab" aria-selected="false" aria-controls="wb-pane-inspect">
+            <span>Inspect</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Workbench Body (Scrollable container for active tab pane) -->
+      <div class="wb-body" id="wb-body">
+
+        <!-- TAB 1: CONTROLS (Default active tab) -->
+        <div class="wb-pane active" id="wb-pane-controls" role="tabpanel" aria-labelledby="wb-tab-controls">
+          
+          <!-- Physics & VTC Section -->
+          <div class="wb-section" id="wb-physics-section">
+            <div class="wb-section-header">
+              <span class="wb-section-title">LOGIC INPUT STATE</span>
+            </div>
+            <div class="seg wb-presets" id="region-preset-seg">
+              <button data-preset="0" class="dp-preset-btn" title="VIN = 0.00V (GND) -> OUT = 1.00V (VDD)">0 (GND)</button>
+              <button data-preset="vm" class="dp-preset-btn" title="VIN = 0.50V (Switching Threshold VM)">VM (0.5V)</button>
+              <button data-preset="1" class="dp-preset-btn" title="VIN = 1.00V (VDD) -> OUT = 0.00V (GND)">1 (VDD)</button>
+              <button data-preset="off" class="dp-preset-btn active" title="Input Disconnected (High-Z Floating)">OFF (High-Z)</button>
+            </div>
+
+            <!-- Voltage Input Slider (VIN) -->
+            <div class="wb-bias-controls">
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="vin-slider">V<sub>IN</sub> (Input Bias)</label>
+                  <span class="dp-slider-val" id="vin-val">OFF</span>
+                </div>
+                <input type="range" id="vin-slider" min="0" max="1.0" step="0.01" value="0.00" title="CMOS Input Voltage VIN">
+              </div>
+            </div>
+
+            <!-- Live VTC & Switching Graph -->
+            <div class="iv-canvas-wrap">
+              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand VTC graph" aria-label="Expand VTC graph">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <polyline points="9 21 3 21 3 15"></polyline>
+                  <line x1="21" y1="3" x2="14" y2="10"></line>
+                  <line x1="3" y1="21" x2="10" y2="14"></line>
+                </svg>
+              </button>
+              <canvas id="iv-canvas" width="310" height="225"></canvas>
+              <div class="iv-canvas-hint">Drag or click on VTC curve to set V<sub>IN</sub> and modulate inverter state</div>
+            </div>
+
+            <!-- Telemetry & Readouts -->
+            <div class="dp-readouts">
+              <div class="iv-grid">
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>IN</sub></span>
+                  <span class="iv-v" id="iv-vin-readout">OFF</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>OUT</sub></span>
+                  <span class="iv-v" id="iv-vout-readout">FLOATING</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>M</sub></span>
+                  <span class="iv-v">0.50 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">I<sub>DD</sub></span>
+                  <span class="iv-v" id="iv-idd-readout">0.00 mA</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">NMOS REGION</span>
+                  <span class="iv-v" id="iv-nmos-reg-readout">CUTOFF</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">PMOS REGION</span>
+                  <span class="iv-v" id="iv-pmos-reg-readout">CUTOFF</span>
+                </div>
+              </div>
+              <div class="iv-state-line">
+                <span class="iv-k">STATE:</span>
+                <span class="iv-v-state" id="iv-state-desc">Input Floating · High-Z Output</span>
+              </div>
+            </div>
+
+            <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
+            <div style="display:none;" id="state-badge">
+              <span id="badge-in"></span><span id="badge-pmos"></span><span id="badge-nmos"></span><span id="badge-out"></span><button id="status-toggle"></button>
+            </div>
+          </div>
+
+          <!-- View Controls (Collapsible accordion section directly below Physics & Graph) -->
+          <div class="wb-accordion-section" id="wb-view-controls-section">
+            <div class="wb-accordion-head" data-target="view-controls-body">
+              <span class="wb-accordion-title">VIEW CONTROLS</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="view-controls-body">
+              <!-- Explode Sliders -->
+              <div class="dp-section">
+                <div class="vh-section-title">EXPLODE LAYERS</div>
+                <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
+                <input type="range" id="explode-y-slider" min="0" max="100" value="1">
+                <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
+                <input type="range" id="explode-x-slider" min="0" max="100" value="0">
+                <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
+                <input type="range" id="explode-z-slider" min="0" max="100" value="0">
+              </div>
+
+              <div class="vh-sep"></div>
+
+              <!-- Section Scrub Sliders -->
+              <div class="dp-section">
+                <div class="vh-section-title">SECTION SCRUB (CLIPPING)</div>
+                <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
+                <input type="range" id="scrub-x-slider" min="-1250" max="3500" value="3500">
+                <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
+                <input type="range" id="scrub-y-slider" min="-100" max="5000" value="5000">
+                <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
+                <input type="range" id="scrub-z-slider" min="-1800" max="3500" value="3500">
+              </div>
+
+              <div class="vh-sep"></div>
+
+              <!-- 3D Floating Labels Checkbox -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="toggle-labels" checked>
+                  <span>Show 3D Floating Labels</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 2: LAYERS (Merged Visibility + Legend + Dimensions) -->
+        <div class="wb-pane" id="wb-pane-layers" role="tabpanel" aria-labelledby="wb-tab-layers">
+          
+          <!-- Unified Layer List (Toggleable layers) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">LAYER VISIBILITY &amp; STRUCTURE</span>
+            </div>
+            <div class="wb-section-body" id="layers-body">
+              <!-- Dynamically populated by ui-panels.js -->
+            </div>
+          </div>
+
+          <!-- Terminals & Net Reference (Non-toggleable items) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head" data-target="ref-legend-body">
+              <span class="wb-accordion-title">TERMINALS &amp; NET REFERENCE</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="ref-legend-body">
+              <!-- Dynamically populated by ui-panels.js -->
+            </div>
+          </div>
+
+          <!-- Dimensions (λ Rules) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head" data-target="dims-body">
+              <span class="wb-accordion-title">DIMENSIONS (λ RULES)</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="dims-body">
+              <div class="dims-row-select">
+                <label for="lambda-select" class="dims-lbl">λ (LAMBDA)</label>
+                <select id="lambda-select"></select>
+              </div>
+              <div id="dims-table"></div>
+              <p class="dims-note">λ-scaled Mead–Conway style rules, illustrative only. Click any component in the 3D view to inspect its physical dimensions.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 3: INSPECT (Property Inspector + Architecture Tree) -->
+        <div class="wb-pane" id="wb-pane-inspect" role="tabpanel" aria-labelledby="wb-tab-inspect">
+          
+          <!-- Property Inspector (Top) -->
+          <div class="wb-accordion-section inspector-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">PROPERTY INSPECTOR</span>
+            </div>
+            <div class="wb-section-body" id="inspector-body">
+              <div id="inspector">
+                <div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture Tree (Bottom) -->
+          <div class="wb-accordion-section tree-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">ARCHITECTURE TREE</span>
+            </div>
+            <div class="wb-section-body" id="tree-body">
+              <div id="tree"></div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Drag Resize Handle -->
+      <div class="wb-resize-handle" id="wb-resize-handle" title="Drag to resize sidebar (Double-click to reset)"></div>
+
+    </aside>
+
+    <!-- Workbench Collapse / Expand Edge Toggle Button -->
+    <button class="workbench-toggle-btn" id="workbench-toggle" title="Collapse / Expand Workbench" aria-label="Toggle Left Workbench" aria-expanded="true">
       <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <polyline points="15 18 9 12 15 6"></polyline>
       </svg>
     </button>
 
-    <div id="left-panel">
-      <div class="panel-section">
-        <div class="panel-head" data-target="layers-body"><h3>LAYER VISIBILITY</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="layers-body"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-head" data-target="legend-body"><h3>LAYER LEGEND</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="legend-body"></div>
-      </div>
-      <div class="panel-section">
-        <div class="panel-head" data-target="dims-body"><h3>DIMENSIONS (λ RULES)</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="dims-body">
-          <div class="dims-row-select">
-            <label for="lambda-select" class="dims-lbl">λ (LAMBDA)</label>
-            <select id="lambda-select"></select>
-          </div>
-          <div id="dims-table"></div>
-          <p class="dims-note">λ-scaled Mead–Conway style rules, illustrative only — not a specific fabricated PDK. Click any component in the 3D view (or the schematic, or the tree) to see its own dimensions in the Property Inspector.</p>
-        </div>
-      </div>
-    </div>
-
     <div id="viewport-wrap">
       <div id="canvas-host"></div>
+
+      <!-- Anchored Popover (shown when Left Workbench is collapsed) -->
+      <div id="popover">
+        <div class="pop-card">
+          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
+          <div id="popover-content"></div>
+        </div>
+        <div class="pop-arrow"></div>
+      </div>
 
       <div id="schematic-overlay">
         <svg viewBox="0 0 360 460" xmlns="http://www.w3.org/2000/svg" fill="none">
@@ -308,70 +523,62 @@
                     <td><code>V<sub>TH,n</sub> ≤ V<sub>IN</sub> &lt; V<sub>M</sub></code></td>
                     <td>Saturation (V<sub>DS</sub> &gt; V<sub>GS</sub> - V<sub>TH,n</sub>)</td>
                     <td>Linear (V<sub>SD</sub> &lt; V<sub>SG</sub> - |V<sub>TH,p</sub>|)</td>
-                    <td><code>V<sub>OUT</sub></code> begins falling. NMOS saturation current matches PMOS linear current.</td>
+                    <td>V<sub>OUT</sub> begins dropping sharply from VDD as NMOS begins conducting. High voltage gain.</td>
                   </tr>
                   <tr>
                     <td><b>Region C</b></td>
-                    <td><code>V<sub>IN</sub> ≈ V<sub>M</sub></code> (Switching Point)</td>
-                    <td><b>Saturation</b></td>
-                    <td><b>Saturation</b></td>
-                    <td><b>Maximum Voltage Gain:</b> <code>A<sub>v</sub> = -(g<sub>mn</sub> + g<sub>mp</sub>)/(g<sub>dsn</sub> + g<sub>dsp</sub>)</code>. Peak short-circuit current flows from VDD to GND.</td>
+                    <td><code>V<sub>IN</sub> ≈ V<sub>M</sub> = 0.5 V<sub>DD</sub></code></td>
+                    <td>Saturation</td>
+                    <td>Saturation</td>
+                    <td>Both transistors in saturation. Steepest slope with peak gain |A<sub>v</sub>| &gt; 10. Direct shoot-through current I<sub>peak</sub> flows.</td>
                   </tr>
                   <tr>
                     <td><b>Region D</b></td>
                     <td><code>V<sub>M</sub> &lt; V<sub>IN</sub> ≤ V<sub>DD</sub> - |V<sub>TH,p</sub>|</code></td>
                     <td>Linear (V<sub>DS</sub> &lt; V<sub>GS</sub> - V<sub>TH,n</sub>)</td>
-                    <td>Saturation (V<sub>SD</sub> ≥ V<sub>SG</sub> - |V<sub>TH,p</sub>|)</td>
-                    <td><code>V<sub>OUT</sub></code> approaches ground. NMOS linear resistance pulls OUT close to 0V.</td>
+                    <td>Saturation (V<sub>SD</sub> &gt; V<sub>SG</sub> - |V<sub>TH,p</sub>|)</td>
+                    <td>V<sub>OUT</sub> approaches GND as PMOS pinches off into saturation.</td>
                   </tr>
                   <tr>
                     <td><b>Region E</b></td>
-                    <td><code>V<sub>IN</sub> &gt; V<sub>DD</sub> - |V<sub>TH,p</sub>|</code></td>
-                    <td>Linear (V<sub>DS</sub> = 0)</td>
+                    <td><code>V<sub>DD</sub> - |V<sub>TH,p</sub>| &lt; V<sub>IN</sub> ≤ V<sub>DD</sub></code></td>
+                    <td>Linear (V<sub>DS</sub> ≈ 0)</td>
                     <td>Cutoff (I<sub>Dp</sub> = 0)</td>
-                    <td><code>V<sub>OUT</sub> = V<sub>OL</sub> = 0V</code>. NMOS ties OUT to GND with zero current.</td>
+                    <td><code>V<sub>OUT</sub> = V<sub>OL</sub> = GND (0V)</code>. NMOS ties OUT to GND with zero steady-state current.</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </article>
 
-          <!-- Section 3: Switching Threshold VM & Sizing -->
+          <!-- Section 3: Switching Threshold -->
           <article id="inv-switching" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">3. Inverter Switching Threshold (VM) &amp; Transistor Sizing (βr)</h3>
-              <span class="theory-card-tag">VM = VDD/2, βr = kn / kp = 1, Wp ≈ 2.5 Wn</span>
+              <h3 class="theory-card-title">3. Inverter Switching Threshold (V<sub>M</sub>)</h3>
+              <span class="theory-card-tag">Equating Saturation Currents: I_Dn = I_Dp at V_IN = V_OUT</span>
             </div>
             <p class="theory-p">
-              The switching threshold <code>V<sub>M</sub></code> is defined as the unique operating point where <code>V<sub>IN</sub> = V<sub>OUT</sub> = V<sub>M</sub></code>. In this state, both transistors are in saturation, equating their drain currents:
+              The switching threshold <code>V<sub>M</sub></code> is defined as the unique operating point where input equals output: <code>V<sub>IN</sub> = V<sub>OUT</sub> = V<sub>M</sub></code>. Equating NMOS and PMOS saturation currents yields:
             </p>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">½ · k<sub>n</sub> · (V<sub>M</sub> - V<sub>TH,n</sub>)² = ½ · k<sub>p</sub> · (V<sub>DD</sub> - V<sub>M</sub> - |V<sub>TH,p</sub>|)²</div>
-              <div class="theory-formula-sub">Defining transconductance ratio β<sub>r</sub> = k<sub>n</sub> / k<sub>p</sub> = [μ<sub>n</sub> C<sub>ox</sub> (W<sub>n</sub>/L<sub>n</sub>)] / [μ<sub>p</sub> C<sub>ox</sub> (W<sub>p</sub>/L<sub>p</sub>)]:</div>
-              <div class="theory-formula-main" style="margin-top:8px;">V<sub>M</sub> = [V<sub>TH,n</sub> + √(1/β<sub>r</sub>) · (V<sub>DD</sub> - |V<sub>TH,p</sub>|)] / [1 + √(1/β<sub>r</sub>)]</div>
-            </div>
-            <p class="theory-p">
-              <b>Symmetric Inverter Condition:</b> For ideal symmetric switching (<code>V<sub>M</sub> = V<sub>DD</sub> / 2</code>) with matched threshold voltages (<code>V<sub>TH,n</sub> = |V<sub>TH,p</sub>|</code>), the transconductance ratio must satisfy <code>β<sub>r</sub> = 1 ⟹ k<sub>n</sub> = k<sub>p</sub></code>. Because electron mobility <code>μ<sub>n</sub> ≈ 2.5 × μ<sub>p</sub></code>, achieving matched strengths requires sizing the PMOS width wider:
-            </p>
-            <div class="theory-formula-box">
-              <div class="theory-formula-main">(W<sub>p</sub> / W<sub>n</sub>)<sub>matched</sub> = μ<sub>n</sub> / μ<sub>p</sub> ≈ 2.0 to 3.0</div>
-              <div class="theory-formula-sub">This fundamental VLSI sizing rule ensures equal rise time (t<sub>pLH</sub>) and fall time (t<sub>pHL</sub>).</div>
+              <div class="theory-formula-main">V<sub>M</sub> = [ V<sub>TH,n</sub> + r · (V<sub>DD</sub> - |V<sub>TH,p</sub>|) ] / (1 + r) &nbsp; where &nbsp; r = √(k<sub>p</sub> / k<sub>n</sub>)</div>
+              <div class="theory-formula-sub">Symmetric Inverter Condition (r = 1): When k<sub>n</sub> = k<sub>p</sub> and V<sub>TH,n</sub> = |V<sub>TH,p</sub>|, the switching threshold lies exactly at the mid-rail: V<sub>M</sub> = V<sub>DD</sub> / 2 = 0.50V.</div>
             </div>
           </article>
 
           <!-- Section 4: Noise Margins -->
           <article id="inv-noisemargins" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">4. Noise Margins (NMH &amp; NML) &amp; Signal Integrity</h3>
-              <span class="theory-card-tag">dVOUT/dVIN = -1, Robust Digital Regeneration</span>
+              <h3 class="theory-card-title">4. Noise Margins (NM<sub>H</sub> &amp; NM<sub>L</sub>)</h3>
+              <span class="theory-card-tag">Unity-Gain Points (dVOUT / dVIN = -1)</span>
             </div>
             <p class="theory-p">
-              Noise margins quantify a logic gate's tolerance to electrical noise without corrupting logical state. Critical transition points are defined where the VTC slope reaches unity gain (<code>dV<sub>OUT</sub>/dV<sub>IN</sub> = -1</code>):
+              Noise margins characterize the noise immunity of the digital logic gate:
             </p>
             <div class="theory-grid-2">
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Noise Margin Low (NML)</span>
-                <p class="theory-subcard-desc">Maximum noise voltage superimposed on a Logic 0 that will not cause a false Logic 1 transition:</p>
+                <p class="theory-subcard-desc">Maximum noise voltage added to a Logic 0 that will not cause a false Logic 1 transition:</p>
                 <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-cyan);">
                   NM<sub>L</sub> = V<sub>IL</sub> - V<sub>OL</sub> = V<sub>IL</sub> - 0V = V<sub>IL</sub>
                 </div>
@@ -417,13 +624,24 @@
         </div>
       </div>
 
-
-      <div id="popover">
-        <div class="pop-card">
-          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
-          <div id="popover-content"></div>
+      <!-- Top-Center Step Explanation Banner for Drop-Down Fabrication Tour -->
+      <div id="tour-banner" class="tour-banner" style="display: none;">
+        <div class="tb-header">
+          <div class="tb-badge-group">
+            <span class="tb-badge" id="tb-step-badge">STEP 1 OF 8</span>
+            <b class="tb-title" id="tb-step-title">P-Substrate Preparation</b>
+          </div>
+          <div class="tb-controls">
+            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
+            <button id="tb-btn-close" class="tb-btn" title="Close tour">&times;</button>
+          </div>
         </div>
-        <div class="pop-arrow"></div>
+        <div class="tb-desc" id="tb-step-desc">
+          Single-crystal P-type silicon wafer provides mechanical support and the bulk semiconductor body for NMOS devices.
+        </div>
+        <div class="tb-progress-track">
+          <div class="tb-progress-fill" id="tb-progress-fill"></div>
+        </div>
       </div>
 
       <div class="hud" id="axis-indicator">
@@ -449,44 +667,21 @@
         </div>
       </div>
 
-      <button class="hud interactive" id="status-toggle">STATUS</button>
-
-      <div class="hud" id="state-badge">
-        <div class="row"><span class="l">IN</span><span class="v" id="badge-in">0</span></div>
-        <div class="row"><span class="l">PMOS</span><span class="v" id="badge-pmos">ON</span></div>
-        <div class="row"><span class="l">NMOS</span><span class="v" id="badge-nmos">OFF</span></div>
-        <div class="row"><span class="l">OUT</span><span class="v" id="badge-out">1</span></div>
-        <div class="disclaimer">Logical/behavioral visualization — not a transistor-level physical simulation.</div>
-      </div>
-
-      <div class="hud interactive" id="view-hud">
-        <div class="vh-title" id="view-hud-toggle"><span>VIEW CONTROLS</span><span class="chev" id="view-hud-chev">▾</span></div>
-        <div class="vh-body" id="view-hud-body">
-          <div class="vh-section-title">EXPLODE</div>
-          <div class="vh-row"><label>EXPLODE X</label><span class="val" id="explode-x-val">0%</span></div>
-          <input type="range" id="explode-x-slider" min="0" max="100" value="0">
-          <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="explode-y-val">1%</span></div>
-          <input type="range" id="explode-y-slider" min="0" max="100" value="1">
-          <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="explode-z-val">0%</span></div>
-          <input type="range" id="explode-z-slider" min="0" max="100" value="0">
-
-          <div class="vh-sep"></div>
-
-          <div class="vh-section-title">SCRUB</div>
-          <div class="vh-row"><label>SCRUB X</label><span class="val" id="scrub-x-val">off</span></div>
-          <input type="range" id="scrub-x-slider" min="-1250" max="3500" value="3500">
-          <div class="vh-row"><label>SCRUB Y</label><span class="val" id="scrub-y-val">off</span></div>
-          <input type="range" id="scrub-y-slider" min="-100" max="5000" value="5000">
-          <div class="vh-row"><label>SCRUB Z</label><span class="val" id="scrub-z-val">off</span></div>
-          <input type="range" id="scrub-z-slider" min="-1800" max="3500" value="3500">
-        </div>
+      <!-- Subtle 1-Line Camera Controls Hint -->
+      <div class="camera-hint" id="camera-hint" aria-hidden="true">
+        <span class="camera-hint-text"><b>Drag</b> Orbit · <b>Shift + Drag</b> Pan · <b>Scroll</b> Zoom</span>
       </div>
 
       <!-- AI Voice Assistant Widget (Sarvam Bulbul v4 Flash) -->
       <div id="voice-assistant-widget" class="va-widget minimized">
         <div class="va-header">
           <div class="va-header-title">
-            <span class="va-pulse-icon">🎙️</span>
+            <svg class="va-pulse-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
             <b>AI VOICE TUTOR</b>
             <span class="va-badge">bulbul:v4-flash</span>
           </div>
@@ -498,9 +693,11 @@
               <span class="bar"></span>
               <span class="bar"></span>
             </div>
-            <button class="va-hdr-btn" id="va-btn-settings" title="Sarvam API Key Settings" aria-label="API Key Settings">⚙️</button>
+            <button class="va-hdr-btn" id="va-btn-settings" title="Sarvam API Key Settings" aria-label="API Key Settings">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
             <button class="va-hdr-btn" id="va-btn-minimize" title="Minimize assistant" aria-label="Minimize">─</button>
-            <button class="va-hdr-btn" id="va-btn-close" title="Close assistant" aria-label="Close">✕</button>
+            <button class="va-hdr-btn" id="va-btn-close" title="Close assistant" aria-label="Close">&times;</button>
           </div>
         </div>
 
@@ -509,7 +706,7 @@
             <span class="va-ctx-tag">CONTEXT</span>
             <span class="va-ctx-val" id="va-ctx-val">None (Full Layout)</span>
           </div>
-          <div class="va-ctx-state" id="va-ctx-state">IN=OFF → HIGH-Z / FLOATING</div>
+          <div class="va-ctx-state" id="va-ctx-state">IN=OFF (High-Z)</div>
         </div>
 
         <div class="va-settings-row">
@@ -543,53 +740,58 @@
 
         <div class="va-chips-scroll">
           <button class="va-chip" id="va-chip-selected" style="display:none;" data-q="">Explain Selected</button>
-          <button class="va-chip" data-q="Why is the gate oxide so thin in this inverter?">Why thin oxide?</button>
-          <button class="va-chip" data-q="Explain N-WELL isolation and the well tap role.">N-WELL isolation</button>
-          <button class="va-chip" data-q="How does this CMOS inverter switch between 0 and 1?">How it switches</button>
-          <button class="va-chip" data-q="Explain the purpose of SDE and LDD regions.">SDE / LDD role</button>
+          <button class="va-chip" data-q="Explain CMOS inverter switching and VTC transfer curve.">VTC Characteristics</button>
+          <button class="va-chip" data-q="Why is static power dissipation near zero in CMOS?">Zero Static Power</button>
+          <button class="va-chip" data-q="What is the role of N-well and substrate taps?">Well &amp; Sub Taps</button>
+          <button class="va-chip" data-q="What is the High-k HfO2 gate dielectric role?">High-k Gate</button>
         </div>
 
         <div class="va-response-area" id="va-response-area">
           <div class="va-msg va-msg-ai">
             <div class="va-msg-header">Sarvam AI Tutor</div>
             <div class="va-msg-body">
-              Welcome to the CMOS AI Voice Tutor! Ask any question about VLSI layout, lambda design rules, or transistor physics. Click any layer in 3D to ask contextual questions in English, Hindi, or Telugu.
+              Welcome to the CMOS Inverter AI Voice Tutor! Ask any question about VLSI layout, lambda design rules, VTC transfer curves, or complementary transistor physics. Click any layer in 3D to ask contextual questions in English, Hindi, or Telugu.
             </div>
           </div>
         </div>
 
         <div class="va-input-row">
-          <input type="text" id="va-input-text" placeholder="Ask about this layer or circuit..." autocomplete="off">
-          <button id="va-btn-mic" class="va-mic-btn" title="Voice Input (Mic)">🎙️</button>
-          <button id="va-btn-send" class="va-send-btn" title="Ask and listen">Ask & Speak 🔊</button>
+          <input type="text" id="va-input-text" placeholder="Ask about CMOS inverter physics or layout..." autocomplete="off">
+          <button id="va-btn-mic" class="va-mic-btn" title="Voice Input (Mic)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+          <button id="va-btn-send" class="va-send-btn" title="Ask and listen">Ask &amp; Speak</button>
         </div>
       </div>
 
-      <!-- Sleek Floating Action Button (FAB) for AI Voice Tutor -->
-      <button id="va-launcher-btn" class="va-launcher-btn visible" title="Open AI Voice Tutor" aria-label="Open AI Voice Tutor">
-        <svg class="va-fab-icon" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-          <line x1="12" y1="19" x2="12" y2="23"></line>
-          <line x1="8" y1="23" x2="16" y2="23"></line>
-        </svg>
-      </button>
-
     </div>
 
-    <div id="right-panel">
-      <div class="panel-section">
-        <div class="panel-head" data-target="inspector-body"><h3>PROPERTY INSPECTOR</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="inspector-body">
-          <div id="inspector"><div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div></div>
+  </div>
+
+  <!-- Expandable CMOS VTC Graph Modal -->
+  <div id="iv-modal-backdrop" class="iv-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="iv-modal-title">
+    <div class="iv-modal-card">
+      <div class="iv-modal-header">
+        <div class="iv-modal-title" id="iv-modal-title">
+          <span>Voltage Transfer Characteristic (VTC) &amp; Switching Current (CMOS Inverter)</span>
+        </div>
+        <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="iv-modal-body">
+        <div class="iv-modal-canvas-wrap">
+          <canvas id="iv-modal-canvas" width="560" height="380"></canvas>
+        </div>
+        <div class="iv-modal-footer">
+          <div class="iv-modal-hint">Drag or click anywhere on the VTC curve to modulate V<sub>IN</sub> and set operating point. Fully synced with sliders &amp; 3D model.</div>
+          <div class="iv-modal-readouts">
+            <span class="iv-m-item">V<sub>IN</sub> = <b id="iv-m-vin">0.00 V</b></span>
+            <span class="iv-m-item">V<sub>OUT</sub> = <b id="iv-m-vout">1.00 V</b></span>
+            <span class="iv-m-item">NMOS: <b id="iv-m-nmos-reg">CUTOFF</b></span>
+            <span class="iv-m-item">PMOS: <b id="iv-m-pmos-reg">LINEAR</b></span>
+          </div>
         </div>
       </div>
-      <div class="panel-section">
-        <div class="panel-head" data-target="tree-body"><h3>ARCHITECTURE TREE</h3><span class="chev">▾</span></div>
-        <div class="panel-body" id="tree-body"><div id="tree"></div></div>
-      </div>
     </div>
-
   </div>
 
   <!-- Interactive Sarvam AI API Key Modal -->
@@ -597,10 +799,9 @@
     <div class="va-modal-card">
       <div class="va-modal-header">
         <div class="va-modal-title">
-          <span class="va-modal-icon">🔑</span>
           <h3 id="va-modal-title">Sarvam AI API Key Required</h3>
         </div>
-        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">✕</button>
+        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">&times;</button>
       </div>
 
       <div class="va-modal-body">
@@ -624,7 +825,7 @@
         </div>
 
         <div class="va-modal-privacy-callout">
-          <span class="va-privacy-badge">🔒 Privacy Guarantee</span>
+          <span class="va-privacy-badge">Privacy Guarantee</span>
           <p>
             Your API key will <b>not be used by us</b> — it is stored securely on your local device and used directly to communicate with Sarvam AI. It will be deleted after you exit the session. We never save, store, or transmit your credentials to our servers.
           </p>
@@ -660,13 +861,15 @@
         <button id="va-modal-clear-btn" class="va-btn-secondary" style="display:none;">Clear Key</button>
         <div class="va-footer-right">
           <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
-          <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice 🔊</button>
+          <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice</button>
         </div>
       </div>
     </div>
   </div>
+
 </div>
 
+<!-- Scripts in exact load order -->
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>

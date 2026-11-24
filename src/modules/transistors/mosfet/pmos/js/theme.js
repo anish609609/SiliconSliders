@@ -102,4 +102,7 @@ function applyTheme(theme, savePreference){
   if (typeof applyLogicState === 'function'){
     applyLogicState();
   }
+  if (typeof updateFlowTheme === 'function'){
+    updateFlowTheme(theme);
+  }
 }

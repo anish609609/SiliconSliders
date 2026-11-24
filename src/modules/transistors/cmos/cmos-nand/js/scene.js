@@ -166,10 +166,17 @@ function applySceneTheme(theme) {
   if (!scene || !ambientLight || !keyLight || !fillLight || !rimLight || !shadowMat) return;
   var isLight = theme === 'light';
   var bgHex = isLight ? 0xf4f6f8 : 0x0a0d12;
+  var bgCss = isLight ? '#f4f6f8' : '#0a0d12';
   scene.background.setHex(bgHex);
   scene.fog.color.setHex(bgHex);
   scene.fog.near = 60;
   scene.fog.far = isLight ? 240 : 220;
+
+  if (wrapEl) wrapEl.style.backgroundColor = bgCss;
+  var hostEl = document.getElementById('canvas-host');
+  if (hostEl) hostEl.style.backgroundColor = bgCss;
+  var vpEl = document.getElementById('viewport-wrap');
+  if (vpEl) vpEl.style.backgroundColor = bgCss;
 
   if (isLight) {
     ambientLight.color.setHex(0xe2e8f0);
@@ -194,15 +201,27 @@ function applySceneTheme(theme) {
     shadowMat.opacity = 0.28;
     rebuildGrid(0x1c2530, 0x141a22);
   }
+
+  if (renderer && scene && camera) {
+    renderer.render(scene, camera);
+  }
 }
 
-window.addEventListener('resize', function () {
-  if (camera && renderer) {
-    camera.aspect = W() / H();
-    camera.updateProjectionMatrix();
-    renderer.setSize(W(), H());
+function resize() {
+  if (!camera || !renderer) return;
+  var w = W(), h = H();
+  if (w <= 0 || h <= 0) return;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+  if (renderer && scene && camera) {
+    renderer.render(scene, camera);
   }
-  if (typeof updateViewHudPosition === 'function') {
-    updateViewHudPosition();
-  }
-});
+}
+window.addEventListener('resize', resize);
+window.resize = resize;
+if (typeof ResizeObserver !== 'undefined' && wrapEl) {
+  var ro = new ResizeObserver(function() { resize(); });
+  ro.observe(wrapEl);
+  if (wrapEl.parentElement) ro.observe(wrapEl.parentElement);
+}

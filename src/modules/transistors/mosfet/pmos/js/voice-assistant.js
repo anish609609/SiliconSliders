@@ -87,9 +87,14 @@
   }
 
   function updateStatus(state, label) {
-    if (!statusPill || !statusText) return;
-    statusPill.className = 'va-status-pill ' + state;
-    statusText.textContent = label;
+    if (statusPill && statusText) {
+      statusPill.className = 'va-status-pill ' + state;
+      statusText.textContent = label;
+    }
+    if (launcherEl) {
+      launcherEl.classList.toggle('listening', state === 'listening');
+      launcherEl.classList.toggle('speaking', state === 'speaking');
+    }
   }
 
   function appendMessage(sender, text) {
@@ -168,7 +173,7 @@
     }
     if (keyModalSaveBtn) {
       keyModalSaveBtn.disabled = false;
-      keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+      keyModalSaveBtn.innerHTML = 'Save & Test Voice';
     }
 
     keyModalBackdrop.style.display = 'flex';
@@ -203,7 +208,7 @@
 
     if (keyModalSaveBtn) {
       keyModalSaveBtn.disabled = true;
-      keyModalSaveBtn.innerHTML = '⏳ Verifying with Sarvam...';
+      keyModalSaveBtn.innerHTML = 'Verifying with Sarvam...';
     }
     showModalStatus('info', 'Connecting to Sarvam AI voice service to verify credentials...');
 
@@ -241,7 +246,7 @@
       var sessionOnly = keyModalSessionOnlyChk ? keyModalSessionOnlyChk.checked : true;
       setSavedApiKey(key, sessionOnly);
 
-      showModalStatus('success', '✓ API key verified! Playing sample voice...');
+      showModalStatus('success', 'API key verified! Playing sample voice...');
 
       try {
         var blob = base64ToWavBlob(data.audios[0]);
@@ -264,10 +269,10 @@
 
     } catch (err) {
       console.warn('[VoiceAssistant] Key verification error:', err);
-      showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
+      showModalStatus('error', 'Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
       if (keyModalSaveBtn) {
         keyModalSaveBtn.disabled = false;
-        keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+        keyModalSaveBtn.innerHTML = 'Save & Test Voice';
       }
     }
   }
@@ -396,7 +401,7 @@
     speakerSelect = document.getElementById('va-speaker-select');
     statusPill = document.getElementById('va-status-pill');
     statusText = document.getElementById('va-status-text');
-    inputField = document.getElementById('va-input');
+    inputField = document.getElementById('va-input-text') || document.getElementById('va-input');
     sendBtn = document.getElementById('va-btn-send');
     micBtn = document.getElementById('va-btn-mic');
     stopBtn = document.getElementById('va-btn-stop');
@@ -416,18 +421,45 @@
     keyModalSaveBtn = document.getElementById('va-modal-save-btn');
     var settingsBtn = document.getElementById('va-btn-settings');
 
+    // Launcher button (toggle open / minimized)
     if (launcherEl && widgetEl) {
       launcherEl.addEventListener('click', function () {
-        var open = widgetEl.classList.toggle('open');
-        launcherEl.classList.toggle('active', open);
+        var isOpen = widgetEl.classList.contains('open') && !widgetEl.classList.contains('minimized');
+        if (isOpen) {
+          widgetEl.classList.add('minimized');
+          widgetEl.classList.remove('open');
+          launcherEl.classList.remove('active');
+        } else {
+          widgetEl.classList.remove('minimized');
+          widgetEl.classList.add('open');
+          launcherEl.classList.add('active');
+          if (inputField) inputField.focus();
+        }
       });
     }
 
-    var hdrClose = document.getElementById('va-hdr-close');
+    // Minimize button
+    var minBtn = document.getElementById('va-btn-minimize');
+    if (minBtn && widgetEl) {
+      minBtn.addEventListener('click', function () {
+        widgetEl.classList.add('minimized');
+        widgetEl.classList.remove('open');
+        if (launcherEl) {
+          launcherEl.classList.remove('active');
+        }
+      });
+    }
+
+    // Close button
+    var hdrClose = document.getElementById('va-btn-close') || document.getElementById('va-hdr-close');
     if (hdrClose && widgetEl) {
       hdrClose.addEventListener('click', function () {
+        stopAudio();
+        widgetEl.classList.add('minimized');
         widgetEl.classList.remove('open');
-        if (launcherEl) launcherEl.classList.remove('active');
+        if (launcherEl) {
+          launcherEl.classList.remove('active');
+        }
       });
     }
 

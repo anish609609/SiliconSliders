@@ -1,92 +1,152 @@
 /**
  * main.js - PMOS CAD Viewer
- * Side-panel drawer toggles, collapse toggles, Reset-to-default routine,
+ * Left Workbench collapse/expand toggles, smooth resize transition, Reset-to-default routine,
  * and final bootstrap calls that start the application. Load this file LAST.
  */
 
-var leftPanel = document.getElementById('left-panel');
-var rightPanel = document.getElementById('right-panel');
-var leftToggleBtn = document.getElementById('left-toggle');
-var rightToggleBtn = document.getElementById('right-toggle');
+var leftWorkbench = document.getElementById('left-workbench');
+var workbenchToggleBtn = document.getElementById('workbench-toggle') || document.getElementById('left-toggle');
 
-if (leftToggleBtn && leftPanel) {
-  leftToggleBtn.addEventListener('click', function() {
-    var open = leftPanel.classList.toggle('open');
-    leftToggleBtn.classList.toggle('is-open', open);
-    leftToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  });
-}
-
-if (rightToggleBtn && rightPanel) {
-  rightToggleBtn.addEventListener('click', function() {
-    var open = rightPanel.classList.toggle('open');
-    rightToggleBtn.classList.toggle('is-open', open);
-    rightToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    updateViewHudPosition();
-  });
-}
-
-var dockedPanel = document.getElementById('docked-panel');
-var viewHud = document.getElementById('view-hud');
-function updateViewHudPosition() {
-  if (window.innerWidth < 768) {
-    if (dockedPanel) dockedPanel.style.right = '';
-    return;
-  }
-  var launcher = document.getElementById('va-launcher-btn');
-  var vaWidget = document.getElementById('voice-assistant-widget');
-  var ivHud = document.getElementById('isd-vsd-hud') || document.getElementById('ids-vds-hud');
-  if (rightPanel && rightPanel.classList.contains('open')) {
-    var w = rightPanel.getBoundingClientRect().width;
-    if (dockedPanel) dockedPanel.style.right = (w + 38) + 'px';
-    if (viewHud) viewHud.style.right = (w + 38) + 'px';
-    if (launcher) launcher.style.right = (w + 38) + 'px';
-    if (vaWidget) vaWidget.style.right = (w + 38) + 'px';
-    if (ivHud) ivHud.style.right = (w + 38) + 'px';
-  } else {
-    if (dockedPanel) dockedPanel.style.right = '';
-    if (viewHud) viewHud.style.right = '';
-    if (launcher) launcher.style.right = '';
-    if (vaWidget) vaWidget.style.right = '';
-    if (ivHud) ivHud.style.right = '';
-  }
-}
-window.addEventListener('resize', updateViewHudPosition);
-
-// Docked Panel Tabs & Collapse Controls
-var dpTabs = document.querySelectorAll('.dp-tab-btn');
-var dpContents = document.querySelectorAll('.dp-tab-content');
-var dpCollapseBtn = document.getElementById('dp-collapse-btn');
-var dpBody = document.getElementById('dp-body');
-
-// Collapse floating panels by default on mobile viewports (< 768px)
-if (window.innerWidth < 768 && dpBody && dpCollapseBtn) {
-  dpBody.classList.add('collapsed');
-  dpCollapseBtn.textContent = '▸';
-}
-
-dpTabs.forEach(function(tab) {
-  tab.addEventListener('click', function() {
-    var target = tab.dataset.tab;
-    dpTabs.forEach(function(t) { t.classList.toggle('active', t === tab); });
-    dpContents.forEach(function(c) {
-      c.classList.toggle('active', c.id === 'tab-content-' + target);
-    });
-    if (dpBody && dpBody.classList.contains('collapsed')) {
-      dpBody.classList.remove('collapsed');
-      if (dpCollapseBtn) dpCollapseBtn.textContent = '▾';
+var resizeAnimId = null;
+function animateResizeTransition() {
+  var start = performance.now();
+  var duration = 280; // ms
+  if (resizeAnimId) cancelAnimationFrame(resizeAnimId);
+  function step(now) {
+    if (typeof resize === 'function') resize();
+    if (typeof drawIsdVdsGraph === 'function') drawIsdVdsGraph();
+    if (now - start < duration) {
+      resizeAnimId = requestAnimationFrame(step);
+    } else {
+      if (typeof resize === 'function') resize();
+      if (typeof drawIsdVdsGraph === 'function') drawIsdVdsGraph();
+      resizeAnimId = null;
     }
-    if (target === 'physics' && typeof applyLogicState === 'function') {
-      setTimeout(applyLogicState, 10);
-    }
-  });
-});
+  }
+  resizeAnimId = requestAnimationFrame(step);
+}
+window.animateResizeTransition = animateResizeTransition;
 
-if (dpCollapseBtn && dpBody) {
-  dpCollapseBtn.addEventListener('click', function() {
-    var collapsed = dpBody.classList.toggle('collapsed');
-    dpCollapseBtn.textContent = collapsed ? '▸' : '▾';
+// =====================================================================
+// DRAG-TO-RESIZE LEFT WORKBENCH
+// =====================================================================
+var MIN_WB_WIDTH = 300;
+
+function getMaxWbWidth() {
+  return Math.min(520, Math.round(window.innerWidth * 0.45));
+}
+
+function getDefaultWbWidth() {
+  return window.innerWidth >= 768 ? getMaxWbWidth() : 330;
+}
+
+function setWorkbenchWidth(w) {
+  var clamped = Math.max(MIN_WB_WIDTH, Math.min(getMaxWbWidth(), Math.round(w)));
+  document.documentElement.style.setProperty('--wb-width', clamped + 'px');
+  if (typeof resize === 'function') resize();
+  if (typeof drawIsdVdsGraph === 'function') drawIsdVdsGraph();
+  return clamped;
+}
+window.setWorkbenchWidth = setWorkbenchWidth;
+
+function initWorkbenchResize() {
+  var handle = document.getElementById('wb-resize-handle');
+  if (!handle || !leftWorkbench) return;
+
+  var isResizing = false;
+
+  function onPointerMove(e) {
+    if (!isResizing) return;
+    var clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0].clientX);
+    if (clientX === undefined) return;
+    setWorkbenchWidth(clientX);
+  }
+
+  function onPointerUp() {
+    if (!isResizing) return;
+    isResizing = false;
+    leftWorkbench.classList.remove('resizing');
+    document.body.classList.remove('wb-resizing');
+    window.removeEventListener('pointermove', onPointerMove);
+    window.removeEventListener('pointerup', onPointerUp);
+    window.removeEventListener('touchmove', onPointerMove);
+    window.removeEventListener('touchend', onPointerUp);
+    if (typeof resize === 'function') resize();
+    if (typeof drawIsdVdsGraph === 'function') drawIsdVdsGraph();
+  }
+
+  handle.addEventListener('pointerdown', function(e) {
+    if (e.button !== 0) return;
+    if (leftWorkbench.classList.contains('collapsed')) return;
+    isResizing = true;
+    leftWorkbench.classList.add('resizing');
+    document.body.classList.add('wb-resizing');
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+    e.preventDefault();
   });
+
+  handle.addEventListener('touchstart', function(e) {
+    if (leftWorkbench.classList.contains('collapsed')) return;
+    isResizing = true;
+    leftWorkbench.classList.add('resizing');
+    document.body.classList.add('wb-resizing');
+    window.addEventListener('touchmove', onPointerMove, { passive: false });
+    window.addEventListener('touchend', onPointerUp);
+  }, { passive: false });
+
+  // Double-click resets to default width (max width on desktop)
+  handle.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    leftWorkbench.classList.remove('resizing');
+    document.body.classList.remove('wb-resizing');
+    setWorkbenchWidth(getDefaultWbWidth());
+    animateResizeTransition();
+  });
+}
+initWorkbenchResize();
+
+function toggleWorkbench(forceExpanded) {
+  if (!leftWorkbench) return;
+  var willBeCollapsed = (typeof forceExpanded === 'boolean') ? !forceExpanded : !leftWorkbench.classList.contains('collapsed');
+  leftWorkbench.classList.toggle('collapsed', willBeCollapsed);
+  if (workbenchToggleBtn) {
+    workbenchToggleBtn.setAttribute('aria-expanded', willBeCollapsed ? 'false' : 'true');
+  }
+  if (!willBeCollapsed) {
+    if (typeof hidePopover === 'function') hidePopover();
+    if (typeof lastSelectedId !== 'undefined' && lastSelectedId) {
+      if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('inspect');
+    }
+  }
+  animateResizeTransition();
+}
+window.toggleWorkbench = toggleWorkbench;
+
+function expandWorkbench() {
+  if (!leftWorkbench) return;
+  if (leftWorkbench.classList.contains('collapsed')) {
+    toggleWorkbench(true);
+  }
+}
+window.expandWorkbench = expandWorkbench;
+
+if (workbenchToggleBtn) {
+  workbenchToggleBtn.addEventListener('click', function() {
+    toggleWorkbench();
+  });
+}
+
+if (leftWorkbench) {
+  leftWorkbench.addEventListener('transitionend', function() {
+    if (typeof resize === 'function') resize();
+  });
+}
+
+// Default entry state: Left Workbench is expanded by default in SLIDERS mode
+if (leftWorkbench) {
+  leftWorkbench.classList.remove('collapsed');
+  if (workbenchToggleBtn) workbenchToggleBtn.setAttribute('aria-expanded', 'true');
 }
 
 // =====================================================================
@@ -108,7 +168,13 @@ function resetAll() {
 
   currentVsg = 1.00;
   currentVsd = 0.80;
-  currentIn = 0; // PMOS active state (VSG = 1.0V)
+
+  var expY = document.getElementById('explode-y-slider');
+  if (expY) { expY.value = 1; expY.dispatchEvent(new Event('input')); }
+  var expX = document.getElementById('explode-x-slider');
+  if (expX) { expX.value = 0; expX.dispatchEvent(new Event('input')); }
+  var expZ = document.getElementById('explode-z-slider');
+  if (expZ) { expZ.value = 0; expZ.dispatchEvent(new Event('input')); }
 
   flowMode = 'carrier';
   var flowSeg = document.getElementById('flow-seg');
@@ -127,11 +193,34 @@ function resetAll() {
 
   var inspector = document.getElementById('inspector');
   if (inspector) {
-    inspector.innerHTML = '<div class="empty">Select a layer, diffusion region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
+    inspector.innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
   }
   var crumbSel = document.getElementById('crumb-sel');
   if (crumbSel) crumbSel.textContent = '';
+
+  if (typeof switchWorkbenchTab === 'function') {
+    switchWorkbenchTab('controls');
+  }
+
+  expandWorkbench();
+  setWorkbenchWidth(getDefaultWbWidth());
 }
+
+// =====================================================================
+// 1-LINE CAMERA CONTROLS HINT
+// =====================================================================
+function initCameraHint() {
+  var hint = document.getElementById('camera-hint');
+  if (!hint) return;
+  var isCoarse = window.matchMedia('(pointer: coarse)').matches;
+  if (isCoarse) {
+    hint.innerHTML = '<span class="camera-hint-text"><b>1-Finger</b> Orbit · <b>2-Finger</b> Pan &amp; Zoom</span>';
+  } else {
+    hint.innerHTML = '<span class="camera-hint-text"><b>Drag</b> Orbit · <b>Shift + Drag</b> Pan · <b>Scroll</b> Zoom</span>';
+  }
+}
+initCameraHint();
+window.addEventListener('resize', initCameraHint);
 
 // Collapsible Scale Note Popover Handler
 function initScaleNote() {
@@ -164,6 +253,10 @@ if (typeof initTheme === 'function') initTheme();
 var sb = document.getElementById('state-badge');
 if (sb) sb.classList.add('visible');
 resetAll();
+
+if (typeof setViewMode === 'function') setViewMode('layout');
+if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+expandWorkbench();
 
 requestAnimationFrame(function() {
   var loading = document.getElementById('loading');

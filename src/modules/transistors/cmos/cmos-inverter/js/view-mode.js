@@ -50,26 +50,18 @@ function setViewMode(mode){
   var btnResetCam = document.getElementById('btn-reset-cam');
   if (btnResetCam) btnResetCam.style.display = isLayout ? '' : 'none';
 
-  var leftToggle = document.getElementById('left-toggle');
-  if (leftToggle) leftToggle.style.display = isLayout ? '' : 'none';
+  var leftWorkbench = document.getElementById('left-workbench');
+  if (leftWorkbench) leftWorkbench.style.display = isTheory ? 'none' : '';
 
-  var rightToggle = document.getElementById('right-toggle');
-  if (rightToggle) rightToggle.style.display = isLayout ? '' : 'none';
+  var wbToggle = document.getElementById('workbench-toggle') || document.getElementById('left-toggle');
+  if (wbToggle) wbToggle.style.display = isTheory ? 'none' : '';
+
+  if (isLayout && typeof expandWorkbench === 'function') {
+    expandWorkbench();
+  }
 
   var noteEl = document.getElementById('note') || document.getElementById('scale-note-wrap');
   if (noteEl) noteEl.style.display = isLayout ? '' : 'none';
-
-  var leftPanel = document.getElementById('left-panel');
-  if (leftPanel) {
-    if (isTheory) leftPanel.style.display = 'none';
-    else if (isLayout) leftPanel.style.display = '';
-  }
-
-  var rightPanel = document.getElementById('right-panel');
-  if (rightPanel) {
-    if (isTheory) rightPanel.style.display = 'none';
-    else if (isLayout) rightPanel.style.display = '';
-  }
 
   var vaLauncher = document.getElementById('va-launcher-btn');
   if (vaLauncher) vaLauncher.style.display = isTheory ? 'none' : '';

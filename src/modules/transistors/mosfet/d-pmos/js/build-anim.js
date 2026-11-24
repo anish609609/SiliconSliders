@@ -171,7 +171,7 @@ function stopBuildAnimation(restoreAll) {
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '▶';
+  if (pauseBtn) pauseBtn.textContent = '';
 
   if (restoreAll) {
     currentFabStep = FAB_STEPS.length;
@@ -202,7 +202,7 @@ function startBuildAnimation() {
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '⏸';
+  if (pauseBtn) pauseBtn.textContent = '';
 
   // If tour was at the end, restart from step 1
   if (currentFabStep >= FAB_STEPS.length) {

@@ -8,6 +8,7 @@
 // =====================================================================
 // SHOW CONNECTIONS — animated current / electron flow
 // =====================================================================
+if (typeof window.currentIn === 'undefined') window.currentIn = 'off';
 var flowMode = 'current'; // 'current' | 'electron'
 var flowSeg = document.getElementById('flow-seg');
 var flowCaption = document.getElementById('flow-caption');
@@ -91,24 +92,42 @@ for (var fi=0; fi<N_MARKERS; fi++){
 }
 
 function activePathIds(){
-  if (currentIn === 'off') return SHOOT_THROUGH_PATH_IDS;
-  return currentIn === 0 ? PMOS_PATH_IDS : NMOS_PATH_IDS;
+  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
+  if (cur === 'off') return SHOOT_THROUGH_PATH_IDS;
+  if (typeof cur === 'number') {
+    if (cur < 0.45) return PMOS_PATH_IDS;
+    if (cur > 0.55) return NMOS_PATH_IDS;
+    return SHOOT_THROUGH_PATH_IDS;
+  }
+  return cur === 0 ? PMOS_PATH_IDS : NMOS_PATH_IDS;
 }
 function activeCurve(){
-  if (currentIn === 'off') return shootThroughCurve;
-  return currentIn === 0 ? pmosCurve : nmosCurve;
+  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
+  if (cur === 'off') return shootThroughCurve;
+  if (typeof cur === 'number') {
+    if (cur < 0.45) return pmosCurve;
+    if (cur > 0.55) return nmosCurve;
+    return shootThroughCurve;
+  }
+  return cur === 0 ? pmosCurve : nmosCurve;
 }
 
 function updateFlowCaption(){
   flowCaption.classList.add('visible');
+  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
   var modeLabel = flowMode === 'current' ? 'CONVENTIONAL CURRENT' : 'ELECTRON FLOW';
   var desc;
-  if (currentIn === 'off'){
+  if (cur === 'off'){
     modeLabel += ' [HIGH-Z LEAKAGE]';
     desc = flowMode === 'current'
       ? 'VDD \u2192 PMOS \u2192 OUT \u2192 NMOS \u2192 GND (SHOOT-THROUGH LEAKAGE)'
       : 'GND \u2192 NMOS \u2192 OUT \u2192 PMOS \u2192 VDD (SHOOT-THROUGH LEAKAGE)';
-  } else if (currentIn === 0){
+  } else if (typeof cur === 'number' && cur >= 0.45 && cur <= 0.55){
+    modeLabel += ' [PEAK SHOOT-THROUGH]';
+    desc = flowMode === 'current'
+      ? 'VDD \u2192 PMOS \u2192 OUT \u2192 NMOS \u2192 GND (BOTH SATURATION \u00b7 PEAK IDD)'
+      : 'GND \u2192 NMOS \u2192 OUT \u2192 PMOS \u2192 VDD (BOTH SATURATION \u00b7 PEAK IDD)';
+  } else if (cur === 0 || (typeof cur === 'number' && cur < 0.5)){
     desc = flowMode === 'current' ? 'VDD \u2192 PMOS \u2192 OUT' : 'OUT \u2192 PMOS \u2192 VDD';
   } else {
     desc = flowMode === 'current' ? 'OUT \u2192 NMOS \u2192 GND' : 'GND \u2192 NMOS \u2192 OUT';
@@ -120,7 +139,8 @@ function refreshConnections(){
   // clear pulsing on everything
   selectable.forEach(function(m){ m.userData.pulsing = false; });
 
-  if (currentIn === 'off'){
+  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
+  if (cur === 'off'){
     // In OFF state, all flow is deactivated, particles are hidden and frozen
     flowMarkers.forEach(function(fm){ fm.mesh.visible = false; });
     flowCaption.classList.add('visible');
@@ -138,7 +158,13 @@ function refreshConnections(){
     var m = findMesh(id);
     if (m) m.userData.pulsing = true;
   });
-  var col = flowMode === 'current' ? 0xffcf4d : 0x4fd1ff;
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var col;
+  if (flowMode === 'current') {
+    col = isLight ? 0xb45309 : 0xffcf4d;
+  } else {
+    col = isLight ? 0x0052cc : 0x4fd1ff;
+  }
   flowMarkers.forEach(function(fm){
     fm.mesh.visible = true;
     fm.mesh.material.color.setHex(col);
@@ -157,7 +183,8 @@ flowSeg.addEventListener('click', function(e){
 
 var UP_AXIS = new THREE.Vector3(0,1,0);
 function stepFlowMarkers(dt){
-  if (currentIn === 'off') return; // Completely freeze in OFF state
+  var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
+  if (cur === 'off') return; // Completely freeze in OFF state
   var curve = activeCurve();
   var reversed = flowMode === 'electron';
   var speed = 0.075; // Calm, human-readable flow speed
@@ -173,3 +200,8 @@ function stepFlowMarkers(dt){
     fm.mesh.quaternion.copy(q);
   });
 }
+
+window.updateFlowTheme = function(theme) {
+  if (typeof refreshConnections === 'function') refreshConnections();
+};
+if (typeof window.updateFlowTheme === 'function') window.updateFlowTheme();

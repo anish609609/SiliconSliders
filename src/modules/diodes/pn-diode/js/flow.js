@@ -18,11 +18,34 @@ scene.add(flowGroup);
 
 // Particle geometries and materials
 var particleGeom = new THREE.SphereGeometry(0.075, 8, 8);
-var electronMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, depthTest: true, depthWrite: false }); // Cyan
-var holeMat = new THREE.MeshBasicMaterial({ color: 0xf97316, depthTest: true, depthWrite: false });     // Orange-Red
-var currentMat = new THREE.MeshBasicMaterial({ color: 0xffcf4d, depthTest: true, depthWrite: false });  // Golden Yellow
-var zenerMat = new THREE.MeshBasicMaterial({ color: 0xf43f5e, depthTest: true, depthWrite: false });    // Pinkish-Red Tunneling
-var avalancheMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, depthTest: true, depthWrite: false });// Violet Ionizing
+var CARRIER_ELECTRON_DARK = 0x38bdf8;
+var CARRIER_ELECTRON_LIGHT = 0x0052cc; // Deep royal blue for high contrast on light bg
+var CARRIER_HOLE_DARK = 0xf97316;
+var CARRIER_HOLE_LIGHT = 0xc2410c;     // Deep burnt orange/crimson for high contrast on light bg
+var CURRENT_COLOR_DARK = 0xffcf4d;
+var CURRENT_COLOR_LIGHT = 0xb45309;     // Warm bronze/amber
+var ZENER_COLOR_DARK = 0xf43f5e;
+var ZENER_COLOR_LIGHT = 0xbe123c;
+var AVALANCHE_COLOR_DARK = 0xa855f7;
+var AVALANCHE_COLOR_LIGHT = 0x7e22ce;
+
+var isInitialLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+var electronMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? CARRIER_ELECTRON_LIGHT : CARRIER_ELECTRON_DARK, depthTest: true, depthWrite: false });
+var holeMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? CARRIER_HOLE_LIGHT : CARRIER_HOLE_DARK, depthTest: true, depthWrite: false });
+var currentMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK, depthTest: true, depthWrite: false });
+var zenerMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? ZENER_COLOR_LIGHT : ZENER_COLOR_DARK, depthTest: true, depthWrite: false });
+var avalancheMat = new THREE.MeshBasicMaterial({ color: isInitialLight ? AVALANCHE_COLOR_LIGHT : AVALANCHE_COLOR_DARK, depthTest: true, depthWrite: false });
+
+function updateFlowTheme(theme) {
+  var isLight = theme === 'light';
+  if (electronMat) electronMat.color.setHex(isLight ? CARRIER_ELECTRON_LIGHT : CARRIER_ELECTRON_DARK);
+  if (holeMat) holeMat.color.setHex(isLight ? CARRIER_HOLE_LIGHT : CARRIER_HOLE_DARK);
+  if (currentMat) currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+  if (zenerMat) zenerMat.color.setHex(isLight ? ZENER_COLOR_LIGHT : ZENER_COLOR_DARK);
+  if (avalancheMat) avalancheMat.color.setHex(isLight ? AVALANCHE_COLOR_LIGHT : AVALANCHE_COLOR_DARK);
+}
+window.updateFlowTheme = updateFlowTheme;
 
 flowGroup.renderOrder = 999;
 

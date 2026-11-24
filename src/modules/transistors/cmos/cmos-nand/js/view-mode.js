@@ -47,25 +47,18 @@ function setViewMode(mode) {
   var btnResetCam = document.getElementById('btn-reset-cam') || document.getElementById('btn-reset');
   if (btnResetCam) btnResetCam.style.display = isLayout ? '' : 'none';
 
-  var leftToggle = document.getElementById('left-toggle');
-  if (leftToggle) leftToggle.style.display = isLayout ? '' : 'none';
-
-  var rightToggle = document.getElementById('right-toggle');
-  if (rightToggle) rightToggle.style.display = isLayout ? '' : 'none';
-
   var noteEl = document.getElementById('note') || document.getElementById('scale-note-wrap');
   if (noteEl) noteEl.style.display = isLayout ? '' : 'none';
 
-  var leftPanel = document.getElementById('left-panel');
-  if (leftPanel) {
-    if (isTheory) leftPanel.style.display = 'none';
-    else if (isLayout) leftPanel.style.display = '';
+  var wb = document.getElementById('left-workbench');
+  var wbToggle = document.getElementById('workbench-toggle');
+  if (wb) {
+    if (isTheory || isSchematic) wb.style.display = 'none';
+    else wb.style.display = '';
   }
-
-  var rightPanel = document.getElementById('right-panel');
-  if (rightPanel) {
-    if (isTheory) rightPanel.style.display = 'none';
-    else if (isLayout) rightPanel.style.display = '';
+  if (wbToggle) {
+    if (isTheory || isSchematic) wbToggle.style.display = 'none';
+    else wbToggle.style.display = '';
   }
 
   var vaLauncher = document.getElementById('va-launcher-btn');
@@ -76,6 +69,9 @@ function setViewMode(mode) {
     if (pop) pop.classList.add('hidden');
   } else {
     // Returning to 3D layout
+    if (typeof expandWorkbench === 'function') {
+      expandWorkbench();
+    }
     window.dispatchEvent(new Event('resize'));
     if (typeof controls !== 'undefined' && controls && controls.update) controls.update();
   }
@@ -125,6 +121,14 @@ function initViewMode() {
   var svg = document.getElementById('nand2-schematic-svg');
   var theoryOverlay = document.getElementById('theory-overlay');
 
+  var modeSeg = document.getElementById('mode-seg');
+  if (modeSeg) {
+    modeSeg.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[data-mode]');
+      if (!btn) return;
+      setViewMode(btn.getAttribute('data-mode'));
+    });
+  }
   if (btnTheory) {
     btnTheory.addEventListener('click', function () { setViewMode('theory'); });
   }

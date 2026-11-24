@@ -1,55 +1,100 @@
 /**
  * ui-panels.js - PN Junction Diode CAD Viewer
- * Left and right panel building, layer visibility management,
- * architecture tree generation, docked panel tabs, and sliding drawer controls.
+ * Left Workbench tabs, unified layer list with always-visible descriptions,
+ * architecture tree generation, and accordion management.
  */
+
+function switchWorkbenchTab(tabKey) {
+  var tabBtns = document.querySelectorAll('.wb-tab-btn');
+  var panes = document.querySelectorAll('.wb-pane');
+  tabBtns.forEach(function(btn) {
+    var active = (btn.dataset.tab === tabKey);
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  panes.forEach(function(pane) {
+    pane.classList.toggle('active', pane.id === 'wb-pane-' + tabKey);
+  });
+  if (tabKey === 'controls' && typeof renderGraphs === 'function') {
+    setTimeout(renderGraphs, 10);
+  }
+}
+window.switchWorkbenchTab = switchWorkbenchTab;
 
 function initUIPanels() {
   buildLayersList();
   buildLegendList();
   buildArchitectureTree();
-  setupPanelToggles();
-  setupDockedPanelTabs();
+  setupWorkbenchTabs();
+  setupAccordions();
+}
+
+function setupWorkbenchTabs() {
+  document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      switchWorkbenchTab(btn.dataset.tab);
+    });
+  });
 }
 
 function buildLayersList() {
   var layersBody = document.getElementById('layers-body');
   if (!layersBody) return;
+  layersBody.className = 'unified-layers-list';
+  layersBody.innerHTML = '';
 
-  var html = '';
   LAYERS_LIST.forEach(function (layer) {
-    html += '<label class="layer-row">';
-    html += '<input type="checkbox" data-layer="' + layer.id + '"' + (layer.visible ? ' checked' : '') + '>';
-    html += '<span class="layer-color-dot" style="background:' + layer.color + '"></span>';
-    html += '<span>' + layer.name + '</span>';
-    html += '</label>';
-  });
-  layersBody.innerHTML = html;
+    var item = document.createElement('div');
+    item.className = 'unified-layer-item';
 
-  layersBody.querySelectorAll('input[type="checkbox"]').forEach(function (chk) {
-    chk.addEventListener('change', function () {
-      var layerId = chk.dataset.layer;
-      var isVis = chk.checked;
-      if (groups[layerId]) {
-        groups[layerId].visible = isVis;
+    var row = document.createElement('div');
+    row.className = 'unified-layer-row';
+    row.innerHTML =
+      '<input type="checkbox" ' + (layer.visible ? 'checked' : '') + ' data-layer="' + layer.id + '" title="Toggle ' + layer.name + ' visibility">' +
+      '<span class="swatch" style="background:' + layer.color + '"></span>' +
+      '<span class="layer-name" title="Toggle visibility">' + layer.name + '</span>';
+
+    var descText = '';
+    if (typeof COMPONENTS !== 'undefined' && COMPONENTS[layer.id]) {
+      descText = COMPONENTS[layer.id].fn || COMPONENTS[layer.id].role || '';
+    }
+
+    var desc = document.createElement('div');
+    desc.className = 'unified-layer-desc';
+    desc.textContent = descText;
+
+    item.appendChild(row);
+    if (descText) item.appendChild(desc);
+    layersBody.appendChild(item);
+
+    var cb = row.querySelector('input');
+    cb.addEventListener('change', function(e) {
+      if (groups[layer.id]) {
+        groups[layer.id].visible = e.target.checked;
       }
+    });
+
+    row.querySelector('.layer-name').addEventListener('click', function() {
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change'));
     });
   });
 }
 
 function buildLegendList() {
-  var legendBody = document.getElementById('legend-body');
-  if (!legendBody) return;
+  var refLegendBody = document.getElementById('ref-legend-body');
+  if (!refLegendBody || typeof COMPONENTS === 'undefined') return;
+  refLegendBody.innerHTML = '';
 
-  var html = '';
   Object.keys(COMPONENTS).forEach(function (key) {
     var c = COMPONENTS[key];
-    html += '<div class="layer-row" style="cursor:default;">';
-    html += '<span class="layer-color-dot" style="background:' + c.colorHex + '"></span>';
-    html += '<span style="font-family:var(--mono); font-size:11px;">' + c.name + '</span>';
-    html += '</div>';
+    var div = document.createElement('div');
+    div.className = 'ref-legend-item';
+    div.innerHTML =
+      '<div class="lh"><span class="swatch" style="background:' + c.colorHex + '"></span><b>' + c.name + '</b></div>' +
+      '<p>' + (c.role || c.fn || '') + '</p>';
+    refLegendBody.appendChild(div);
   });
-  legendBody.innerHTML = html;
 }
 
 function buildArchitectureTree() {
@@ -87,93 +132,16 @@ function buildArchitectureTree() {
   });
 }
 
-function setupPanelToggles() {
-  var leftPanel = document.getElementById('left-panel');
-  var rightPanel = document.getElementById('right-panel');
-  var leftToggle = document.getElementById('left-toggle');
-  var rightToggle = document.getElementById('right-toggle');
-
-  if (leftToggle && leftPanel) {
-    leftToggle.addEventListener('click', function () {
-      var open = leftPanel.classList.toggle('open');
-      leftToggle.classList.toggle('is-open', open);
-      leftToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      document.body.classList.toggle('left-open', open);
-      setTimeout(resize, 220);
-    });
-  }
-
-  if (rightToggle && rightPanel) {
-    rightToggle.addEventListener('click', function () {
-      var open = rightPanel.classList.toggle('open');
-      rightToggle.classList.toggle('is-open', open);
-      rightToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-      updateDockedPanelOffset();
-      setTimeout(resize, 220);
-    });
-  }
-
-  // Accordion heads inside panels
-  document.querySelectorAll('.panel-head').forEach(function (head) {
-    head.addEventListener('click', function () {
-      var section = head.closest('.panel-section');
-      if (section) section.classList.toggle('collapsed');
+function setupAccordions() {
+  document.querySelectorAll('.wb-accordion-head, .panel-head').forEach(function(h) {
+    h.addEventListener('click', function() {
+      if (h.classList.contains('static-head')) return;
+      var targetId = h.dataset.target;
+      if (!targetId) return;
+      var body = document.getElementById(targetId);
+      var chev = h.querySelector('.wb-chev, .chev');
+      if (body) body.classList.toggle('hidden');
+      if (chev) chev.classList.toggle('closed');
     });
   });
-}
-
-function updateDockedPanelOffset() {
-  var rightPanel = document.getElementById('right-panel');
-  var dockedPanel = document.getElementById('docked-panel');
-  var launcher = document.getElementById('va-launcher-btn');
-  var vaWidget = document.getElementById('voice-assistant-widget');
-
-  if (window.innerWidth < 768) {
-    if (dockedPanel) dockedPanel.style.right = '';
-    if (launcher) launcher.style.right = '';
-    if (vaWidget) vaWidget.style.right = '';
-    return;
-  }
-
-  if (rightPanel && rightPanel.classList.contains('open')) {
-    var w = rightPanel.getBoundingClientRect().width || 262;
-    if (dockedPanel) dockedPanel.style.right = (w + 38) + 'px';
-    if (launcher) launcher.style.right = (w + 38) + 'px';
-    if (vaWidget) vaWidget.style.right = (w + 38) + 'px';
-  } else {
-    if (dockedPanel) dockedPanel.style.right = '';
-    if (launcher) launcher.style.right = '';
-    if (vaWidget) vaWidget.style.right = '';
-  }
-}
-window.addEventListener('resize', updateDockedPanelOffset);
-
-function setupDockedPanelTabs() {
-  var dpTabs = document.querySelectorAll('.dp-tab-btn');
-  var dpContents = document.querySelectorAll('.dp-tab-content');
-  var dpCollapseBtn = document.getElementById('dp-collapse-btn');
-  var dpBody = document.getElementById('dp-body');
-
-  dpTabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      var target = tab.dataset.tab;
-      dpTabs.forEach(function (t) { t.classList.remove('active'); });
-      dpContents.forEach(function (c) { c.classList.remove('active'); });
-      tab.classList.add('active');
-      var activeContent = document.getElementById('tab-content-' + target);
-      if (activeContent) activeContent.classList.add('active');
-
-      if (target === 'physics' && typeof renderGraphs === 'function') {
-        setTimeout(renderGraphs, 50);
-      }
-    });
-  });
-
-  if (dpCollapseBtn && dpBody) {
-    dpCollapseBtn.addEventListener('click', function () {
-      var isHidden = (dpBody.style.display === 'none');
-      dpBody.style.display = isHidden ? 'flex' : 'none';
-      dpCollapseBtn.textContent = isHidden ? '▾' : '▴';
-    });
-  }
 }

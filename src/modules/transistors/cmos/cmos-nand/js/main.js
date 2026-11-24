@@ -1,54 +1,205 @@
-/* Drawer toggles, HUD right/left offset synchronization, resetAll & startup ready */
+/**
+ * main.js - CMOS NAND2 CAD Viewer
+ * Drag-resizable Left Workbench controls, camera hint initialization,
+ * and final bootstrap calls that start the application. Load this file LAST.
+ */
 
-function updateViewHudPosition() {
-  var rightPanel = document.getElementById('right-panel');
-  var leftPanel = document.getElementById('left-panel');
-  var viewHud = document.getElementById('view-hud');
-  var vaLauncher = document.getElementById('va-launcher-btn');
-  var vaWidget = document.getElementById('voice-assistant-widget');
-  var stateBadge = document.getElementById('state-badge');
-
-  var rightCollapsed = !rightPanel || rightPanel.classList.contains('collapsed');
-  var rightOffset = rightCollapsed ? 38 : ((rightPanel.offsetWidth || 262) + 20);
-
-  if (viewHud) {
-    viewHud.style.right = rightOffset + 'px';
-    viewHud.style.bottom = '14px';
+var resizeAnimId = null;
+function animateResizeTransition() {
+  var start = performance.now();
+  var duration = 280; // ms
+  if (resizeAnimId) cancelAnimationFrame(resizeAnimId);
+  function step(now) {
+    if (typeof resize === 'function') resize();
+    if (typeof drawTransferGraph === 'function') drawTransferGraph();
+    if (now - start < duration) {
+      resizeAnimId = requestAnimationFrame(step);
+    } else {
+      if (typeof resize === 'function') resize();
+      if (typeof drawTransferGraph === 'function') drawTransferGraph();
+      resizeAnimId = null;
+    }
   }
+  resizeAnimId = requestAnimationFrame(step);
+}
+window.animateResizeTransition = animateResizeTransition;
 
-  if (vaLauncher) {
-    var viewHudWidth = (viewHud && !viewHud.classList.contains('collapsed')) ? (viewHud.offsetWidth || 222) : 48;
-    var launcherOffset = rightOffset + viewHudWidth + 12;
-    vaLauncher.style.right = launcherOffset + 'px';
-    vaLauncher.style.bottom = '14px';
+// =====================================================================
+// DRAG-RESIZABLE LEFT WORKBENCH
+// =====================================================================
+var leftWorkbench = document.getElementById('left-workbench');
+var workbenchToggleBtn = document.getElementById('workbench-toggle');
+var wbResizeHandle = document.getElementById('wb-resize-handle');
+
+var MIN_WB_WIDTH = 300;
+function getMaxWbWidth() {
+  return Math.min(520, Math.round(window.innerWidth * 0.45));
+}
+function getDefaultWbWidth() {
+  return window.innerWidth >= 768 ? getMaxWbWidth() : 330;
+}
+
+function setWorkbenchWidth(w) {
+  var clamped = Math.max(MIN_WB_WIDTH, Math.min(getMaxWbWidth(), Math.round(w)));
+  document.documentElement.style.setProperty('--wb-width', clamped + 'px');
+  if (workbenchToggleBtn && leftWorkbench && !leftWorkbench.classList.contains('collapsed')) {
+    workbenchToggleBtn.style.left = clamped + 'px';
   }
+  if (typeof resize === 'function') resize();
+  if (typeof drawTransferGraph === 'function') drawTransferGraph();
+  return clamped;
+}
+window.setWorkbenchWidth = setWorkbenchWidth;
 
-  if (vaWidget) {
-    vaWidget.style.right = rightOffset + 'px';
-    vaWidget.style.bottom = '14px';
+function initWorkbenchResize() {
+  var handle = document.getElementById('wb-resize-handle');
+  if (!handle || !leftWorkbench) return;
+
+  var isDragging = false;
+  var startX = 0;
+  var startW = 0;
+
+  handle.addEventListener('mousedown', function(e) {
+    if (leftWorkbench.classList.contains('collapsed')) return;
+    isDragging = true;
+    startX = e.clientX;
+    startW = leftWorkbench.getBoundingClientRect().width;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    leftWorkbench.classList.add('resizing');
+    e.preventDefault();
+  });
+
+  window.addEventListener('mousemove', function(e) {
+    if (!isDragging) return;
+    var dx = e.clientX - startX;
+    setWorkbenchWidth(startW + dx);
+  });
+
+  window.addEventListener('mouseup', function() {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    leftWorkbench.classList.remove('resizing');
+    if (typeof resize === 'function') resize();
+    if (typeof drawTransferGraph === 'function') drawTransferGraph();
+  });
+
+  handle.addEventListener('dblclick', function() {
+    setWorkbenchWidth(getDefaultWbWidth());
+    animateResizeTransition();
+  });
+}
+initWorkbenchResize();
+
+function toggleWorkbench(forceExpanded) {
+  if (!leftWorkbench) return;
+  var willBeCollapsed = (typeof forceExpanded === 'boolean') ? !forceExpanded : !leftWorkbench.classList.contains('collapsed');
+  leftWorkbench.classList.toggle('collapsed', willBeCollapsed);
+  if (workbenchToggleBtn) {
+    workbenchToggleBtn.setAttribute('aria-expanded', willBeCollapsed ? 'false' : 'true');
+    workbenchToggleBtn.classList.toggle('is-collapsed', willBeCollapsed);
+    if (willBeCollapsed) {
+      workbenchToggleBtn.style.left = '0px';
+    } else {
+      var curW = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wb-width')) || getDefaultWbWidth();
+      workbenchToggleBtn.style.left = curW + 'px';
+    }
   }
-
-  var leftCollapsed = !leftPanel || leftPanel.classList.contains('collapsed');
-  var leftOffset = leftCollapsed ? 14 : ((leftPanel.offsetWidth || 262) + 20);
-  if (stateBadge) {
-    stateBadge.style.left = leftOffset + 'px';
-    stateBadge.style.bottom = '14px';
+  if (!willBeCollapsed) {
+    var pop = document.getElementById('popover');
+    if (pop) pop.classList.add('hidden');
+    if (typeof selectedId !== 'undefined' && selectedId) {
+      if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('inspect');
+    }
   }
+  animateResizeTransition();
+}
+window.toggleWorkbench = toggleWorkbench;
 
-  var scaleNote = document.getElementById('scale-note-wrap');
-  if (scaleNote) {
-    scaleNote.style.left = leftOffset + 'px';
+function expandWorkbench() {
+  if (!leftWorkbench) return;
+  if (leftWorkbench.classList.contains('collapsed')) {
+    toggleWorkbench(true);
   }
 }
+window.expandWorkbench = expandWorkbench;
+
+if (workbenchToggleBtn) {
+  workbenchToggleBtn.addEventListener('click', function() {
+    toggleWorkbench();
+  });
+}
+
+if (leftWorkbench) {
+  leftWorkbench.addEventListener('transitionend', function() {
+    if (typeof resize === 'function') resize();
+    if (typeof drawTransferGraph === 'function') drawTransferGraph();
+  });
+}
+
+window.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+    e.preventDefault();
+    toggleWorkbench();
+  }
+});
+
+// Default initial state: Left Workbench is expanded on desktop, collapsed on mobile (<768px)
+(function initWorkbench() {
+  if (leftWorkbench) {
+    var defaultW = getDefaultWbWidth();
+    document.documentElement.style.setProperty('--wb-width', defaultW + 'px');
+    if (window.innerWidth < 768) {
+      leftWorkbench.classList.add('collapsed');
+      if (workbenchToggleBtn) {
+        workbenchToggleBtn.setAttribute('aria-expanded', 'false');
+        workbenchToggleBtn.classList.add('is-collapsed');
+        workbenchToggleBtn.style.left = '0px';
+      }
+    } else {
+      leftWorkbench.classList.remove('collapsed');
+      if (workbenchToggleBtn) {
+        workbenchToggleBtn.setAttribute('aria-expanded', 'true');
+        workbenchToggleBtn.classList.remove('is-collapsed');
+        workbenchToggleBtn.style.left = defaultW + 'px';
+      }
+    }
+  }
+})();
+
+// Camera Hint: fade out on interaction
+function initCameraHint() {
+  var hint = document.getElementById('camera-hint');
+  if (!hint) return;
+  var dismissed = false;
+  function dismiss() {
+    if (dismissed) return;
+    dismissed = true;
+    hint.style.opacity = '0';
+    setTimeout(function() { hint.style.display = 'none'; }, 400);
+  }
+  window.addEventListener('pointerdown', dismiss, { once: true });
+}
+initCameraHint();
 
 function resetAll() {
   if (typeof isTourRunning !== 'undefined' && isTourRunning && typeof stopTour === 'function') {
     stopTour();
   }
 
-  if (typeof resetExplodeAndScrub === 'function') {
-    resetExplodeAndScrub();
-  }
+  // Reset explode to Y=1% and others 0%
+  var expY = document.getElementById('explode-y'); if (expY) expY.value = 1;
+  var expX = document.getElementById('explode-x'); if (expX) expX.value = 0;
+  var expZ = document.getElementById('explode-z'); if (expZ) expZ.value = 0;
+  var vey = document.getElementById('val-explode-y'); if (vey) vey.textContent = '1%';
+  var vex = document.getElementById('val-explode-x'); if (vex) vex.textContent = '0%';
+  var vez = document.getElementById('val-explode-z'); if (vez) vez.textContent = '0%';
+  if (typeof explodeX !== 'undefined') explodeX = 0;
+  if (typeof explodeY !== 'undefined') explodeY = 1;
+  if (typeof explodeZ !== 'undefined') explodeZ = 0;
+  if (typeof applyExplode === 'function') applyExplode();
 
   for (var k in layerVisibility) {
     if (Object.prototype.hasOwnProperty.call(layerVisibility, k)) {
@@ -72,10 +223,16 @@ function resetAll() {
   if (typeof clearSelection === 'function') {
     clearSelection();
   }
+  if (typeof switchWorkbenchTab === 'function') {
+    switchWorkbenchTab('controls');
+  }
 
-  camera.position.copy(TOP_VIEW_POS);
-  controls.target.copy(INITIAL_TARGET);
-  controls.update();
+  if (camera && TOP_VIEW_POS) camera.position.copy(TOP_VIEW_POS);
+  if (controls && INITIAL_TARGET) {
+    controls.target.copy(INITIAL_TARGET);
+    controls.update();
+  }
+  if (typeof resize === 'function') resize();
 }
 
 // Collapsible Scale Note Popover Handler
@@ -103,40 +260,7 @@ function initScaleNote() {
 }
 
 function initMainUi() {
-  var leftPanel = document.getElementById('left-panel');
-  var rightPanel = document.getElementById('right-panel');
-  var toggleLeft = document.getElementById('toggle-left');
-  var toggleRight = document.getElementById('toggle-right');
-
-  if (leftPanel) leftPanel.classList.add('collapsed');
-  if (rightPanel) rightPanel.classList.add('collapsed');
-
-  function syncToggleArrows() {
-    if (toggleLeft && leftPanel) {
-      toggleLeft.textContent = leftPanel.classList.contains('collapsed') ? '›' : '‹';
-    }
-    if (toggleRight && rightPanel) {
-      toggleRight.textContent = rightPanel.classList.contains('collapsed') ? '‹' : '›';
-    }
-  }
-
-  if (toggleLeft && leftPanel) {
-    toggleLeft.addEventListener('click', function () {
-      leftPanel.classList.toggle('collapsed');
-      syncToggleArrows();
-      updateViewHudPosition();
-    });
-  }
-
-  if (toggleRight && rightPanel) {
-    toggleRight.addEventListener('click', function () {
-      rightPanel.classList.toggle('collapsed');
-      syncToggleArrows();
-      updateViewHudPosition();
-    });
-  }
-
-  var btnTheme = document.getElementById('btn-theme');
+  var btnTheme = document.getElementById('btn-theme-toggle') || document.getElementById('btn-theme');
   if (btnTheme && typeof toggleTheme === 'function') {
     btnTheme.addEventListener('click', toggleTheme);
   }
@@ -147,18 +271,16 @@ function initMainUi() {
   }
 
   initScaleNote();
-  syncToggleArrows();
-  updateViewHudPosition();
 
-  var overlay = document.getElementById('loading-overlay');
+  var overlay = document.getElementById('loading') || document.getElementById('loading-overlay');
   if (overlay) {
+    overlay.style.transition = 'opacity 0.25s ease';
+    overlay.style.opacity = '0';
     setTimeout(function () {
-      overlay.classList.add('fade-out');
-      setTimeout(function () {
-        overlay.classList.add('hidden');
-      }, 280);
-    }, 120);
+      overlay.style.display = 'none';
+    }, 260);
   }
 }
 
 initMainUi();
+if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');

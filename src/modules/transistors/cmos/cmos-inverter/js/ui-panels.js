@@ -84,48 +84,118 @@ function renderTree(nodes, depth){
 }
 treeRoot.appendChild(renderTree(TREE, 0));
 
+// ---------------------------------------------------------------------------
+// Left Workbench 3-Tab Controller
+// ---------------------------------------------------------------------------
+function switchWorkbenchTab(tabKey) {
+  var tabBtns = document.querySelectorAll('.wb-tab-btn');
+  var panes = document.querySelectorAll('.wb-pane');
+  tabBtns.forEach(function(btn) {
+    var active = (btn.dataset.tab === tabKey);
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  panes.forEach(function(pane) {
+    pane.classList.toggle('active', pane.id === 'wb-pane-' + tabKey);
+  });
+  if (tabKey === 'controls' && typeof applyLogicState === 'function') {
+    setTimeout(applyLogicState, 10);
+  }
+}
+window.switchWorkbenchTab = switchWorkbenchTab;
+
+document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    switchWorkbenchTab(btn.dataset.tab);
+  });
+});
+
 // =====================================================================
-// LAYER PANEL + LEGEND PANEL
+// UNIFIED LAYER LIST & TERMINAL REFERENCE
 // =====================================================================
 var layerMeta = [
-  { key:'substrate', name:'SUBSTRATE', color:'var(--c-substrate)' },
-  { key:'well', name:'WELLS (N-WELL & P-WELL)', color:'var(--c-well)' },
-  { key:'active', name:'ACTIVE / DIFFUSION', color:'var(--c-active-p)' },
-  { key:'oxide', name:'GATE OXIDE (SiO2)', color:'var(--c-oxide)' },
-  { key:'highk', name:'HIGH-K DIELECTRIC (HfO2)', color:'var(--c-highk)' },
-  { key:'poly', name:'POLYSILICON', color:'var(--c-poly)' },
-  { key:'contact', name:'CONTACT (TUNGSTEN)', color:'var(--c-contact)' },
-  { key:'metal', name:'METAL-1 (incl. VDD/GND/IN/OUT)', color:'var(--c-metal)' }
+  { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
+  { key: 'well',      name: 'WELLS (N-WELL & P-WELL)', color: 'var(--c-well)' },
+  { key: 'active',    name: 'ACTIVE / DIFFUSION', color: 'var(--c-active-p)' },
+  { key: 'sde',       name: 'EXTENSIONS (SDE / LDD)', color: 'var(--c-sde-p)' },
+  { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
+  { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },
+  { key: 'poly',      name: 'POLYSILICON / COMMON GATE', color: 'var(--c-poly)' },
+  { key: 'contact',   name: 'CONTACTS (TUNGSTEN W)', color: 'var(--c-contact)' },
+  { key: 'metal',     name: 'METAL-1 INTERCONNECTS', color: 'var(--c-metal)' }
 ];
+
 var layersBody = document.getElementById('layers-body');
-layerMeta.forEach(function(l){
-  var row = document.createElement('div');
-  row.className = 'layer-row';
-  row.innerHTML = '<input type="checkbox" checked data-layer="'+l.key+'"><span class="swatch" style="background:'+l.color+'"></span><label>'+l.name+'</label>';
-  layersBody.appendChild(row);
-  row.querySelector('input').addEventListener('change', function(e){
-    if (groups[l.key]) groups[l.key].visible = e.target.checked;
-  });
-  row.querySelector('label').addEventListener('click', function(){
-    var cb = row.querySelector('input'); cb.checked = !cb.checked;
-    cb.dispatchEvent(new Event('change'));
-  });
-});
+if (layersBody) {
+  layersBody.className = 'unified-layers-list';
+  layersBody.innerHTML = '';
+  layerMeta.forEach(function(l) {
+    var descText = '';
+    if (typeof LEGEND !== 'undefined') {
+      for (var i = 0; i < LEGEND.length; i++) {
+        if (LEGEND[i].key === l.key) {
+          descText = LEGEND[i].desc;
+          break;
+        }
+      }
+    }
 
-var legendBody = document.getElementById('legend-body');
-LEGEND.forEach(function(l){
-  var div = document.createElement('div');
-  div.className = 'legend-item';
-  div.innerHTML = '<div class="lh"><span class="swatch" style="background:'+l.color+'"></span><b>'+l.name+'</b></div><p>'+l.desc+'</p>';
-  legendBody.appendChild(div);
-});
+    var item = document.createElement('div');
+    item.className = 'unified-layer-item';
 
-// collapsible panel sections
-document.querySelectorAll('.panel-head').forEach(function(h){
-  h.addEventListener('click', function(){
-    var body = document.getElementById(h.dataset.target);
-    var chev = h.querySelector('.chev');
-    body.classList.toggle('hidden');
-    chev.classList.toggle('closed');
+    var row = document.createElement('div');
+    row.className = 'unified-layer-row';
+    row.innerHTML =
+      '<input type="checkbox" checked data-layer="' + l.key + '" title="Toggle ' + l.name + ' visibility">' +
+      '<span class="swatch" style="background:' + l.color + '"></span>' +
+      '<span class="layer-name" title="Toggle visibility">' + l.name + '</span>';
+
+    var desc = document.createElement('div');
+    desc.className = 'unified-layer-desc';
+    desc.textContent = descText;
+
+    item.appendChild(row);
+    item.appendChild(desc);
+    layersBody.appendChild(item);
+
+    var cb = row.querySelector('input');
+    cb.addEventListener('change', function(e) {
+      if (groups[l.key]) groups[l.key].visible = e.target.checked;
+    });
+
+    row.querySelector('.layer-name').addEventListener('click', function() {
+      cb.checked = !cb.checked;
+      cb.dispatchEvent(new Event('change'));
+    });
+  });
+}
+
+// Terminals & Net Reference (Non-toggleable items)
+var refLegendBody = document.getElementById('ref-legend-body');
+var nonToggleableKeys = ['vdd', 'gnd', 'in', 'out'];
+if (refLegendBody && typeof LEGEND !== 'undefined') {
+  refLegendBody.innerHTML = '';
+  LEGEND.filter(function(l) {
+    return nonToggleableKeys.indexOf(l.key) !== -1;
+  }).forEach(function(l) {
+    var div = document.createElement('div');
+    div.className = 'ref-legend-item';
+    div.innerHTML =
+      '<div class="lh"><span class="swatch" style="background:' + l.color + '"></span><b>' + l.name + '</b></div>' +
+      '<p>' + l.desc + '</p>';
+    refLegendBody.appendChild(div);
+  });
+}
+
+// Collapsible accordion sections
+document.querySelectorAll('.wb-accordion-head, .panel-head').forEach(function(h) {
+  h.addEventListener('click', function() {
+    if (h.classList.contains('static-head')) return;
+    var targetId = h.dataset.target;
+    if (!targetId) return;
+    var body = document.getElementById(targetId);
+    var chev = h.querySelector('.wb-chev, .chev');
+    if (body) body.classList.toggle('hidden');
+    if (chev) chev.classList.toggle('closed');
   });
 });

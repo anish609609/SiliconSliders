@@ -99,16 +99,19 @@ function updatePopoverPosition(){
   popoverEl.style.top = y + 'px';
   popoverEl.classList.add('visible');
 }
-document.getElementById('pop-close').addEventListener('click', function(e){
-  e.stopPropagation();
-  clearSelection();
-  hidePopover();
-  document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
-  document.getElementById('crumb-sel').textContent = '';
-  if (typeof window.clearVoiceAssistantContext === 'function'){
-    window.clearVoiceAssistantContext();
-  }
-});
+var popCloseBtn = document.getElementById('pop-close');
+if (popCloseBtn) {
+  popCloseBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    clearSelection();
+    hidePopover();
+    document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
+    document.getElementById('crumb-sel').textContent = '';
+    if (typeof window.clearVoiceAssistantContext === 'function'){
+      window.clearVoiceAssistantContext();
+    }
+  });
+}
 
 function selectById(id){
   var meshes = meshesForId(id);
@@ -117,7 +120,17 @@ function selectById(id){
   highlightMeshes(meshes);
   var info = idToInfo(id);
   showInspector(id, info);
-  showPopoverFor(meshes, id, info);
+  var wb = document.getElementById('left-workbench');
+  if (wb && !wb.classList.contains('collapsed')) {
+    if (typeof window.switchWorkbenchTab === 'function') {
+      window.switchWorkbenchTab('inspect');
+    }
+    var wbBody = document.getElementById('wb-body');
+    if (wbBody) wbBody.scrollTop = 0;
+    hidePopover();
+  } else {
+    showPopoverFor(meshes, id, info);
+  }
   document.getElementById('crumb-sel').textContent = '— ' + (info ? info.title : id);
   document.querySelectorAll('#tree .node').forEach(function(n){
     if (n.dataset.id === id) n.classList.add('selected');

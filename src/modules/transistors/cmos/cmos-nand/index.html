@@ -1,76 +1,75 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3D CMOS 2-Input NAND (NAND2) Physical Layout & Fabrication CAD Viewer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
-  <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css" />
-  <script>
-    (function(){
-      try {
-        var t = localStorage.getItem('silicon_sliders_theme') ||
-                localStorage.getItem('cmos_nand_viewer_theme') ||
-                localStorage.getItem('cmos_viewer_theme');
-        if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
-        else document.documentElement.setAttribute('data-theme', 'dark');
-      } catch(e){}
-    })();
-  </script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CMOS 2-Input NAND (NAND2) — 3D Physical Layout &amp; Semiconductor CAD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
+<script>
+  (function(){
+    try {
+      var t = localStorage.getItem('silicon_sliders_theme') ||
+              localStorage.getItem('cmos_nand_viewer_theme') ||
+              localStorage.getItem('cmos_viewer_theme');
+      if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+      else document.documentElement.setAttribute('data-theme', 'dark');
+    } catch(e){}
+  })();
+</script>
 </head>
 <body>
-  <div id="loading-overlay" aria-live="polite">
-    <div class="loader-card">
-      <div class="loader-ring"></div>
-      <div class="loader-title">CMOS NAND2 CAD STUDIO</div>
-      <div class="loader-sub">Synthesizing 3D Gaussian doping profiles, PDK Metal-1 &amp; Euler topology...</div>
-    </div>
-  </div>
+
+<div id="loading"><div class="spin"></div><div>INITIALIZING NAND2 VIEWPORT…</div></div>
+
+<div id="app">
 
   <div id="topbar">
-    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders">← Silicon Sliders</a>
-    <div class="brand"><span class="dot"></span><b>CMOS·VIEWER</b><span>nand2 / rev 01</span></div>
+    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
+    <div class="brand"><span class="dot"></span><b class="brand-title-full">NAND2·VIEWER</b><b class="brand-title-compact">NAND2</b></div>
 
-    <div class="seg" id="mode-seg">
-      <button type="button" class="seg-btn" id="btn-view-theory" data-mode="theory" data-view="theory">THEORY</button>
-      <button type="button" class="seg-btn active" id="btn-view-layout" data-mode="layout" data-view="layout"><span class="tab-label-full">PHYSICAL LAYOUT</span><span class="tab-label-compact">LAYOUT</span></button>
-      <button type="button" class="seg-btn" id="btn-view-schematic" data-mode="schematic" data-view="schematic">SCHEMATIC</button>
-    </div>
-
-    <div class="topbar-divider" aria-hidden="true"></div>
-
-    <div class="in-toggle" aria-label="Input A Logic State">
-      A =
-      <div class="seg" id="input-a-group">
-        <button type="button" class="seg-btn" data-a="0">0</button>
-        <button type="button" class="seg-btn" data-a="1">1</button>
-        <button type="button" class="seg-btn active" data-a="off">OFF</button>
+    <div class="topbar-mode-row">
+      <div class="seg" id="mode-seg">
+        <button id="btn-view-theory" data-mode="theory">THEORY</button>
+        <button id="btn-view-layout" data-mode="layout" class="active"><span class="tab-label-full">SLIDERS</span><span class="tab-label-compact">SLIDERS</span></button>
+        <button id="btn-view-schematic" data-mode="schematic">SCHEMATIC</button>
       </div>
-    </div>
 
-    <div class="in-toggle" aria-label="Input B Logic State">
-      B =
-      <div class="seg" id="input-b-group">
-        <button type="button" class="seg-btn" data-b="0">0</button>
-        <button type="button" class="seg-btn" data-b="1">1</button>
-        <button type="button" class="seg-btn active" data-b="off">OFF</button>
+      <div class="topbar-divider" aria-hidden="true"></div>
+
+      <div class="in-toggle">
+        A =
+        <div class="seg" id="input-a-group">
+          <button data-a="0">0</button>
+          <button data-a="1">1</button>
+          <button data-a="off" class="active">OFF</button>
+        </div>
       </div>
-    </div>
 
-    <div class="seg" id="flow-mode-group" title="Direction convention for the animated flow markers">
-      <button type="button" class="seg-btn flow-current active" data-flow="current">CURRENT</button>
-      <button type="button" class="seg-btn flow-electron" data-flow="electron">ELECTRONS</button>
+      <div class="in-toggle">
+        B =
+        <div class="seg" id="input-b-group">
+          <button data-b="0">0</button>
+          <button data-b="1">1</button>
+          <button data-b="off" class="active">OFF</button>
+        </div>
+      </div>
+
+      <div class="seg" id="flow-mode-group" title="Direction convention for the animated flow markers">
+        <button data-flow="current" class="active">CURRENT</button>
+        <button data-flow="electron">ELECTRONS</button>
+      </div>
     </div>
 
     <div class="spacer"></div>
 
     <div class="right-cluster">
-      <button type="button" class="tbtn icon-btn" id="btn-theme" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
+      <button class="tbtn icon-btn" id="btn-theme-toggle" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
         <svg id="theme-icon-sun" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="5"></circle>
           <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -85,333 +84,441 @@
         <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <span id="theme-btn-label">LIGHT</span>
       </button>
-      <button type="button" class="tbtn tbtn-play-tour tour-btn" id="btn-build-anim" title="Launch 8-Step 3D Fabrication Tour" aria-label="Play 3D Fabrication Tour">
-        <span class="tour-btn-inner"><span class="play-icon">▶</span> <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span></span>
+      <button class="tbtn icon-btn" id="va-launcher-btn" title="AI Voice Tutor (Sarvam Voice)" aria-label="Open AI Voice Tutor">
+        <svg class="va-topbar-mic-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+          <line x1="12" y1="19" x2="12" y2="23"></line>
+          <line x1="8" y1="23" x2="16" y2="23"></line>
+        </svg>
       </button>
-      <button type="button" class="tbtn" id="btn-reset" title="Reset Camera, Explode, Clip &amp; State">RESET</button>
+      <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence with AI Voice Tutor" aria-label="Play 3D Fabrication Tour">
+        <span class="play-icon">▶</span>
+        <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>
+      </button>
+      <button class="tbtn" id="btn-reset-cam">RESET</button>
     </div>
   </div>
 
-  <main id="workspace">
-    <div id="canvas-wrap"></div>
+  <div id="body-row">
 
-    <!-- Left Drawer: Layer Visibility, Legend & Dimensions (λ Rules) -->
-    <aside id="left-panel" class="drawer left-drawer collapsed" aria-label="Layers, Legend and Dimensions">
-      <div class="drawer-scroll">
-        <section class="panel-sec">
-          <button type="button" class="sec-hdr" data-sec="sec-layers">
-            <span>LAYER VISIBILITY</span>
-            <span class="sec-chevron">▾</span>
+    <!-- Single Docked Left Workbench -->
+    <aside id="left-workbench" class="workbench" aria-label="CMOS NAND2 Workbench Controls">
+      
+      <!-- 3-Tab Header -->
+      <div class="wb-header">
+        <div class="wb-tabs" role="tablist">
+          <button class="wb-tab-btn active" data-tab="controls" id="wb-tab-controls" role="tab" aria-selected="true" aria-controls="wb-pane-controls">
+            <span>Controls</span>
           </button>
-          <div class="sec-body" id="sec-layers">
-            <div class="layer-actions">
-              <button type="button" class="mini-btn" id="btn-layers-all">ALL ON</button>
-              <label class="inline-chk">
-                <input type="checkbox" id="chk-labels" checked />
-                <span>3D Labels</span>
-              </label>
-            </div>
-            <div id="layer-toggles"></div>
-          </div>
-        </section>
-
-        <section class="panel-sec">
-          <button type="button" class="sec-hdr" data-sec="sec-legend">
-            <span>LAYER COLOR LEGEND</span>
-            <span class="sec-chevron">▾</span>
+          <button class="wb-tab-btn" data-tab="layers" id="wb-tab-layers" role="tab" aria-selected="false" aria-controls="wb-pane-layers">
+            <span>Layers</span>
           </button>
-          <div class="sec-body" id="sec-legend">
-            <div id="legend-list"></div>
-          </div>
-        </section>
-
-        <section class="panel-sec">
-          <button type="button" class="sec-hdr" data-sec="sec-dims">
-            <span>DIMENSIONS (λ RULES)</span>
-            <span class="sec-chevron">▾</span>
+          <button class="wb-tab-btn" data-tab="inspect" id="wb-tab-inspect" role="tab" aria-selected="false" aria-controls="wb-pane-inspect">
+            <span>Inspect</span>
           </button>
-          <div class="sec-body" id="sec-dims">
-            <div class="node-presets" id="lambda-presets"></div>
-            <div id="lambda-summary" class="lambda-summary"></div>
-            <div id="dim-table"></div>
-          </div>
-        </section>
+        </div>
       </div>
-    </aside>
 
-    <button type="button" id="toggle-left" class="drawer-toggle left-toggle" title="Toggle Layers &amp; Dimensions Drawer">›</button>
+      <!-- Workbench Body (Scrollable container for active tab pane) -->
+      <div class="wb-body" id="wb-body">
 
-    <!-- Right Drawer: Property Inspector & Architecture Tree -->
-    <aside id="right-panel" class="drawer right-drawer collapsed" aria-label="Property Inspector and Architecture Tree">
-      <div class="drawer-scroll">
-        <section class="panel-sec">
-          <button type="button" class="sec-hdr" data-sec="sec-inspector">
-            <span>PROPERTY INSPECTOR</span>
-            <span class="sec-chevron">▾</span>
-          </button>
-          <div class="sec-body" id="sec-inspector">
-            <div id="inspector-body">
-              <div class="empty-inspector">
-                Click any 3D layer, diffusion, gate, contact, or Metal-1 trace (or switch to Schematic) to inspect physical properties and λ design rules.
+        <!-- TAB 1: CONTROLS (Default active tab) -->
+        <div class="wb-pane active" id="wb-pane-controls" role="tabpanel" aria-labelledby="wb-tab-controls">
+          
+          <!-- Physics & Transfer Graph Section -->
+          <div class="wb-section" id="wb-physics-section">
+            <div class="wb-section-header">
+              <span class="wb-section-title">LOGIC INPUT STATES &amp; TRANSFER</span>
+            </div>
+            <div class="seg wb-presets" id="nand-preset-seg">
+              <button data-preset="00" class="dp-preset-btn" title="VA = 0V, VB = 0V -> OUT = 1 (VDD)">0, 0</button>
+              <button data-preset="01" class="dp-preset-btn" title="VA = 0V, VB = 1V -> OUT = 1 (VDD)">0, 1</button>
+              <button data-preset="10" class="dp-preset-btn" title="VA = 1V, VB = 0V -> OUT = 1 (VDD)">1, 0</button>
+              <button data-preset="11" class="dp-preset-btn" title="VA = 1V, VB = 1V -> OUT = 0 (GND)">1, 1</button>
+              <button data-preset="vm" class="dp-preset-btn" title="VA = VB = 0.50V (Switching Threshold VM)">VM (0.5V)</button>
+              <button data-preset="off" class="dp-preset-btn active" title="Inputs Disconnected (High-Z Floating)">OFF</button>
+            </div>
+
+            <!-- Voltage Input Sliders (VA & VB) -->
+            <div class="wb-bias-controls">
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="va-slider">V<sub>A</sub> (Gate A)</label>
+                  <span class="dp-slider-val" id="va-val">OFF</span>
+                </div>
+                <input type="range" id="va-slider" min="0" max="1.0" step="0.01" value="0.00" title="Gate A Input Voltage VA">
+              </div>
+
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <label for="vb-slider">V<sub>B</sub> (Gate B)</label>
+                  <span class="dp-slider-val" id="vb-val">OFF</span>
+                </div>
+                <input type="range" id="vb-slider" min="0" max="1.0" step="0.01" value="0.00" title="Gate B Input Voltage VB">
+              </div>
+            </div>
+
+            <!-- Sweep Mode Selector for Transfer Graph -->
+            <div class="wb-sweep-seg seg" id="vtc-sweep-seg">
+              <button data-sweep="va" class="active" title="Sweep VA from 0 to 1V with VB held at current slider value">SWEEP V<sub>A</sub></button>
+              <button data-sweep="vb" title="Sweep VB from 0 to 1V with VA held at current slider value">SWEEP V<sub>B</sub></button>
+              <button data-sweep="both" title="Sweep both inputs together (VA = VB)">BOTH (V<sub>A</sub> = V<sub>B</sub>)</button>
+            </div>
+
+            <!-- Live NAND2 Transfer Characteristic Graph -->
+            <div class="iv-canvas-wrap">
+              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand Transfer graph" aria-label="Expand Transfer graph">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <polyline points="9 21 3 21 3 15"></polyline>
+                  <line x1="21" y1="3" x2="14" y2="10"></line>
+                  <line x1="3" y1="21" x2="10" y2="14"></line>
+                </svg>
+              </button>
+              <canvas id="iv-canvas" width="310" height="225"></canvas>
+              <div class="iv-canvas-hint">Drag or click on Transfer curve to modulate swept input voltage</div>
+            </div>
+
+            <!-- Telemetry & 4-Transistor Operating Regions -->
+            <div class="dp-readouts">
+              <div class="iv-grid">
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>A</sub></span>
+                  <span class="iv-v" id="iv-va-readout">OFF</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>B</sub></span>
+                  <span class="iv-v" id="iv-vb-readout">OFF</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>OUT</sub></span>
+                  <span class="iv-v" id="iv-vout-readout">FLOATING</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">LOGIC OUT</span>
+                  <span class="iv-v" id="iv-logic-readout">HIGH-Z</span>
+                </div>
+              </div>
+
+              <!-- 4-Transistor Operating Region Readout -->
+              <div class="nand-transistor-grid">
+                <div class="nand-tx-card">
+                  <span class="nand-tx-name">MP1 (PMOS A · VDD)</span>
+                  <span class="nand-tx-reg" id="tx-mp1-reg">SUBTHRESHOLD</span>
+                </div>
+                <div class="nand-tx-card">
+                  <span class="nand-tx-name">MP2 (PMOS B · VDD)</span>
+                  <span class="nand-tx-reg" id="tx-mp2-reg">SUBTHRESHOLD</span>
+                </div>
+                <div class="nand-tx-card">
+                  <span class="nand-tx-name">MN1 (NMOS A · GND)</span>
+                  <span class="nand-tx-reg" id="tx-mn1-reg">SUBTHRESHOLD</span>
+                </div>
+                <div class="nand-tx-card">
+                  <span class="nand-tx-name">MN2 (NMOS B · OUT)</span>
+                  <span class="nand-tx-reg" id="tx-mn2-reg">SUBTHRESHOLD</span>
+                </div>
+              </div>
+
+              <div class="iv-state-line">
+                <span class="iv-k">STATE:</span>
+                <span class="iv-v-state" id="iv-state-desc">Input Floating · High-Z Output</span>
+              </div>
+            </div>
+
+            <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
+            <div style="display:none;" id="state-badge">
+              <span id="state-rows"></span><span id="state-banner"></span><span id="state-dot"></span>
+            </div>
+          </div>
+
+          <!-- View Controls (Collapsible accordion section directly below Physics & Graph) -->
+          <div class="wb-accordion-section" id="wb-view-controls-section">
+            <div class="wb-accordion-head" data-target="view-controls-body">
+              <span class="wb-accordion-title">VIEW CONTROLS</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="view-controls-body">
+              <!-- Explode Sliders -->
+              <div class="dp-section">
+                <div class="vh-section-title">EXPLODE LAYERS</div>
+                <div class="vh-row"><label>EXPLODE Y</label><span class="val" id="val-explode-y">1%</span></div>
+                <input type="range" id="explode-y" min="0" max="100" value="1">
+                <div class="vh-row"><label>EXPLODE X</label><span class="val" id="val-explode-x">0%</span></div>
+                <input type="range" id="explode-x" min="0" max="100" value="0">
+                <div class="vh-row"><label>EXPLODE Z</label><span class="val" id="val-explode-z">0%</span></div>
+                <input type="range" id="explode-z" min="0" max="100" value="0">
+              </div>
+
+              <div class="vh-sep"></div>
+
+              <!-- Section Scrub Sliders -->
+              <div class="dp-section">
+                <div class="vh-section-title">SECTION SCRUB (CLIPPING)</div>
+                <div class="vh-row"><label>SCRUB X</label><span class="val" id="val-clip-x">off</span></div>
+                <input type="range" id="clip-x" min="-20" max="25" step="0.2" value="25">
+                <div class="vh-row"><label>SCRUB Y</label><span class="val" id="val-clip-y">off</span></div>
+                <input type="range" id="clip-y" min="0" max="30" step="0.2" value="30">
+                <div class="vh-row"><label>SCRUB Z</label><span class="val" id="val-clip-z">off</span></div>
+                <input type="range" id="clip-z" min="-18" max="18" step="0.2" value="18">
+              </div>
+
+              <div class="vh-sep"></div>
+
+              <!-- 3D Floating Labels Checkbox -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="chk-labels" checked>
+                  <span>Show 3D Floating Labels</span>
+                </label>
               </div>
             </div>
           </div>
-        </section>
 
-        <section class="panel-sec">
-          <button type="button" class="sec-hdr" data-sec="sec-tree">
-            <span>ARCHITECTURE TREE</span>
-            <span class="sec-chevron">▾</span>
-          </button>
-          <div class="sec-body" id="sec-tree">
-            <div id="arch-tree"></div>
+        </div>
+
+        <!-- TAB 2: LAYERS (Merged Visibility + Legend + Dimensions) -->
+        <div class="wb-pane" id="wb-pane-layers" role="tabpanel" aria-labelledby="wb-tab-layers">
+          
+          <!-- Unified Layer List (Toggleable layers) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">LAYER VISIBILITY &amp; STRUCTURE</span>
+            </div>
+            <div class="wb-section-body" id="layers-body">
+              <!-- Dynamically populated by ui-panels.js -->
+            </div>
           </div>
-        </section>
+
+          <!-- Terminals & Net Reference (Non-toggleable items) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head" data-target="ref-legend-body">
+              <span class="wb-accordion-title">TERMINALS &amp; NET REFERENCE</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="ref-legend-body">
+              <!-- Dynamically populated by ui-panels.js -->
+            </div>
+          </div>
+
+          <!-- Dimensions (λ Rules) -->
+          <div class="wb-accordion-section">
+            <div class="wb-accordion-head" data-target="dims-body">
+              <span class="wb-accordion-title">DIMENSIONS (λ RULES)</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="dims-body">
+              <div class="node-presets" id="lambda-presets"></div>
+              <div id="lambda-summary" class="lambda-summary"></div>
+              <div id="dim-table"></div>
+              <p class="dims-note">λ-scaled Mead–Conway style rules, illustrative only. Click any component in the 3D view to inspect its physical dimensions.</p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- TAB 3: INSPECT (Property Inspector + Architecture Tree) -->
+        <div class="wb-pane" id="wb-pane-inspect" role="tabpanel" aria-labelledby="wb-tab-inspect">
+          
+          <!-- Property Inspector (Top) -->
+          <div class="wb-accordion-section inspector-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">PROPERTY INSPECTOR</span>
+            </div>
+            <div class="wb-section-body" id="inspector-body">
+              <div class="empty-inspector">
+                Click any 3D layer, diffusion, gate, contact, or Metal-1 trace (or switch to Schematic) to inspect physical properties and lambda design rules.
+              </div>
+            </div>
+          </div>
+
+          <!-- Architecture Tree (Bottom) -->
+          <div class="wb-accordion-section tree-section">
+            <div class="wb-accordion-head static-head">
+              <span class="wb-accordion-title">ARCHITECTURE TREE</span>
+            </div>
+            <div class="wb-section-body" id="tree-body">
+              <div id="arch-tree"></div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
+
+      <!-- Drag Resize Handle -->
+      <div class="wb-resize-handle" id="wb-resize-handle" title="Drag to resize sidebar (Double-click to reset)"></div>
+
     </aside>
 
-    <button type="button" id="toggle-right" class="drawer-toggle right-toggle" title="Toggle Inspector &amp; Architecture Drawer">‹</button>
+    <!-- Workbench Collapse / Expand Edge Toggle Button -->
+    <button class="workbench-toggle-btn" id="workbench-toggle" title="Collapse / Expand Workbench" aria-label="Toggle Left Workbench" aria-expanded="true">
+      <svg class="toggle-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
 
-    <!-- Bottom-Left Live Truth Table & Transistor Status HUD -->
-    <div id="state-badge" class="hud-card state-badge">
-      <div class="hud-title-row">
-        <span class="hud-kicker">LIVE NAND2 STATUS</span>
-        <span class="hud-dot" id="state-dot"></span>
+    <div id="viewport-wrap">
+      <div id="canvas-host"></div>
+      <div id="canvas-wrap" style="display:none;"></div>
+
+      <!-- Anchored Popover (shown when Left Workbench is collapsed) -->
+      <div id="popover" class="popover hidden" role="dialog" aria-label="Selected Component">
+        <div class="pop-card">
+          <button class="pop-close" id="pop-close" aria-label="Close">×</button>
+          <div id="pop-layer" class="pop-layer">LAYER</div>
+          <div id="pop-title" class="pop-title">Component</div>
+          <div id="pop-role" class="pop-role"></div>
+          <div id="pop-dim" class="pop-dim"></div>
+        </div>
+        <div class="pop-arrow"></div>
       </div>
-      <div id="state-rows" class="state-rows"></div>
-      <div id="state-banner" class="state-banner"></div>
-      <div class="state-disclaimer">Idealized static DC conduction &amp; carrier flow model</div>
-    </div>
 
-    <div class="scale-note-wrap nand-scale-note" id="scale-note-wrap">
-      <button type="button" class="scale-note-btn" id="scale-note-btn" title="View scale &amp; PDK disclaimer" aria-expanded="false">
-        <span class="scale-note-icon">ⓘ</span>
-        <span class="scale-note-label">Scale Note</span>
-      </button>
-      <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
-        <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
-        <div class="scale-note-popover-body">
-          Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS NAND layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are illustrative Mead–Conway style rules.
+      <!-- Interactive 2D Schematic Overlay -->
+      <div id="schematic-overlay" class="schematic-overlay hidden">
+        <div class="sch-card">
+          <div class="sch-hdr">
+            <div>
+              <div class="sch-title">CMOS 2-INPUT NAND SCHEMATIC (OUT = !(A · B))</div>
+              <div class="sch-sub">Click any transistor, node, gate, or rail to cross-probe in 3D Layout</div>
+            </div>
+            <div class="sch-hdr-btns">
+              <button type="button" class="mini-btn" id="sch-btn-reset">RESET</button>
+              <button type="button" class="mini-btn accent" id="sch-btn-layout">3D LAYOUT</button>
+            </div>
+          </div>
+
+          <svg id="nand2-schematic-svg" viewBox="0 0 460 500" xmlns="http://www.w3.org/2000/svg">
+            <!-- VDD Rail -->
+            <g class="sch-el" data-id="vddRail">
+              <line x1="70" y1="44" x2="350" y2="44" class="sch-rail sch-vdd" />
+              <line x1="145" y1="44" x2="145" y2="76" class="sch-wire sch-vdd" />
+              <line x1="285" y1="44" x2="285" y2="76" class="sch-wire sch-vdd" />
+              <circle cx="145" cy="44" r="4" class="sch-dot" />
+              <circle cx="285" cy="44" r="4" class="sch-dot" />
+              <text x="210" y="28" text-anchor="middle" class="sch-lbl sch-lbl-vdd">VDD</text>
+            </g>
+
+            <!-- Parallel PMOS Pull-Up Network -->
+            <!-- MP1 (Left PMOS, Gate A) -->
+            <g class="sch-el" data-id="pmosASrc">
+              <line x1="145" y1="76" x2="145" y2="104" class="sch-wire" />
+              <line x1="145" y1="104" x2="122" y2="104" class="sch-wire" />
+            </g>
+            <g class="sch-el" data-id="pmosA">
+              <rect x="78" y="96" width="84" height="72" rx="8" class="sch-hit" />
+              <line x1="122" y1="104" x2="122" y2="156" class="sch-ch" />
+              <line x1="112" y1="108" x2="112" y2="152" class="sch-gate" />
+              <circle cx="104" cy="130" r="6" class="sch-bubble" />
+              <line x1="122" y1="156" x2="145" y2="156" class="sch-wire" />
+              <text x="156" y="128" class="sch-dev">MP1</text>
+              <text x="156" y="143" class="sch-dev-sub" id="sch-mp1-state">PMOS A</text>
+            </g>
+
+            <!-- MP2 (Right PMOS, Gate B) -->
+            <g class="sch-el" data-id="pmosBSrc">
+              <line x1="285" y1="76" x2="285" y2="104" class="sch-wire" />
+              <line x1="285" y1="104" x2="262" y2="104" class="sch-wire" />
+            </g>
+            <g class="sch-el" data-id="pmosB">
+              <rect x="218" y="96" width="84" height="72" rx="8" class="sch-hit" />
+              <line x1="262" y1="104" x2="262" y2="156" class="sch-ch" />
+              <line x1="252" y1="108" x2="252" y2="152" class="sch-gate" />
+              <circle cx="244" cy="130" r="6" class="sch-bubble" />
+              <line x1="262" y1="156" x2="285" y2="156" class="sch-wire" />
+              <text x="296" y="128" class="sch-dev">MP2</text>
+              <text x="296" y="143" class="sch-dev-sub" id="sch-mp2-state">PMOS B</text>
+            </g>
+
+            <!-- Shared PMOS Drain & OUT Bus -->
+            <g class="sch-el" data-id="pmosSharedDrn">
+              <line x1="145" y1="156" x2="145" y2="210" class="sch-wire" />
+              <line x1="285" y1="156" x2="285" y2="210" class="sch-wire" />
+              <line x1="145" y1="210" x2="285" y2="210" class="sch-wire" />
+              <circle cx="215" cy="210" r="5" class="sch-dot" />
+            </g>
+            <g class="sch-el" data-id="outPin">
+              <line x1="215" y1="210" x2="390" y2="210" class="sch-rail sch-out" />
+              <circle cx="390" cy="210" r="5" class="sch-pin-dot" />
+              <text x="404" y="206" class="sch-lbl sch-lbl-out">OUT</text>
+              <text x="404" y="224" class="sch-state-txt" id="sch-out-state">HIGH-Z</text>
+            </g>
+
+            <!-- Series NMOS Pull-Down Network -->
+            <g class="sch-el" data-id="nmosBDrn">
+              <line x1="215" y1="210" x2="215" y2="250" class="sch-wire" />
+            </g>
+
+            <!-- MN2 (Top NMOS, Gate B) -->
+            <g class="sch-el" data-id="nmosB">
+              <rect x="166" y="242" width="100" height="70" rx="8" class="sch-hit" />
+              <line x1="215" y1="250" x2="200" y2="250" class="sch-wire" />
+              <line x1="200" y1="250" x2="200" y2="302" class="sch-ch" />
+              <line x1="190" y1="254" x2="190" y2="298" class="sch-gate" />
+              <line x1="200" y1="302" x2="215" y2="302" class="sch-wire" />
+              <text x="228" y="274" class="sch-dev">MN2</text>
+              <text x="228" y="289" class="sch-dev-sub" id="sch-mn2-state">NMOS B</text>
+            </g>
+
+            <!-- Series Internal N+ Node -->
+            <g class="sch-el" data-id="nmosMidNode">
+              <line x1="215" y1="302" x2="215" y2="346" class="sch-wire" />
+              <circle cx="215" cy="324" r="5" class="sch-dot sch-mid-dot" />
+              <text x="232" y="328" class="sch-node-lbl">SERIES N+ NODE</text>
+            </g>
+
+            <!-- MN1 (Bottom NMOS, Gate A) -->
+            <g class="sch-el" data-id="nmosA">
+              <rect x="166" y="338" width="100" height="70" rx="8" class="sch-hit" />
+              <line x1="215" y1="346" x2="200" y2="346" class="sch-wire" />
+              <line x1="200" y1="346" x2="200" y2="398" class="sch-ch" />
+              <line x1="190" y1="350" x2="190" y2="394" class="sch-gate" />
+              <line x1="200" y1="398" x2="215" y2="398" class="sch-wire" />
+              <text x="228" y="370" class="sch-dev">MN1</text>
+              <text x="228" y="385" class="sch-dev-sub" id="sch-mn1-state">NMOS A</text>
+            </g>
+
+            <!-- MN1 Source to GND -->
+            <g class="sch-el" data-id="nmosASrc">
+              <line x1="215" y1="398" x2="215" y2="438" class="sch-wire" />
+            </g>
+
+            <!-- GND Rail -->
+            <g class="sch-el" data-id="gndRail">
+              <line x1="185" y1="438" x2="245" y2="438" class="sch-rail sch-gnd" />
+              <line x1="195" y1="446" x2="235" y2="446" class="sch-rail sch-gnd" />
+              <line x1="205" y1="454" x2="225" y2="454" class="sch-rail sch-gnd" />
+              <text x="215" y="476" text-anchor="middle" class="sch-lbl sch-lbl-gnd">GND</text>
+            </g>
+
+            <!-- Input A Routing to MP1 & MN1 -->
+            <g class="sch-el" data-id="inAPin">
+              <circle cx="34" cy="130" r="5" class="sch-pin-dot" />
+              <line x1="34" y1="130" x2="98" y2="130" class="sch-wire sch-in" />
+              <line x1="56" y1="130" x2="56" y2="372" class="sch-wire sch-in" />
+              <line x1="56" y1="372" x2="190" y2="372" class="sch-wire sch-in" />
+              <circle cx="56" cy="130" r="4" class="sch-dot" />
+              <text x="16" y="135" class="sch-lbl">A</text>
+              <text x="16" y="150" class="sch-state-txt" id="sch-a-state">OFF</text>
+            </g>
+
+            <!-- Input B Routing to MP2 & MN2 -->
+            <g class="sch-el" data-id="inBPin">
+              <circle cx="34" cy="274" r="5" class="sch-pin-dot" />
+              <line x1="34" y1="274" x2="190" y2="274" class="sch-wire sch-in" />
+              <line x1="176" y1="274" x2="176" y2="180" class="sch-wire sch-in" />
+              <line x1="176" y1="180" x2="226" y2="180" class="sch-wire sch-in" />
+              <line x1="226" y1="180" x2="226" y2="130" class="sch-wire sch-in" />
+              <line x1="226" y1="130" x2="238" y2="130" class="sch-wire sch-in" />
+              <circle cx="176" cy="274" r="4" class="sch-dot" />
+              <text x="16" y="279" class="sch-lbl">B</text>
+              <text x="16" y="294" class="sch-state-txt" id="sch-b-state">OFF</text>
+            </g>
+          </svg>
         </div>
       </div>
-    </div>
-
-    <!-- Bottom-Right Explode & Section Scrub HUD -->
-    <div id="view-hud" class="hud-card view-hud">
-      <div class="view-hud-hdr">
-        <span class="hud-kicker">EXPLODE &amp; SECTION SCRUB</span>
-        <button type="button" class="hud-collapse-btn" id="btn-hud-collapse" title="Collapse/Expand Controls">▾</button>
-      </div>
-      <div id="view-hud-body" class="view-hud-body">
-        <div class="hud-subgrp">
-          <div class="hud-subhdr">EXPLODE AXES</div>
-          <div class="slider-row">
-            <label for="explode-x">X</label>
-            <input type="range" id="explode-x" min="0" max="100" step="1" value="0" />
-            <span class="val-readout" id="val-explode-x">0%</span>
-          </div>
-          <div class="slider-row">
-            <label for="explode-y">Y</label>
-            <input type="range" id="explode-y" min="0" max="100" step="1" value="1" />
-            <span class="val-readout" id="val-explode-y">1%</span>
-          </div>
-          <div class="slider-row">
-            <label for="explode-z">Z</label>
-            <input type="range" id="explode-z" min="0" max="100" step="1" value="0" />
-            <span class="val-readout" id="val-explode-z">0%</span>
-          </div>
-        </div>
-        <div class="hud-subgrp">
-          <div class="hud-subhdr">SCRUB SECTION PLANES</div>
-          <div class="slider-row">
-            <label for="clip-x">X</label>
-            <input type="range" id="clip-x" min="-20" max="25" step="0.2" value="25" />
-            <span class="val-readout" id="val-clip-x">OFF</span>
-          </div>
-          <div class="slider-row">
-            <label for="clip-y">Y</label>
-            <input type="range" id="clip-y" min="0" max="30" step="0.2" value="30" />
-            <span class="val-readout" id="val-clip-y">OFF</span>
-          </div>
-          <div class="slider-row">
-            <label for="clip-z">Z</label>
-            <input type="range" id="clip-z" min="-18" max="18" step="0.2" value="18" />
-            <span class="val-readout" id="val-clip-z">OFF</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 3D-Anchored Selection Popover -->
-    <div id="popover" class="popover hidden" role="dialog" aria-label="Selected Component">
-      <div class="pop-hdr">
-        <span class="pop-layer" id="pop-layer">LAYER</span>
-        <button type="button" class="pop-close" id="pop-close" title="Clear Selection">×</button>
-      </div>
-      <div class="pop-title" id="pop-title">Component</div>
-      <div class="pop-role" id="pop-role"></div>
-      <div class="pop-dim" id="pop-dim"></div>
-    </div>
-
-    <!-- 8-Step Fabrication Tour Banner -->
-    <div id="tour-hud" class="tour-hud hidden">
-      <div class="tour-top">
-        <span class="tour-step-pill" id="tour-step-pill">STEP 1 / 8</span>
-        <span class="tour-title" id="tour-title">P-Substrate Wafer</span>
-        <button type="button" class="tour-stop-btn" id="tour-stop-btn">STOP TOUR</button>
-      </div>
-      <div class="tour-script" id="tour-script"></div>
-      <div class="tour-progress-track">
-        <div class="tour-progress-bar" id="tour-progress-bar"></div>
-      </div>
-    </div>
-
-    <!-- Interactive 2D Schematic Overlay -->
-    <div id="schematic-overlay" class="schematic-overlay hidden">
-      <div class="sch-card">
-        <div class="sch-hdr">
-          <div>
-            <div class="sch-title">CMOS 2-INPUT NAND SCHEMATIC (OUT = !(A · B))</div>
-            <div class="sch-sub">Click any transistor, node, gate, or rail to cross-probe in 3D Layout</div>
-          </div>
-          <div class="sch-hdr-btns">
-            <button type="button" class="mini-btn" id="sch-btn-reset">RESET</button>
-            <button type="button" class="mini-btn accent" id="sch-btn-layout">3D LAYOUT</button>
-          </div>
-        </div>
-
-        <svg id="nand2-schematic-svg" viewBox="0 0 460 500" xmlns="http://www.w3.org/2000/svg">
-          <!-- VDD Rail -->
-          <g class="sch-el" data-id="vddRail">
-            <line x1="70" y1="44" x2="350" y2="44" class="sch-rail sch-vdd" />
-            <line x1="145" y1="44" x2="145" y2="76" class="sch-wire sch-vdd" />
-            <line x1="285" y1="44" x2="285" y2="76" class="sch-wire sch-vdd" />
-            <circle cx="145" cy="44" r="4" class="sch-dot" />
-            <circle cx="285" cy="44" r="4" class="sch-dot" />
-            <text x="210" y="28" text-anchor="middle" class="sch-lbl sch-lbl-vdd">VDD</text>
-          </g>
-
-          <!-- Parallel PMOS Pull-Up Network -->
-          <!-- MP1 (Left PMOS, Gate A) -->
-          <g class="sch-el" data-id="pmosASrc">
-            <line x1="145" y1="76" x2="145" y2="104" class="sch-wire" />
-            <line x1="145" y1="104" x2="122" y2="104" class="sch-wire" />
-          </g>
-          <g class="sch-el" data-id="pmosA">
-            <rect x="78" y="96" width="84" height="72" rx="8" class="sch-hit" />
-            <line x1="122" y1="104" x2="122" y2="156" class="sch-ch" />
-            <line x1="112" y1="108" x2="112" y2="152" class="sch-gate" />
-            <circle cx="104" cy="130" r="6" class="sch-bubble" />
-            <line x1="122" y1="156" x2="145" y2="156" class="sch-wire" />
-            <text x="156" y="128" class="sch-dev">MP1</text>
-            <text x="156" y="143" class="sch-dev-sub" id="sch-mp1-state">PMOS A</text>
-          </g>
-
-          <!-- MP2 (Right PMOS, Gate B) -->
-          <g class="sch-el" data-id="pmosBSrc">
-            <line x1="285" y1="76" x2="285" y2="104" class="sch-wire" />
-            <line x1="285" y1="104" x2="262" y2="104" class="sch-wire" />
-          </g>
-          <g class="sch-el" data-id="pmosB">
-            <rect x="218" y="96" width="84" height="72" rx="8" class="sch-hit" />
-            <line x1="262" y1="104" x2="262" y2="156" class="sch-ch" />
-            <line x1="252" y1="108" x2="252" y2="152" class="sch-gate" />
-            <circle cx="244" cy="130" r="6" class="sch-bubble" />
-            <line x1="262" y1="156" x2="285" y2="156" class="sch-wire" />
-            <text x="296" y="128" class="sch-dev">MP2</text>
-            <text x="296" y="143" class="sch-dev-sub" id="sch-mp2-state">PMOS B</text>
-          </g>
-
-          <!-- Shared PMOS Drain & OUT Bus -->
-          <g class="sch-el" data-id="pmosSharedDrn">
-            <line x1="145" y1="156" x2="145" y2="210" class="sch-wire" />
-            <line x1="285" y1="156" x2="285" y2="210" class="sch-wire" />
-            <line x1="145" y1="210" x2="285" y2="210" class="sch-wire" />
-            <circle cx="215" cy="210" r="5" class="sch-dot" />
-          </g>
-          <g class="sch-el" data-id="outPin">
-            <line x1="215" y1="210" x2="390" y2="210" class="sch-rail sch-out" />
-            <circle cx="390" cy="210" r="5" class="sch-pin-dot" />
-            <text x="404" y="206" class="sch-lbl sch-lbl-out">OUT</text>
-            <text x="404" y="224" class="sch-state-txt" id="sch-out-state">HIGH-Z</text>
-          </g>
-
-          <!-- Series NMOS Pull-Down Network -->
-          <!-- MN2 Drain from OUT -->
-          <g class="sch-el" data-id="nmosBDrn">
-            <line x1="215" y1="210" x2="215" y2="250" class="sch-wire" />
-          </g>
-
-          <!-- MN2 (Top NMOS, Gate B) -->
-          <g class="sch-el" data-id="nmosB">
-            <rect x="166" y="242" width="100" height="70" rx="8" class="sch-hit" />
-            <line x1="215" y1="250" x2="200" y2="250" class="sch-wire" />
-            <line x1="200" y1="250" x2="200" y2="302" class="sch-ch" />
-            <line x1="190" y1="254" x2="190" y2="298" class="sch-gate" />
-            <line x1="200" y1="302" x2="215" y2="302" class="sch-wire" />
-            <text x="228" y="274" class="sch-dev">MN2</text>
-            <text x="228" y="289" class="sch-dev-sub" id="sch-mn2-state">NMOS B</text>
-          </g>
-
-          <!-- Series Internal N+ Node -->
-          <g class="sch-el" data-id="nmosMidNode">
-            <line x1="215" y1="302" x2="215" y2="346" class="sch-wire" />
-            <circle cx="215" cy="324" r="5" class="sch-dot sch-mid-dot" />
-            <text x="232" y="328" class="sch-node-lbl">SERIES N+ NODE</text>
-          </g>
-
-          <!-- MN1 (Bottom NMOS, Gate A) -->
-          <g class="sch-el" data-id="nmosA">
-            <rect x="166" y="338" width="100" height="70" rx="8" class="sch-hit" />
-            <line x1="215" y1="346" x2="200" y2="346" class="sch-wire" />
-            <line x1="200" y1="346" x2="200" y2="398" class="sch-ch" />
-            <line x1="190" y1="350" x2="190" y2="394" class="sch-gate" />
-            <line x1="200" y1="398" x2="215" y2="398" class="sch-wire" />
-            <text x="228" y="370" class="sch-dev">MN1</text>
-            <text x="228" y="385" class="sch-dev-sub" id="sch-mn1-state">NMOS A</text>
-          </g>
-
-          <!-- MN1 Source to GND -->
-          <g class="sch-el" data-id="nmosASrc">
-            <line x1="215" y1="398" x2="215" y2="438" class="sch-wire" />
-          </g>
-
-          <!-- GND Rail -->
-          <g class="sch-el" data-id="gndRail">
-            <line x1="185" y1="438" x2="245" y2="438" class="sch-rail sch-gnd" />
-            <line x1="195" y1="446" x2="235" y2="446" class="sch-rail sch-gnd" />
-            <line x1="205" y1="454" x2="225" y2="454" class="sch-rail sch-gnd" />
-            <text x="215" y="476" text-anchor="middle" class="sch-lbl sch-lbl-gnd">GND</text>
-          </g>
-
-          <!-- Input A Routing to MP1 & MN1 -->
-          <g class="sch-el" data-id="inAPin">
-            <circle cx="34" cy="130" r="5" class="sch-pin-dot" />
-            <line x1="34" y1="130" x2="98" y2="130" class="sch-wire sch-in" />
-            <line x1="56" y1="130" x2="56" y2="372" class="sch-wire sch-in" />
-            <line x1="56" y1="372" x2="190" y2="372" class="sch-wire sch-in" />
-            <circle cx="56" cy="130" r="4" class="sch-dot" />
-            <text x="16" y="135" class="sch-lbl">A</text>
-            <text x="16" y="150" class="sch-state-txt" id="sch-a-state">OFF</text>
-          </g>
-
-          <!-- Input B Routing to MP2 & MN2 -->
-          <g class="sch-el" data-id="inBPin">
-            <circle cx="34" cy="274" r="5" class="sch-pin-dot" />
-            <line x1="34" y1="274" x2="190" y2="274" class="sch-wire sch-in" />
-            <line x1="176" y1="274" x2="176" y2="180" class="sch-wire sch-in" />
-            <line x1="176" y1="180" x2="226" y2="180" class="sch-wire sch-in" />
-            <line x1="226" y1="180" x2="226" y2="130" class="sch-wire sch-in" />
-            <line x1="226" y1="130" x2="238" y2="130" class="sch-wire sch-in" />
-            <circle cx="176" cy="274" r="4" class="sch-dot" />
-            <text x="16" y="279" class="sch-lbl">B</text>
-            <text x="16" y="294" class="sch-state-txt" id="sch-b-state">OFF</text>
-          </g>
-        </svg>
-      </div>
-    </div>
 
       <!-- Full-Page Theory & Physical Models Overlay -->
       <div id="theory-overlay">
@@ -593,167 +700,264 @@
         </div>
       </div>
 
-
-    <!-- Sarvam AI Voice Tutor Floating Launcher & Glassmorphic Widget -->
-    <button type="button" id="va-launcher-btn" class="va-launcher-btn" title="Open Sarvam AI VLSI Voice Tutor" aria-label="Open AI Voice Tutor">
-      <span class="va-fab-ring"></span>
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-        <line x1="12" y1="19" x2="12" y2="22"/>
-      </svg>
-    </button>
-
-    <section id="voice-assistant-widget" class="va-widget hidden" aria-label="Sarvam AI Voice Tutor">
-      <div class="va-hdr">
-        <div class="va-title-wrap">
-          <span class="va-badge">SARVAM BULBUL v4</span>
-          <span class="va-title">NAND2 Voice Tutor</span>
-        </div>
-        <div class="va-waveform" id="va-waveform" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <div class="va-hdr-actions">
-          <button type="button" class="va-icon-btn" id="va-btn-key" title="Configure Sarvam API Key">🔑</button>
-          <button type="button" class="va-icon-btn" id="va-btn-close" title="Minimize Voice Tutor">✕</button>
-        </div>
-      </div>
-
-      <div class="va-selectors">
-        <select id="va-lang" aria-label="Tutor Language">
-          <option value="en-IN">English (IN)</option>
-          <option value="hi-IN">हिन्दी (HI)</option>
-          <option value="te-IN">తెలుగు (TE)</option>
-        </select>
-        <select id="va-persona" aria-label="Tutor Voice Persona">
-          <option value="aparna_en_edtech">Aparna · EdTech (EN)</option>
-          <option value="aparna_en_companion">Aparna · Companion (EN)</option>
-          <option value="aparna_hi_customer">Aparna · Tutor (HI)</option>
-          <option value="shubh_hi_customer">Shubh · Tutor (HI)</option>
-          <option value="ritu_hi_customer">Ritu · Tutor (HI)</option>
-          <option value="kavitha_te_narration">Kavitha · Narration (TE)</option>
-        </select>
-      </div>
-
-      <div class="va-context-bar" id="va-context-bar">
-        Selected: None · A=OFF B=OFF → OUT=HIGH-Z
-      </div>
-
-      <div class="va-chips" id="va-chips">
-        <button type="button" class="va-chip" data-prompt="Explain Selected">Explain Selected</button>
-        <button type="button" class="va-chip" data-prompt="Why parallel PMOS?">Why parallel PMOS?</button>
-        <button type="button" class="va-chip" data-prompt="Why series NMOS?">Why series NMOS?</button>
-        <button type="button" class="va-chip" data-prompt="How NAND2 switches">How NAND2 switches</button>
-        <button type="button" class="va-chip" data-prompt="SDE / LDD role">SDE / LDD role</button>
-      </div>
-
-      <div class="va-messages" id="va-messages">
-        <div class="va-msg assistant">
-          Ask me about any 3D layer, Mead-Conway λ rule, parallel PMOS pull-up, or series NMOS pull-down in this CMOS NAND2 gate.
-        </div>
-      </div>
-
-      <div class="va-status-line" id="va-status-line">Ready</div>
-
-      <div class="va-input-row">
-        <button type="button" class="va-mic-btn" id="va-btn-mic" title="Voice Input (Web Speech STT)">🎙</button>
-        <input type="text" id="va-input" placeholder="Ask about NAND2 layout or physics..." />
-        <button type="button" class="va-stop-btn hidden" id="va-btn-stop-audio" title="Stop Audio">■</button>
-        <button type="button" class="va-send-btn" id="va-btn-send" title="Send Question">➤</button>
-      </div>
-    </section>
-
-    <!-- Interactive Sarvam AI API Key Modal (Parity with CMOS Inverter) -->
-    <div id="va-key-modal" class="va-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="va-modal-title">
-      <div class="va-modal-card">
-        <div class="va-modal-header">
-          <div class="va-modal-title">
-            <span class="va-modal-icon">🔑</span>
-            <h3 id="va-modal-title">Sarvam AI API Key Required</h3>
+      <!-- Top-Center Step Explanation Banner for Drop-Down Fabrication Tour -->
+      <div id="tour-banner" class="tour-banner" style="display: none;">
+        <div class="tb-header">
+          <div class="tb-badge-group">
+            <span class="tb-badge" id="tb-step-badge">STEP 1 OF 8</span>
+            <b class="tb-title" id="tb-step-title">P-Substrate Preparation</b>
           </div>
-          <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">✕</button>
+          <div class="tb-controls">
+            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
+            <button id="tb-btn-close" class="tb-btn" title="Close tour">&times;</button>
+          </div>
         </div>
+        <div class="tb-desc" id="tb-step-desc">
+          Single-crystal P-type silicon wafer provides mechanical support and the bulk semiconductor body for NMOS devices.
+        </div>
+        <div class="tb-progress-track">
+          <div class="tb-progress-fill" id="tb-progress-fill"></div>
+        </div>
+      </div>
 
-        <div class="va-modal-body">
-          <p class="va-modal-desc">
-            To enable live 3D CMOS NAND2 voice tutoring, interactive transistor physics Q&amp;A, and step-by-step layout audio narration, connect your personal Sarvam AI API subscription key.
-          </p>
+      <div class="scale-note-wrap nand-scale-note" id="scale-note-wrap">
+        <button type="button" class="scale-note-btn" id="scale-note-btn" title="View scale &amp; PDK disclaimer" aria-expanded="false">
+          <span class="scale-note-icon">ⓘ</span>
+          <span class="scale-note-label">Scale Note</span>
+        </button>
+        <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
+          <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
+          <div class="scale-note-popover-body">
+            Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS NAND layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are illustrative Mead–Conway style rules.
+          </div>
+        </div>
+      </div>
 
-          <div class="va-modal-steps">
-            <div class="va-step-item">
-              <span class="va-step-num">1</span>
-              <span>Sign in or create a free account at <a href="https://dashboard.sarvam.ai" target="_blank" rel="noopener noreferrer" class="va-link">https://dashboard.sarvam.ai ↗</a></span>
+      <!-- Subtle 1-Line Camera Controls Hint -->
+      <div class="camera-hint" id="camera-hint" aria-hidden="true">
+        <span class="camera-hint-text"><b>Drag</b> Orbit · <b>Shift + Drag</b> Pan · <b>Scroll</b> Zoom</span>
+      </div>
+
+      <!-- AI Voice Assistant Widget (Sarvam Bulbul v4 Flash) -->
+      <div id="voice-assistant-widget" class="va-widget minimized">
+        <div class="va-header">
+          <div class="va-header-title">
+            <svg class="va-pulse-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="23"></line>
+              <line x1="8" y1="23" x2="16" y2="23"></line>
+            </svg>
+            <b>AI VOICE TUTOR</b>
+            <span class="va-badge">bulbul:v4-flash</span>
+          </div>
+          <div class="va-header-controls">
+            <div class="va-visualizer" id="va-visualizer" title="Audio waveform">
+              <span class="bar"></span>
+              <span class="bar"></span>
+              <span class="bar"></span>
+              <span class="bar"></span>
+              <span class="bar"></span>
             </div>
-            <div class="va-step-item">
-              <span class="va-step-num">2</span>
-              <span>Navigate to <b>API Keys</b> in the dashboard and create a new API subscription key.</span>
-            </div>
-            <div class="va-step-item">
-              <span class="va-step-num">3</span>
-              <span>Paste your key below and click <b>Save &amp; Test Voice</b> to verify and start listening.</span>
-            </div>
-          </div>
-
-          <div class="va-modal-privacy-callout">
-            <span class="va-privacy-badge">🔒 Privacy Guarantee</span>
-            <p>
-              Your API key will <b>not be used by us</b> — it is stored securely on your local device and used directly to communicate with Sarvam AI. It will be deleted after you exit the session. We never save, store, or transmit your credentials to our servers.
-            </p>
-          </div>
-
-          <div class="va-modal-field">
-            <label for="va-input-apikey">SARVAM API SUBSCRIPTION KEY</label>
-            <div class="va-input-group">
-              <input type="password" id="va-input-apikey" placeholder="Paste your Sarvam API subscription key (sk_...)" autocomplete="off" spellcheck="false">
-              <button type="button" id="va-btn-toggle-key-visibility" class="va-eye-btn" title="Toggle visibility" aria-label="Toggle password visibility">
-                <svg class="eye-icon eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg class="eye-icon eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
-            </div>
-            <div id="va-key-status-msg" class="va-field-msg" style="display:none;"></div>
-          </div>
-
-          <div class="va-modal-options">
-            <label class="va-checkbox-label">
-              <input type="checkbox" id="va-chk-session-only" checked>
-              <span>Delete API key when exiting session (on browser/tab close)</span>
-            </label>
+            <button class="va-hdr-btn" id="va-btn-settings" title="Sarvam API Key Settings" aria-label="API Key Settings">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            </button>
+            <button class="va-hdr-btn" id="va-btn-minimize" title="Minimize assistant" aria-label="Minimize">─</button>
+            <button class="va-hdr-btn" id="va-btn-close" title="Close assistant" aria-label="Close">&times;</button>
           </div>
         </div>
 
-        <div class="va-modal-footer">
-          <button id="va-modal-clear-btn" class="va-btn-secondary" style="display:none;">Clear Key</button>
-          <div class="va-footer-right">
-            <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
-            <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice 🔊</button>
+        <div class="va-context-bar">
+          <div class="va-ctx-line">
+            <span class="va-ctx-tag">CONTEXT</span>
+            <span class="va-ctx-val" id="va-ctx-val">None (Full Layout)</span>
+          </div>
+          <div class="va-ctx-state" id="va-ctx-state">A=OFF B=OFF (High-Z)</div>
+        </div>
+
+        <div class="va-settings-row">
+          <div class="va-setting-group">
+            <label for="va-lang-select">LANGUAGE</label>
+            <select id="va-lang-select" class="va-select">
+              <option value="en-IN" selected>English (en-IN)</option>
+              <option value="hi-IN">हिन्दी (hi-IN)</option>
+              <option value="te-IN">తెలుగు (te-IN)</option>
+            </select>
+          </div>
+          <div class="va-setting-group">
+            <label for="va-speaker-select">PERSONA</label>
+            <select id="va-speaker-select" class="va-select">
+              <option value="aparna_en_edtech" selected>Aparna (EdTech Tutor)</option>
+              <option value="aparna_en_companion">Aparna (Companion)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="va-status-bar">
+          <div class="va-status-pill ready" id="va-status-pill">
+            <span class="va-status-dot"></span>
+            <span class="va-status-text" id="va-status-text">AI Tutor Ready</span>
+          </div>
+          <div class="va-status-actions">
+            <button class="va-play-btn" id="va-btn-play" title="Play / Pause narration" disabled>▶ Play</button>
+            <button class="va-stop-btn" id="va-btn-stop" title="Stop audio playback" disabled>⏹ Stop</button>
+          </div>
+        </div>
+
+        <div class="va-chips-scroll">
+          <button class="va-chip" id="va-chip-selected" style="display:none;" data-q="">Explain Selected</button>
+          <button class="va-chip" data-q="Why are PMOS connected in parallel in NAND2?">Why Parallel PMOS?</button>
+          <button class="va-chip" data-q="Why are NMOS connected in series in NAND2?">Why Series NMOS?</button>
+          <button class="va-chip" data-q="Explain internal node charge sharing and glitching.">Charge Sharing</button>
+          <button class="va-chip" data-q="What is the Euler path layout benefit?">Euler Path</button>
+        </div>
+
+        <div class="va-response-area" id="va-response-area">
+          <div class="va-msg va-msg-ai">
+            <div class="va-msg-header">Sarvam AI Tutor</div>
+            <div class="va-msg-body">
+              Welcome to the CMOS NAND2 AI Voice Tutor! Ask any question about VLSI layout, lambda design rules, NAND transfer characteristics, parallel PMOS pull-up, or series NMOS stacking. Click any layer in 3D to inspect.
+            </div>
+          </div>
+        </div>
+
+        <div class="va-input-row">
+          <input type="text" id="va-input-text" placeholder="Ask about NAND2 physics or layout..." autocomplete="off">
+          <button id="va-btn-mic" class="va-mic-btn" title="Voice Input (Mic)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+          </button>
+          <button id="va-btn-send" class="va-send-btn" title="Ask and listen">Ask &amp; Speak</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Expandable NAND2 Transfer Graph Modal -->
+  <div id="iv-modal-backdrop" class="iv-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="iv-modal-title">
+    <div class="iv-modal-card">
+      <div class="iv-modal-header">
+        <div class="iv-modal-title" id="iv-modal-title">
+          <span>CMOS 2-Input NAND (NAND2) Voltage Transfer Characteristic</span>
+        </div>
+        <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+      <div class="iv-modal-body">
+        <div class="iv-modal-canvas-wrap">
+          <canvas id="iv-modal-canvas" width="560" height="380"></canvas>
+        </div>
+        <div class="iv-modal-footer">
+          <div class="iv-modal-hint">Drag or click anywhere on the Transfer curve to modulate the swept input voltage. Fully synced with sliders &amp; 3D model.</div>
+          <div class="iv-modal-readouts">
+            <span class="iv-m-item">V<sub>A</sub> = <b id="iv-m-va">0.00 V</b></span>
+            <span class="iv-m-item">V<sub>B</sub> = <b id="iv-m-vb">0.00 V</b></span>
+            <span class="iv-m-item">V<sub>OUT</sub> = <b id="iv-m-vout">1.00 V</b></span>
+            <span class="iv-m-item">OUT: <b id="iv-m-state">1 (VDD)</b></span>
+          </div>
+          <div class="nand-transistor-grid" style="margin-top:4px;">
+            <div class="nand-tx-card"><span class="nand-tx-name">MP1 (PMOS A)</span><span class="nand-tx-reg" id="iv-m-mp1">LINEAR</span></div>
+            <div class="nand-tx-card"><span class="nand-tx-name">MP2 (PMOS B)</span><span class="nand-tx-reg" id="iv-m-mp2">LINEAR</span></div>
+            <div class="nand-tx-card"><span class="nand-tx-name">MN1 (NMOS A)</span><span class="nand-tx-reg" id="iv-m-mn1">CUTOFF</span></div>
+            <div class="nand-tx-card"><span class="nand-tx-name">MN2 (NMOS B)</span><span class="nand-tx-reg" id="iv-m-mn2">CUTOFF</span></div>
           </div>
         </div>
       </div>
     </div>
-  </main>
+  </div>
 
-  <!-- Classic scripts in exact load order so globals resolve over file:// or HTTP -->
-  <script src="js/data.js"></script>
-  <script src="js/scene.js"></script>
-  <script src="js/theme.js"></script>
-  <script src="../../../../shared/viewer/js/viewer-core.js"></script>
-  <script src="js/geometry.js"></script>
-  <script src="js/ui-panels.js"></script>
-  <script src="js/selection.js"></script>
-  <script src="js/controls-explode-scrub.js"></script>
-  <script src="js/dimensions.js"></script>
-  <script src="js/view-mode.js"></script>
-  <script src="js/flow.js"></script>
-  <script src="js/logic-state.js"></script>
-  <script src="js/build-anim.js"></script>
-  <script src="js/render-loop.js"></script>
-  <script src="js/main.js"></script>
-  <script src="js/voice-assistant.js"></script>
+  <!-- Interactive Sarvam AI API Key Modal -->
+  <div id="va-key-modal" class="va-modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="va-modal-title">
+    <div class="va-modal-card">
+      <div class="va-modal-header">
+        <div class="va-modal-title">
+          <h3 id="va-modal-title">Sarvam AI API Key Required</h3>
+        </div>
+        <button class="va-modal-close" id="va-modal-close-btn" aria-label="Close modal">&times;</button>
+      </div>
+
+      <div class="va-modal-body">
+        <p class="va-modal-desc">
+          To enable live 3D CMOS NAND2 voice tutoring, interactive transistor physics Q&amp;A, and step-by-step layout audio narration, connect your personal Sarvam AI API subscription key.
+        </p>
+
+        <div class="va-modal-steps">
+          <div class="va-step-item">
+            <span class="va-step-num">1</span>
+            <span>Sign in or create a free account at <a href="https://dashboard.sarvam.ai" target="_blank" rel="noopener noreferrer" class="va-link">https://dashboard.sarvam.ai ↗</a></span>
+          </div>
+          <div class="va-step-item">
+            <span class="va-step-num">2</span>
+            <span>Navigate to <b>API Keys</b> in the dashboard and create a new API subscription key.</span>
+          </div>
+          <div class="va-step-item">
+            <span class="va-step-num">3</span>
+            <span>Paste your key below and click <b>Save &amp; Test Voice</b> to verify and start listening.</span>
+          </div>
+        </div>
+
+        <div class="va-modal-privacy-callout">
+          <span class="va-privacy-badge">Privacy Guarantee</span>
+          <p>
+            Your API key will <b>not be used by us</b> — it is stored securely on your local device and used directly to communicate with Sarvam AI. It will be deleted after you exit the session. We never save, store, or transmit your credentials to our servers.
+          </p>
+        </div>
+
+        <div class="va-modal-field">
+          <label for="va-input-apikey">SARVAM API SUBSCRIPTION KEY</label>
+          <div class="va-input-group">
+            <input type="password" id="va-input-apikey" placeholder="Paste your Sarvam API subscription key (sk_...)" autocomplete="off" spellcheck="false">
+            <button type="button" id="va-btn-toggle-key-visibility" class="va-eye-btn" title="Toggle visibility" aria-label="Toggle password visibility">
+              <svg class="eye-icon eye-show" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+              </svg>
+              <svg class="eye-icon eye-hide" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none;">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                <line x1="1" y1="1" x2="23" y2="23"></line>
+              </svg>
+            </button>
+          </div>
+          <div id="va-key-status-msg" class="va-field-msg" style="display:none;"></div>
+        </div>
+
+        <div class="va-modal-options">
+          <label class="va-checkbox-label">
+            <input type="checkbox" id="va-chk-session-only" checked>
+            <span>Delete API key when exiting session (on browser/tab close)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="va-modal-footer">
+        <button id="va-modal-clear-btn" class="va-btn-secondary" style="display:none;">Clear Key</button>
+        <div class="va-footer-right">
+          <button id="va-modal-cancel-btn" class="va-btn-cancel">Cancel</button>
+          <button id="va-modal-save-btn" class="va-btn-primary">Save &amp; Test Voice</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Scripts in exact load order -->
+<script src="js/data.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/theme.js"></script>
+<script src="../../../../shared/viewer/js/viewer-core.js"></script>
+<script src="js/geometry.js"></script>
+<script src="js/ui-panels.js"></script>
+<script src="js/selection.js"></script>
+<script src="js/controls-explode-scrub.js"></script>
+<script src="js/dimensions.js"></script>
+<script src="js/view-mode.js"></script>
+<script src="js/flow.js"></script>
+<script src="js/logic-state.js"></script>
+<script src="js/build-anim.js"></script>
+<script src="js/render-loop.js"></script>
+<script src="js/main.js"></script>
+<script src="js/voice-assistant.js"></script>
+
 </body>
 </html>

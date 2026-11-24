@@ -295,7 +295,7 @@ function stopTour() {
   if (tourHud) tourHud.classList.add('hidden');
 
   var btnInner = document.querySelector('#btn-build-anim .tour-btn-inner');
-  if (btnInner) btnInner.textContent = '▶ PLAY TOUR';
+  if (btnInner) btnInner.textContent = ' PLAY TOUR';
 
   if (typeof syncVisibilityCheckboxes === 'function') {
     syncVisibilityCheckboxes();
@@ -326,7 +326,7 @@ async function startTour() {
 
   document.body.classList.add('tour-running');
   var btnInner = document.querySelector('#btn-build-anim .tour-btn-inner');
-  if (btnInner) btnInner.textContent = '⏹ STOP TOUR';
+  if (btnInner) btnInner.textContent = ' STOP TOUR';
 
   /* Hide all meshes & labels initially */
   for (var i = 0; i < allMeshes.length; i++) {

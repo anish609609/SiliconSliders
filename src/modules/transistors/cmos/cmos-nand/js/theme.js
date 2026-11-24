@@ -94,15 +94,15 @@ function applyTheme(theme) {
   }
   setAllThemeKeys(currentTheme);
 
-  var btn = typeof document !== 'undefined' ? (document.getElementById('btn-theme') || document.getElementById('btn-theme-toggle')) : null;
+  var btn = typeof document !== 'undefined' ? (document.getElementById('btn-theme-toggle') || document.getElementById('btn-theme')) : null;
   if (btn) {
     btn.setAttribute('aria-label', currentTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode');
     btn.title = currentTheme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode';
-    var label = document.getElementById('theme-btn-label');
-    if (label) {
-      label.textContent = currentTheme === 'light' ? 'DARK' : 'LIGHT';
-    } else {
-      btn.textContent = currentTheme === 'light' ? 'DARK' : 'LIGHT';
+    var sun = document.getElementById('theme-icon-sun');
+    var moon = document.getElementById('theme-icon-moon');
+    if (sun && moon) {
+      sun.style.display = currentTheme === 'light' ? 'none' : 'block';
+      moon.style.display = currentTheme === 'light' ? 'block' : 'none';
     }
   }
 
@@ -119,6 +119,34 @@ function applyTheme(theme) {
     }
   } catch (err) {
     console.error('updateMaterialsTheme failed:', err);
+  }
+  try {
+    if (typeof window.updateFlowTheme === 'function') {
+      window.updateFlowTheme(currentTheme);
+    }
+  } catch (err) {
+    console.error('updateFlowTheme failed:', err);
+  }
+  try {
+    if (typeof applyLogicState === 'function') {
+      applyLogicState();
+    }
+  } catch (err) {
+    console.error('applyLogicState failed:', err);
+  }
+  try {
+    if (typeof applyLogicTint === 'function') {
+      applyLogicTint();
+    }
+  } catch (err) {
+    console.error('applyLogicTint failed:', err);
+  }
+  try {
+    if (typeof drawTransferGraph === 'function') {
+      drawTransferGraph();
+    }
+  } catch (err) {
+    console.error('drawTransferGraph failed:', err);
   }
 }
 

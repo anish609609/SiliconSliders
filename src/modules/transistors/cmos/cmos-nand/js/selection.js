@@ -150,7 +150,16 @@ function clearSelection() {
   }
 
   updateInspector();
-  updatePopoverContent();
+  var wb = document.getElementById('left-workbench');
+  if (wb && !wb.classList.contains('collapsed')) {
+    if (typeof window.switchWorkbenchTab === 'function') {
+      window.switchWorkbenchTab('inspect');
+    }
+    var pop = document.getElementById('popover');
+    if (pop) pop.classList.add('hidden');
+  } else {
+    updatePopoverContent();
+  }
   syncTreeAndSchematicSelection();
 
   if (typeof updateVoiceContext === 'function') {
@@ -177,7 +186,20 @@ function selectById(id) {
   }
 
   updateInspector();
-  updatePopoverContent();
+
+  var wb = document.getElementById('left-workbench');
+  if (wb && !wb.classList.contains('collapsed')) {
+    if (typeof window.switchWorkbenchTab === 'function') {
+      window.switchWorkbenchTab('inspect');
+    }
+    var wbBody = document.getElementById('wb-body') || document.querySelector('.wb-body');
+    if (wbBody) wbBody.scrollTop = 0;
+    var pop = document.getElementById('popover');
+    if (pop) pop.classList.add('hidden');
+  } else {
+    updatePopoverContent();
+  }
+
   syncTreeAndSchematicSelection();
 
   if (typeof updateVoiceContext === 'function') {
@@ -191,7 +213,9 @@ function updatePopoverPosition() {
 
   var isSchematic = typeof viewMode !== 'undefined' && viewMode === 'schematic';
   var isTour = typeof isTourRunning !== 'undefined' && isTourRunning;
-  if (!selectedId || !selectedMeshes.length || isSchematic || isTour) {
+  var wb = document.getElementById('left-workbench');
+  var isWbOpen = wb && !wb.classList.contains('collapsed');
+  if (!selectedId || !selectedMeshes.length || isSchematic || isTour || isWbOpen) {
     pop.classList.add('hidden');
     return;
   }

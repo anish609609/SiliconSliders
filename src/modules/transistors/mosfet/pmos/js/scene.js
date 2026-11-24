@@ -40,8 +40,13 @@ controls.update();
 
 function resize(){
   var w = W(), h = H();
-  camPersp.aspect = w/h; camPersp.updateProjectionMatrix();
+  if (w <= 0 || h <= 0) return;
+  camPersp.aspect = w/h;
+  camPersp.updateProjectionMatrix();
   renderer.setSize(w, h);
+  if (renderer && scene && activeCamera) {
+    renderer.render(scene, activeCamera);
+  }
 }
 window.addEventListener('resize', resize);
 
@@ -85,6 +90,11 @@ scene.add(shadowPlane);
 // Adaptive 3D Canvas Lighting & Environment for Light/Dark Mode
 function applySceneTheme(theme){
   var isLight = theme === 'light';
+  var themeBg = isLight ? '#f4f6f8' : '#0a0d12';
+  if (host) host.style.backgroundColor = themeBg;
+  var vw = document.getElementById('viewport-wrap');
+  if (vw) vw.style.backgroundColor = themeBg;
+
   if (isLight){
     scene.background = new THREE.Color(0xf4f6f8);
     if (scene.fog){

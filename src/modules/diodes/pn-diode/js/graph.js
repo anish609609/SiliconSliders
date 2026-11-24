@@ -17,7 +17,56 @@ var fieldCanvas = document.getElementById('field-canvas');
 
 var isDraggingIV = false;
 
+var modalCanvas = document.getElementById('iv-modal-canvas');
+var modalBackdrop = document.getElementById('iv-modal-backdrop');
+var isModalOpen = false;
+
+function openIvModal() {
+  if (!modalBackdrop) return;
+  modalBackdrop.style.display = 'flex';
+  isModalOpen = true;
+  renderGraphs();
+}
+
+function closeIvModal() {
+  if (!modalBackdrop) return;
+  modalBackdrop.style.display = 'none';
+  isModalOpen = false;
+}
+
+function initIvModal() {
+  var expandBtn = document.getElementById('iv-expand-btn');
+  var closeBtn = document.getElementById('iv-modal-close');
+
+  if (expandBtn) expandBtn.addEventListener('click', openIvModal);
+  if (closeBtn) closeBtn.addEventListener('click', closeIvModal);
+
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', function(e) {
+      if (e.target === modalBackdrop) closeIvModal();
+    });
+  }
+
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && isModalOpen) closeIvModal();
+  });
+
+  if (modalCanvas) {
+    modalCanvas.addEventListener('mousedown', function(e) {
+      isDraggingIV = true;
+      updateVAFromPointer(e.clientX, modalCanvas);
+    });
+    modalCanvas.addEventListener('touchstart', function(e) {
+      if (!e.touches[0]) return;
+      isDraggingIV = true;
+      updateVAFromPointer(e.touches[0].clientX, modalCanvas);
+      e.preventDefault();
+    }, { passive: false });
+  }
+}
+
 function initGraphs() {
+  initIvModal();
   if (ivCanvas) {
     ivCanvas.addEventListener('mousedown', onCanvasMouseDown);
     window.addEventListener('mousemove', onCanvasMouseMove);
@@ -53,21 +102,51 @@ function initGraphs() {
   renderGraphs();
 }
 
+function updateModalReadouts(state) {
+  var mVa = document.getElementById('iv-m-va');
+  var mI = document.getElementById('iv-m-i');
+  var mVbi = document.getElementById('iv-m-vbi');
+  var mW = document.getElementById('iv-m-w');
+  var mVbr = document.getElementById('iv-m-vbr');
+
+  if (mVa) mVa.textContent = state.va.toFixed(2) + ' V';
+  if (mI) mI.textContent = state.iCurrent.toFixed(2) + ' mA';
+  if (mVbi) mVbi.textContent = state.vbi.toFixed(2) + ' V';
+  if (mW) mW.textContent = (state.w * 1000).toFixed(0) + ' nm';
+  if (mVbr) mVbr.textContent = state.vbr.toFixed(1) + ' V';
+}
+
 function renderGraphs() {
   var state = (typeof window.getDiodeState === 'function') ? window.getDiodeState() : null;
   if (!state) return;
 
   if (activeGraphMode === 'iv') {
-    renderIVCurve(state);
+    renderIVCurve(state, ivCanvas);
   } else {
-    renderFieldProfile(state);
+    renderFieldProfile(state, fieldCanvas);
+  }
+
+  if (isModalOpen && modalCanvas) {
+    renderIVCurve(state, modalCanvas);
+    updateModalReadouts(state);
   }
 }
 
 // ---------------------------------------------------------------------------
 // 1. RENDER I-V CHARACTERISTIC CURVE
 // ---------------------------------------------------------------------------
-function renderIVCurve(state) {
+function renderIVCurve(state, targetCanvas) {
+  var canvas = targetCanvas || ivCanvas;
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  var w = canvas.clientWidth;
+  var h = canvas.clientHeight;
+  if (w <= 0 || h <= 0) return;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+  }
   if (!ivCanvas) return;
   var ctx = ivCanvas.getContext('2d');
   var dpr = window.devicePixelRatio || 1;
@@ -390,9 +469,10 @@ function renderFieldProfile(state) {
 // ---------------------------------------------------------------------------
 // INTERACTIVE MOUSE / TOUCH DRAGGING ON I-V GRAPH
 // ---------------------------------------------------------------------------
-function updateVAFromPointer(clientX) {
-  if (!ivCanvas) return;
-  var rect = ivCanvas.getBoundingClientRect();
+function updateVAFromPointer(clientX, targetCanvas) {
+  var canvas = targetCanvas || (isModalOpen && modalCanvas ? modalCanvas : ivCanvas);
+  if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
   var padL = 38, padR = 30;
   var plotW = rect.width - padL - padR;
   var xRel = Math.max(0, Math.min(plotW, (clientX - rect.left) - padL));

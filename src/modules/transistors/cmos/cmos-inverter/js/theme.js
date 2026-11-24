@@ -97,4 +97,14 @@ function applyTheme(theme, savePreference){
     var hlHex = cssVar('--highlight');
     if (hlHex) HIGHLIGHT_COLOR.set(hlHex);
   }
+
+  // 4. Update carrier flow marker theme colors
+  if (typeof updateFlowTheme === 'function'){
+    updateFlowTheme(theme);
+  }
+
+  // 5. Re-render logic state & VTC canvas
+  if (typeof applyLogicState === 'function'){
+    applyLogicState();
+  }
 }

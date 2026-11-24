@@ -39,7 +39,11 @@ function animate(){
     if (m.userData.pulsing){
       if (m.userData.layer === 'metal'){
         // Smooth, human-readable travelling emissive glow wave along conducting Metal-1 routes
-        var flowColor = (typeof flowMode !== 'undefined' && flowMode === 'electron') ? 0x4fd1ff : 0xffcf4d;
+        var isLight = (document.documentElement.getAttribute('data-theme') === 'light');
+        var isCarrier = (typeof flowMode !== 'undefined' && (flowMode === 'carrier' || flowMode === 'hole'));
+        var flowColor = isCarrier 
+          ? (isLight ? 0xb91c1c : 0xff4fbf) 
+          : (isLight ? 0xb45309 : 0xffcf4d);
         var wave = 0.5 + 0.5 * Math.sin(t * 2.0 - (m.position.z || 0) * 0.45);
         var pulse = 0.35 + 0.55 * wave;
         m.material.emissive.setHex(flowColor);

@@ -56,8 +56,20 @@ function selectComponentById(id, clientX, clientY) {
   // 2. Highlight Architecture Tree Node
   highlightTreeNode(id);
 
-  // 3. Show Popover Card near click or top-center
-  showPopover(info, clientX, clientY);
+  // 3. Left Workbench integration: if workbench open, switch to Inspect tab; if collapsed, show floating popover
+  var wb = document.getElementById('left-workbench');
+  var isCollapsed = wb && wb.classList.contains('collapsed');
+
+  if (!isCollapsed) {
+    hidePopover();
+    if (typeof switchWorkbenchTab === 'function') {
+      switchWorkbenchTab('inspect');
+    }
+    var wbBody = document.getElementById('wb-body');
+    if (wbBody) wbBody.scrollTop = 0;
+  } else {
+    showPopover(info, clientX, clientY);
+  }
 
   // 4. Update AI Tutor Context bar if open
   var ctxVal = document.getElementById('va-ctx-val');

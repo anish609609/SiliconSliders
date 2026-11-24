@@ -115,16 +115,22 @@ function updatePopoverPosition(){
   popoverEl.style.top = y + 'px';
   popoverEl.classList.add('visible');
 }
-document.getElementById('pop-close').addEventListener('click', function(e){
-  e.stopPropagation();
-  clearSelection();
-  hidePopover();
-  document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
-  document.getElementById('crumb-sel').textContent = '';
-  if (typeof window.clearVoiceAssistantContext === 'function'){
-    window.clearVoiceAssistantContext();
-  }
-});
+window.updatePopoverPosition = updatePopoverPosition;
+
+var popCloseBtn = document.getElementById('pop-close');
+if (popCloseBtn) {
+  popCloseBtn.addEventListener('click', function(e){
+    e.stopPropagation();
+    clearSelection();
+    hidePopover();
+    var insp = document.getElementById('inspector');
+    if (insp) insp.innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
+    document.getElementById('crumb-sel').textContent = '';
+    if (typeof window.clearVoiceAssistantContext === 'function'){
+      window.clearVoiceAssistantContext();
+    }
+  });
+}
 
 function selectById(id){
   var meshes = meshesForId(id);
@@ -133,21 +139,33 @@ function selectById(id){
   lastSelectedId = id;
   var info = idToInfo(id);
   showInspector(id, info);
-  showPopoverFor(meshes, id, info);
+
   document.getElementById('crumb-sel').textContent = '— ' + (info ? info.title : id);
   document.querySelectorAll('#tree .node').forEach(function(n){
     if (n.dataset.id === id) n.classList.add('selected');
+    else n.classList.remove('selected');
   });
-  if (typeof window.updateVoiceAssistantContext === 'function'){
-    window.updateVoiceAssistantContext(id, info);
+
+  var wb = document.getElementById('left-workbench');
+  var isCollapsed = wb && wb.classList.contains('collapsed');
+
+  if (!isCollapsed) {
+    // 1. Hide floating popover if open
+    hidePopover();
+    // 2. Automatically switch Left Workbench to Inspect tab
+    if (typeof switchWorkbenchTab === 'function'){
+      switchWorkbenchTab('inspect');
+    }
+    // 3. Ensure inspector content at the top of the workbench is scrolled into view
+    var wbBody = document.getElementById('wb-body');
+    if (wbBody) wbBody.scrollTop = 0;
+  } else {
+    // Left Workbench is collapsed: show floating card over canvas without opening workbench
+    showPopoverFor(meshes, id, info);
   }
 
-  // Auto-collapse PHYSICS & GRAPH / VIEW CONTROLS dock on component selection
-  var dpBody = document.getElementById('dp-body');
-  var dpCollapseBtn = document.getElementById('dp-collapse-btn');
-  if (dpBody && !dpBody.classList.contains('collapsed')) {
-    dpBody.classList.add('collapsed');
-    if (dpCollapseBtn) dpCollapseBtn.textContent = '▸';
+  if (typeof window.updateVoiceAssistantContext === 'function'){
+    window.updateVoiceAssistantContext(id, info);
   }
 }
 

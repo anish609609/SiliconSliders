@@ -18,8 +18,19 @@ var flowMarkers = [];
 
 // Fine, small particle sphere geometry (very small fine particles, not bowling balls)
 var markerGeom = new THREE.SphereGeometry(0.042, 8, 8);
-var holeMat = new THREE.MeshBasicMaterial({ color: 0xff4fbf });    // Magenta/rose for mobile holes (h+)
-var currentMat = new THREE.MeshBasicMaterial({ color: 0xffcf4d }); // Warm amber for conventional current (ISD)
+var HOLE_COLOR_DARK = 0xff4fbf;
+var HOLE_COLOR_LIGHT = 0xb91c1c;
+var CURRENT_COLOR_DARK = 0xffcf4d;
+var CURRENT_COLOR_LIGHT = 0xb45309;
+
+var holeMat = new THREE.MeshBasicMaterial({ color: HOLE_COLOR_DARK, depthTest: true, depthWrite: false });
+var currentMat = new THREE.MeshBasicMaterial({ color: CURRENT_COLOR_DARK, depthTest: true, depthWrite: false });
+
+window.updateFlowTheme = function(theme) {
+  var isLight = theme === 'light' || document.documentElement.getAttribute('data-theme') === 'light';
+  if (holeMat) holeMat.color.setHex(isLight ? HOLE_COLOR_LIGHT : HOLE_COLOR_DARK);
+  if (currentMat) currentMat.color.setHex(isLight ? CURRENT_COLOR_LIGHT : CURRENT_COLOR_DARK);
+};
 
 function createFlowCurve(points) {
   return new THREE.CatmullRomCurve3(points);
@@ -155,3 +166,5 @@ if (flowSeg) {
     });
   });
 }
+
+if (typeof window.updateFlowTheme === "function") window.updateFlowTheme();

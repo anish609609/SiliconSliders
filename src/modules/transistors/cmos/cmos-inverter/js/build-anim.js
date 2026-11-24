@@ -197,11 +197,11 @@ const btnBuildAnim = document.getElementById('btn-build-anim');
 function setBuildBtnUI(state){
   if (!btnBuildAnim) return;
   if (state === 'PAUSE'){
-    btnBuildAnim.innerHTML = '<span class="play-icon">⏸</span> <span class="play-label">PAUSE</span>';
+    btnBuildAnim.innerHTML = '<span class="play-icon"></span> <span class="play-label">PAUSE</span>';
     btnBuildAnim.classList.add('active');
     btnBuildAnim.title = 'Pause 3D fabrication sequence';
   } else if (state === 'RESUME'){
-    btnBuildAnim.innerHTML = '<span class="play-icon">▶</span> <span class="play-label">RESUME</span>';
+    btnBuildAnim.innerHTML = '<span class="play-icon"></span> <span class="play-label">RESUME</span>';
     btnBuildAnim.classList.add('active');
     btnBuildAnim.title = 'Resume 3D fabrication sequence';
   } else if (state === 'REPLAY'){
@@ -209,7 +209,7 @@ function setBuildBtnUI(state){
     btnBuildAnim.classList.remove('active');
     btnBuildAnim.title = 'Replay 3D fabrication sequence';
   } else {
-    btnBuildAnim.innerHTML = '<span class="play-icon">▶</span> <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>';
+    btnBuildAnim.innerHTML = '<span class="play-icon"></span> <span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>';
     btnBuildAnim.classList.remove('active');
     btnBuildAnim.title = 'Watch step-by-step 3D fabrication sequence with AI Voice Tutor';
   }

@@ -134,40 +134,112 @@ var layerMeta = [
   { key: 'metal',     name: 'METAL-1 INTERCONNECTS', color: 'var(--c-metal)' }
 ];
 
+// Workbench Tab Switching
+window.switchWorkbenchTab = function(tabName) {
+  var tabs = document.querySelectorAll('.wb-tab-btn');
+  var panes = document.querySelectorAll('.wb-pane');
+  tabs.forEach(function(btn) {
+    var isActive = (btn.dataset.tab === tabName);
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  panes.forEach(function(pane) {
+    pane.classList.toggle('active', pane.id === 'wb-pane-' + tabName);
+  });
+  if (tabName === 'controls' && (typeof drawIsdVsdGraph === 'function' || typeof drawIdsVdsGraph === 'function')) {
+    setTimeout(function() {
+      var state = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
+      if (state) {
+        if (typeof drawIsdVsdGraph === 'function') drawIsdVsdGraph(state.vgs, state.vsd, state.isd, state.region);
+        else if (typeof drawIdsVdsGraph === 'function') drawIdsVdsGraph(state.vgs, state.vsd, state.isd, state.region);
+      }
+    }, 10);
+  }
+};
+
+document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    window.switchWorkbenchTab(btn.dataset.tab);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Unified Layer List (11 Toggleable Layers with descriptions open by default)
+// ---------------------------------------------------------------------------
 var layersBody = document.getElementById('layers-body');
 if (layersBody) {
+  layersBody.className = 'unified-layers-list';
+  layersBody.innerHTML = '';
   layerMeta.forEach(function(l) {
+    var descText = '';
+    if (typeof LEGEND !== 'undefined') {
+      for (var i = 0; i < LEGEND.length; i++) {
+        if (LEGEND[i].key === l.key) {
+          descText = LEGEND[i].desc;
+          break;
+        }
+      }
+    }
+
+    var item = document.createElement('div');
+    item.className = 'unified-layer-item';
+
     var row = document.createElement('div');
-    row.className = 'layer-row';
-    row.innerHTML = '<input type="checkbox" checked data-layer="' + l.key + '"><span class="swatch" style="background:' + l.color + '"></span><label>' + l.name + '</label>';
-    layersBody.appendChild(row);
-    row.querySelector('input').addEventListener('change', function(e) {
+    row.className = 'unified-layer-row';
+    row.innerHTML =
+      '<input type="checkbox" checked data-layer="' + l.key + '" title="Toggle ' + l.name + ' visibility">' +
+      '<span class="swatch" style="background:' + l.color + '"></span>' +
+      '<span class="layer-name" title="Toggle visibility">' + l.name + '</span>';
+
+    var desc = document.createElement('div');
+    desc.className = 'unified-layer-desc';
+    desc.textContent = descText;
+
+    item.appendChild(row);
+    item.appendChild(desc);
+    layersBody.appendChild(item);
+
+    var cb = row.querySelector('input');
+    cb.addEventListener('change', function(e) {
       if (groups[l.key]) groups[l.key].visible = e.target.checked;
     });
-    row.querySelector('label').addEventListener('click', function() {
-      var cb = row.querySelector('input');
+
+    row.querySelector('.layer-name').addEventListener('click', function() {
       cb.checked = !cb.checked;
       cb.dispatchEvent(new Event('change'));
     });
   });
 }
 
-// Legend
-var legendBody = document.getElementById('legend-body');
-if (legendBody && typeof LEGEND !== 'undefined') {
-  LEGEND.forEach(function(l) {
+// ---------------------------------------------------------------------------
+// Terminals & Channel Reference (Non-toggleable items)
+// ---------------------------------------------------------------------------
+var refLegendBody = document.getElementById('ref-legend-body');
+var nonToggleableKeys = ['src', 'drn', 'gate', 'welltap'];
+if (refLegendBody && typeof LEGEND !== 'undefined') {
+  refLegendBody.innerHTML = '';
+  LEGEND.filter(function(l) {
+    return nonToggleableKeys.indexOf(l.key) !== -1;
+  }).forEach(function(l) {
     var div = document.createElement('div');
-    div.className = 'legend-item';
-    div.innerHTML = '<div class="lh"><span class="swatch" style="background:' + l.color + '"></span><b>' + l.name + '</b></div><p>' + l.desc + '</p>';
-    legendBody.appendChild(div);
+    div.className = 'ref-legend-item';
+    div.innerHTML =
+      '<div class="lh"><span class="swatch" style="background:' + l.color + '"></span><b>' + l.name + '</b></div>' +
+      '<p>' + l.desc + '</p>';
+    refLegendBody.appendChild(div);
   });
 }
 
-// Collapsible panel sections
-document.querySelectorAll('.panel-head').forEach(function(h) {
+// ---------------------------------------------------------------------------
+// Collapsible Accordion Sections
+// ---------------------------------------------------------------------------
+document.querySelectorAll('.wb-accordion-head, .panel-head').forEach(function(h) {
   h.addEventListener('click', function() {
-    var body = document.getElementById(h.dataset.target);
-    var chev = h.querySelector('.chev');
+    if (h.classList.contains('static-head')) return;
+    var targetId = h.dataset.target;
+    if (!targetId) return;
+    var body = document.getElementById(targetId);
+    var chev = h.querySelector('.wb-chev, .chev');
     if (body) body.classList.toggle('hidden');
     if (chev) chev.classList.toggle('closed');
   });

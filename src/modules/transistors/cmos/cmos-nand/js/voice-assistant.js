@@ -518,7 +518,7 @@ function openKeyModal() {
   }
   if (saveBtn) {
     saveBtn.disabled = false;
-    saveBtn.innerHTML = 'Save & Test Voice 🔊';
+    saveBtn.innerHTML = 'Save & Test Voice ';
   }
   if (modal) {
     modal.style.display = 'flex';
@@ -589,7 +589,7 @@ async function handleSaveAndTestVoice() {
 
     var sessionOnly = chk ? chk.checked : true;
     saveSarvamApiKey(key, sessionOnly);
-    showModalStatus('success', '✓ API key verified! Playing sample voice...');
+    showModalStatus('success', ' API key verified! Playing sample voice...');
 
     try {
       var binaryString = window.atob(data.audios[0]);
@@ -609,10 +609,10 @@ async function handleSaveAndTestVoice() {
 
   } catch (err) {
     console.warn('[VoiceAssistant] Key verification error:', err);
-    showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
+    showModalStatus('error', ' Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
     if (saveBtn) {
       saveBtn.disabled = false;
-      saveBtn.innerHTML = 'Save & Test Voice 🔊';
+      saveBtn.innerHTML = 'Save & Test Voice ';
     }
   }
 }
@@ -752,6 +752,9 @@ function toggleMicListening() {
 
 function checkServerKeyStatus() {
   if (isFileOrigin()) return;
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return;
+  }
   fetch('/api/voice-assistant', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

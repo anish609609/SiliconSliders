@@ -195,7 +195,7 @@
     if (currentActivePlayBtn){
       currentActivePlayBtn._audioInstance = null;
       currentActivePlayBtn._audioUrl = null;
-      currentActivePlayBtn.innerHTML = '▶ Play Audio';
+      currentActivePlayBtn.innerHTML = ' Play Audio';
       currentActivePlayBtn.classList.remove('is-playing');
       currentActivePlayBtn.disabled = false;
       currentActivePlayBtn = null;
@@ -221,7 +221,7 @@
 
     if (stopBtn) stopBtn.disabled = true;
     if (playBtnEl){
-      playBtnEl.textContent = '▶ Play';
+      playBtnEl.textContent = ' Play';
       playBtnEl.disabled = !currentAudioText;
     }
     updateStatus('ready', 'AI Tutor Ready');
@@ -375,7 +375,7 @@
 
       playBtn = document.createElement('button');
       playBtn.className = 'va-play-btn';
-      playBtn.innerHTML = '▶ Play Audio';
+      playBtn.innerHTML = ' Play Audio';
       playBtn.title = 'Play / Pause voice audio with Sarvam TTS';
       playBtn.addEventListener('click', function(){
         toggleMessageAudio(playBtn, text, audioUrl);
@@ -453,7 +453,7 @@
     }
     if (keyModalSaveBtn){
       keyModalSaveBtn.disabled = false;
-      keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+      keyModalSaveBtn.innerHTML = 'Save & Test Voice ';
     }
 
     keyModalBackdrop.style.display = 'flex';
@@ -527,7 +527,7 @@
       var sessionOnly = keyModalSessionOnlyChk ? keyModalSessionOnlyChk.checked : true;
       setSavedApiKey(key, sessionOnly);
 
-      showModalStatus('success', '✓ API key verified! Playing sample voice...');
+      showModalStatus('success', ' API key verified! Playing sample voice...');
 
       // Play sample voice
       try {
@@ -551,10 +551,10 @@
 
     } catch(err){
       console.warn('[VoiceAssistant] Key verification error:', err);
-      showModalStatus('error', '❌ Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
+      showModalStatus('error', ' Verification failed: ' + err.message + '. Please check dashboard.sarvam.ai');
       if (keyModalSaveBtn){
         keyModalSaveBtn.disabled = false;
-        keyModalSaveBtn.innerHTML = 'Save & Test Voice 🔊';
+        keyModalSaveBtn.innerHTML = 'Save & Test Voice ';
       }
     }
   }
@@ -634,7 +634,7 @@
       playBtn._audioInstance = audio;
       playBtn._audioUrl = url;
       playBtn.disabled = false;
-      playBtn.innerHTML = '⏸ Pause Audio';
+      playBtn.innerHTML = ' Pause Audio';
       playBtn.classList.add('is-playing');
       currentActivePlayBtn = playBtn;
     }
@@ -645,7 +645,7 @@
 
     if (playBtnEl){
       playBtnEl.disabled = false;
-      playBtnEl.textContent = '⏸ Pause';
+      playBtnEl.textContent = ' Pause';
     }
     if (stopBtn) stopBtn.disabled = false;
 
@@ -696,7 +696,7 @@
       currentAudioUrl = null;
     }
     if (playBtnEl){
-      playBtnEl.textContent = '▶ Play';
+      playBtnEl.textContent = ' Play';
       playBtnEl.disabled = !currentAudioText;
     }
     if (stopBtn) stopBtn.disabled = true;
@@ -713,17 +713,17 @@
     if (playBtn._audioInstance && currentAudioInstance === playBtn._audioInstance){
       if (!playBtn._audioInstance.paused && !playBtn._audioInstance.ended){
         playBtn._audioInstance.pause();
-        playBtn.innerHTML = '▶ Resume Audio';
+        playBtn.innerHTML = ' Resume Audio';
         playBtn.classList.remove('is-playing');
-        if (playBtnEl) playBtnEl.textContent = '▶ Resume';
+        if (playBtnEl) playBtnEl.textContent = ' Resume';
         if (animFrameId){ cancelAnimationFrame(animFrameId); animFrameId = null; }
         resetVisualizer();
         updateStatus('ready', 'Audio Paused');
       } else {
         playBtn._audioInstance.play().catch(function(e){ console.warn('Audio play error:', e); });
-        playBtn.innerHTML = '⏸ Pause Audio';
+        playBtn.innerHTML = ' Pause Audio';
         playBtn.classList.add('is-playing');
-        if (playBtnEl) playBtnEl.textContent = '⏸ Pause';
+        if (playBtnEl) playBtnEl.textContent = ' Pause';
         startSyntheticVisualizer();
         updateStatus('speaking', 'Speaking...');
       }
@@ -773,7 +773,7 @@
       .catch(function(err){
         if (thisToken !== currentPlaybackToken || signal.aborted) return;
         console.error('[VoiceAssistant] Message TTS error:', err);
-        playBtn.innerHTML = '▶ Play Audio';
+        playBtn.innerHTML = ' Play Audio';
         playBtn.disabled = false;
         playBtn.classList.remove('is-playing');
         updateStatus('ready', 'AI Tutor Ready');
@@ -866,7 +866,7 @@
       if (stopBtn) stopBtn.disabled = false;
       if (playBtnEl){
         playBtnEl.disabled = false;
-        playBtnEl.textContent = '⏸ Pause';
+        playBtnEl.textContent = ' Pause';
       }
 
       // Append in assistant message area with interactive Play/Pause button
@@ -907,7 +907,7 @@
           }
           console.error('[VoiceAssistant] Narration TTS error:', err);
           if (playBtn){
-            playBtn.innerHTML = '▶ Play Audio';
+            playBtn.innerHTML = ' Play Audio';
             playBtn.disabled = false;
           }
           // Fallback visualizer timing if audio fails
@@ -931,11 +931,11 @@
       try { currentAudioInstance.pause(); } catch(e){}
     }
     if (currentActivePlayBtn){
-      currentActivePlayBtn.innerHTML = '▶ Resume Audio';
+      currentActivePlayBtn.innerHTML = ' Resume Audio';
       currentActivePlayBtn.classList.remove('is-playing');
     }
     if (playBtnEl){
-      playBtnEl.textContent = '▶ Resume';
+      playBtnEl.textContent = ' Resume';
       playBtnEl.disabled = false;
     }
     if (animFrameId){ cancelAnimationFrame(animFrameId); animFrameId = null; }
@@ -948,11 +948,11 @@
       try { currentAudioInstance.play(); } catch(e){}
     }
     if (currentActivePlayBtn){
-      currentActivePlayBtn.innerHTML = '⏸ Pause Audio';
+      currentActivePlayBtn.innerHTML = ' Pause Audio';
       currentActivePlayBtn.classList.add('is-playing');
     }
     if (playBtnEl){
-      playBtnEl.textContent = '⏸ Pause';
+      playBtnEl.textContent = ' Pause';
       playBtnEl.disabled = false;
     }
     startSyntheticVisualizer();
@@ -1685,7 +1685,7 @@
         actions.className = 'va-msg-actions';
         var initialPlayBtn = document.createElement('button');
         initialPlayBtn.className = 'va-play-btn';
-        initialPlayBtn.innerHTML = '▶ Play Audio';
+        initialPlayBtn.innerHTML = ' Play Audio';
         initialPlayBtn.title = 'Play / Pause voice audio with Sarvam TTS';
         initialPlayBtn.addEventListener('click', function(){
           toggleMessageAudio(initialPlayBtn, welcomeText, null);

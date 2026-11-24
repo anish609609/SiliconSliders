@@ -163,7 +163,10 @@ function stopBuildAnimation(restoreAll) {
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '▶';
+  if (pauseBtn) {
+    pauseBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"></polygon></svg>';
+    pauseBtn.title = 'Resume tour';
+  }
 
   if (restoreAll) {
     currentFabStep = FAB_STEPS.length;
@@ -194,7 +197,10 @@ function startBuildAnimation() {
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '⏸';
+  if (pauseBtn) {
+    pauseBtn.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+    pauseBtn.title = 'Pause tour';
+  }
 
   // If tour was at the end, restart from step 1
   if (currentFabStep >= FAB_STEPS.length) {

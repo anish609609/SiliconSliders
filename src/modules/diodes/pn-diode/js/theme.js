@@ -89,4 +89,8 @@ function applyTheme(theme, savePreference){
   if (typeof renderGraphs === 'function'){
     renderGraphs();
   }
+
+  if (typeof updateFlowTheme === 'function'){
+    updateFlowTheme(theme);
+  }
 }

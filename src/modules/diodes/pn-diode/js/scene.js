@@ -41,8 +41,21 @@ function resize(){
   camPersp.aspect = w / h;
   camPersp.updateProjectionMatrix();
   renderer.setSize(w, h);
+  if (renderer && scene && activeCamera) {
+    renderer.render(scene, activeCamera);
+  }
 }
 window.addEventListener('resize', resize);
+
+if (window.ResizeObserver && host) {
+  var ro = new ResizeObserver(function() {
+    resize();
+  });
+  ro.observe(host);
+  if (host.parentElement) {
+    ro.observe(host.parentElement);
+  }
+}
 
 // Lights setup
 var ambientLight = new THREE.AmbientLight(0x2a3140, 1.2);

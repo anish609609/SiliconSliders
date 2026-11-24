@@ -19,7 +19,273 @@ var currentVsg = 1.00;    // Source-to-Gate bias |VGS| (0.00V to 1.80V)
 var currentVsd = 0.80;    // Source-to-Drain bias |VDS| (0.00V to 1.80V)
 var currentIn = 0;        // Backward-compatibility flag (0 = ON, 1 = OFF/Cutoff)
 
-// Public accessor for other modules (e.g. flow.js)
+function calculateIsd(testVsg, testVsd) {
+  var vov = Math.max(0, testVsg - VTH_P);
+  if (vov <= 0.001) return { isd: 0, region: 'CUTOFF' };
+  var vsdSat = vov;
+  if (testVsd < vsdSat) {
+    var isd = KP_PRIME * (vov * testVsd - 0.5 * testVsd * testVsd);
+    return { isd: Math.max(0, isd), region: 'LINEAR' };
+  } else {
+    var isd = 0.5 * KP_PRIME * vov * vov * (1.0 + LAMBDA_P * (testVsd - vsdSat));
+    return { isd: Math.max(0, isd), region: 'SATURATION' };
+  }
+}
+window.calculateIsd = calculateIsd;
+
+function renderSinglePmosGraph(canvas, activeVsg, activeVsd, activeIsd, activeRegion, isModal) {
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  var W = rect.width || (isModal ? 560 : 310);
+  var H = rect.height || (isModal ? 380 : 225);
+
+  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+  }
+
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+  // Palette
+  var bgColor = isLight ? '#f8fafc' : '#080c12';
+  var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+  var axisColor = isLight ? '#94a3b8' : '#232b38';
+  var textColor = isLight ? '#64748b' : '#64748b';
+  var dimmedCurveColor = isLight ? 'rgba(219,39,119,0.22)' : 'rgba(255,79,191,0.20)';
+  var activeCurveColor = isLight ? '#db2777' : '#ff4fbf';
+  var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
+  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#ff4fbf' : '#cf8a4a');
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Margins: Trimmed for inline, slightly more generous for modal
+  var padL = isModal ? 40 : 32;
+  var padR = isModal ? 34 : 28;
+  var padT = isModal ? 18 : 16;
+  var padB = isModal ? 26 : 24;
+  var plotW = W - padL - padR;
+  var plotH = H - padT - padB;
+
+  var vsdMax = 1.8;
+  var isdMax = 0.95; // mA
+
+  function toX(v) { return padL + (v / vsdMax) * plotW; }
+  function toY(i) { return padT + plotH - (i / isdMax) * plotH; }
+
+  // Draw Grid Lines & Tick Labels
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 1;
+  ctx.fillStyle = textColor;
+  var tickFont = isModal ? '11px "IBM Plex Mono", monospace' : '9.5px "IBM Plex Mono", monospace';
+  var axisFont = isModal ? '600 11px "IBM Plex Mono", monospace' : '600 9.5px "IBM Plex Mono", monospace';
+  ctx.font = tickFont;
+  ctx.textAlign = 'center';
+
+  [0, 0.6, 1.2, 1.8].forEach(function(v) {
+    var x = toX(v);
+    ctx.beginPath();
+    ctx.moveTo(x, padT);
+    ctx.lineTo(x, padT + plotH);
+    ctx.stroke();
+    ctx.fillText(v.toFixed(1), x, padT + plotH + (isModal ? 15 : 13));
+  });
+  ctx.font = axisFont;
+  ctx.fillText('V_SD (V)', padL + plotW / 2, padT + plotH + (isModal ? 26 : 23));
+
+  ctx.font = tickFont;
+  ctx.textAlign = 'right';
+  [0, 0.3, 0.6, 0.9].forEach(function(i) {
+    var y = toY(i);
+    ctx.beginPath();
+    ctx.moveTo(padL, y);
+    ctx.lineTo(padL + plotW, y);
+    ctx.stroke();
+    ctx.fillText(i.toFixed(1), padL - 5, y + 3.5);
+  });
+
+  // Axes
+  ctx.strokeStyle = axisColor;
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(padL, padT);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.stroke();
+
+  // Axis Labels
+  ctx.save();
+  ctx.translate(isModal ? 12 : 9, padT + plotH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.font = axisFont;
+  ctx.fillText('I_SD (mA)', 0, 0);
+  ctx.restore();
+
+  // Region Zone Labels
+  ctx.font = (isModal ? '10px' : '8.5px') + ' "IBM Plex Mono", monospace';
+  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.75)' : 'rgba(74,146,201,0.60)';
+  ctx.textAlign = 'left';
+  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 13);
+  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.75)' : 'rgba(255,79,191,0.65)';
+  ctx.textAlign = 'center';
+  ctx.fillText('SATURATION', toX(1.35), padT + 13);
+
+  // Quadratic Pinch-off locus
+  ctx.strokeStyle = pinchOffColor;
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  for (var step = 0; step <= 60; step++) {
+    var vPinch = (step / 60) * 1.4;
+    var iPinch = 0.5 * KP_PRIME * vPinch * vPinch;
+    if (vPinch <= vsdMax && iPinch <= isdMax) {
+      var px = toX(vPinch);
+      var py = toY(iPinch);
+      if (step === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Family of ISD vs VSD curves: 0.4, 0.7, 1.0, 1.3, 1.6
+  var vsgLevels = [0.4, 0.7, 1.0, 1.3, 1.6];
+  var labelPositions = [];
+
+  vsgLevels.forEach(function(vsgLevel) {
+    ctx.strokeStyle = dimmedCurveColor;
+    ctx.lineWidth = isModal ? 1.4 : 1.2;
+    ctx.beginPath();
+
+    var pts = [];
+    for (var s = 0; s <= 70; s++) {
+      var v = (s / 70) * vsdMax;
+      var cur = calculateIsd(vsgLevel, v).isd;
+      pts.push({ x: toX(v), y: toY(cur) });
+    }
+
+    pts.forEach(function(pt, idx) {
+      if (idx === 0) ctx.moveTo(pt.x, pt.y);
+      else ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.stroke();
+
+    var endI = calculateIsd(vsgLevel, vsdMax).isd;
+    labelPositions.push({
+      vsg: vsgLevel,
+      endI: endI,
+      rawY: toY(endI) + 3
+    });
+  });
+
+  // Space curve labels cleanly
+  var minSpacing = isModal ? 17 : 15;
+  var lastY = toY(0) + 3;
+  for (var k = 0; k < labelPositions.length; k++) {
+    var lp = labelPositions[k];
+    if (lp.endI >= isdMax * 0.99) continue;
+    var finalY = Math.min(lp.rawY, lastY - (k > 0 ? minSpacing : 0));
+    lastY = finalY;
+    ctx.fillStyle = textColor;
+    ctx.font = (isModal ? '9.5px' : '8.5px') + ' "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(lp.vsg.toFixed(1) + 'V', toX(vsdMax) + 3, finalY);
+  }
+
+  // Draw Highlighted Active VSG Curve
+  var activeVov = Math.max(0, activeVsg - VTH_P);
+  if (activeVov > 0.001) {
+    ctx.strokeStyle = activeCurveColor;
+    ctx.lineWidth = isModal ? 2.8 : 2.4;
+    ctx.beginPath();
+    for (var s = 0; s <= 70; s++) {
+      var v = (s / 70) * vsdMax;
+      var cur = calculateIsd(activeVsg, v).isd;
+      var px = toX(v);
+      var py = toY(cur);
+      if (s === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  // Crosshairs to Operating Point
+  var opX = toX(activeVsd);
+  var opY = toY(activeIsd);
+
+  ctx.strokeStyle = dotColor;
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 2]);
+  ctx.beginPath();
+  ctx.moveTo(opX, padT + plotH);
+  ctx.lineTo(opX, opY);
+  ctx.lineTo(padL, opY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Operating Point Dot (glowing outer + solid inner)
+  ctx.beginPath();
+  ctx.arc(opX, opY, isModal ? 8 : 7, 0, Math.PI * 2);
+  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.25)' : 'rgba(255,79,191,0.30)';
+  ctx.fill();
+
+  ctx.fillStyle = dotColor;
+  ctx.beginPath();
+  ctx.arc(opX, opY, isModal ? 5 : 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = isLight ? '#ffffff' : '#080c12';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Operating point label
+  ctx.font = (isModal ? '10.5px' : '8.5px') + ' "IBM Plex Mono", monospace';
+  ctx.textAlign = opX > W - (isModal ? 120 : 90) ? 'right' : 'left';
+  var labelX = opX > W - (isModal ? 120 : 90) ? opX - 8 : opX + 8;
+  var labelY = Math.max(padT + 12, Math.min(padT + plotH - 6, opY - 6));
+  ctx.fillStyle = dotColor;
+  ctx.fillText(activeRegion + ' (' + activeIsd.toFixed(2) + ' mA)', labelX, labelY);
+
+  ctx.restore();
+}
+
+function drawIsdVdsGraph(activeVsg, activeVsd, activeIsd, activeRegion) {
+  var vsg = (typeof activeVsg === 'number') ? activeVsg : currentVsg;
+  var vsd = (typeof activeVsd === 'number') ? activeVsd : currentVsd;
+  var isd = (typeof activeIsd === 'number') ? activeIsd : (typeof currentIds === 'number' ? currentIds : 0.14);
+  var reg = activeRegion || (typeof currentRegion === 'string' ? currentRegion : 'SATURATION');
+
+  var canvas = document.getElementById('iv-canvas');
+  if (canvas) {
+    renderSinglePmosGraph(canvas, vsg, vsd, isd, reg, false);
+  }
+
+  var modalBackdrop = document.getElementById('iv-modal-backdrop');
+  var modalCanvas = document.getElementById('iv-modal-canvas');
+  if (modalCanvas && modalBackdrop && modalBackdrop.style.display !== 'none') {
+    renderSinglePmosGraph(modalCanvas, vsg, vsd, isd, reg, true);
+  }
+
+  var mVsg = document.getElementById('iv-m-vsg');
+  var mVsd = document.getElementById('iv-m-vsd');
+  var mIsd = document.getElementById('iv-m-isd');
+  var mRegion = document.getElementById('iv-m-region');
+  if (mVsg) mVsg.textContent = vsg.toFixed(2) + ' V';
+  if (mVsd) mVsd.textContent = vsd.toFixed(2) + ' V';
+  if (mIsd) mIsd.textContent = isd.toFixed(2) + ' mA';
+  if (mRegion) mRegion.textContent = reg;
+}
+window.drawIsdVdsGraph = drawIsdVdsGraph;
+window.drawIsdVsdGraph = drawIsdVdsGraph;
+window.drawIdsVdsGraph = drawIsdVdsGraph;
+
 window.getMosfetPhysicsState = function() {
   var vov = Math.max(0, currentVsg - VTH_P);
   var vsdSat = vov;
@@ -195,243 +461,8 @@ function applyLogicState() {
 // ---------------------------------------------------------------------------
 // LIVE ISD vs VSD CHARACTERISTIC GRAPH RENDERER
 // ---------------------------------------------------------------------------
-function drawIsdVsdGraph(activeVsg, activeVsd, activeIsd, activeRegion) {
-  var canvas = document.getElementById('iv-canvas');
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  if (!ctx) return;
 
-  var dpr = window.devicePixelRatio || 1;
-  var rect = canvas.getBoundingClientRect();
-  var W = rect.width || 300;
-  var H = rect.height || 160;
-
-  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-  }
-
-  ctx.save();
-  ctx.scale(dpr, dpr);
-
-  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-
-  // Palette
-  var bgColor = isLight ? '#f8fafc' : '#080c12';
-  var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
-  var axisColor = isLight ? '#94a3b8' : '#232b38';
-  var textColor = isLight ? '#64748b' : '#64748b';
-  var dimmedCurveColor = isLight ? 'rgba(219,39,119,0.22)' : 'rgba(255,79,191,0.20)';
-  var activeCurveColor = isLight ? '#db2777' : '#ff4fbf';
-  var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
-  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#ff4fbf' : '#cf8a4a');
-
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, W, H);
-
-  // Margins
-  var padL = 36;
-  var padR = 30;
-  var padT = 14;
-  var padB = 24;
-  var plotW = W - padL - padR;
-  var plotH = H - padT - padB;
-
-  var vsdMax = 1.8;
-  var isdMax = 0.95; // mA
-
-  function toX(v) { return padL + (v / vsdMax) * plotW; }
-  function toY(i) { return padT + plotH - (i / isdMax) * plotH; }
-
-  // Draw Grid Lines & Tick Labels
-  ctx.strokeStyle = gridColor;
-  ctx.lineWidth = 1;
-  ctx.fillStyle = textColor;
-  ctx.font = '9px "IBM Plex Mono", monospace';
-  ctx.textAlign = 'center';
-
-  // VSD ticks: 0, 0.6, 1.2, 1.8
-  [0, 0.6, 1.2, 1.8].forEach(function(v) {
-    var x = toX(v);
-    ctx.beginPath();
-    ctx.moveTo(x, padT);
-    ctx.lineTo(x, padT + plotH);
-    ctx.stroke();
-    ctx.fillText(v.toFixed(1), x, padT + plotH + 13);
-  });
-  ctx.fillText('V_SD (V)', padL + plotW / 2, padT + plotH + 22);
-
-  // ISD ticks: 0, 0.2, 0.4, 0.6, 0.8
-  ctx.textAlign = 'right';
-  [0, 0.2, 0.4, 0.6, 0.8].forEach(function(i) {
-    var y = toY(i);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(padL + plotW, y);
-    ctx.stroke();
-    ctx.fillText(i.toFixed(1), padL - 6, y + 3);
-  });
-
-  ctx.save();
-  ctx.translate(11, padT + plotH / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.textAlign = 'center';
-  ctx.fillText('I_SD (mA)', 0, 0);
-  ctx.restore();
-
-  // Draw Pinch-off Parabolic Boundary Curve: VSD = VSG - |VTH,p| => ISD = 0.5 * KP * VSD^2
-  ctx.strokeStyle = pinchOffColor;
-  ctx.lineWidth = 1.2;
-  ctx.setLineDash([3, 3]);
-  ctx.beginPath();
-  var startedPinch = false;
-  for (var v = 0; v <= vsdMax; v += 0.05) {
-    var iBoundary = 0.5 * KP_PRIME * v * v;
-    if (iBoundary > isdMax) break;
-    var px = toX(v);
-    var py = toY(iBoundary);
-    if (!startedPinch) { ctx.moveTo(px, py); startedPinch = true; }
-    else { ctx.lineTo(px, py); }
-  }
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Labels for Linear and Saturation regions
-  ctx.font = '8px "IBM Plex Mono", monospace';
-  ctx.fillStyle = isLight ? 'rgba(207,138,74,0.7)' : 'rgba(207,138,74,0.55)';
-  ctx.textAlign = 'left';
-  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 16);
-  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.7)' : 'rgba(255,79,191,0.55)';
-  ctx.textAlign = 'right';
-  ctx.fillText('SATURATION', padL + plotW - 8, padT + 16);
-
-  // Generates curve sampling coordinates that strictly include the boundary point v = vov
-  function getSamplePoints(vov, maxV, baseStep) {
-    var pts = [];
-    for (var v = 0; v <= maxV + 0.0001; v += baseStep) {
-      pts.push(Math.min(maxV, v));
-    }
-    if (vov > 0.001 && vov < maxV) {
-      pts.push(vov);
-    }
-    pts.sort(function(a, b) { return a - b; });
-    var unique = [pts[0]];
-    for (var i = 1; i < pts.length; i++) {
-      if (pts[i] - unique[unique.length - 1] > 0.002) {
-        unique.push(pts[i]);
-      }
-    }
-    return unique;
-  }
-
-  // Family of VSG Curves: 0.6V, 0.9V, 1.2V, 1.5V
-  var vsgFamily = [0.60, 0.90, 1.20, 1.50];
-  vsgFamily.forEach(function(curveVsg) {
-    var vovFamily = Math.max(0, curveVsg - VTH_P);
-    if (vovFamily <= 0.01) return;
-
-    var isCloseToActive = Math.abs(curveVsg - activeVsg) < 0.06;
-    if (isCloseToActive) return; // Will draw highlighted active curve separately
-
-    var pts = getSamplePoints(vovFamily, vsdMax, 0.04);
-    ctx.strokeStyle = dimmedCurveColor;
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    var started = false;
-
-    for (var idx = 0; idx < pts.length; idx++) {
-      var v = pts[idx];
-      var iCalc = 0;
-      if (v < vovFamily) {
-        iCalc = KP_PRIME * (vovFamily * v - 0.5 * v * v);
-      } else {
-        iCalc = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (v - vovFamily));
-      }
-      var cx = toX(v);
-      var cy = toY(Math.min(isdMax, iCalc));
-      if (!started) { ctx.moveTo(cx, cy); started = true; }
-      else { ctx.lineTo(cx, cy); }
-    }
-    ctx.stroke();
-
-    // Curve label
-    var endI = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (vsdMax - vovFamily));
-    if (endI < isdMax) {
-      ctx.fillStyle = textColor;
-      ctx.font = '7.5px "IBM Plex Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText(curveVsg.toFixed(1) + 'V', toX(vsdMax) - 2, toY(endI) - 3);
-    }
-  });
-
-  // Active Highlighted VSG Curve
-  var activeVov = Math.max(0, activeVsg - VTH_P);
-  if (activeVov > 0.001) {
-    var activePts = getSamplePoints(activeVov, vsdMax, 0.03);
-    ctx.strokeStyle = activeCurveColor;
-    ctx.lineWidth = 2.4;
-    ctx.beginPath();
-    var startedActive = false;
-
-    for (var idx = 0; idx < activePts.length; idx++) {
-      var v = activePts[idx];
-      var iCalc = 0;
-      if (v < activeVov) {
-        iCalc = KP_PRIME * (activeVov * v - 0.5 * v * v);
-      } else {
-        iCalc = 0.5 * KP_PRIME * activeVov * activeVov * (1.0 + LAMBDA_P * (v - activeVov));
-      }
-      var cx = toX(v);
-      var cy = toY(Math.min(isdMax, iCalc));
-      if (!startedActive) { ctx.moveTo(cx, cy); startedActive = true; }
-      else { ctx.lineTo(cx, cy); }
-    }
-    ctx.stroke();
-  }
-
-  // Crosshairs from Axes to Operating Point
-  var dotX = toX(activeVsd);
-  var dotY = toY(Math.min(isdMax, activeIsd));
-
-  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([2, 2]);
-
-  // Horizontal line to Y axis
-  ctx.beginPath();
-  ctx.moveTo(padL, dotY);
-  ctx.lineTo(dotX, dotY);
-  ctx.stroke();
-
-  // Vertical line to X axis
-  ctx.beginPath();
-  ctx.moveTo(dotX, padT + plotH);
-  ctx.lineTo(dotX, dotY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Active Operating Point Dot
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 7, 0, Math.PI * 2);
-  ctx.fillStyle = isLight ? 'rgba(219,39,119,0.25)' : 'rgba(255,79,191,0.30)';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, 4.5, 0, Math.PI * 2);
-  ctx.fillStyle = dotColor;
-  ctx.fill();
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-// ---------------------------------------------------------------------------
-// INTERACTIVE EVENT LISTENERS & INITIALIZATION
-// ---------------------------------------------------------------------------
 function initLogicStateControls() {
-  // Topbar VSG Slider
   var vsgSlider = document.getElementById('vsg-slider');
   if (vsgSlider) {
     vsgSlider.addEventListener('input', function(e) {
@@ -440,7 +471,6 @@ function initLogicStateControls() {
     });
   }
 
-  // Topbar VSD Slider
   var vsdSlider = document.getElementById('vsd-slider');
   if (vsdSlider) {
     vsdSlider.addEventListener('input', function(e) {
@@ -449,7 +479,6 @@ function initLogicStateControls() {
     });
   }
 
-  // Preset Buttons (Topbar & HUD)
   function applyPreset(preset) {
     if (preset === 'cutoff') {
       currentVsg = 0.00;
@@ -470,31 +499,23 @@ function initLogicStateControls() {
     });
   });
 
-  // Interactive Graph Canvas: Drag or Click to modulate VSD
-  var canvas = document.getElementById('iv-canvas');
-  if (canvas) {
+  function bindCanvasPointer(cvs, isModal) {
     var isDragging = false;
-
     function handleGraphPointer(e) {
-      var rect = canvas.getBoundingClientRect();
-      var padL = 36, padR = 30;
-      var padT = 14, padB = 24;
+      var rect = cvs.getBoundingClientRect();
+      var padL = isModal ? 48 : 34;
+      var padR = isModal ? 42 : 28;
       var plotW = rect.width - padL - padR;
-      var plotH = rect.height - padT - padB;
 
       var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
       var clickX = clientX - rect.left - padL;
-      var clickY = clientY - rect.top - padT;
-
       var normX = Math.max(0, Math.min(1.0, clickX / plotW));
 
       currentVsd = Math.round(normX * 1.8 * 20) / 20; // 0.05V step
       applyLogicState();
     }
 
-    canvas.addEventListener('mousedown', function(e) {
+    cvs.addEventListener('mousedown', function(e) {
       isDragging = true;
       handleGraphPointer(e);
     });
@@ -505,7 +526,7 @@ function initLogicStateControls() {
       isDragging = false;
     });
 
-    canvas.addEventListener('touchstart', function(e) {
+    cvs.addEventListener('touchstart', function(e) {
       isDragging = true;
       handleGraphPointer(e);
       e.preventDefault();
@@ -520,6 +541,39 @@ function initLogicStateControls() {
       isDragging = false;
     });
   }
+
+  var canvas = document.getElementById('iv-canvas');
+  if (canvas) bindCanvasPointer(canvas, false);
+
+  var modalCanvas = document.getElementById('iv-modal-canvas');
+  if (modalCanvas) bindCanvasPointer(modalCanvas, true);
+
+  var expandBtn = document.getElementById('iv-expand-btn');
+  var modalBackdrop = document.getElementById('iv-modal-backdrop');
+  var modalCloseBtn = document.getElementById('iv-modal-close');
+
+  function openIvModal() {
+    if (!modalBackdrop) return;
+    modalBackdrop.style.display = 'flex';
+    applyLogicState();
+  }
+  function closeIvModal() {
+    if (!modalBackdrop) return;
+    modalBackdrop.style.display = 'none';
+  }
+
+  if (expandBtn) expandBtn.addEventListener('click', openIvModal);
+  if (modalCloseBtn) modalCloseBtn.addEventListener('click', closeIvModal);
+  if (modalBackdrop) {
+    modalBackdrop.addEventListener('click', function(e) {
+      if (e.target === modalBackdrop) closeIvModal();
+    });
+  }
+  window.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modalBackdrop && modalBackdrop.style.display !== 'none') {
+      closeIvModal();
+    }
+  });
 }
 
 if (document.readyState === 'loading') {

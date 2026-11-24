@@ -188,7 +188,8 @@ function clearGuideLines() {
 function refreshFlowGuides() {
   clearGuideLines();
   var active = getActiveCurves();
-  var colorHex = flowMode === 'electron' ? 0x4fd1ff : 0xffcf4d;
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var colorHex = flowMode === 'electron' ? (isLight ? 0x0052cc : 0x4fd1ff) : (isLight ? 0xb45309 : 0xffcf4d);
 
   if (active.length >= 1) {
     guideLineA = makeGuideTube(active[0], colorHex);
@@ -239,7 +240,10 @@ function updateFlowMarkers(dt) {
   }
 
   flowPhase = (flowPhase + dt * FLOW_SPEED) % 1.0;
-  var colorHex = flowMode === 'electron' ? 0x4fd1ff : 0xffcf4d;
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var colorHex = flowMode === 'electron'
+    ? (isLight ? 0x0052cc : 0x4fd1ff)
+    : (isLight ? 0xb45309 : 0xffcf4d);
 
   positionPoolOnCurve(branchMarkersA, active[0], colorHex);
   if (active.length >= 2) {
@@ -275,3 +279,8 @@ function initFlowControls() {
 }
 
 initFlowControls();
+
+window.updateFlowTheme = function(theme) {
+  if (typeof refreshFlowGuides === 'function') refreshFlowGuides();
+};
+if (typeof window.updateFlowTheme === 'function') window.updateFlowTheme();
