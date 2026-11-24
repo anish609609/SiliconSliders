@@ -270,12 +270,22 @@ function buildUiPanels() {
   });
 
   /* 3D Floating Labels Checkbox */
-  var chkLabels = document.getElementById('chk-labels');
+  var chkLabels = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
   if (chkLabels) {
     chkLabels.addEventListener('change', function () {
+      if (typeof window.toggleLabels === 'function') {
+        window.toggleLabels(chkLabels.checked);
+      } else {
+        showLabels3D = chkLabels.checked;
+        applyLayerVisibility();
+      }
+    });
+    if (typeof window.toggleLabels === 'function') {
+      window.toggleLabels(chkLabels.checked);
+    } else {
       showLabels3D = chkLabels.checked;
       applyLayerVisibility();
-    });
+    }
   }
 }
 

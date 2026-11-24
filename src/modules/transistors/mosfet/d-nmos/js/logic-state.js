@@ -37,7 +37,7 @@ window.getMosfetPhysicsState = function() {
     region = 'SATURATION';
     var vdsDiff = currentVds - vdsSat;
     ids = 0.5 * KN_PRIME * vov * vov * (1.0 + LAMBDA * vdsDiff);
-    deltaL = MODEL_L * Math.min(0.38, 0.22 * Math.sqrt(Math.max(0, vdsDiff)));
+    deltaL = MODEL_L * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vdsDiff)));
   }
 
   var leff = NOMINAL_L * (1.0 - (deltaL / MODEL_L));

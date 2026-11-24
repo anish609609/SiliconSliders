@@ -863,49 +863,130 @@ function buildNand2Cell() {
   ];
 
   var nandChannelMeshes = {};
+  var nandPinchMeshes = {};
+
+  var pinchMat = new THREE.MeshStandardMaterial({
+    color: isInitLight ? 0xb45309 : 0xf59e0b,
+    roughness: 0.40,
+    metalness: 0.15,
+    emissive: 0xd97706,
+    emissiveIntensity: 0.55,
+    opacity: 0.85,
+    transparent: true,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+    clippingPlanes: activeClipPlanes
+  });
 
   for (var chi = 0; chi < chSpecs.length; chi++) {
     var ch = chSpecs[chi];
-    var chGeo = new THREE.BoxGeometry(2.0, 0.12, ACTIVE_W - 0.14, 16, 1, 2);
+    var chGeo = new THREE.BoxGeometry(2.0, 0.12, ACTIVE_W - 0.14, 24, 1, 2);
     var chMesh = new THREE.Mesh(chGeo, ch.mat.clone());
     chMesh.position.set(ch.x, Y.actTop - 0.05, ch.z);
     chMesh.renderOrder = 4;
     chMesh.userData.colorVar = ch.colorVar;
     registerMesh(chMesh, ch.id, 'active', { decorative: false });
     nandChannelMeshes[ch.id] = chMesh;
+
+    var pGeo = new THREE.BoxGeometry(1.0, 0.12, ACTIVE_W - 0.14, 12, 1, 2);
+    var pMesh = new THREE.Mesh(pGeo, pinchMat.clone());
+    pMesh.position.set(ch.x, Y.actTop - 0.05, ch.z);
+    pMesh.renderOrder = 4;
+    pMesh.visible = false;
+    registerMesh(pMesh, 'pinch_' + ch.id, 'active', { decorative: false });
+    nandPinchMeshes[ch.id] = pMesh;
+  }
+
+  function updateNandChannelPhysics(chMesh, pinchMesh, gateX, vov, vd, isSat, drainDir) {
+    if (!chMesh || !pinchMesh) return;
+    if (vov <= 0.001) {
+      chMesh.visible = false;
+      pinchMesh.visible = false;
+      return;
+    }
+
+    chMesh.visible = true;
+    var pos = chMesh.geometry.attributes.position;
+    if (!chMesh.geometry.userData.initialX) {
+      var initX = new Float32Array(pos.count);
+      for (var k = 0; k < pos.count; k++) initX[k] = pos.getX(k);
+      chMesh.geometry.userData.initialX = initX;
+    }
+    var initXArr = chMesh.geometry.userData.initialX;
+
+    var maxH = 0.12;
+    var vDiff = Math.max(0, vd - vov);
+    var dL = isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vDiff)) : 0.0;
+    var ratio = (vov > 0.0001) ? Math.min(1.0, Math.max(0, vd / vov)) : 1.0;
+
+    for (var i = 0; i < pos.count; i++) {
+      var origX = initXArr[i];
+      var s = (drainDir === 1) ? ((origX + 1.0) / 2.0) : ((1.0 - origX) / 2.0);
+      var mappedX, thickness;
+
+      if (!isSat) {
+        mappedX = origX;
+        thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
+      } else {
+        mappedX = (drainDir === 1) ? (-1.0 + s * (2.0 - dL)) : (1.0 - s * (2.0 - dL));
+        thickness = maxH * Math.max(0.002, 1.0 - s);
+      }
+
+      pos.setX(i, mappedX);
+      var signY = pos.getY(i) >= 0 ? 1 : -1;
+      pos.setY(i, (signY * thickness) / 2);
+    }
+    pos.needsUpdate = true;
+    chMesh.geometry.computeVertexNormals();
+
+    if (isSat && dL > 0.0005) {
+      pinchMesh.visible = true;
+      pinchMesh.scale.x = dL;
+      pinchMesh.position.x = gateX + (drainDir === 1 ? (1.0 - dL / 2) : -(1.0 - dL / 2));
+      pinchMesh.position.y = Y.actTop - 0.05;
+    } else {
+      pinchMesh.visible = false;
+    }
   }
 
   // Dynamic channel updater called on logic state transitions
   window.updateNandChannels = function(st) {
     if (!st || st.frozen || st.a === 'off' || st.b === 'off') {
-      if (nandChannelMeshes['chMP1']) nandChannelMeshes['chMP1'].visible = false;
-      if (nandChannelMeshes['chMP2']) nandChannelMeshes['chMP2'].visible = false;
-      if (nandChannelMeshes['chMN1']) nandChannelMeshes['chMN1'].visible = false;
-      if (nandChannelMeshes['chMN2']) nandChannelMeshes['chMN2'].visible = false;
+      ['chMP1', 'chMP2', 'chMN1', 'chMN2'].forEach(function(id) {
+        if (nandChannelMeshes[id]) nandChannelMeshes[id].visible = false;
+        if (nandPinchMeshes[id]) nandPinchMeshes[id].visible = false;
+      });
       return;
     }
 
     var regs = st.regions || {};
+    var va = Number(st.a);
+    var vb = Number(st.b);
+    var vout = Number(st.vout);
+    var vx = (typeof regs.vx === 'number') ? regs.vx : (va <= 0.40 ? 0 : 0.5 * vout);
 
-    // MP1 (PMOS A): ON when A is LOW (VA < VDD - |VTHP|)
-    if (nandChannelMeshes['chMP1']) {
-      nandChannelMeshes['chMP1'].visible = (regs.mp1 !== 'CUTOFF' && regs.mp1 !== 'SUBTHRESHOLD');
-    }
+    // MP1 (PMOS A): S = VDD, G = VA, D = VOUT (Drain toward right, drainDir = 1)
+    var vovP1 = Math.max(0, (1.00 - va) - 0.40);
+    var vsdP1 = 1.00 - vout;
+    var isSatP1 = (regs.mp1 === 'SATURATION') && (vsdP1 >= vovP1);
+    updateNandChannelPhysics(nandChannelMeshes['chMP1'], nandPinchMeshes['chMP1'], GATE_A_X, vovP1, vsdP1, isSatP1, 1);
 
-    // MP2 (PMOS B): ON when B is LOW (VB < VDD - |VTHP|)
-    if (nandChannelMeshes['chMP2']) {
-      nandChannelMeshes['chMP2'].visible = (regs.mp2 !== 'CUTOFF' && regs.mp2 !== 'SUBTHRESHOLD');
-    }
+    // MP2 (PMOS B): S = VDD, G = VB, D = VOUT (Drain toward left, drainDir = -1)
+    var vovP2 = Math.max(0, (1.00 - vb) - 0.40);
+    var vsdP2 = 1.00 - vout;
+    var isSatP2 = (regs.mp2 === 'SATURATION') && (vsdP2 >= vovP2);
+    updateNandChannelPhysics(nandChannelMeshes['chMP2'], nandPinchMeshes['chMP2'], GATE_B_X, vovP2, vsdP2, isSatP2, -1);
 
-    // MN1 (NMOS A): ON when A is HIGH (VA > VTN)
-    if (nandChannelMeshes['chMN1']) {
-      nandChannelMeshes['chMN1'].visible = (regs.mn1 !== 'CUTOFF' && regs.mn1 !== 'SUBTHRESHOLD');
-    }
+    // MN1 (NMOS A): S = GND, G = VA, D = Vx (Drain toward right, drainDir = 1)
+    var vovN1 = Math.max(0, va - 0.40);
+    var isSatN1 = (regs.mn1 === 'SATURATION') && (vx >= vovN1);
+    updateNandChannelPhysics(nandChannelMeshes['chMN1'], nandPinchMeshes['chMN1'], GATE_A_X, vovN1, vx, isSatN1, 1);
 
-    // MN2 (NMOS B): ON when B is HIGH (VB > VTN)
-    if (nandChannelMeshes['chMN2']) {
-      nandChannelMeshes['chMN2'].visible = (regs.mn2 !== 'CUTOFF' && regs.mn2 !== 'SUBTHRESHOLD');
-    }
+    // MN2 (NMOS B): S = Vx, G = VB, D = VOUT (Drain toward right, drainDir = 1)
+    var vovN2 = Math.max(0, (vb - vx) - 0.40);
+    var vdsN2 = Math.max(0, vout - vx);
+    var isSatN2 = (regs.mn2 === 'SATURATION') && (vdsN2 >= vovN2);
+    updateNandChannelPhysics(nandChannelMeshes['chMN2'], nandPinchMeshes['chMN2'], GATE_B_X, vovN2, vdsN2, isSatN2, 1);
   };
 
   window.updateNandChannelThemes = function(theme) {
@@ -1133,9 +1214,27 @@ function buildNand2Cell() {
   addLabel('SiO2 OXIDE', GATE_A_X, Y.oxideTop + 0.32, 3.3, 'oxide', '#8fc9dc');
 }
 
+function toggleLabels(visible) {
+  if (typeof showLabels3D !== 'undefined') showLabels3D = visible;
+  if (typeof labelSprites !== 'undefined') {
+    for (var i = 0; i < labelSprites.length; i++) {
+      var s = labelSprites[i];
+      if (s) {
+        var layerVis = (typeof layerVisibility !== 'undefined' && s.userData && s.userData.layer) ? (layerVisibility[s.userData.layer] !== false) : true;
+        s.visible = visible && layerVis;
+      }
+    }
+  }
+}
+window.toggleLabels = toggleLabels;
+
 try {
   if (typeof THREE !== 'undefined' && typeof cellGroup !== 'undefined' && cellGroup) {
     buildNand2Cell();
+  }
+  var initLabelChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+  if (initLabelChk) {
+    toggleLabels(initLabelChk.checked);
   }
 } catch (err) {
   console.error('NAND2 3D geometry build failed:', err);

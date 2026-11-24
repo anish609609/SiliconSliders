@@ -71,6 +71,19 @@ function updateFlowTheme(theme) {
 }
 window.updateFlowTheme = updateFlowTheme;
 
+// Helper to build strictly orthogonal piecewise linear paths inside physical conductors
+function createOrthogonalPath(points) {
+  var path = new THREE.CurvePath();
+  for (var i = 0; i < points.length - 1; i++) {
+    var p0 = points[i];
+    var p1 = points[i + 1];
+    if (p0.distanceTo(p1) > 0.001) {
+      path.add(new THREE.LineCurve3(p0, p1));
+    }
+  }
+  return path;
+}
+
 // Multi-track curve collections
 var pmosTracks = [];
 var nmosTracks = [];
@@ -84,62 +97,69 @@ function rebuildFlowCurves() {
   var actOffset = groups['active'] ? groups['active'].position : new THREE.Vector3();
   var metalOffset = groups['metal'] ? groups['metal'].position : new THREE.Vector3();
 
-  var zOffsets = [-1.8, -0.9, 0.0, 0.9, 1.8];
+  var actMidY = (Y.actBot + Y.actTop) / 2; // Mid-plane of active silicon slab (1.75)
+  var zOffsets = [-1.4, -0.7, 0.0, 0.7, 1.4];
 
-  // 1. PMOS Tracks (Source at X = -2.5, VDD; Drain at X = +2.5, OUT)
+  // 1. PMOS Tracks (VDD Rail -> VDD Stub -> pmosSrcCt Via -> Source Diffusion -> Channel -> Drain Diffusion -> pmosDrnCt Via -> OUT Spine -> OUT Pin)
   zOffsets.forEach(function(dz) {
-    var pz = PMOS_ZC + dz;
     var pts = [
       new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, RAIL_Z + metalOffset.z),
-      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
-      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(-0.9 + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(0.9  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0  + metalOffset.z)
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, PMOS_ZC + metalOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   actMidY + actOffset.y,         PMOS_ZC + actOffset.z),
+      new THREE.Vector3(SRC_X + 0.6 + actOffset.x, actMidY + actOffset.y,     PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.min + actOffset.x,  actMidY + actOffset.y,         PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.max + actOffset.x,  actMidY + actOffset.y,         PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(DRN_X - 0.6 + actOffset.x, actMidY + actOffset.y,     PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   actMidY + actOffset.y,         PMOS_ZC + actOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, PMOS_ZC + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0 + metalOffset.z),
+      new THREE.Vector3(DRN_X + 2.5 + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0 + metalOffset.z)
     ];
-    pmosTracks.push(new THREE.CatmullRomCurve3(pts));
+    pmosTracks.push(createOrthogonalPath(pts));
   });
 
-  // 2. NMOS Tracks (Source at X = -2.5, GND; Drain at X = +2.5, OUT)
+  // 2. NMOS Tracks (GND Rail -> GND Stub -> nmosSrcCt Via -> Source Diffusion -> Channel -> Drain Diffusion -> nmosDrnCt Via -> OUT Spine -> OUT Pin)
   zOffsets.forEach(function(dz) {
-    var nz = NMOS_ZC + dz;
     var pts = [
       new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, -RAIL_Z + metalOffset.z),
-      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
-      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(-0.9 + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(0.9  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0  + metalOffset.z)
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, NMOS_ZC + metalOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   actMidY + actOffset.y,         NMOS_ZC + actOffset.z),
+      new THREE.Vector3(SRC_X + 0.6 + actOffset.x, actMidY + actOffset.y,     NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.min + actOffset.x,  actMidY + actOffset.y,         NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.max + actOffset.x,  actMidY + actOffset.y,         NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(DRN_X - 0.6 + actOffset.x, actMidY + actOffset.y,     NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   actMidY + actOffset.y,         NMOS_ZC + actOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, NMOS_ZC + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0 + metalOffset.z),
+      new THREE.Vector3(DRN_X + 2.5 + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0 + metalOffset.z)
     ];
-    nmosTracks.push(new THREE.CatmullRomCurve3(pts));
+    nmosTracks.push(createOrthogonalPath(pts));
   });
 
-  // 3. Shoot-Through Tracks (VDD -> PMOS -> OUT -> NMOS -> GND)
+  // 3. Shoot-Through Tracks (VDD Rail -> PMOS Stub -> pmosSrcCt Via -> PMOS Channel -> pmosDrnCt Via -> OUT Spine -> nmosDrnCt Via -> NMOS Channel -> nmosSrcCt Via -> GND Stub -> GND Rail)
   zOffsets.forEach(function(dz) {
-    var pz = PMOS_ZC + dz;
-    var nz = NMOS_ZC + dz;
     var pts = [
       new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, RAIL_Z + metalOffset.z),
-      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
-      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, pz + actOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, pz + metalOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0  + metalOffset.z),
-      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
-      new THREE.Vector3(DRN_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(0.0  + actOffset.x,    Y.actTop + 0.07 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(SRC_X + actOffset.x,   Y.actTop + 0.06 + actOffset.y, nz + actOffset.z),
-      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, nz + metalOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, PMOS_ZC + metalOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   actMidY + actOffset.y,         PMOS_ZC + actOffset.z),
+      new THREE.Vector3(SRC_X + 0.6 + actOffset.x, actMidY + actOffset.y,     PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.min + actOffset.x,  actMidY + actOffset.y,         PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.max + actOffset.x,  actMidY + actOffset.y,         PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(DRN_X - 0.6 + actOffset.x, actMidY + actOffset.y,     PMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   actMidY + actOffset.y,         PMOS_ZC + actOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, PMOS_ZC + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, 0 + metalOffset.z),
+      new THREE.Vector3(DRN_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, NMOS_ZC + metalOffset.z),
+      new THREE.Vector3(DRN_X + actOffset.x,   actMidY + actOffset.y,         NMOS_ZC + actOffset.z),
+      new THREE.Vector3(DRN_X - 0.6 + actOffset.x, actMidY + actOffset.y,     NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.max + actOffset.x,  actMidY + actOffset.y,         NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(CH.min + actOffset.x,  actMidY + actOffset.y,         NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(SRC_X + 0.6 + actOffset.x, actMidY + actOffset.y,     NMOS_ZC + dz + actOffset.z),
+      new THREE.Vector3(SRC_X + actOffset.x,   actMidY + actOffset.y,         NMOS_ZC + actOffset.z),
+      new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, NMOS_ZC + metalOffset.z),
       new THREE.Vector3(SRC_X + metalOffset.x, METAL_FLOW_Y + metalOffset.y, -RAIL_Z + metalOffset.z)
     ];
-    shootTracks.push(new THREE.CatmullRomCurve3(pts));
+    shootTracks.push(createOrthogonalPath(pts));
   });
 }
 rebuildFlowCurves();

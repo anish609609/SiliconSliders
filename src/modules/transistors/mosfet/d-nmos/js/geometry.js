@@ -642,7 +642,8 @@ channelMesh.userData.colorVar = '--c-sde-n';
 reg(channelMesh, 'channel', 'dchannel');
 
 // Dedicated pinch-off space-charge gap mesh visible during Saturation (VDS >= VGS - VTH)
-var pinchGeom = new THREE.BoxGeometry(0.8, 0.16, actD, 12, 1, 2);
+// Base width is 1.0 along X so scale.x corresponds directly to physical deltaL
+var pinchGeom = new THREE.BoxGeometry(1.0, 0.16, actD, 12, 1, 2);
 var pinchMat = new THREE.MeshStandardMaterial({
   color: 0xf59e0b,
   emissive: 0xd97706,
@@ -681,31 +682,45 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
   var baseH = 0.16;
   var gateFactor = (vgs <= 0) ? Math.max(0.08, vov / 0.80) : (1.0 + Math.min(0.8, (vgs / 1.0) * 0.55));
   var maxH = baseH * gateFactor;
-  var pinchX = (region === 'SATURATION') ? Math.max(-0.2, 1.0 - (deltaL || 0.4)) : 1.0;
+
+  // Cache initial unperturbed vertex X coordinates to avoid cumulative floating drift
+  if (!chanGeom.userData.initialX) {
+    var initX = new Float32Array(pos.count);
+    for (var k = 0; k < pos.count; k++) {
+      initX[k] = pos.getX(k);
+    }
+    chanGeom.userData.initialX = initX;
+  }
+  var initXArr = chanGeom.userData.initialX;
+
+  var vdsDiff = Math.max(0, vds - vov);
+  var isSat = (vds >= vov) && (region === 'SATURATION');
+
+  // Exact continuous physics model:
+  // In Linear: deltaL = 0. Channel tapers smoothly toward drain edge: thickness(s) = maxH * (1 - s * (vds/vov)).
+  // In Saturation: deltaL grows monotonically from 0 as k * sqrt(vds - vov), clamped to 0.40 * L.
+  // Channel shrinks to Leff = L - deltaL, ending at pinchX = 1.0 - deltaL where thickness = 0.
+  // Depletion gap mesh is anchored strictly to the drain edge (x = 1.0) and expands strictly toward source.
+  var dL = isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vdsDiff)) : 0.0;
+  var pinchX = 1.0 - dL;
+  var ratio = (vov > 0.0001) ? Math.min(1.0, Math.max(0, vds / vov)) : 1.0;
 
   for (var i = 0; i < pos.count; i++) {
-    // Normalized distance from Source: u = 0 at Source (-1.0), u = 1 at Drain (+1.0)
-    var u = (pos.getX(i) + 1.0) / 2.0;
+    var origX = initXArr[i];
+    var s = (origX + 1.0) / 2.0; // Normalized position [0, 1] from Source (-1.0) to Drain (+1.0)
+    var mappedX, thickness;
 
-    var thickness = 0;
-    if (region === 'LINEAR') {
-      // Linear region: continuous channel from Source to Drain
-      // Tapers according to local charge Q(u) ~ (VOV - u * VDS)
-      var localV = u * vds;
-      var localCharge = Math.max(0.08, (vov - localV) / Math.max(0.1, vov));
-      thickness = maxH * (0.35 + 0.65 * localCharge);
+    if (!isSat) {
+      // Linear / Triode: Continuous channel from -1.0 to +1.0
+      mappedX = origX;
+      thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
     } else {
-      // Saturation region: channel pinches off at pinchX
-      if (pos.getX(i) <= pinchX) {
-        var fracToPinch = (pos.getX(i) + 1.0) / (pinchX + 1.0);
-        thickness = maxH * Math.pow(Math.max(0.04, 1.0 - fracToPinch * 0.95), 0.7);
-      } else {
-        // Pinched off: collapsed to microscopic thickness
-        thickness = 0.01;
-      }
+      // Saturation: Channel spans from Source (-1.0) to pinchX (1.0 - dL)
+      mappedX = -1.0 + s * (2.0 - dL);
+      thickness = maxH * Math.max(0.002, 1.0 - s);
     }
 
-    // Adjust Y coordinate
+    pos.setX(i, mappedX);
     var origSignY = pos.getY(i) >= 0 ? 1 : -1;
     pos.setY(i, (origSignY * thickness) / 2);
   }
@@ -717,13 +732,14 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
   var intensityNorm = Math.min(1.0, ids / 0.6);
   chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
 
-  // Update pinch-off space-charge region in Saturation
-  if (region === 'SATURATION') {
+  // Space-charge depletion gap mesh:
+  // Visible ONLY in Saturation when dL > 0. Anchor strictly to drain edge (right boundary at x = +1.0).
+  if (isSat && dL > 0.0005) {
     pinchMesh.visible = true;
-    var gapW = Math.max(0.15, 1.0 - pinchX);
-    pinchMesh.scale.x = gapW / 0.8;
-    pinchMesh.position.x = pinchX + gapW / 2;
-    pinchMat.emissiveIntensity = 0.30 + 0.40 * Math.min(1.0, (vds - vov) / 0.8);
+    pinchMesh.scale.x = dL;
+    pinchMesh.position.x = 1.0 - dL / 2;
+    pinchMesh.position.y = 2.928;
+    pinchMat.emissiveIntensity = 0.30 + 0.40 * Math.min(1.0, vdsDiff / 0.8);
   } else {
     pinchMesh.visible = false;
   }
@@ -1105,9 +1121,15 @@ groups['poly'].add(polyLengthCallout);
 
 function toggleLabels(visible) {
   labelSprites.forEach(function(s) {
-    s.visible = visible;
+    if (s) s.visible = visible;
   });
   labelCalloutGroups.forEach(function(g) {
-    g.visible = visible;
+    if (g) g.visible = visible;
   });
+}
+window.toggleLabels = toggleLabels;
+
+var initLabelChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+if (initLabelChk) {
+  toggleLabels(initLabelChk.checked);
 }

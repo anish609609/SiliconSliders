@@ -207,6 +207,11 @@ function resetAll() {
     }
   }
   showLabels3D = true;
+  var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+  if (toggleLabelsChk) toggleLabelsChk.checked = true;
+  if (typeof window.toggleLabels === 'function') {
+    window.toggleLabels(true);
+  }
   if (typeof syncVisibilityCheckboxes === 'function') {
     syncVisibilityCheckboxes();
   }
@@ -233,6 +238,7 @@ function resetAll() {
     controls.update();
   }
   if (typeof resize === 'function') resize();
+  if (typeof drawTransferGraph === 'function') drawTransferGraph();
 }
 
 // Collapsible Scale Note Popover Handler

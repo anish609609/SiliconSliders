@@ -285,8 +285,7 @@ function renderSingleVtcGraph(canvas, st, isModal) {
     canvas.height = Math.round(H * dpr);
   }
 
-  ctx.save();
-  ctx.scale(dpr, dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
 
@@ -301,11 +300,11 @@ function renderSingleVtcGraph(canvas, st, isModal) {
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, W, H);
 
-  // Padding
-  var padL = isModal ? 46 : VTC_GRAPH_PAD.L;
-  var padR = isModal ? 36 : VTC_GRAPH_PAD.R;
-  var padT = isModal ? 28 : VTC_GRAPH_PAD.T;
-  var padB = isModal ? 30 : VTC_GRAPH_PAD.B;
+  // Padding: generous and responsive to modal vs inline
+  var padL = isModal ? 50 : 44;
+  var padR = isModal ? 36 : 28;
+  var padT = isModal ? 26 : 22;
+  var padB = isModal ? 32 : 26;
   var plotW = W - padL - padR;
   var plotH = H - padT - padB;
 
@@ -493,7 +492,7 @@ function renderSingleVtcGraph(canvas, st, isModal) {
     ctx.restore();
   }
 
-  ctx.restore();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function drawVtcGraph() {

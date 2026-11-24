@@ -100,6 +100,19 @@ if (schematicOverlay) {
   });
 }
 
+// 3D Floating Labels Checkbox
+var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+if (toggleLabelsChk) {
+  toggleLabelsChk.addEventListener('change', function(e) {
+    if (typeof window.toggleLabels === 'function') {
+      window.toggleLabels(e.target.checked);
+    }
+  });
+  if (typeof window.toggleLabels === 'function') {
+    window.toggleLabels(toggleLabelsChk.checked);
+  }
+}
+
 // Camera reset button wiring
 var btnReset = document.getElementById('btn-reset-cam');
 if (btnReset) {

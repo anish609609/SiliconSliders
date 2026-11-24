@@ -151,13 +151,16 @@ if (btnPresetSide) {
 }
 
 // Label toggle checkbox
-var toggleLabelsChk = document.getElementById('toggle-labels');
+var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
 if (toggleLabelsChk) {
   toggleLabelsChk.addEventListener('change', function(e) {
-    if (typeof toggleLabels === 'function') {
-      toggleLabels(e.target.checked);
+    if (typeof window.toggleLabels === 'function') {
+      window.toggleLabels(e.target.checked);
     }
   });
+  if (typeof window.toggleLabels === 'function') {
+    window.toggleLabels(toggleLabelsChk.checked);
+  }
 }
 
 // 2D Schematic SVG element click handlers: jumps to 3D and highlights component

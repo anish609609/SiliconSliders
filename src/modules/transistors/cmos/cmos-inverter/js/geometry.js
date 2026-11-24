@@ -857,7 +857,7 @@ nmosChanMesh.renderOrder = 4;
 nmosChanMesh.userData.colorVar = '--c-sde-n';
 reg(nmosChanMesh, 'nmosChannel', 'active');
 
-var nmosPinchGeom = new THREE.BoxGeometry(0.7, 0.12, ACTIVE_W, 12, 1, 2);
+var nmosPinchGeom = new THREE.BoxGeometry(1.0, 0.12, ACTIVE_W, 12, 1, 2);
 var nmosPinchMat = new THREE.MeshStandardMaterial({
   color: isInitLight ? 0xb45309 : 0xf59e0b,
   emissive: 0xd97706,
@@ -894,7 +894,7 @@ pmosChanMesh.renderOrder = 4;
 pmosChanMesh.userData.colorVar = '--c-sde-p';
 reg(pmosChanMesh, 'pmosChannel', 'active');
 
-var pmosPinchGeom = new THREE.BoxGeometry(0.7, 0.12, ACTIVE_W, 12, 1, 2);
+var pmosPinchGeom = new THREE.BoxGeometry(1.0, 0.12, ACTIVE_W, 12, 1, 2);
 var pmosPinchMat = new THREE.MeshStandardMaterial({
   color: isInitLight ? 0xb45309 : 0xf59e0b,
   emissive: 0xd97706,
@@ -925,76 +925,103 @@ window.updateInverterChannels = function(vin, vout, nmosReg, pmosReg) {
   var maxH = 0.12;
 
   // 1. NMOS Channel (Source at X = -1.0, Drain at X = +1.0)
-  if (nmosReg === 'CUTOFF' || nmosReg === 'SUBTHRESHOLD') {
+  var vovN = Math.max(0, vin - 0.40);
+  if (nmosReg === 'CUTOFF' || nmosReg === 'SUBTHRESHOLD' || vovN <= 0.001) {
     nmosChanMesh.visible = false;
     nmosPinchMesh.visible = false;
   } else {
     nmosChanMesh.visible = true;
     var npos = nmosChanGeom.attributes.position;
-    var pinchX = (nmosReg === 'SATURATION') ? 0.35 : 1.0;
+
+    if (!nmosChanGeom.userData.initialX) {
+      var initX = new Float32Array(npos.count);
+      for (var k = 0; k < npos.count; k++) initX[k] = npos.getX(k);
+      nmosChanGeom.userData.initialX = initX;
+    }
+    var nInitX = nmosChanGeom.userData.initialX;
+
+    var vdsDiffN = Math.max(0, vout - vovN);
+    var isSatN = (vout >= vovN) && (nmosReg === 'SATURATION');
+    var dLN = isSatN ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vdsDiffN)) : 0.0;
+    var ratioN = (vovN > 0.0001) ? Math.min(1.0, Math.max(0, vout / vovN)) : 1.0;
 
     for (var i = 0; i < npos.count; i++) {
-      var x = npos.getX(i);
-      var u = (x + 1.0) / 2.0; // 0 at Source (-1.0), 1 at Drain (+1.0)
-      var thickness = 0;
-      if (nmosReg === 'LINEAR') {
-        var localCharge = Math.max(0.15, 1.0 - 0.65 * u * (vout / Math.max(0.1, vin - 0.40)));
-        thickness = maxH * Math.min(1.0, Math.max(0.2, localCharge));
+      var origX = nInitX[i];
+      var s = (origX + 1.0) / 2.0; // 0 at Source (-1.0), 1 at Drain (+1.0)
+      var mappedX, thickness;
+
+      if (!isSatN) {
+        mappedX = origX;
+        thickness = maxH * Math.max(0.002, 1.0 - s * ratioN);
       } else {
-        if (x <= pinchX) {
-          var frac = (x + 1.0) / (pinchX + 1.0);
-          thickness = maxH * Math.pow(Math.max(0.05, 1.0 - frac * 0.92), 0.7);
-        } else {
-          thickness = 0.01;
-        }
+        mappedX = -1.0 + s * (2.0 - dLN);
+        thickness = maxH * Math.max(0.002, 1.0 - s);
       }
+
+      npos.setX(i, mappedX);
       var signY = npos.getY(i) >= 0 ? 1 : -1;
       npos.setY(i, (signY * thickness) / 2);
     }
     npos.needsUpdate = true;
     nmosChanGeom.computeVertexNormals();
 
-    if (nmosReg === 'SATURATION') {
+    if (isSatN && dLN > 0.0005) {
       nmosPinchMesh.visible = true;
+      nmosPinchMesh.scale.x = dLN;
+      nmosPinchMesh.position.x = 1.0 - dLN / 2;
+      nmosPinchMesh.position.y = Y.actTop - 0.05;
     } else {
       nmosPinchMesh.visible = false;
     }
   }
 
   // 2. PMOS Channel (Source at X = -1.0, Drain at X = +1.0)
-  if (pmosReg === 'CUTOFF' || pmosReg === 'SUBTHRESHOLD') {
+  var vovP = Math.max(0, (1.00 - vin) - 0.40);
+  var vsdP = 1.00 - vout;
+  if (pmosReg === 'CUTOFF' || pmosReg === 'SUBTHRESHOLD' || vovP <= 0.001) {
     pmosChanMesh.visible = false;
     pmosPinchMesh.visible = false;
   } else {
     pmosChanMesh.visible = true;
     var ppos = pmosChanGeom.attributes.position;
-    var pinchX = (pmosReg === 'SATURATION') ? 0.35 : 1.0;
-    var vsd = 1.00 - vout;
-    var vsg = 1.00 - vin;
+
+    if (!pmosChanGeom.userData.initialX) {
+      var initXp = new Float32Array(ppos.count);
+      for (var kp = 0; kp < ppos.count; kp++) initXp[kp] = ppos.getX(kp);
+      pmosChanGeom.userData.initialX = initXp;
+    }
+    var pInitX = pmosChanGeom.userData.initialX;
+
+    var vsdDiffP = Math.max(0, vsdP - vovP);
+    var isSatP = (vsdP >= vovP) && (pmosReg === 'SATURATION');
+    var dLP = isSatP ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vsdDiffP)) : 0.0;
+    var ratioP = (vovP > 0.0001) ? Math.min(1.0, Math.max(0, vsdP / vovP)) : 1.0;
 
     for (var j = 0; j < ppos.count; j++) {
-      var x = ppos.getX(j);
-      var u = (x + 1.0) / 2.0; // 0 at Source (-1.0), 1 at Drain (+1.0)
-      var thickness = 0;
-      if (pmosReg === 'LINEAR') {
-        var localCharge = Math.max(0.15, 1.0 - 0.65 * u * (vsd / Math.max(0.1, vsg - 0.40)));
-        thickness = maxH * Math.min(1.0, Math.max(0.2, localCharge));
+      var origXp = pInitX[j];
+      var sp = (origXp + 1.0) / 2.0;
+      var mappedXp, thicknessP;
+
+      if (!isSatP) {
+        mappedXp = origXp;
+        thicknessP = maxH * Math.max(0.002, 1.0 - sp * ratioP);
       } else {
-        if (x <= pinchX) {
-          var frac = (x + 1.0) / (pinchX + 1.0);
-          thickness = maxH * Math.pow(Math.max(0.05, 1.0 - frac * 0.92), 0.7);
-        } else {
-          thickness = 0.01;
-        }
+        mappedXp = -1.0 + sp * (2.0 - dLP);
+        thicknessP = maxH * Math.max(0.002, 1.0 - sp);
       }
-      var signY = ppos.getY(j) >= 0 ? 1 : -1;
-      ppos.setY(j, (signY * thickness) / 2);
+
+      ppos.setX(j, mappedXp);
+      var signYp = ppos.getY(j) >= 0 ? 1 : -1;
+      ppos.setY(j, (signYp * thicknessP) / 2);
     }
     ppos.needsUpdate = true;
     pmosChanGeom.computeVertexNormals();
 
-    if (pmosReg === 'SATURATION') {
+    if (isSatP && dLP > 0.0005) {
       pmosPinchMesh.visible = true;
+      pmosPinchMesh.scale.x = dLP;
+      pmosPinchMesh.position.x = 1.0 - dLP / 2;
+      pmosPinchMesh.position.y = Y.actTop - 0.05;
     } else {
       pmosPinchMesh.visible = false;
     }
@@ -1215,3 +1242,17 @@ addLabel('NMOS', SRC_X-1.2, Y.actTop+0.9, NMOS_ZC, '#4a92c9', 'active');
 addLabel('N-SDE', -0.925, Y.actTop+0.45, NMOS_ZC - 3.4, '#8fd0f8', 'active');
 addLabel('P-SUBSTRATE', 8.5, Y.subTop+0.4, 0, '#9aa6b6', 'substrate');
 addLabel('GND', -9, Y.metalTop+0.6, -RAIL_Z, '#9aa6b6', 'metal');
+
+function toggleLabels(visible) {
+  if (typeof labelSprites !== 'undefined') {
+    labelSprites.forEach(function(s) {
+      if (s) s.visible = visible;
+    });
+  }
+}
+window.toggleLabels = toggleLabels;
+
+var initLabelChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+if (initLabelChk) {
+  toggleLabels(initLabelChk.checked);
+}

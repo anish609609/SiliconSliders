@@ -70,7 +70,7 @@ function buildFlowPools() {
 }
 
 function makeGuideTube(curve, colorHex) {
-  var pts = curve.getPoints(48);
+  var pts = curve.getPoints(64);
   var geo = new THREE.BufferGeometry().setFromPoints(pts);
   var mat = new THREE.LineBasicMaterial({
     color: colorHex,
@@ -80,88 +80,98 @@ function makeGuideTube(curve, colorHex) {
   return new THREE.Line(geo, mat);
 }
 
-function rebuildFlowCurves() {
-  var vddY = pOf('vddRail').y + 0.02;
-  var vddZ = pOf('vddRail').z;
+// Helper to build strictly orthogonal piecewise linear paths inside physical conductors
+function createOrthogonalPath(points) {
+  var path = new THREE.CurvePath();
+  for (var i = 0; i < points.length - 1; i++) {
+    var p0 = points[i];
+    var p1 = points[i + 1];
+    if (p0.distanceTo(p1) > 0.001) {
+      path.add(new THREE.LineCurve3(p0, p1));
+    }
+  }
+  return path;
+}
 
-  var outY = pOf('outPin').y + 0.02;
-  var outZ = pOf('outPin').z;
-  var outEndX = pOf('outPin').x + 2.4;
+function rebuildFlowCurves() {
+  var metalY = pOf('vddRail').y;
+  var vddZ = pOf('vddRail').z;
+  var gndZ = pOf('gndRail').z;
+
+  var outSpineZ = pOf('outSpine').z;
+  var outEndX = pOf('outPin').x + 2.5;
+
+  var actMidY = pOf('pmosSharedDrn').y;
 
   var pA_x = pOf('pmosASrcCt').x;
-  var pA_z = pOf('pmosASrc').z;
-  var pA_y = pOf('pmosASrc').y + 0.08;
+  var pA_z = pOf('pmosASrcCt').z;
 
   var pSh_x = pOf('pmosSharedDrnCt').x;
-  var pSh_z = pOf('pmosSharedDrn').z;
-  var pSh_y = pOf('pmosSharedDrn').y + 0.08;
+  var pSh_z = pOf('pmosSharedDrnCt').z;
 
   var pB_x = pOf('pmosBSrcCt').x;
-  var pB_z = pOf('pmosBSrc').z;
-  var pB_y = pOf('pmosBSrc').y + 0.08;
+  var pB_z = pOf('pmosBSrcCt').z;
 
   var gA_x = pOf('polyA').x;
   var gB_x = pOf('polyB').x;
 
-  /* 1. MP1 Pull-Up Curve: VDD -> vddStubPmosA -> pmosASrcCt -> pmosASrc -> Gate A channel -> pmosSharedDrn -> pmosSharedDrnCt -> outPmosBranch -> outSpine -> outPin */
-  pmosACurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(pA_x - 3.0, vddY, vddZ),
-    new THREE.Vector3(pA_x, vddY, vddZ),
-    new THREE.Vector3(pA_x, vddY, pA_z),
-    new THREE.Vector3(pA_x, pA_y, pA_z),
-    new THREE.Vector3(gA_x, pA_y - 0.03, pA_z),
-    new THREE.Vector3(pSh_x, pSh_y, pSh_z),
-    new THREE.Vector3(pSh_x, outY, pSh_z),
-    new THREE.Vector3(pSh_x, outY, outZ),
-    new THREE.Vector3(pOf('outNmosBranch').x, outY, outZ),
-    new THREE.Vector3(outEndX, outY, outZ)
-  ], false, 'catmullrom', 0.12);
-  pmosACurve.userData = { type: 'pmos' };
+  var nA_x = pOf('nmosASrcCt').x;
+  var nA_z = pOf('nmosASrcCt').z;
 
-  /* 2. MP2 Pull-Up Curve: VDD -> vddStubPmosB -> pmosBSrcCt -> pmosBSrc -> Gate B channel -> pmosSharedDrn -> pmosSharedDrnCt -> outPmosBranch -> outSpine -> outPin */
-  pmosBCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(pB_x + 3.0, vddY, vddZ),
-    new THREE.Vector3(pB_x, vddY, vddZ),
-    new THREE.Vector3(pB_x, vddY, pB_z),
-    new THREE.Vector3(pB_x, pB_y, pB_z),
-    new THREE.Vector3(gB_x, pB_y - 0.03, pB_z),
-    new THREE.Vector3(pSh_x, pSh_y, pSh_z),
-    new THREE.Vector3(pSh_x, outY, pSh_z),
-    new THREE.Vector3(pSh_x, outY, outZ),
-    new THREE.Vector3(pOf('outNmosBranch').x, outY, outZ),
-    new THREE.Vector3(outEndX, outY, outZ)
-  ], false, 'catmullrom', 0.12);
-  pmosBCurve.userData = { type: 'pmos' };
-
-  /* 3. Series NMOS Pull-Down Curve: outPin -> outSpine -> outNmosBranch -> nmosBDrnCt -> nmosBDrn -> Gate B channel -> nmosMidNode -> Gate A channel -> nmosASrc -> nmosASrcCt -> gndStubNmosA -> gndRail */
   var nB_x = pOf('nmosBDrnCt').x;
-  var nB_z = pOf('nmosBDrn').z;
-  var nB_y = pOf('nmosBDrn').y + 0.08;
+  var nB_z = pOf('nmosBDrnCt').z;
 
   var nMid_x = pOf('nmosMidNode').x;
   var nMid_z = pOf('nmosMidNode').z;
-  var nMid_y = pOf('nmosMidNode').y + 0.08;
 
-  var nA_x = pOf('nmosASrcCt').x;
-  var nA_z = pOf('nmosASrc').z;
-  var nA_y = pOf('nmosASrc').y + 0.08;
+  /* 1. MP1 Pull-Up Path: VDD Rail -> VDD Stub -> pmosASrcCt Via -> MP1 Source -> Gate A Channel -> Shared Drain -> pmosSharedDrnCt Via -> outPmosBranch -> outSpine -> outPin */
+  pmosACurve = createOrthogonalPath([
+    new THREE.Vector3(pA_x - 3.0, metalY, vddZ),
+    new THREE.Vector3(pA_x, metalY, vddZ),
+    new THREE.Vector3(pA_x, metalY, pA_z),
+    new THREE.Vector3(pA_x, actMidY, pA_z),
+    new THREE.Vector3(gA_x - 1.0, actMidY, pA_z),
+    new THREE.Vector3(gA_x + 1.0, actMidY, pA_z),
+    new THREE.Vector3(pSh_x, actMidY, pSh_z),
+    new THREE.Vector3(pSh_x, metalY, pSh_z),
+    new THREE.Vector3(pSh_x, metalY, outSpineZ),
+    new THREE.Vector3(pOf('outNmosBranch').x, metalY, outSpineZ),
+    new THREE.Vector3(outEndX, metalY, outSpineZ)
+  ]);
+  pmosACurve.userData = { type: 'pmos' };
 
-  var gndY = pOf('gndRail').y + 0.02;
-  var gndZ = pOf('gndRail').z;
+  /* 2. MP2 Pull-Up Path: VDD Rail -> VDD Stub -> pmosBSrcCt Via -> MP2 Source -> Gate B Channel -> Shared Drain -> pmosSharedDrnCt Via -> outPmosBranch -> outSpine -> outPin */
+  pmosBCurve = createOrthogonalPath([
+    new THREE.Vector3(pB_x + 3.0, metalY, vddZ),
+    new THREE.Vector3(pB_x, metalY, vddZ),
+    new THREE.Vector3(pB_x, metalY, pB_z),
+    new THREE.Vector3(pB_x, actMidY, pB_z),
+    new THREE.Vector3(gB_x + 1.0, actMidY, pB_z),
+    new THREE.Vector3(gB_x - 1.0, actMidY, pB_z),
+    new THREE.Vector3(pSh_x, actMidY, pSh_z),
+    new THREE.Vector3(pSh_x, metalY, pSh_z),
+    new THREE.Vector3(pSh_x, metalY, outSpineZ),
+    new THREE.Vector3(pOf('outNmosBranch').x, metalY, outSpineZ),
+    new THREE.Vector3(outEndX, metalY, outSpineZ)
+  ]);
+  pmosBCurve.userData = { type: 'pmos' };
 
-  nmosSeriesCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(outEndX, outY, outZ),
-    new THREE.Vector3(nB_x, outY, outZ),
-    new THREE.Vector3(nB_x, outY, nB_z),
-    new THREE.Vector3(nB_x, nB_y, nB_z),
-    new THREE.Vector3(gB_x, nB_y - 0.03, nB_z),
-    new THREE.Vector3(nMid_x, nMid_y, nMid_z),
-    new THREE.Vector3(gA_x, nA_y - 0.03, nA_z),
-    new THREE.Vector3(nA_x, nA_y, nA_z),
-    new THREE.Vector3(nA_x, gndY, nA_z),
-    new THREE.Vector3(nA_x, gndY, gndZ),
-    new THREE.Vector3(nA_x - 5.0, gndY, gndZ)
-  ], false, 'catmullrom', 0.12);
+  /* 3. Series NMOS Pull-Down Path: outPin -> outSpine -> outNmosBranch -> nmosBDrnCt Via -> MN2 Drain -> Gate B Channel -> Series N+ Bridge -> Gate A Channel -> MN1 Source -> nmosASrcCt Via -> gndStubNmosA -> GND Rail */
+  nmosSeriesCurve = createOrthogonalPath([
+    new THREE.Vector3(outEndX, metalY, outSpineZ),
+    new THREE.Vector3(pOf('outNmosBranch').x, metalY, outSpineZ),
+    new THREE.Vector3(nB_x, metalY, nB_z),
+    new THREE.Vector3(nB_x, actMidY, nB_z),
+    new THREE.Vector3(gB_x + 1.0, actMidY, nB_z),
+    new THREE.Vector3(gB_x - 1.0, actMidY, nB_z),
+    new THREE.Vector3(nMid_x, actMidY, nMid_z),
+    new THREE.Vector3(gA_x + 1.0, actMidY, nA_z),
+    new THREE.Vector3(gA_x - 1.0, actMidY, nA_z),
+    new THREE.Vector3(nA_x, actMidY, nA_z),
+    new THREE.Vector3(nA_x, metalY, nA_z),
+    new THREE.Vector3(nA_x, metalY, gndZ),
+    new THREE.Vector3(nA_x - 3.0, metalY, gndZ)
+  ]);
   nmosSeriesCurve.userData = { type: 'nmos' };
 
   refreshFlowGuides();

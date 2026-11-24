@@ -214,6 +214,11 @@ function resetAll() {
     switchWorkbenchTab('controls');
   }
 
+  // Reset 3D Floating Labels toggle
+  var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+  if (toggleLabelsChk) toggleLabelsChk.checked = true;
+  if (typeof window.toggleLabels === 'function') window.toggleLabels(true);
+
   // Sliders mode: workbench is expanded by default at max desktop width
   if (window.innerWidth >= 768) {
     expandWorkbench();

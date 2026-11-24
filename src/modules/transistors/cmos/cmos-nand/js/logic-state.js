@@ -389,133 +389,136 @@ function drawTransferOnCanvas(canvasId) {
   var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var w = canvas.width;
-  var h = canvas.height;
+  var isModal = (canvasId === 'iv-modal-canvas');
+  var dpr = window.devicePixelRatio || 1;
+  var rect = canvas.getBoundingClientRect();
+  var W = rect.width || (isModal ? 560 : 310);
+  var H = rect.height || (isModal ? 380 : 225);
 
-  // Colors
-  var colBg = isLight ? '#f8fafc' : '#0c1017';
-  var colGrid = isLight ? 'rgba(0, 0, 0, 0.07)' : 'rgba(255, 255, 255, 0.07)';
-  var colAxis = isLight ? '#94a3b8' : '#334155';
-  var colText = isLight ? '#64748b' : '#94a3b8';
-  var colCurve = isLight ? '#0284c7' : '#00f0ff';
-  var colPt = isLight ? '#0ea5e9' : '#38bdf8';
-  var colShade = isLight ? 'rgba(2, 132, 199, 0.05)' : 'rgba(0, 240, 255, 0.05)';
+  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
+    canvas.width = Math.round(W * dpr);
+    canvas.height = Math.round(H * dpr);
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+  // Palette matching E-NMOS & CMOS Inverter
+  var colBg = isLight ? '#f8fafc' : '#080c12';
+  var colGrid = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+  var colAxis = isLight ? '#94a3b8' : '#232b38';
+  var colText = isLight ? '#64748b' : '#7d8ba0';
+  var colCurve = isLight ? '#0284c7' : '#22d3ee';
+  var colPt = isLight ? '#0284c7' : '#38bdf8';
 
   ctx.fillStyle = colBg;
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(0, 0, W, H);
 
-  // Graph plotting margins
-  var padLeft = 40;
-  var padRight = 18;
-  var padTop = 24;
-  var padBottom = 32;
-  var plotW = w - padLeft - padRight;
-  var plotH = h - padTop - padBottom;
+  // Graph plotting margins: generous and matching E-NMOS
+  var padLeft = isModal ? 50 : 44;
+  var padRight = isModal ? 36 : 28;
+  var padTop = isModal ? 26 : 22;
+  var padBottom = isModal ? 34 : 28;
+  var plotW = W - padLeft - padRight;
+  var plotH = H - padTop - padBottom;
 
   function toPxX(vin) { return padLeft + (vin / 1.0) * plotW; }
   function toPxY(vout) { return padTop + (1.0 - (vout / 1.0)) * plotH; }
 
-  // Draw 5 Region background bands if sweeping VA or VB with fixed HIGH or BOTH
+  var tickFont = isModal ? '11px "IBM Plex Mono", monospace' : '9.5px "IBM Plex Mono", monospace';
+  var axisFont = isModal ? '600 11px "IBM Plex Mono", monospace' : '600 9.5px "IBM Plex Mono", monospace';
+  var tagFont = (isModal ? '10px' : '8.5px') + ' "IBM Plex Mono", monospace';
+
+  // Draw 3 Region background bands if inverting characteristic
   var fixedVal = (currentSweep === 'va' ? currentB : currentA);
   var isInvertingCurve = (currentSweep === 'both') || (fixedVal !== 'off' && Number(fixedVal) >= 0.50);
 
   if (isInvertingCurve) {
     var xVtn = toPxX(0.40);
-    var xVm = toPxX(0.52);
     var xVtp = toPxX(0.60);
 
-    // Region 1: Cutoff NMOS, Linear PMOS
-    ctx.fillStyle = isLight ? 'rgba(5, 150, 105, 0.04)' : 'rgba(47, 191, 122, 0.04)';
+    // Region 1: Cutoff NMOS, Conducting PMOS
+    ctx.fillStyle = isLight ? 'rgba(2,132,199,0.04)' : 'rgba(34,211,238,0.035)';
     ctx.fillRect(padLeft, padTop, xVtn - padLeft, plotH);
 
-    // Region 2 & 4: Transition
-    ctx.fillStyle = isLight ? 'rgba(217, 119, 6, 0.04)' : 'rgba(245, 158, 11, 0.04)';
+    // Region 2-4: Transition region
+    ctx.fillStyle = isLight ? 'rgba(217,119,6,0.05)' : 'rgba(245,158,11,0.05)';
     ctx.fillRect(xVtn, padTop, xVtp - xVtn, plotH);
 
-    // Region 5: Cutoff PMOS, Linear NMOS
-    ctx.fillStyle = isLight ? 'rgba(37, 99, 235, 0.04)' : 'rgba(79, 134, 201, 0.04)';
+    // Region 5: Conducting NMOS, Cutoff PMOS
+    ctx.fillStyle = isLight ? 'rgba(22,163,74,0.04)' : 'rgba(34,197,94,0.035)';
     ctx.fillRect(xVtp, padTop, padLeft + plotW - xVtp, plotH);
 
-    // Region text labels along the top
-    ctx.font = '9px monospace';
+    // Region text labels along top margin
+    ctx.font = tagFont;
     ctx.fillStyle = colText;
     ctx.textAlign = 'center';
-    ctx.fillText('R1', padLeft + (xVtn - padLeft) / 2, padTop - 8);
-    ctx.fillText('R2-R4', xVtn + (xVtp - xVtn) / 2, padTop - 8);
-    ctx.fillText('R5', xVtp + (padLeft + plotW - xVtp) / 2, padTop - 8);
+    ctx.fillText('R1', (padLeft + xVtn) / 2, padTop - (isModal ? 8 : 6));
+    ctx.fillText('R2-R4', (xVtn + xVtp) / 2, padTop - (isModal ? 8 : 6));
+    ctx.fillText('R5', (xVtp + padLeft + plotW) / 2, padTop - (isModal ? 8 : 6));
   }
 
-  // Grid lines
+  // Grid lines: 0.0, 0.2, 0.4, 0.6, 0.8, 1.0
   ctx.strokeStyle = colGrid;
   ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (var v = 0.2; v <= 0.8; v += 0.2) {
-    var gx = toPxX(v);
-    var gy = toPxY(v);
-    ctx.moveTo(gx, padTop); ctx.lineTo(gx, padTop + plotH);
-    ctx.moveTo(padLeft, gy); ctx.lineTo(padLeft + plotW, gy);
-  }
-  ctx.stroke();
-
-  // Axis lines
-  ctx.strokeStyle = colAxis;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(padLeft, padTop);
-  ctx.lineTo(padLeft, padTop + plotH);
-  ctx.lineTo(padLeft + plotW, padTop + plotH);
-  ctx.stroke();
-
-  // Tick marks and numbers
-  ctx.font = '10px monospace';
   ctx.fillStyle = colText;
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'middle';
-
-  for (var ty = 0.0; ty <= 1.0; ty += 0.5) {
-    var yPos = toPxY(ty);
-    ctx.fillText(ty.toFixed(1), padLeft - 6, yPos);
-  }
-
+  ctx.font = tickFont;
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  for (var tx = 0.0; tx <= 1.0; tx += 0.5) {
-    var xPos = toPxX(tx);
-    ctx.fillText(tx.toFixed(1), xPos, padTop + plotH + 6);
-  }
 
-  // Axis Titles
-  ctx.font = 'bold 10px sans-serif';
-  ctx.fillStyle = colText;
+  [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) {
+    var gx = toPxX(v);
+    ctx.beginPath();
+    ctx.moveTo(gx, padTop);
+    ctx.lineTo(gx, padTop + plotH);
+    ctx.stroke();
+    ctx.fillText(v.toFixed(1), gx, padTop + plotH + (isModal ? 15 : 13));
+  });
+
+  // X Axis Title
+  ctx.font = axisFont;
   var xTitle = currentSweep === 'va'
-    ? 'V_A (Gate A Input) [V]'
-    : (currentSweep === 'vb' ? 'V_B (Gate B Input) [V]' : 'V_IN (V_A = V_B) [V]');
-  ctx.fillText(xTitle, padLeft + plotW / 2, padTop + plotH + 18);
+    ? 'V_A (V)'
+    : (currentSweep === 'vb' ? 'V_B (V)' : 'V_IN (V_A = V_B) (V)');
+  ctx.fillText(xTitle, padLeft + plotW / 2, padTop + plotH + (isModal ? 28 : 23));
 
+  // Y Axis ticks & Grid lines
+  ctx.font = tickFont;
+  ctx.textAlign = 'right';
+  [0, 0.2, 0.4, 0.6, 0.8, 1.0].forEach(function(v) {
+    var gy = toPxY(v);
+    ctx.beginPath();
+    ctx.moveTo(padLeft, gy);
+    ctx.lineTo(padLeft + plotW, gy);
+    ctx.stroke();
+    ctx.fillText(v.toFixed(1), padLeft - 5, gy + 3.5);
+  });
+
+  // Y Axis Title
   ctx.save();
-  ctx.translate(12, padTop + plotH / 2);
+  ctx.translate(isModal ? 14 : 11, padTop + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.fillText('V_OUT [V]', 0, 0);
+  ctx.font = axisFont;
+  ctx.fillText('V_OUT (V)', 0, 0);
   ctx.restore();
 
   // Fixed parameter annotation
   if (currentSweep !== 'both') {
     var fixedLabel = currentSweep === 'va' ? 'V_B' : 'V_A';
     var fixedStr = fixedVal === 'off' ? 'OFF (High-Z)' : Number(fixedVal).toFixed(2) + 'V';
-    ctx.font = '10px monospace';
-    ctx.fillStyle = isLight ? '#b45309' : '#fbbf24';
+    ctx.font = tagFont;
+    ctx.fillStyle = isLight ? '#b45309' : '#f59e0b';
     ctx.textAlign = 'right';
     ctx.fillText('Fixed ' + fixedLabel + ' = ' + fixedStr, padLeft + plotW - 4, padTop + 14);
   }
 
-  // Draw Transfer Characteristic Curve
+  // Draw Transfer Characteristic Curve (200 sample points for razor-sharp smooth rendering)
   ctx.beginPath();
   ctx.strokeStyle = colCurve;
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = isModal ? 2.8 : 2.4;
 
-  var steps = 100;
+  var steps = 200;
   for (var s = 0; s <= steps; s++) {
     var vin = s / steps;
     var vaEff = currentSweep === 'va' ? vin : (currentSweep === 'both' ? vin : (currentA === 'off' ? 1.0 : currentA));
@@ -544,10 +547,10 @@ function drawTransferOnCanvas(canvasId) {
       var dotX = toPxX(currentVin);
       var dotY = toPxY(curVout);
 
-      // Dashed projection guidelines
-      ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.35)' : 'rgba(255, 255, 255, 0.35)';
+      // Dashed crosshairs
+      ctx.strokeStyle = isLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(255, 255, 255, 0.25)';
       ctx.lineWidth = 1;
-      ctx.setLineDash([3, 3]);
+      ctx.setLineDash([2, 2]);
       ctx.beginPath();
       ctx.moveTo(dotX, padTop + plotH); ctx.lineTo(dotX, dotY);
       ctx.moveTo(padLeft, dotY); ctx.lineTo(dotX, dotY);
@@ -555,43 +558,51 @@ function drawTransferOnCanvas(canvasId) {
       ctx.setLineDash([]);
 
       // Glow halo
-      ctx.fillStyle = isLight ? 'rgba(2, 132, 199, 0.25)' : 'rgba(0, 240, 255, 0.35)';
+      ctx.fillStyle = isLight ? 'rgba(2, 132, 199, 0.25)' : 'rgba(34, 211, 238, 0.30)';
       ctx.beginPath();
-      ctx.arc(dotX, dotY, 7, 0, Math.PI * 2);
+      ctx.arc(dotX, dotY, isModal ? 8 : 7, 0, Math.PI * 2);
       ctx.fill();
 
       // Dot core
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(dotX, dotY, 4, 0, Math.PI * 2);
-      ctx.fill();
-
       ctx.fillStyle = colPt;
       ctx.beginPath();
-      ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2);
+      ctx.arc(dotX, dotY, isModal ? 5 : 4.5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
       // Coordinate badge
       var coordText = '(' + currentVin.toFixed(2) + 'V, ' + curVout.toFixed(2) + 'V)';
-      ctx.font = 'bold 9px monospace';
+      var tagX = dotX + (currentVin > 0.6 ? -10 : 10);
+      var tagAlign = currentVin > 0.6 ? 'right' : 'left';
+      var tagY = dotY + (curVout < 0.3 ? -10 : 12);
+      ctx.font = tagFont;
       ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc';
-      var badgeW = ctx.measureText(coordText).width + 8;
-      var badgeH = 16;
-      var bx = Math.min(padLeft + plotW - badgeW - 2, Math.max(padLeft + 2, dotX + 8));
-      var by = Math.max(padTop + 4, dotY - 18);
-
-      ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.92)' : 'rgba(15, 23, 42, 0.90)';
-      ctx.fillRect(bx, by, badgeW, badgeH);
-      ctx.strokeStyle = colAxis;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(bx, by, badgeW, badgeH);
-
-      ctx.fillStyle = isLight ? '#0284c7' : '#38bdf8';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(coordText, bx + 4, by + badgeH / 2);
+      ctx.textAlign = tagAlign;
+      ctx.fillText(coordText, tagX, tagY);
     }
+  } else {
+    // High-Z floating indicator badge
+    ctx.save();
+    ctx.fillStyle = isLight ? 'rgba(217,119,6,0.12)' : 'rgba(245,158,11,0.15)';
+    ctx.strokeStyle = isLight ? '#d97706' : '#f59e0b';
+    ctx.lineWidth = 1;
+    var bx = padLeft + plotW / 2 - (isModal ? 90 : 75);
+    var by = padTop + plotH / 2 - (isModal ? 18 : 15);
+    var bw = isModal ? 180 : 150;
+    var bh = isModal ? 36 : 30;
+    ctx.fillRect(bx, by, bw, bh);
+    ctx.strokeRect(bx, by, bw, bh);
+
+    ctx.fillStyle = isLight ? '#b45309' : '#fbbf24';
+    ctx.font = '600 ' + (isModal ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('HIGH-Z (FLOATING INPUT)', padLeft + plotW / 2, by + (isModal ? 22 : 19));
+    ctx.restore();
   }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 function drawTransferGraph() {
