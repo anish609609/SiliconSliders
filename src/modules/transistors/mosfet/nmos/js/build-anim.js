@@ -46,16 +46,16 @@ var FAB_STEPS = [
   {
     step: 5,
     title: 'Heavy N+ Source/Drain & P+ Body Tap',
-    desc: 'High-dose ion implantation forms heavily doped N+ Source/Drain regions (Nd ≈ 1×10²⁰ cm⁻³) and P+ ohmic body tap, followed by rapid thermal annealing (RTA).',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
-    newLayers: ['active'],
-    narration: 'Deep self-aligned arsenic implantation forms low-resistance N-plus Source and Drain terminals alongside the P-plus body tap.'
+    desc: 'High-dose ion implantation forms heavily doped N+ Source/Drain regions (Nd ≈ 1×10²⁰ cm⁻³) and P+ ohmic body tap, establishing the built-in Source/Drain depletion shells after RTA.',
+    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
+    newLayers: ['active', 'depletion'],
+    narration: 'Deep self-aligned arsenic implantation forms low-resistance N-plus Source and Drain terminals alongside the P-plus body tap and built-in junction depletion shells.'
   },
   {
     step: 6,
     title: 'Tungsten (W) Contacts',
     desc: 'Interlayer dielectric (ILD) is deposited, contact vias are plasma etched, and CVD Tungsten plugs with TiN barrier liners are polished flush via CMP.',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
+    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
     newLayers: ['contact'],
     narration: 'Tungsten contact plugs are deposited and planarized, providing low-resistance vertical vias to the active and gate regions.'
   },
@@ -63,7 +63,7 @@ var FAB_STEPS = [
     step: 7,
     title: 'Metal-1 Interconnects',
     desc: 'First metallization layer patterned into Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body (B/GND) pads, completing the discrete NMOS transistor.',
-    layers: ['substrate', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
+    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
     newLayers: ['metal'],
     narration: 'Metal-1 copper runners are patterned, completing the discrete NMOS transistor with terminals for source, drain, gate, and body.'
   }

@@ -59,16 +59,16 @@ var COMPONENTS = {
   },
   depletionRegion: {
     id: 'depletionRegion',
-    name: 'Conformal 3D Depletion Shell',
-    title: 'Space-Charge Depletion Region (Transition Layer)',
+    name: 'DEPLETION REGION',
+    title: 'Space-Charge Depletion Region (PN Junction)',
     layer: 'Space Charge',
     role: 'Electrostatic insulating barrier layer swept free of mobile majority carriers.',
-    fn: 'Conformal shell wrapping around the P+ Anode tub (bottom and sidewalls) inside the N-Well. Width W = xp + xn dynamically expands under reverse bias and contracts under forward bias, establishing junction capacitance Cj.',
+    fn: 'Continuous charcoal space-charge envelope straddling the metallurgical P+/N junction (penetrating xp into P+ Anode and xn into N-Well). Expands under reverse bias and narrows smoothly under forward bias.',
     doping: 'Swept free of mobile carriers; contains uncompensated fixed ionized cores NA⁻ and ND⁺',
     colorVar: '--c-depletion',
-    colorHex: '#64748B',
+    colorHex: '#94A3B8',
     thickness: 'W = xp + xn (Dynamic: 0.05 μm to > 3.0 μm)',
-    area: 'Conformal tub perimeter & bottom'
+    area: 'Conformal straddling junction perimeter & bottom'
   },
   fixedIonsP: {
     id: 'fixedIonsP',
@@ -184,7 +184,7 @@ var LAYERS_LIST = [
   { id: 'substrate',   name: 'P-Substrate (Bulk Wafer)',      color: '#2B3442', visible: true },
   { id: 'nwell',       name: 'N-Well (Cathode Body Tub)',     color: '#2D5A4C', visible: true },
   { id: 'active',      name: 'Active Diffusions (P+ / N+)',   color: '#EA580C', visible: true },
-  { id: 'depletion',   name: 'Depletion Shell (Space Charge)',color: '#64748B', visible: true },
+  { id: 'depletion',   name: 'DEPLETION REGION',              color: '#94A3B8', visible: true },
   { id: 'ions',        name: 'Fixed Space-Charge Ions (±)',   color: '#14B8A6', visible: true },
   { id: 'field',       name: 'High-Field Breakdown Glow',     color: '#F43F5E', visible: true },
   { id: 'passivation', name: 'Dielectric Stack (STI & ILD)',  color: '#475569', visible: true },
@@ -214,7 +214,7 @@ var ARCHITECTURE_TREE = [
       {
         name: 'Junction Space-Charge & Field',
         children: [
-          { name: 'Conformal 3D Depletion Shell (W)', id: 'depletionRegion' },
+          { name: 'Depletion Region (W = xp + xn)', id: 'depletionRegion' },
           { name: 'Ionized Acceptor Cores (NA⁻)', id: 'fixedIonsP' },
           { name: 'Ionized Donor Cores (ND⁺)', id: 'fixedIonsN' },
           { name: 'High-Field Breakdown Zone (Ecrit)', id: 'breakdownGlow' }

@@ -10,7 +10,8 @@ var TREE = [
   { label: 'DEPLETION NMOS TRANSISTOR', children: [
     { label: 'SUBSTRATE', children: [
       { label: 'P-SUBSTRATE (BULK)', id: 'psub' },
-      { label: 'P+ BODY TAP', id: 'subtap' }
+      { label: 'P+ BODY TAP', id: 'subtap' },
+      { label: 'DEPLETION REGION', id: 'depletion' }
     ]},
     { label: 'ACTIVE / DIFFUSION', children: [
       { label: 'N+ SOURCE REGION', id: 'nmosSrc' },
@@ -26,6 +27,11 @@ var TREE = [
     { label: 'GATE ELECTRODE & SPACERS', children: [
       { label: 'POLYSILICON RUNNER', id: 'poly' },
       { label: 'GATE SIDEWALL SPACERS (Si3N4)', id: 'spacer' }
+    ]},
+    { label: 'SILICIDE (SALICIDE NiSi)', children: [
+      { label: 'SOURCE SILICIDE PAD (NiSi)', id: 'srcSil' },
+      { label: 'DRAIN SILICIDE PAD (NiSi)', id: 'drnSil' },
+      { label: 'BODY TAP SILICIDE PAD (NiSi)', id: 'subtapSil' }
     ]},
     { label: 'CONTACTS (TUNGSTEN)', id: 'contact', children: [
       { label: 'SOURCE CONTACT (W)', id: 'nmosSrcCt' },
@@ -60,6 +66,10 @@ function idToInfo(id) {
     highk: 'highk',
     poly: 'poly',
     spacer: 'spacer',
+    silicide: 'silicide',
+    srcSil: 'srcSil',
+    drnSil: 'drnSil',
+    subtapSil: 'subtapSil',
     contact: 'contact',
     nmosSrcCt: 'nmosSrcCt',
     nmosDrnCt: 'nmosDrnCt',
@@ -152,6 +162,7 @@ document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
 // ---------------------------------------------------------------------------
 var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
+  { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)' },
   { key: 'dchannel',  name: 'IMPLANTED N-CHANNEL (DEPLETION)', color: 'var(--c-sde-n)' },
   { key: 'sde',       name: 'EXTENSIONS (N-SDE / LDD)', color: 'var(--c-sde-n)' },
@@ -159,6 +170,7 @@ var layerMeta = [
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)' },
   { key: 'spacer',    name: 'GATE SPACERS (Si3N4)', color: '#67e8f9' },
+  { key: 'silicide',  name: 'SILICIDE (NiSi)', color: 'var(--c-silicide)' },
   { key: 'contact',   name: 'CONTACTS (TUNGSTEN W)', color: 'var(--c-contact)' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECTS', color: 'var(--c-metal)' }
 ];
@@ -199,6 +211,10 @@ if (layersBody) {
     var cb = row.querySelector('input');
     cb.addEventListener('change', function(e) {
       if (groups[l.key]) groups[l.key].visible = e.target.checked;
+      if (l.key === 'depletion') {
+        window.showDepletionLayer = e.target.checked;
+        if (typeof applyLogicState === 'function') applyLogicState();
+      }
     });
 
     row.querySelector('.layer-name').addEventListener('click', function() {
@@ -239,12 +255,14 @@ function updateLayersListTheme(pal) {
 
   var colorMap = {
     substrate: pal.pSubstrate,
+    depletion: isLight ? '#64748B' : '#94A3B8',
     active: pal.nPlusDiffusion,
     sde: pal.nSDE,
     dchannel: pal.electronChannel,
     channel: pal.electronChannel,
     oxide: pal.gateOxide,
     poly: pal.polysilicon,
+    silicide: isLight ? '#647082' : '#6e7887',
     contact: pal.via,
     metal: pal.metal,
     src: pal.nPlusDiffusion,

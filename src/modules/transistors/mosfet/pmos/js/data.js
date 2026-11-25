@@ -7,6 +7,7 @@
 var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the deep N-Well tub.' },
   { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)', desc: 'Deep retrograde N-type tub diffused into P-substrate (Nd ≈ 1×10¹⁷ cm⁻³). Isolates the PMOS active region.' },
+  { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)', desc: 'Ionized space-charge shells wrapping the P+ Source/Drain junctions inside the N-Well and sub-gate bulk depletion pocket. Separate around S/D at |VGS|=0, merges beneath SiO2 in subthreshold/inversion, and bulges around Drain in saturation.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)', desc: 'Heavily doped P+ regions forming the Source and Drain terminals (Na ≈ 1×10²⁰ cm⁻³).' },
   { key: 'channel',   name: 'HOLE INVERSION CHANNEL (P-TYPE)', color: 'var(--c-sde-p)', desc: 'Conductive surface inversion layer of mobile holes induced beneath gate oxide when VSG > |VTH,p|.' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (P-SDE / LDD)', color: 'var(--c-sde-p)', desc: 'Shallow, lightly doped extension regions (Na ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI).' },
@@ -80,12 +81,12 @@ var INFO = {
     doping: 'Induced mobile holes — p-channel active inversion layer'
   },
   depletion: {
-    title: 'SATURATION PINCH-OFF DEPLETION REGION',
-    fn: 'Space-charge depletion region formed near the drain edge when VSD ≥ VSG - |VTH,p|.',
-    role: 'At pinch-off, the hole channel inversion layer terminates at Leff = L - ΔL. The remaining gap ΔL is depleted of mobile holes; a strong electric field sweeps velocity-saturated holes across the depletion region into the Drain.',
-    conn: 'High-field space-charge region bridging pinched hole channel to P+ Drain.',
-    rel: 'Expands with drain bias (VSD - VOV) toward the source, causing channel length modulation (CLM).',
-    doping: 'High-field ionized space-charge region (depleted of mobile holes)'
+    title: 'DEPLETION REGION (SPACE-CHARGE ENVELOPE)',
+    fn: 'Built-in PN-junction depletion shells around P+ Source/S-LDD and P+ Drain/D-LDD inside the N-Well plus the gate-induced bulk depletion cradle beneath SiO2.',
+    role: 'At equilibrium (|VGS|=0, |VDS|=0), two separate shells wrap Source and Drain independently. For 0 < |VGS| < |VTH,p| (subthreshold), a bulk depletion pocket grows under SiO2 and merges them. Above |VTH,p|, the depletion cradle sits beneath the hole inversion channel; in saturation (|VDS| ≥ |VGS| - |VTH,p|), the Drain-side depletion bulb expands asymmetrically as Leff shifts toward Source.',
+    conn: 'Wraps P+ Source/P-SDE and P+ Drain/P-SDE junctions inside the N-Well and underlies the hole inversion channel.',
+    rel: 'Isolates active P+ diffusions from the N-Well body and governs threshold band bending and channel-length modulation.',
+    doping: 'Ionized fixed donor space-charge region (depleted of mobile carriers)'
   },
   oxide: {
     title: 'GATE OXIDE (INTERFACIAL SiO2)',

@@ -7,6 +7,7 @@
 var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the deep N-Well tub.' },
   { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)', desc: 'Deep retrograde N-type tub diffused into P-substrate (Nd ≈ 1×10¹⁷ cm⁻³). Isolates the PMOS active region.' },
+  { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)', desc: 'Continuous space-charge depletion envelope wrapping the P+ Source/Drain junctions and channel underside inside the N-Well. Expands downward into the implanted P-channel for positive VGS until cutoff, remains visible beneath the enriched channel for negative VGS, and widens asymmetrically around the Drain under positive VSD.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)', desc: 'Heavily doped P+ regions forming the Source and Drain terminals (Na ≈ 1×10²⁰ cm⁻³).' },
   { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL (DEPLETION)', color: 'var(--c-sde-p)', desc: 'Permanently implanted shallow P-type channel (Na ≈ 2×10¹⁷ cm⁻³) bridging Source and Drain inside the N-Well, rendering the transistor Normally ON at VGS = 0V.' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (P-SDE / LDD)', color: 'var(--c-sde-p)', desc: 'Shallow, lightly doped extension regions (Na ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI).' },
@@ -80,12 +81,12 @@ var INFO = {
     doping: 'P-type shallow channel implant — Acceptor Boron (Na ≈ 2×10¹⁷ cm⁻³)'
   },
   depletion: {
-    title: 'SATURATION PINCH-OFF DEPLETION REGION',
-    fn: 'Space-charge depletion region formed near the drain edge in Saturation (VSD ≥ VTH,p - VGS).',
-    role: 'At pinch-off, the implanted hole channel terminates at Leff = L - ΔL. The remaining gap ΔL is depleted of mobile holes; a high electric field sweeps velocity-saturated holes across the depletion region into the Drain.',
-    conn: 'High-field space-charge region bridging pinched hole channel to P+ Drain.',
-    rel: 'Expands with drain bias (VSD - VOV) toward the source, causing channel length modulation (CLM).',
-    doping: 'High-field ionized space-charge region (depleted of mobile holes)'
+    title: 'DEPLETION REGION (SPACE-CHARGE ENVELOPE)',
+    fn: 'Continuous ionized space-charge region wrapping the P+ Source/Drain PN junctions, P-LDD extensions, and P-channel underside inside the N-Well, plus gate/pinch-off depletion inside the implanted channel.',
+    role: 'At VGS = 0V, VSD = 0V it forms a thin built-in junction envelope. Negative VGS (enhancement) thickens the P-channel while retaining the bottom junction envelope; positive VGS expands depletion into the channel until cutoff at VTH,p = +0.80V; increasing VSD bulges the Drain-side depletion bulb and shifts Leff toward Source.',
+    conn: 'Surrounds P+ Source, P-SDE, Implanted P-Channel, and P+ Drain inside the N-Well.',
+    rel: 'Separates the P-type active regions from the N-Well bulk and modulates effective channel length Leff = L - ΔL.',
+    doping: 'Ionized fixed dopant space-charge zone (depleted of mobile carriers)'
   },
   oxide: {
     title: 'GATE OXIDE (INTERFACIAL SiO2)',

@@ -64,9 +64,203 @@ var nwellMesh = null;
 var pTubMesh = null;
 var nTapMesh = null;
 var depletionShellMesh = null;
+var depOuterTopLoop = null;
+var depInnerTopLoop = null;
+var depMidLoop = null;
 var breakdownGlowMesh = null;
 var fixedIonsPGroup = null;
 var fixedIonsNGroup = null;
+
+var DEP_LAYERS = 14;
+var DEP_PERIM = 40;
+
+function getRoundedRectPoint(hx, hz, cr, theta) {
+  var cos = Math.cos(theta);
+  var sin = Math.sin(theta);
+  var sx = Math.max(0, hx - cr);
+  var sz = Math.max(0, hz - cr);
+  var qx = cos >= 0 ? 1 : -1;
+  var qz = sin >= 0 ? 1 : -1;
+  var cCos = Math.abs(cos);
+  var cSin = Math.abs(sin);
+  var len = Math.hypot(cCos, cSin) || 1;
+  return [
+    qx * (sx + cr * (cCos / len)),
+    qz * (sz + cr * (cSin / len))
+  ];
+}
+
+function createStraddlingDepletionGeometry() {
+  var ringVerts = (DEP_LAYERS + 1) * DEP_PERIM;
+  var totalVerts = ringVerts * 2 + 2;
+  var positions = new Float32Array(totalVerts * 3);
+  var indices = [];
+
+  var outBotIdx = ringVerts;
+  var inBase = ringVerts + 1;
+  var inBotIdx = inBase + ringVerts;
+
+  // Outer sidewalls
+  for (var i = 0; i < DEP_LAYERS; i++) {
+    var r1 = i * DEP_PERIM;
+    var r2 = (i + 1) * DEP_PERIM;
+    for (var j = 0; j < DEP_PERIM; j++) {
+      var nj = (j + 1) % DEP_PERIM;
+      var a = r1 + j, b = r2 + j, c = r2 + nj, d = r1 + nj;
+      indices.push(a, b, d, b, c, d);
+    }
+  }
+  // Outer bottom cap
+  var lastOut = DEP_LAYERS * DEP_PERIM;
+  for (var j = 0; j < DEP_PERIM; j++) {
+    var nj = (j + 1) % DEP_PERIM;
+    indices.push(outBotIdx, lastOut + nj, lastOut + j);
+  }
+
+  // Inner cavity sidewalls (facing P+ center)
+  for (var i = 0; i < DEP_LAYERS; i++) {
+    var ir1 = inBase + i * DEP_PERIM;
+    var ir2 = inBase + (i + 1) * DEP_PERIM;
+    for (var j = 0; j < DEP_PERIM; j++) {
+      var nj = (j + 1) % DEP_PERIM;
+      var a = ir1 + j, b = ir2 + j, c = ir2 + nj, d = ir1 + nj;
+      indices.push(a, d, b, b, d, c);
+    }
+  }
+  // Inner bottom cap
+  var lastIn = inBase + DEP_LAYERS * DEP_PERIM;
+  for (var j = 0; j < DEP_PERIM; j++) {
+    var nj = (j + 1) % DEP_PERIM;
+    indices.push(inBotIdx, lastIn + j, lastIn + nj);
+  }
+
+  // Top annular surface collar straddling P+/N metallurgical boundary
+  for (var j = 0; j < DEP_PERIM; j++) {
+    var nj = (j + 1) % DEP_PERIM;
+    var a = inBase + j;
+    var d = inBase + nj;
+    var b = j;
+    var c = nj;
+    indices.push(a, d, b, d, c, b);
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  return geo;
+}
+
+function updateDepletionShellVertices(xpVis, xnVis) {
+  if (!depletionShellMesh) return;
+  var geo = depletionShellMesh.geometry;
+  var posAttr = geo.getAttribute('position');
+  var arr = posAttr.array;
+
+  var halfW = P_TUB_W * 0.5;
+  var halfD = P_TUB_L * 0.5;
+  var straggle = 0.18;
+  var cornerR = 1.2;
+  var yTop = 0.008;
+
+  var xnRight = Math.min(xnVis, 3.35);
+  var xnLat = Math.min(xnVis * 0.62, 1.30);
+  var xnBot = Math.min(xnVis * 0.65, 1.25);
+  var depthOut = P_TUB_D + xnBot;
+
+  var xpLat = Math.min(xpVis, 2.15);
+  var xpBot = Math.min(xpVis * 0.85, 1.15);
+  var depthIn = Math.max(0.32, P_TUB_D - xpBot);
+
+  var ringVerts = (DEP_LAYERS + 1) * DEP_PERIM;
+  var outBotIdx = ringVerts;
+  var inBase = ringVerts + 1;
+  var inBotIdx = inBase + ringVerts;
+
+  var midEtaIdx = Math.round(DEP_LAYERS * 0.5);
+  var outerTopPts = depOuterTopLoop ? depOuterTopLoop.geometry.getAttribute('position').array : null;
+  var innerTopPts = depInnerTopLoop ? depInnerTopLoop.geometry.getAttribute('position').array : null;
+  var midPts = depMidLoop ? depMidLoop.geometry.getAttribute('position').array : null;
+
+  for (var i = 0; i <= DEP_LAYERS; i++) {
+    var eta = i / DEP_LAYERS;
+    var rFactor = Math.sqrt(Math.max(0, 1.0 - eta * eta));
+    var baseHx = halfW * (1.0 - straggle * (1.0 - rFactor));
+    var baseHz = halfD * (1.0 - straggle * (1.0 - rFactor));
+    var baseCr = cornerR * (0.35 + 0.65 * rFactor);
+
+    var curHxOut = baseHx + xnLat;
+    var curHzOut = baseHz + xnLat;
+    var curCrOut = Math.min(baseCr + xnLat * 0.35, curHxOut * 0.92, curHzOut * 0.92);
+    var yOut = yTop - (depthOut + yTop) * eta;
+
+    var curHxIn = Math.max(0.65, baseHx - xpLat);
+    var curHzIn = Math.max(0.95, baseHz - xpLat);
+    var curCrIn = Math.min(baseCr * 0.78, curHxIn * 0.85, curHzIn * 0.85);
+    var yIn = yTop - (depthIn + yTop) * eta;
+
+    for (var j = 0; j < DEP_PERIM; j++) {
+      var theta = (j / DEP_PERIM) * Math.PI * 2;
+      var cosT = Math.cos(theta);
+      var ptOut = getRoundedRectPoint(curHxOut, curHzOut, curCrOut, theta);
+      if (cosT > 0 && xnRight > xnLat) {
+        ptOut[0] += (xnRight - xnLat) * (cosT * cosT) * (0.35 + 0.65 * rFactor);
+      }
+      var oIdx = (i * DEP_PERIM + j) * 3;
+      arr[oIdx] = ptOut[0];
+      arr[oIdx + 1] = yOut;
+      arr[oIdx + 2] = ptOut[1];
+
+      var ptIn = getRoundedRectPoint(curHxIn, curHzIn, curCrIn, theta);
+      var iIdx = (inBase + i * DEP_PERIM + j) * 3;
+      arr[iIdx] = ptIn[0];
+      arr[iIdx + 1] = yIn;
+      arr[iIdx + 2] = ptIn[1];
+
+      if (i === 0) {
+        if (outerTopPts) {
+          outerTopPts[j * 3] = ptOut[0];
+          outerTopPts[j * 3 + 1] = yTop + 0.003;
+          outerTopPts[j * 3 + 2] = ptOut[1];
+        }
+        if (innerTopPts) {
+          innerTopPts[j * 3] = ptIn[0];
+          innerTopPts[j * 3 + 1] = yTop + 0.003;
+          innerTopPts[j * 3 + 2] = ptIn[1];
+        }
+      }
+      if (i === midEtaIdx && midPts) {
+        midPts[j * 3] = ptOut[0];
+        midPts[j * 3 + 1] = yOut;
+        midPts[j * 3 + 2] = ptOut[1];
+      }
+    }
+  }
+
+  arr[outBotIdx * 3] = (xnRight - xnLat) * 0.25;
+  arr[outBotIdx * 3 + 1] = -depthOut;
+  arr[outBotIdx * 3 + 2] = 0;
+
+  arr[inBotIdx * 3] = 0;
+  arr[inBotIdx * 3 + 1] = -depthIn;
+  arr[inBotIdx * 3 + 2] = 0;
+
+  posAttr.needsUpdate = true;
+  geo.computeVertexNormals();
+  geo.computeBoundingSphere();
+
+  if (depOuterTopLoop) {
+    depOuterTopLoop.geometry.getAttribute('position').needsUpdate = true;
+    depOuterTopLoop.geometry.computeBoundingSphere();
+  }
+  if (depInnerTopLoop) {
+    depInnerTopLoop.geometry.getAttribute('position').needsUpdate = true;
+    depInnerTopLoop.geometry.computeBoundingSphere();
+  }
+  if (depMidLoop) {
+    depMidLoop.geometry.getAttribute('position').needsUpdate = true;
+    depMidLoop.geometry.computeBoundingSphere();
+  }
+}
 
 // Materials dictionary
 var diodeMaterials = {};
@@ -265,55 +459,82 @@ function buildDiodeGeometry() {
   var isLight = (currentTheme === 'light');
   var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
 
-  // Theme-sensitive colors from unified palette
+  // Theme-sensitive colors from unified palette (matching D-NMOS charcoal depletion style)
   var subColor = pal ? pal.pSubstrate : (isLight ? 0x93c5fd : 0x1e3a5f);
   var wellColor = pal ? pal.nWell : (isLight ? 0x4ade80 : 0x166534);
   var pColor = pal ? pal.pPlusDiffusion : (isLight ? 0x1d4ed8 : 0x2563eb);
   var nColor = pal ? pal.nPlusDiffusion : (isLight ? 0x15803d : 0x15803d);
-  var depletColor = pal ? pal.depletion : (isLight ? 0x475569 : 0x64748b);
+  var depletColor = isLight ? 0x64748b : 0x94a3b8;
+  var depletEmissive = isLight ? 0x334155 : 0x475569;
   var metalColor = pal ? pal.metal : (isLight ? 0x475569 : 0x94a3b8);
   var oxideColor = pal ? pal.fieldOxide : (isLight ? 0x64748b : 0x475569);
   var viaColor = pal ? pal.via : (isLight ? 0x334155 : 0xcbd5e1);
   var fieldOpacity = pal ? pal.fieldOxideOpacity : (isLight ? 0.35 : 0.45);
-  var depletOpacity = pal ? pal.depletionOpacity : 0.26;
+  var depletOpacity = 0.38;
 
   diodeMaterials.substrate = new THREE.MeshStandardMaterial({
     color: subColor,
     roughness: 0.85,
     metalness: 0.05,
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
     emissive: 0x000000,
     emissiveIntensity: 0
   });
 
   diodeMaterials.nwell = new THREE.MeshStandardMaterial({
     color: wellColor,
-    roughness: 0.50,
-    metalness: 0.20,
+    roughness: isLight ? 0.72 : 0.50,
+    metalness: isLight ? 0.05 : 0.20,
     transparent: true,
-    opacity: 0.88
+    opacity: 0.48,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.0,
+    polygonOffsetUnits: -1.0
   });
 
   diodeMaterials.pRegion = new THREE.MeshStandardMaterial({
     color: pColor,
     roughness: 0.40,
-    metalness: 0.20
+    metalness: 0.20,
+    transparent: true,
+    opacity: 0.86,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.5,
+    polygonOffsetUnits: -1.5
   });
 
   diodeMaterials.nRegion = new THREE.MeshStandardMaterial({
     color: nColor,
     roughness: 0.40,
-    metalness: 0.20
+    metalness: 0.20,
+    transparent: true,
+    opacity: 0.86,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.5,
+    polygonOffsetUnits: -1.5
   });
 
   diodeMaterials.depletion = new THREE.MeshStandardMaterial({
     color: depletColor,
-    emissive: 0x1e293b,
-    emissiveIntensity: 0.15,
-    roughness: 0.40,
-    metalness: 0.10,
+    emissive: depletEmissive,
+    emissiveIntensity: 0.14,
+    roughness: 0.55,
+    metalness: 0.08,
     transparent: true,
     opacity: depletOpacity,
-    depthWrite: false
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -0.5,
+    polygonOffsetUnits: -0.5,
+    side: THREE.DoubleSide
   });
 
   diodeMaterials.breakdownGlow = new THREE.MeshBasicMaterial({
@@ -361,6 +582,7 @@ function buildDiodeGeometry() {
   var subGeo = new THREE.BoxGeometry(SUB_L, SUB_H, SUB_W);
   subMesh = new THREE.Mesh(subGeo, diodeMaterials.substrate);
   subMesh.position.set(0, -SUB_H / 2, 0); // Y: -4.0 to 0.0
+  subMesh.renderOrder = 0;
   subMesh.receiveShadow = true;
   subMesh.userData = { id: 'substrate', layerKey: 'substrate' };
   clickableMeshes.push(subMesh);
@@ -383,7 +605,8 @@ function buildDiodeGeometry() {
     cornerR: 1.8
   });
   nwellMesh = new THREE.Mesh(wellGeo, diodeMaterials.nwell);
-  nwellMesh.position.set(0, -WELL_H / 2, 0); // Y: -3.0 to 0.0
+  nwellMesh.position.set(0, -WELL_H / 2 + 0.002, 0); // Y: -3.0 to 0.002
+  nwellMesh.renderOrder = 1;
   nwellMesh.receiveShadow = true;
   nwellMesh.userData = { id: 'nwell', layerKey: 'nwell' };
   clickableMeshes.push(nwellMesh);
@@ -407,7 +630,8 @@ function buildDiodeGeometry() {
     cornerR: 1.2
   });
   pTubMesh = new THREE.Mesh(pTubGeo, diodeMaterials.pRegion);
-  pTubMesh.position.set(-4.8, -P_TUB_D / 2, 0); // Y: -1.6 to 0.0
+  pTubMesh.position.set(-4.8, -P_TUB_D / 2 + 0.004, 0); // Y: -1.6 to 0.004
+  pTubMesh.renderOrder = 2;
   pTubMesh.castShadow = true;
   pTubMesh.receiveShadow = true;
   pTubMesh.userData = { id: 'pRegion', layerKey: 'active' };
@@ -429,7 +653,8 @@ function buildDiodeGeometry() {
     cornerR: 1.2
   });
   nTapMesh = new THREE.Mesh(nTapGeo, diodeMaterials.nRegion);
-  nTapMesh.position.set(4.8, -N_TAP_D / 2, 0); // Y: -1.3 to 0.0
+  nTapMesh.position.set(4.8, -N_TAP_D / 2 + 0.004, 0); // Y: -1.3 to 0.004
+  nTapMesh.renderOrder = 2;
   nTapMesh.castShadow = true;
   nTapMesh.receiveShadow = true;
   nTapMesh.userData = { id: 'nRegion', layerKey: 'active' };
@@ -444,28 +669,49 @@ function buildDiodeGeometry() {
   nTapMesh.add(nEdges);
 
   // =========================================================================
-  // 4. CONFORMAL 3D DEPLETION SHELL
+  // 4. CONFORMAL 3D STRADDLING DEPLETION REGION SHELL
   // =========================================================================
-  // Conformal shell wrapping around the P+ tub inside the N-Well.
-  // Dynamic scale will expand its bottom & sidewalls based on W = xp + xn.
-  var depGeo = createGaussianTubGeometry(P_TUB_W + 0.3, P_TUB_D + 0.25, P_TUB_L + 0.3, {
-    nLayers: 14,
-    nPerim: 28,
-    straggle: 0.22,
-    cornerR: 1.35
-  });
+  // Hollow conformal envelope straddling the metallurgical P+/N junction:
+  // penetrates inward into P+ Anode by xp and outward into N-Well by xn.
+  var depGeo = createStraddlingDepletionGeometry();
   depletionShellMesh = new THREE.Mesh(depGeo, diodeMaterials.depletion);
-  depletionShellMesh.position.set(-4.8, -P_TUB_D / 2, 0);
+  depletionShellMesh.position.set(-4.8, 0, 0);
+  depletionShellMesh.renderOrder = 4;
   depletionShellMesh.userData = { id: 'depletionRegion', layerKey: 'depletion' };
   clickableMeshes.push(depletionShellMesh);
   groups.depletion.add(depletionShellMesh);
 
-  var depEdges = new THREE.LineSegments(
-    new THREE.EdgesGeometry(depGeo),
-    new THREE.LineBasicMaterial({ color: 0x64748b, transparent: true, opacity: 0.35, depthWrite: false })
+  var depLineColor = isLight ? 0x475569 : 0x94a3b8;
+  function makeDepLoop(opacity) {
+    var lg = new THREE.BufferGeometry();
+    lg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(DEP_PERIM * 3), 3));
+    var lm = new THREE.LineBasicMaterial({ color: depLineColor, transparent: true, opacity: opacity, depthWrite: false });
+    var loop = new THREE.LineLoop(lg, lm);
+    loop.renderOrder = 5;
+    loop.raycast = function () {};
+    depletionShellMesh.add(loop);
+    return loop;
+  }
+  depOuterTopLoop = makeDepLoop(0.62);
+  depInnerTopLoop = makeDepLoop(0.48);
+  depMidLoop = makeDepLoop(0.32);
+
+  // Subtle metallurgical P+/N seam line at top silicon surface inside the shell
+  var juncPts = [];
+  for (var jp = 0; jp < DEP_PERIM; jp++) {
+    var jt = (jp / DEP_PERIM) * Math.PI * 2;
+    var jpt = getRoundedRectPoint(P_TUB_W * 0.5, P_TUB_L * 0.5, 1.2, jt);
+    juncPts.push(new THREE.Vector3(jpt[0], 0.011, jpt[1]));
+  }
+  var juncLine = new THREE.LineLoop(
+    new THREE.BufferGeometry().setFromPoints(juncPts),
+    new THREE.LineBasicMaterial({ color: isLight ? 0x1e293b : 0xe2e8f0, transparent: true, opacity: 0.42, depthWrite: false })
   );
-  depEdges.raycast = function () {};
-  depletionShellMesh.add(depEdges);
+  juncLine.renderOrder = 5;
+  juncLine.raycast = function () {};
+  depletionShellMesh.add(juncLine);
+
+  updateDepletionShellVertices(0.18, 0.96);
 
   // =========================================================================
   // 5. HIGH-FIELD BREAKDOWN GLOW MESH
@@ -496,7 +742,8 @@ function buildDiodeGeometry() {
   // 7a. Shallow Trench Isolation (STI) between P+ tub and N+ tap: X in [-1.6, 2.0]
   var stiGeo = new THREE.BoxGeometry(3.6, 0.8, P_TUB_L + 1.2);
   var stiMesh = new THREE.Mesh(stiGeo, diodeMaterials.sti);
-  stiMesh.position.set(0.2, -0.4, 0); // Y: -0.8 to 0.0
+  stiMesh.position.set(0.2, -0.4 + 0.003, 0); // Y: -0.8 to 0.003
+  stiMesh.renderOrder = 3;
   stiMesh.userData = { id: 'sti', layerKey: 'passivation' };
   clickableMeshes.push(stiMesh);
   groups.passivation.add(stiMesh);
@@ -517,7 +764,8 @@ function buildDiodeGeometry() {
   var ildHeight = 1.6;
   var ildCenterGeo = new THREE.BoxGeometry(4.8, ildHeight, P_TUB_L);
   var ildCenterMesh = new THREE.Mesh(ildCenterGeo, diodeMaterials.passivation);
-  ildCenterMesh.position.set(0.0, ildHeight / 2, 0); // Center between via windows
+  ildCenterMesh.position.set(0.0, ildHeight / 2 + 0.012, 0); // Center between via windows
+  ildCenterMesh.renderOrder = 6;
   ildCenterMesh.userData = { id: 'passivation', layerKey: 'passivation' };
   clickableMeshes.push(ildCenterMesh);
   groups.passivation.add(ildCenterMesh);
@@ -619,7 +867,7 @@ function buildDiodeGeometry() {
 
   var lblJunction = makeLabelSprite('P+/N JUNCTION', '#94a3b8', 'Metallurgical Boundary');
   lblJunction.position.set(-1.6, -P_TUB_D - 1.2, 0);
-  groups.depletion.add(lblJunction);
+  groups.labels.add(lblJunction);
   interactiveLabels.push(lblJunction);
 }
 
@@ -676,23 +924,13 @@ function updateDiode3DGeometry(state) {
   var xpUm = state.xpUm || (wUm * 0.1);
   var xnUm = state.xnUm || (wUm * 0.9);
 
-  // Physical to visual scale factor
-  var scaleFactor = 7.0;
-  var xpVis = Math.max(0.10, Math.min(3.2, xpUm * scaleFactor));
-  var xnVis = Math.max(0.12, Math.min(4.8, xnUm * scaleFactor));
-  var totalWVis = xpVis + xnVis;
+  // Smooth physical-to-visual mapping capturing both asymmetric (NA vs ND)
+  // penetration and crisp bias-driven narrowing (Va > 0) / widening (Va < 0).
+  var xpVis = Math.max(0.05, Math.min(2.10, Math.pow(xpUm, 0.78) * 2.35));
+  var xnVis = Math.max(0.06, Math.min(3.35, Math.pow(xnUm, 0.78) * 2.35));
 
-  // 1. Conformal Depletion Shell Scaling
-  // Shell wraps around P+ tub: center at -4.8, depth at -P_TUB_D / 2.
-  // Sidewall extends outward by xnVis toward Cathode tap (+X),
-  // and bottom extends deeper by xnVis.
-  var scaleX = 1.0 + (xnVis / P_TUB_W) * 1.8;
-  var scaleY = 1.0 + (xnVis / P_TUB_D) * 1.4;
-  var scaleZ = 1.0 + (xnVis / P_TUB_L) * 1.2;
-
-  depletionShellMesh.scale.set(scaleX, scaleY, scaleZ);
-  // Shift center slightly toward right (+X) and downward (-Y) as xn expands outward
-  depletionShellMesh.position.set(-4.8 + xnVis * 0.35, -P_TUB_D / 2 - xnVis * 0.25, 0);
+  // 1. Update conformal straddling depletion shell in-place (zero Z-fighting)
+  updateDepletionShellVertices(xpVis, xnVis);
 
   // 2. Position Fixed Space-Charge Ions in an Orderly Lattice
   // 3 columns in X, 3 rows in Y, 4 planes in Z
@@ -807,9 +1045,17 @@ function updateMaterialsTheme() {
     diodeMaterials.sti.opacity = pal.fieldOxideOpacity || 0.45;
   }
   if (diodeMaterials.depletion) {
-    diodeMaterials.depletion.color.set(pal.depletion);
-    diodeMaterials.depletion.opacity = pal.depletionOpacity || 0.26;
+    diodeMaterials.depletion.color.setHex(isLight ? 0x64748b : 0x94a3b8);
+    if (diodeMaterials.depletion.emissive) {
+      diodeMaterials.depletion.emissive.setHex(isLight ? 0x334155 : 0x475569);
+    }
+    diodeMaterials.depletion.emissiveIntensity = 0.14;
+    diodeMaterials.depletion.opacity = 0.38;
   }
+  var depLineHex = isLight ? 0x475569 : 0x94a3b8;
+  if (depOuterTopLoop && depOuterTopLoop.material) depOuterTopLoop.material.color.setHex(depLineHex);
+  if (depInnerTopLoop && depInnerTopLoop.material) depInnerTopLoop.material.color.setHex(depLineHex);
+  if (depMidLoop && depMidLoop.material) depMidLoop.material.color.setHex(depLineHex);
 
   if (typeof updateLayersListTheme === 'function') {
     updateLayersListTheme(pal);

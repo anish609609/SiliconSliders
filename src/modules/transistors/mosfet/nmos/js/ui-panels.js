@@ -10,7 +10,8 @@ var TREE = [
   { label: 'NMOS TRANSISTOR', children: [
     { label: 'SUBSTRATE', children: [
       { label: 'P-SUBSTRATE (BULK)', id: 'psub' },
-      { label: 'P+ BODY TAP', id: 'subtap' }
+      { label: 'P+ BODY TAP', id: 'subtap' },
+      { label: 'DEPLETION REGION', id: 'depletion' }
     ]},
     { label: 'ACTIVE / DIFFUSION', children: [
       { label: 'N+ SOURCE REGION', id: 'nmosSrc' },
@@ -78,6 +79,12 @@ function idToInfo(id) {
 
 function meshesForId(id) {
   if (VIRTUAL[id]) return VIRTUAL[id].meshes.map(findMesh).filter(Boolean);
+  if (id === 'depletion') {
+    var list = selectable.filter(function(item) {
+      return item && item.userData && item.userData.id === 'depletion';
+    });
+    if (list.length) return list;
+  }
   var m = findMesh(id);
   return m ? [m] : [];
 }
@@ -146,6 +153,7 @@ document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
 // ---------------------------------------------------------------------------
 var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
+  { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)' },
   { key: 'sde',       name: 'EXTENSIONS (N-SDE / LDD)', color: 'var(--c-sde-n)' },
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
@@ -192,6 +200,10 @@ if (layersBody) {
     var cb = row.querySelector('input');
     cb.addEventListener('change', function(e) {
       if (groups[l.key]) groups[l.key].visible = e.target.checked;
+      if (l.key === 'depletion') {
+        window.showDepletionLayer = e.target.checked;
+        if (typeof applyLogicState === 'function') applyLogicState();
+      }
     });
 
     row.querySelector('.layer-name').addEventListener('click', function() {
@@ -232,6 +244,7 @@ function updateLayersListTheme(pal) {
 
   var colorMap = {
     substrate: pal.pSubstrate,
+    depletion: isLight ? '#64748B' : '#94A3B8',
     active: pal.nPlusDiffusion,
     sde: pal.nSDE || pal.implantedNChannel,
     channel: pal.electronChannel,

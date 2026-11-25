@@ -6,6 +6,7 @@
 
 var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the D-NMOS transistor channel and depletion region.' },
+  { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)', desc: 'Continuous space-charge depletion envelope wrapping the N+ Source/Drain junctions and channel underside inside the P-substrate. Expands under negative VGS to pinch off the channel and widens asymmetrically around the Drain under positive VDS.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)', desc: 'Heavily doped N+ regions forming the Source and Drain terminals (Nd ≈ 1×10²⁰ cm⁻³).' },
   { key: 'dchannel',  name: 'IMPLANTED N-CHANNEL (DEPLETION)', color: 'var(--c-sde-n)', desc: 'Permanently implanted shallow N-type donor layer bridging Source and Drain beneath the gate oxide. Provides a conductive electron path at zero gate bias (VGS = 0V, Normally ON).' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (N-SDE / LDD)', color: 'var(--c-sde-n)', desc: 'Shallow, lightly doped extension regions (Nd ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI) and short-channel effects.' },
@@ -13,6 +14,7 @@ var LEGEND = [
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling while eliminating quantum mechanical direct-tunneling leakage.' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)', desc: 'Gate electrode controlling electrostatic potential across the channel to induce electron inversion or channel depletion.' },
   { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep N+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
+  { key: 'silicide',  name: 'SILICIDE (NiSi)', color: 'var(--c-silicide)', desc: 'Self-aligned nickel silicide (NiSi) layer formed on exposed Source/Drain silicon to create a low-resistance ohmic contact for Tungsten vias.' },
   { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion and poly layers to the first metal interconnect.' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body Tap (B/GND) terminals.' },
   { key: 'src',       name: 'SOURCE TERMINAL (S)', color: 'var(--c-active-n)', desc: 'Supplies carrier electrons into the channel; typically tied to circuit ground (0V).' },
@@ -71,12 +73,12 @@ var INFO = {
     doping: 'N-type implanted layer — Nd ≈ 2×10¹⁷ cm⁻³ (Arsenic/Phosphorus ion implant)'
   },
   depletion: {
-    title: 'SATURATION PINCH-OFF DEPLETION REGION',
-    fn: 'Space-charge depletion region formed near the drain edge when VDS ≥ VGS - VTH.',
-    role: 'At pinch-off, the channel inversion layer ends at Leff = L - ΔL. The remaining gap ΔL is depleted of mobile carriers; a high lateral electric field sweeps velocity-saturated electrons across this space-charge zone into the Drain.',
-    conn: 'High-field space-charge region bridging pinched channel edge to N+ Drain.',
-    rel: 'Expands monotonically with drain overdrive (VDS - VOV) toward the source, causing channel length modulation (CLM).',
-    doping: 'High-field ionized space-charge region (depleted of mobile electrons)'
+    title: 'DEPLETION REGION (SPACE-CHARGE ENVELOPE)',
+    fn: 'Continuous ionized space-charge region wrapping the N+ Source/Drain PN junctions, LDD extensions, and channel underside, plus the gate/pinch-off depletion zone inside the implanted N-channel.',
+    role: 'At VGS = 0V, VDS = 0V it forms a thin built-in junction envelope. Negative VGS expands depletion across the channel until full pinch-off at VTH = -0.80V; positive VDS widens the envelope asymmetrically around the Drain well and drain-side pinch-off gap ΔL.',
+    conn: 'Surrounds N+ Source, N-SDE, Implanted N-Channel, and N+ Drain inside the P-substrate.',
+    rel: 'Separates the N-type active regions from the neutral P-substrate bulk and modulates effective channel length Leff = L - ΔL.',
+    doping: 'Ionized fixed dopant space-charge zone (depleted of mobile carriers)'
   },
   oxide: {
     title: 'GATE OXIDE (INTERFACIAL SiO2)',
@@ -109,6 +111,38 @@ var INFO = {
     conn: 'Dielectric insulator flanking gate electrode and gate dielectric.',
     rel: 'Deposited conformally by LPCVD/PECVD and anisotropically reactive-ion etched (RIE) back with zero lateral mask.',
     doping: 'Dielectric insulator — Silicon Nitride (Si3N4, k ≈ 7.5)'
+  },
+  silicide: {
+    title: 'SELF-ALIGNED SILICIDE (SALICIDE / NiSi)',
+    fn: 'Low-resistivity nickel monosilicide (NiSi) ohmic contact pads selectively formed atop exposed Source/Drain and Body Tap silicon.',
+    role: 'Reduces parasitic sheet and contact resistance (Rc) between heavily doped silicon and vertical Tungsten vias while blocked from the gate sidewalls by the Si3N4 spacers.',
+    conn: 'N+ Source / N+ Drain / P+ Body Tap ↔ NiSi Silicide Pad ↔ Tungsten Contact Via',
+    rel: 'Self-aligned thermally annealed Ni/Si reaction strictly bounded by the outer edges of the Si3N4 sidewall spacers.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
+  },
+  srcSil: {
+    title: 'SOURCE SILICIDE PAD (NiSi)',
+    fn: 'Self-aligned nickel silicide (NiSi) layer formed directly on the exposed top surface of the N+ Source diffusion.',
+    role: 'Provides an ultra-low-resistance ohmic landing pad for the Source Tungsten contact via while remaining electrically isolated from the gate by the left Si3N4 spacer.',
+    conn: 'N+ Source Diffusion ↔ Source NiSi Pad ↔ Source Tungsten Via (W)',
+    rel: 'Starts flush outside the left Si3N4 spacer outer edge and spans across the exposed Source top surface matching active width W.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
+  },
+  drnSil: {
+    title: 'DRAIN SILICIDE PAD (NiSi)',
+    fn: 'Self-aligned nickel silicide (NiSi) layer formed directly on the exposed top surface of the N+ Drain diffusion.',
+    role: 'Provides an ultra-low-resistance ohmic landing pad for the Drain Tungsten contact via while remaining electrically isolated from the gate by the right Si3N4 spacer.',
+    conn: 'N+ Drain Diffusion ↔ Drain NiSi Pad ↔ Drain Tungsten Via (W)',
+    rel: 'Starts flush outside the right Si3N4 spacer outer edge and spans across the exposed Drain top surface matching active width W.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
+  },
+  subtapSil: {
+    title: 'BODY TAP SILICIDE PAD (NiSi)',
+    fn: 'Self-aligned nickel silicide (NiSi) contact pad formed atop the P+ Substrate/Body Tap.',
+    role: 'Lowers ohmic contact resistance beneath the Body Tap Tungsten via holding the P-substrate at 0V ground.',
+    conn: 'P+ Substrate Tap ↔ Body Tap NiSi Pad ↔ Body Tap Tungsten Via (W)',
+    rel: 'Seated flush between the P+ Body Tap surface and the Body Tap Tungsten plug.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
   },
   contact: {
     title: 'TUNGSTEN CONTACT PLUGS (W-VIA)',

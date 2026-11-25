@@ -187,6 +187,7 @@ function resetAll() {
 
   if (typeof applyLogicState === 'function') applyLogicState();
   if (typeof rebuildFlowCurves === 'function') rebuildFlowCurves();
+  window.showDepletionLayer = true;
 
   if (typeof clearSelection === 'function') clearSelection();
   lastSelectedId = null;

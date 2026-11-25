@@ -402,7 +402,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
 // ---------------------------------------------------------------------------
 // LAYER GROUPS & ORDER
 // ---------------------------------------------------------------------------
-var LAYER_ORDER = ['substrate', 'active', 'dchannel', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'contact', 'metal'];
+var LAYER_ORDER = ['substrate', 'depletion', 'active', 'dchannel', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'silicide', 'contact', 'metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -535,6 +535,8 @@ var Y = {
   subTop: 3.0,
   actBot: 1.804,
   actTop: 3.004,
+  silBot: 3.006,
+  silTop: 3.076,
   sdeBot: 2.508,
   sdeTop: 3.008,
   oxBot: 3.008,
@@ -543,7 +545,7 @@ var Y = {
   hkTop: 3.428,
   polyBot: 3.428,
   polyTop: 4.458,
-  ctBot: 3.008,
+  ctBot: 3.076,
   ctTop: 5.158,
   m1Bot: 5.158,
   m1Top: 5.338
@@ -693,18 +695,23 @@ channelMesh.userData.baseEmissive = chanMat.emissive.getHex();
 channelMesh.userData.baseEmissiveIntensity = chanMat.emissiveIntensity;
 reg(channelMesh, 'channel', 'dchannel');
 
-// Existing charcoal depletion-region material reused across pinch-off, depletion-mode, and cutoff
-// Base width of pinchGeom is 1.0 along X so scale.x corresponds directly to physical deltaL (or 2.0 in cutoff)
+// Shared desaturated grey-blue space-charge depletion material (~0.38 opacity)
+// Reused across both the continuous wrap-around PN-junction envelope and internal channel pinch-off/depletion zones
+var deplColorInit = isInitLightDNMOS ? 0x64748b : 0x94a3b8;
+var deplEmissiveInit = isInitLightDNMOS ? 0x334155 : 0x475569;
 var pinchGeom = new THREE.BoxGeometry(1.0, innerH, innerD, 12, 1, 2);
 var pinchMat = new THREE.MeshStandardMaterial({
-  color: palInitDNMOS ? palInitDNMOS.depletion : 0x64748b,
-  emissive: 0x1e293b,
-  emissiveIntensity: 0.15,
+  color: deplColorInit,
+  emissive: deplEmissiveInit,
+  emissiveIntensity: 0.14,
   transparent: true,
-  opacity: palInitDNMOS ? palInitDNMOS.depletionOpacity : 0.26,
+  opacity: 0.38,
   depthWrite: false,
-  roughness: 0.50,
-  metalness: 0.10,
+  roughness: 0.55,
+  metalness: 0.08,
+  polygonOffset: true,
+  polygonOffsetFactor: -0.5,
+  polygonOffsetUnits: -0.5,
   side: THREE.DoubleSide
 });
 var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
@@ -718,15 +725,15 @@ reg(pinchMesh, 'depletion', 'dchannel');
 // Subtle edge highlight for the full-height depletion region
 var pinchEdgeGeo = new THREE.EdgesGeometry(pinchGeom);
 var pinchEdgeMat = new THREE.LineBasicMaterial({
-  color: palInitDNMOS ? palInitDNMOS.depletion : 0x64748b,
+  color: deplColorInit,
   transparent: true,
-  opacity: 0.40
+  opacity: 0.45
 });
 var pinchEdgeLine = new THREE.LineSegments(pinchEdgeGeo, pinchEdgeMat);
 pinchEdgeLine.raycast = function() {};
 pinchMesh.add(pinchEdgeLine);
 
-// Complementary charcoal depletion wedges filling the depleted zones above/below the thinned/tapered channel
+// Complementary charcoal/grey-blue depletion wedges filling the depleted zones above/below the thinned/tapered channel
 var deplUpperGeom = new THREE.BoxGeometry(2.0, 1.0, innerD, 32, 1, 2);
 var deplUpperMesh = new THREE.Mesh(deplUpperGeom, pinchMat);
 deplUpperMesh.position.set(0, innerCenterY, 0);
@@ -744,6 +751,272 @@ deplLowerMesh.visible = false;
 deplLowerMesh.userData.baseEmissive = pinchMat.emissive.getHex();
 deplLowerMesh.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
 reg(deplLowerMesh, 'depletion', 'dchannel');
+
+// ---------------------------------------------------------------------------
+// 4c. CONTINUOUS WRAP-AROUND PN-JUNCTION DEPLETION ENVELOPE IN P-SUBSTRATE
+// ---------------------------------------------------------------------------
+// Hollow closed manifold shell wrapping the bottom and sidewalls of N+ Source,
+// Source LDD, Implanted N-Channel underside, Drain LDD, and N+ Drain without
+// clipping or Z-fighting against P-substrate (y=3.000) or N+ diffusions (y=3.004).
+var DEPL_PERIM = [];
+(function initWrapDepletionPerimeter() {
+  var hx = 6.318;
+  var hz = 3.518;
+  var cr = 0.50;
+  var sx = hx - cr;
+  var sz = hz - cr;
+  var spineHalf = hx - hz; // 2.80
+
+  function addPt(x, z) {
+    var xSpine = Math.max(-spineHalf, Math.min(spineHalf, x));
+    var dx = x - xSpine;
+    var dz = z;
+    var len = Math.hypot(dx, dz) || 1;
+    DEPL_PERIM.push({
+      x: x,
+      z: z,
+      xSpine: xSpine,
+      nxh: dx / len,
+      nzh: dz / len
+    });
+  }
+
+  var nX = 64, nZ = 16, nC = 8, i, t, ang;
+  // 1. Front long edge (+Z): x from -sx to +sx
+  for (i = 0; i < nX; i++) {
+    t = i / nX;
+    addPt(-sx + t * (2 * sx), hz);
+  }
+  // 2. Front-right corner
+  for (i = 0; i < nC; i++) {
+    ang = (Math.PI / 2) * (1 - i / nC);
+    addPt(sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
+  }
+  // 3. Right end (+X): z from +sz to -sz
+  for (i = 0; i < nZ; i++) {
+    t = i / nZ;
+    addPt(hx, sz - t * (2 * sz));
+  }
+  // 4. Back-right corner
+  for (i = 0; i < nC; i++) {
+    ang = -(Math.PI / 2) * (i / nC);
+    addPt(sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang));
+  }
+  // 5. Back long edge (-Z): x from +sx to -sx
+  for (i = 0; i < nX; i++) {
+    t = i / nX;
+    addPt(sx - t * (2 * sx), -hz);
+  }
+  // 6. Back-left corner
+  for (i = 0; i < nC; i++) {
+    ang = -Math.PI / 2 - (Math.PI / 2) * (i / nC);
+    addPt(-sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang));
+  }
+  // 7. Left end (-X): z from -sz to +sz
+  for (i = 0; i < nZ; i++) {
+    t = i / nZ;
+    addPt(-hx, -sz + t * (2 * sz));
+  }
+  // 8. Front-left corner
+  for (i = 0; i < nC; i++) {
+    ang = Math.PI - (Math.PI / 2) * (i / nC);
+    addPt(-sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
+  }
+})();
+
+var DEPL_ETA = [0.0, 0.15, 0.30, 0.45, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.92, 0.97, 1.0];
+
+function deplSmoothstep(a, b, x) {
+  var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
+function getIslandDepthAtX(x) {
+  var ax = Math.abs(x);
+  var dChan = 0.363; // 3.002 - 2.639 (0.018 below slabBot 2.657)
+  var dLdd = 0.512;  // 3.002 - 2.490 (0.018 below sdeBot 2.508)
+  var dAct = 1.216;  // 3.002 - 1.786 (0.018 below actBot 1.804)
+  var t1 = deplSmoothstep(0.92, 1.06, ax);
+  var t2 = deplSmoothstep(1.80, 2.08, ax);
+  var d = dChan + (dLdd - dChan) * t1;
+  return d + (dAct - d) * t2;
+}
+
+function createWrapDepletionGeometry() {
+  var nP = DEPL_PERIM.length;
+  var nR = DEPL_ETA.length;
+  var outerCount = nR * nP;
+  var totalVerts = outerCount * 2 + nP * 2;
+  var positions = new Float32Array(totalVerts * 3);
+  var indices = [];
+
+  var i, j, nextJ, r0, r1, a, b, c, d;
+  // Outer surface (normals facing outward into P-substrate)
+  for (i = 0; i < nR - 1; i++) {
+    r0 = i * nP;
+    r1 = (i + 1) * nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      a = r0 + j;
+      b = r1 + j;
+      c = r1 + nextJ;
+      d = r0 + nextJ;
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+
+  // Inner surface (normals facing inward toward N+ S/D, LDD, and Channel)
+  for (i = 0; i < nR - 1; i++) {
+    r0 = outerCount + i * nP;
+    r1 = outerCount + (i + 1) * nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      a = r0 + j;
+      b = r1 + j;
+      c = r1 + nextJ;
+      d = r0 + nextJ;
+      indices.push(a, d, b);
+      indices.push(b, d, c);
+    }
+  }
+
+  // Top annular wafer-surface cap (y = 3.002, +Y upward normals)
+  var topInnerStart = outerCount * 2;
+  var topOuterStart = topInnerStart + nP;
+  for (j = 0; j < nP; j++) {
+    nextJ = (j + 1) % nP;
+    var v0 = topInnerStart + j;
+    var v1 = topInnerStart + nextJ;
+    var v2 = topOuterStart + nextJ;
+    var v3 = topOuterStart + j;
+    indices.push(v0, v3, v1);
+    indices.push(v1, v3, v2);
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  return geo;
+}
+
+var junctionDeplGeo = createWrapDepletionGeometry();
+var junctionDeplMesh = new THREE.Mesh(junctionDeplGeo, pinchMat);
+junctionDeplMesh.renderOrder = 2;
+junctionDeplMesh.userData.baseEmissive = pinchMat.emissive.getHex();
+junctionDeplMesh.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
+reg(junctionDeplMesh, 'depletion', 'depletion');
+
+var junctionDeplEdgePositions = new Float32Array(DEPL_PERIM.length * 3);
+var junctionDeplEdgeGeo = new THREE.BufferGeometry();
+junctionDeplEdgeGeo.setAttribute('position', new THREE.BufferAttribute(junctionDeplEdgePositions, 3));
+var junctionDeplEdgeMat = new THREE.LineBasicMaterial({
+  color: deplColorInit,
+  transparent: true,
+  opacity: 0.55,
+  depthWrite: false
+});
+var junctionDeplEdgeLoop = new THREE.LineLoop(junctionDeplEdgeGeo, junctionDeplEdgeMat);
+junctionDeplEdgeLoop.raycast = function() {};
+junctionDeplMesh.add(junctionDeplEdgeLoop);
+
+function updateWrapDepletionGeometry(vgs, vds) {
+  var posAttr = junctionDeplGeo.attributes.position;
+  var pos = posAttr.array;
+  var edgeAttr = junctionDeplEdgeGeo.attributes.position;
+  var edgeArr = edgeAttr.array;
+
+  var nP = DEPL_PERIM.length;
+  var nR = DEPL_ETA.length;
+  var outerCount = nR * nP;
+  var topInnerStart = outerCount * 2;
+  var topOuterStart = topInnerStart + nP;
+
+  var yTop = Y.subTop + 0.002; // 3.002 (0.002 above P-sub, 0.002 below N+ active top)
+  var vth = -0.80;
+  var gateDepl = (vgs < 0) ? Math.min(1.0, Math.max(0, -vgs / Math.abs(vth))) : 0.0;
+  var vdsNorm = Math.sqrt(Math.max(0, vds) / 1.8);
+
+  for (var i = 0; i < nR; i++) {
+    var eta = DEPL_ETA[i];
+    var tDepth, tHoriz, outHWeight, outVWeight;
+
+    if (eta <= 0.45) {
+      var p1 = eta / 0.45;
+      tDepth = 0.85 * p1;
+      tHoriz = 1.0;
+      outHWeight = 1.0;
+      outVWeight = 0.0;
+    } else if (eta <= 0.65) {
+      var p2 = (eta - 0.45) / 0.20;
+      var ang = p2 * (Math.PI / 2);
+      tDepth = 0.85 + 0.15 * Math.sin(ang);
+      tHoriz = 0.85 + 0.15 * Math.cos(ang);
+      outHWeight = Math.cos(ang);
+      outVWeight = Math.sin(ang);
+    } else {
+      var p3 = (eta - 0.65) / 0.35;
+      tDepth = 1.0;
+      tHoriz = 0.85 * (1.0 - p3);
+      outHWeight = 0.0;
+      outVWeight = 1.0;
+    }
+
+    for (var j = 0; j < nP; j++) {
+      var pt = DEPL_PERIM[j];
+      var inX = pt.xSpine + (pt.x - pt.xSpine) * tHoriz;
+      var inZ = pt.z * tHoriz;
+      var depth = getIslandDepthAtX(inX);
+      var inY = yTop - depth * tDepth;
+
+      // Bias-dependent depletion width:
+      // - Baseline (VGS=0, VDS=0): uniform 0.20 envelope
+      // - Negative VGS: expands under the gate
+      // - Positive VDS: asymmetrically bulges deeper/wider around Drain side
+      var drainWeight = deplSmoothstep(-0.80, 2.40, inX);
+      var gateBulge = 0.20 * gateDepl * (1.0 - deplSmoothstep(0.95, 1.45, Math.abs(inX)));
+      var drainBulge = 0.38 * vdsNorm * drainWeight;
+      var wDep = 0.20 + gateBulge + drainBulge;
+
+      var outX = inX + pt.nxh * wDep * outHWeight;
+      var outZ = inZ + pt.nzh * wDep * outHWeight;
+      var outY = Math.max(Y.subBot + 0.02, inY - wDep * outVWeight);
+
+      var oIdx = (i * nP + j) * 3;
+      pos[oIdx] = outX;
+      pos[oIdx + 1] = outY;
+      pos[oIdx + 2] = outZ;
+
+      var iIdx = (outerCount + i * nP + j) * 3;
+      pos[iIdx] = inX;
+      pos[iIdx + 1] = inY;
+      pos[iIdx + 2] = inZ;
+
+      if (i === 0) {
+        var tiIdx = (topInnerStart + j) * 3;
+        pos[tiIdx] = inX;
+        pos[tiIdx + 1] = inY;
+        pos[tiIdx + 2] = inZ;
+
+        var toIdx = (topOuterStart + j) * 3;
+        pos[toIdx] = outX;
+        pos[toIdx + 1] = outY;
+        pos[toIdx + 2] = outZ;
+
+        var eIdx = j * 3;
+        edgeArr[eIdx] = outX;
+        edgeArr[eIdx + 1] = outY + 0.0008;
+        edgeArr[eIdx + 2] = outZ;
+      }
+    }
+  }
+
+  posAttr.needsUpdate = true;
+  junctionDeplGeo.computeVertexNormals();
+  edgeAttr.needsUpdate = true;
+}
+
+updateWrapDepletionGeometry(0.0, 0.8);
 
 function getCachedBoxAxes(geom) {
   var pos = geom.attributes.position;
@@ -765,26 +1038,29 @@ function syncChannelBaseEmissive() {
   channelMesh.userData.baseEmissive = chanHex;
   channelMesh.userData.baseEmissiveIntensity = chanMat.emissiveIntensity;
   var deplHex = pinchMat.emissive ? pinchMat.emissive.getHex() : 0;
-  [pinchMesh, deplUpperMesh, deplLowerMesh].forEach(function(m) {
+  [junctionDeplMesh, pinchMesh, deplUpperMesh, deplLowerMesh].forEach(function(m) {
     m.userData.baseEmissive = deplHex;
     m.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
   });
 }
 
-// Function to dynamically deform channel thickness, taper, and charcoal depletion based on D-NMOS physics
+// Function to dynamically deform channel thickness, taper, and depletion envelope based on D-NMOS physics
 window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
   var vth = -0.80;
   var vov = Math.max(0, vgs - vth);
+  var deplLayerOn = (window.showDepletionLayer !== false);
+
+  updateWrapDepletionGeometry(vgs, vds);
 
   if (region === 'CUTOFF' || vov <= 0.001) {
     channelMesh.visible = false;
     deplUpperMesh.visible = false;
     deplLowerMesh.visible = false;
-    pinchMesh.visible = true;
+    pinchMesh.visible = deplLayerOn;
     pinchMesh.scale.x = 2.0;
     pinchMesh.position.x = 0.0;
     pinchMesh.position.y = innerCenterY;
-    pinchMat.emissiveIntensity = 0.18;
+    pinchMat.emissiveIntensity = 0.16;
     syncChannelBaseEmissive();
     return;
   }
@@ -829,9 +1105,9 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
   chanData.pos.needsUpdate = true;
   chanGeom.computeVertexNormals();
 
-  // Complementary charcoal depletion wedges above/below thinned or tapered channel
+  // Complementary depletion wedges above/below thinned or tapered channel
   var gateDepl = (vgs < 0) ? Math.min(1.0, Math.max(0, (baseH - maxH) / baseH)) : 0.0;
-  var hasWedgeDepl = (gateDepl > 0.001) || (isSat ? true : ratio > 0.001);
+  var hasWedgeDepl = deplLayerOn && ((gateDepl > 0.001) || (isSat ? true : ratio > 0.001));
   if (hasWedgeDepl) {
     deplUpperMesh.visible = true;
     deplLowerMesh.visible = true;
@@ -873,15 +1149,15 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
   chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
 
   // Full-height space-charge depletion gap mesh in Saturation when dL > 0, anchored strictly to drain edge (+1.0)
-  if (isSat && dL > 0.0005) {
+  if (deplLayerOn && isSat && dL > 0.0005) {
     pinchMesh.visible = true;
     pinchMesh.scale.x = dL;
     pinchMesh.position.x = 1.0 - dL / 2;
     pinchMesh.position.y = innerCenterY;
-    pinchMat.emissiveIntensity = 0.30 + 0.40 * Math.min(1.0, vdsDiff / 0.8);
+    pinchMat.emissiveIntensity = 0.22 + 0.25 * Math.min(1.0, vdsDiff / 0.8);
   } else {
     pinchMesh.visible = false;
-    pinchMat.emissiveIntensity = 0.15 + 0.15 * gateDepl;
+    pinchMat.emissiveIntensity = 0.14 + 0.12 * gateDepl;
   }
   syncChannelBaseEmissive();
 };
@@ -953,8 +1229,17 @@ var polyMesh = box(gateL, Y.polyTop - Y.polyBot, polyRunnerLength, '--c-poly', {
 polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2, 1.2);
 reg(polyMesh, 'poly', 'poly');
 
-// Sleek, refined crystalline Si3N4 sidewall spacers (soft translucent dielectric)
-var spacerW = 0.20;
+// Widened Si3N4 sidewall spacers matching full N-SDE/LDD lateral width:
+// outer edge aligns flush with LDD-to-N+ step-down coordinate (+/- 2.10),
+// with a tiny inner clearance (+/- 1.004) so there is zero Z-fighting against gate sidewalls or SiO2/HfO2.
+var spacerInnerGap = 0.004;
+var spacerOuterX = gateL / 2 + sdeW; // exact LDD outer edge (2.10)
+var spacerW = sdeW - spacerInnerGap; // 1.096
+var spacerBot = Y.sdeTop + 0.002;    // micro-offset above LDD top for zero Z-fighting
+var spacerH = Y.polyTop - spacerBot;
+var spacerCenterY = (Y.polyTop + spacerBot) / 2;
+var spacerCenterX = gateL / 2 + spacerInnerGap + spacerW / 2;
+
 var spacerMat = new THREE.MeshStandardMaterial({
   color: 0x7dd3fc,   // cohesive Si3N4 dielectric tone
   roughness: 0.45,   // soft satin finish, not harsh glass
@@ -962,9 +1247,12 @@ var spacerMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.62,     // refined translucency
   depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -0.5,
+  polygonOffsetUnits: -0.5,
   side: THREE.DoubleSide
 });
-var spacerGeo = new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD);
+var spacerGeo = new THREE.BoxGeometry(spacerW, spacerH, actD);
 var spacerEdges = new THREE.EdgesGeometry(spacerGeo, 24);
 var spacerEdgeMat = new THREE.LineBasicMaterial({
   color: 0xbae6fd,
@@ -975,7 +1263,8 @@ var spacerEdgeMat = new THREE.LineBasicMaterial({
 
 var spacerGroup = new THREE.Group();
 var leftSpacer = new THREE.Mesh(spacerGeo, spacerMat);
-leftSpacer.position.set(-gateL / 2 - spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
+leftSpacer.position.set(-spacerCenterX, spacerCenterY, 0);
+leftSpacer.renderOrder = 6;
 leftSpacer.userData.id = 'spacer';
 leftSpacer.userData.layer = 'spacer';
 var leftLine = new THREE.LineSegments(spacerEdges, spacerEdgeMat);
@@ -984,7 +1273,8 @@ leftSpacer.add(leftLine);
 spacerGroup.add(leftSpacer);
 
 var rightSpacer = new THREE.Mesh(spacerGeo, spacerMat);
-rightSpacer.position.set(gateL / 2 + spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
+rightSpacer.position.set(spacerCenterX, spacerCenterY, 0);
+rightSpacer.renderOrder = 6;
 rightSpacer.userData.id = 'spacer';
 rightSpacer.userData.layer = 'spacer';
 var rightLine = new THREE.LineSegments(spacerEdges, spacerEdgeMat);
@@ -993,6 +1283,88 @@ rightSpacer.add(rightLine);
 spacerGroup.add(rightSpacer);
 
 reg(spacerGroup, 'spacer', 'spacer');
+
+// ---------------------------------------------------------------------------
+// 7b. SELF-ALIGNED SILICIDE (SALICIDE / NiSi) CONTACT PADS
+// ---------------------------------------------------------------------------
+// Thin flat dark metallic silver/slate-grey NiSi pads flush on exposed N+ S/D and P+ Body Tap.
+// X-axis span begins strictly outside widened Si3N4 spacers (never touching gate).
+var silH = Y.silTop - Y.silBot;
+var silCenterY = (Y.silTop + Y.silBot) / 2;
+var silInnerEdgeX = spacerOuterX + 0.006; // strictly outside spacer outer edge (2.106)
+var silOuterEdgeX = Math.abs(srcX) + actW / 2 - 0.04; // 6.26 (cleanly within N+ rim)
+var silW = silOuterEdgeX - silInnerEdgeX;
+var silCenterX = (silOuterEdgeX + silInnerEdgeX) / 2;
+
+function createSalicidePadGeometry(w, h, d, outerDir) {
+  var hw = w / 2;
+  var hd = d / 2;
+  var rIn = 0.01;
+  var rOut = Math.min(0.40, hw * 0.45, hd * 0.45);
+  var rLeft = outerDir < 0 ? rOut : rIn;
+  var rRight = outerDir > 0 ? rOut : rIn;
+  var bevel = 0.008;
+
+  var shape = new THREE.Shape();
+  shape.moveTo(-hw + rLeft, -hd);
+  shape.lineTo(hw - rRight, -hd);
+  shape.quadraticCurveTo(hw, -hd, hw, -hd + rRight);
+  shape.lineTo(hw, hd - rRight);
+  shape.quadraticCurveTo(hw, hd, hw - rRight, hd);
+  shape.lineTo(-hw + rLeft, hd);
+  shape.quadraticCurveTo(-hw, hd, -hw, hd - rLeft);
+  shape.lineTo(-hw, -hd + rLeft);
+  shape.quadraticCurveTo(-hw, -hd, -hw + rLeft, -hd);
+
+  var geo = new THREE.ExtrudeGeometry(shape, {
+    steps: 1,
+    depth: Math.max(0.002, h - bevel * 2),
+    bevelEnabled: true,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelOffset: 0,
+    bevelSegments: 1
+  });
+  geo.rotateX(Math.PI / 2);
+  geo.center();
+  return geo;
+}
+
+var silColorInit = isInitLightDNMOS ? 0x647082 : 0x6e7887;
+var silMat = new THREE.MeshStandardMaterial({
+  color: silColorInit,
+  roughness: 0.28,
+  metalness: 0.80,
+  roughnessMap: getBrushedMetalTexture(),
+  polygonOffset: true,
+  polygonOffsetFactor: -1.5,
+  polygonOffsetUnits: -1.5,
+  emissive: 0x000000,
+  emissiveIntensity: 0
+});
+
+function buildSilicidePadMesh(geo, id, xPos, zPos) {
+  var m = new THREE.Mesh(geo, silMat);
+  m.position.set(xPos, silCenterY, zPos);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  m.renderOrder = 5;
+  m.userData.isSilicide = true;
+  m.userData.baseEmissive = 0x000000;
+  m.userData.baseEmissiveIntensity = 0;
+  var eLine = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo, 24),
+    new THREE.LineBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.45, depthWrite: false })
+  );
+  eLine.raycast = function() {};
+  m.add(eLine);
+  reg(m, id, 'silicide');
+  return m;
+}
+
+var srcSilMesh = buildSilicidePadMesh(createSalicidePadGeometry(silW, silH, actD, -1), 'srcSil', -silCenterX, 0);
+var drnSilMesh = buildSilicidePadMesh(createSalicidePadGeometry(silW, silH, actD, 1), 'drnSil', silCenterX, 0);
+var tapSilMesh = buildSilicidePadMesh(createFilletedTraceGeometry(2.10, silH, 2.10, 0.25, 0.008), 'subtapSil', -6.5, 6.2);
 
 // ---------------------------------------------------------------------------
 // 8. TAPERED TUNGSTEN CONTACT VIA PLUGS (Matching CMOS Inverter Palette)
@@ -1272,12 +1644,16 @@ function updateMaterialsTheme() {
   }
 
   if (typeof pinchMat !== 'undefined' && pinchMat) {
-    if (pal) {
-      pinchMat.color.set(pal.depletion);
-      pinchMat.opacity = pal.depletionOpacity || 0.26;
-      if (typeof pinchEdgeMat !== 'undefined' && pinchEdgeMat) {
-        pinchEdgeMat.color.set(pal.depletion);
-      }
+    var deplCol = isLight ? 0x64748b : 0x94a3b8;
+    var deplEm = isLight ? 0x334155 : 0x475569;
+    pinchMat.color.setHex(deplCol);
+    if (pinchMat.emissive) pinchMat.emissive.setHex(deplEm);
+    pinchMat.opacity = 0.38;
+    if (typeof pinchEdgeMat !== 'undefined' && pinchEdgeMat) {
+      pinchEdgeMat.color.setHex(deplCol);
+    }
+    if (typeof junctionDeplEdgeMat !== 'undefined' && junctionDeplEdgeMat) {
+      junctionDeplEdgeMat.color.setHex(deplCol);
     }
   }
 
@@ -1305,6 +1681,10 @@ function updateMaterialsTheme() {
       chanMat.emissiveIntensity = isLight ? 0.15 : 0.40;
       if (typeof syncChannelBaseEmissive === 'function') syncChannelBaseEmissive();
     }
+  }
+
+  if (typeof silMat !== 'undefined' && silMat && silMat.color) {
+    silMat.color.setHex(isLight ? 0x647082 : 0x6e7887);
   }
 
   labelSprites.forEach(function(s) {
@@ -1388,9 +1768,9 @@ groups['metal'].add(gateCallout);
 var bodyCallout = createTerminalCallout('BODY (B)', '#9aa6b6', -6.5, Y.m1Top, 6.2, { x: -1.4, y: 1.6, z: 1.4 });
 groups['metal'].add(bodyCallout);
 
-// Gate length callout attached to groups['poly']
-var polyLengthCallout = createTerminalCallout('L = 28nm', '#ffffff', 0, Y.polyTop, 0, { x: 0, y: 1.2, z: -4.8 });
-groups['poly'].add(polyLengthCallout);
+// Depletion region callout attached to groups['depletion']
+var deplCallout = createTerminalCallout('DEPLETION', '#94a3b8', 6.45, Y.subTop + 0.002, 3.6, { x: 2.2, y: 1.5, z: 1.8 });
+groups['depletion'].add(deplCallout);
 
 function toggleLabels(visible) {
   labelSprites.forEach(function(s) {

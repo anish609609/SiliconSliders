@@ -31,7 +31,7 @@
   --c-gnd: #6b7686;
   --c-in: #e6c94a;
   --c-out: #57cf8f;
-  --c-depletion: rgba(100, 116, 139, 0.26);
+  --c-depletion: #94A3B8;
   --c-zener: #f43f5e;
   --c-avalanche: #8b5cf6;
   --c-electron: #F59E0B;
@@ -69,7 +69,7 @@
   --c-gnd: #475569;
   --c-in: #d97706;
   --c-out: #16a34a;
-  --c-depletion: rgba(71, 85, 105, 0.26);
+  --c-depletion: #64748B;
   --c-zener: #e11d48;
   --c-avalanche: #7c3aed;
   --c-electron: #D97706;
@@ -992,18 +992,18 @@ body.left-open .hud-top-left-stack {
   text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint);
 }
 
-/* Region pill */
+/* Region pill (matched to D-NMOS pill styling) */
 .region-pill {
-  font-family:var(--mono); font-size:9.5px; font-weight:700;
-  padding:2px 7px; border-radius:999px; text-transform:uppercase;
-  letter-spacing:.03em;
+  font-family:var(--mono); font-size:8.5px; font-weight:700;
+  padding:2px 6px; border-radius:3px; text-transform:uppercase;
+  letter-spacing:.03em; white-space:nowrap;
 }
-.region-pill.equilibrium { background:rgba(95, 217, 196, 0.15); color:#5fd9c4; border:1px solid rgba(95, 217, 196, 0.3); }
-.region-pill.forward { background:rgba(87, 207, 143, 0.18); color:#57cf8f; border:1px solid rgba(87, 207, 143, 0.35); }
-.region-pill.reverse { background:rgba(230, 162, 60, 0.18); color:#e6a23c; border:1px solid rgba(230, 162, 60, 0.35); }
-.region-pill.zener { background:rgba(244, 63, 94, 0.2); color:#f43f5e; border:1px solid rgba(244, 63, 94, 0.4); }
-.region-pill.avalanche { background:rgba(139, 92, 246, 0.2); color:#a78bfa; border:1px solid rgba(139, 92, 246, 0.4); }
-.region-pill.mixed { background:rgba(236, 72, 153, 0.2); color:#f472b6; border:1px solid rgba(236, 72, 153, 0.4); }
+.region-pill.equilibrium { background:rgba(95, 217, 196, 0.18); color:#5fd9c4; border:1px solid #5fd9c4; }
+.region-pill.forward { background:rgba(87, 207, 143, 0.18); color:#57cf8f; border:1px solid #57cf8f; }
+.region-pill.reverse { background:rgba(230, 162, 60, 0.18); color:#e6a23c; border:1px solid #e6a23c; }
+.region-pill.zener { background:rgba(244, 63, 94, 0.18); color:#f43f5e; border:1px solid #f43f5e; }
+.region-pill.avalanche { background:rgba(139, 92, 246, 0.18); color:#a78bfa; border:1px solid #a78bfa; }
+.region-pill.mixed { background:rgba(236, 72, 153, 0.18); color:#f472b6; border:1px solid #f472b6; }
 
 /* Presets (Clean 4-column Grid: zero clipping for FORWARD) */
 .dp-presets {
@@ -1084,22 +1084,28 @@ input[type="range"]::-webkit-slider-thumb:hover { transform:scale(1.2); }
   font-family:var(--mono);
 }
 
-/* Readouts Grid */
+/* Readouts Grid (matched to D-NMOS dp-readouts styling) */
+.dp-readouts {
+  margin-top: 6px;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
 .iv-grid {
-  display:grid; grid-template-columns:repeat(3, 1fr); gap:4px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:6px 8px;
 }
 .iv-item {
-  background:var(--panel-2); border:1px solid var(--border-soft); border-radius:4px;
-  padding:4px 6px; display:flex; flex-direction:column; gap:1px;
+  display:flex; flex-direction:column; gap:2px; min-width:0;
 }
-.iv-k { font-family:var(--mono); font-size:9px; color:var(--text-faint); }
-.iv-v { font-family:var(--mono); font-size:11px; font-weight:600; color:var(--text); }
+.iv-k { font-family:var(--mono); font-size:10px; color:var(--text-faint); line-height:1.2; letter-spacing:0.02em; font-weight:500; }
+.iv-v { font-family:var(--mono); font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; color:var(--text); white-space:nowrap; line-height:1.25; }
 .iv-state-line {
-  display:flex; justify-content:space-between; align-items:baseline; gap:8px; margin-top:4px;
-  font-family:var(--mono); font-size:10px; color:var(--text-dim);
+  display:flex; align-items:baseline; gap:8px; margin-top:8px; padding-top:6px;
+  border-top:1px dashed var(--border-soft); font-family:var(--mono); min-width:0;
 }
-.iv-state-line .iv-k { flex-shrink:0; white-space:nowrap; }
-.iv-v-state { color:var(--accent); font-weight:600; text-align:right; word-break:normal; overflow-wrap:break-word; }
+.iv-state-line .iv-k { font-size:10px; font-weight:700; color:var(--text-faint); letter-spacing:0.04em; flex-shrink:0; white-space:nowrap; }
+.iv-v-state { font-size:10.5px; font-weight:600; color:var(--accent); line-height:1.35; flex:1; min-width:0; white-space:normal; word-break:normal; overflow-wrap:break-word; }
 
 /* View controls tab */
 .vh-section-title { font-family:var(--mono); font-size:10px; font-weight:700; color:var(--text-faint); text-transform:uppercase; margin-bottom:4px; }

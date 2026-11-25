@@ -6,6 +6,7 @@
 
 var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the NMOS transistor channel and depletion region.' },
+  { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)', desc: 'Ionized space-charge shells wrapping the N+ Source/Drain junctions and sub-gate bulk depletion pocket. Separate around S/D at VGS=0, merges beneath SiO2 in subthreshold/inversion, and bulges around Drain in saturation.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)', desc: 'Heavily doped N+ regions forming the Source and Drain terminals (Nd ≈ 1×10²⁰ cm⁻³).' },
   { key: 'channel',   name: 'ELECTRON INVERSION CHANNEL (N-TYPE)', color: 'var(--c-sde-n)', desc: 'Conductive surface inversion layer of mobile electrons induced beneath gate oxide when VGS > VTH (0.40V).' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (N-SDE / LDD)', color: 'var(--c-sde-n)', desc: 'Shallow, lightly doped extension regions (Nd ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI) and short-channel effects.' },
@@ -71,12 +72,12 @@ var INFO = {
     doping: 'Induced mobile electrons — n-channel active inversion layer'
   },
   depletion: {
-    title: 'SATURATION PINCH-OFF DEPLETION REGION',
-    fn: 'Space-charge depletion region formed near the drain edge when VDS ≥ VGS - VTH.',
-    role: 'At pinch-off, the channel inversion layer ends at Leff = L - ΔL. The remaining gap ΔL is depleted of mobile carriers; a high lateral electric field sweeps velocity-saturated electrons across this space-charge zone into the Drain.',
-    conn: 'High-field space-charge region bridging pinched channel edge to N+ Drain.',
-    rel: 'Expands monotonically with drain overdrive (VDS - VOV) toward the source, causing channel length modulation (CLM).',
-    doping: 'High-field ionized space-charge region (depleted of mobile electrons)'
+    title: 'DEPLETION REGION (SPACE-CHARGE ENVELOPE)',
+    fn: 'Built-in PN-junction depletion shells around N+ Source/S-LDD and N+ Drain/D-LDD plus the gate-induced bulk depletion cradle beneath SiO2.',
+    role: 'At equilibrium (VGS=0, VDS=0), two separate shells wrap Source and Drain independently. For 0 < VGS < VTH (subthreshold), a bulk depletion pocket grows under SiO2 and merges them. Above VTH, the depletion cradle sits beneath the inversion channel; in saturation (VDS ≥ VGS - VTH), the Drain-side depletion bulb expands asymmetrically as Leff shifts toward Source.',
+    conn: 'Wraps N+ Source/S-LDD and N+ Drain/D-LDD junctions inside the P-substrate and underlies the inversion channel.',
+    rel: 'Isolates active N+ diffusions from P-substrate bulk and governs threshold band bending and channel-length modulation.',
+    doping: 'Ionized fixed acceptor space-charge region (depleted of mobile carriers)'
   },
   oxide: {
     title: 'GATE OXIDE (INTERFACIAL SiO2)',

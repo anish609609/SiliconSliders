@@ -55,16 +55,16 @@ var FAB_STEPS = [
   {
     step: 6,
     title: 'Heavy P+ Source/Drain & N+ Well Tap',
-    desc: 'High-dose boron implantation forms heavily doped P+ Source/Drain regions (Na ≈ 1×10²⁰ cm⁻³) and arsenic creates the N+ well tap to tie the body to VDD.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
-    newLayers: ['active'],
-    narration: 'Deep self-aligned boron implantation forms low-resistance P-plus Source and Drain terminals alongside the N-plus well tap.'
+    desc: 'High-dose boron implantation forms heavily doped P+ Source/Drain regions (Na ≈ 1×10²⁰ cm⁻³) and arsenic creates the N+ well tap, establishing the built-in Source/Drain depletion shells.',
+    layers: ['substrate', 'well', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
+    newLayers: ['active', 'depletion'],
+    narration: 'Deep self-aligned boron implantation forms low-resistance P-plus Source and Drain terminals alongside the N-plus well tap and built-in junction depletion shells.'
   },
   {
     step: 7,
     title: 'Tungsten (W) Contacts',
     desc: 'Interlayer dielectric (ILD) is deposited, contact vias are plasma etched, and CVD Tungsten plugs with TiN barrier liners are polished flush via CMP.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
+    layers: ['substrate', 'well', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
     newLayers: ['contact'],
     narration: 'Tungsten contact plugs are deposited and planarized, providing low-resistance vertical vias to the active and gate regions.'
   },
@@ -72,7 +72,7 @@ var FAB_STEPS = [
     step: 8,
     title: 'Metal-1 Interconnect Routing',
     desc: 'First copper interconnect layer patterned into Source (S/VDD), Drain (D/OUT), Gate (G/VG), and Well (B/VDD) pads, completing the discrete PMOS transistor.',
-    layers: ['substrate', 'well', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
+    layers: ['substrate', 'well', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
     newLayers: ['metal'],
     narration: 'Metal-1 copper runners are patterned, completing the discrete PMOS transistor with terminals for source, drain, gate, and N-well body.'
   }

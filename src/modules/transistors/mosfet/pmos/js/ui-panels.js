@@ -13,7 +13,8 @@ var TREE = [
     ]},
     { label: 'WELL REGION', children: [
       { label: 'N-WELL TUB', id: 'nwell' },
-      { label: 'N+ WELL TAP (VDD)', id: 'welltap' }
+      { label: 'N+ WELL TAP (VDD)', id: 'welltap' },
+      { label: 'DEPLETION REGION', id: 'depletion' }
     ]},
     { label: 'ACTIVE / DIFFUSION', children: [
       { label: 'P+ SOURCE REGION', id: 'pmosSrc' },
@@ -83,6 +84,12 @@ function idToInfo(id) {
 
 function meshesForId(id) {
   if (VIRTUAL[id]) return VIRTUAL[id].meshes.map(findMesh).filter(Boolean);
+  if (id === 'depletion') {
+    var list = selectable.filter(function(item) {
+      return item && item.userData && item.userData.id === 'depletion';
+    });
+    if (list.length) return list;
+  }
   var m = findMesh(id);
   return m ? [m] : [];
 }
@@ -148,6 +155,7 @@ document.querySelectorAll('.wb-tab-btn').forEach(function(btn) {
 var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
   { key: 'well',      name: 'N-WELL BODY (ND)',   color: 'var(--c-well)' },
+  { key: 'depletion', name: 'DEPLETION REGION',   color: 'var(--c-depletion)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)' },
   { key: 'sde',       name: 'EXTENSIONS (P-SDE / LDD)', color: 'var(--c-sde-p)' },
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
@@ -194,6 +202,10 @@ if (layersBody) {
     var cb = row.querySelector('input');
     cb.addEventListener('change', function(e) {
       if (groups[l.key]) groups[l.key].visible = e.target.checked;
+      if (l.key === 'depletion') {
+        window.showDepletionLayer = e.target.checked;
+        if (typeof applyLogicState === 'function') applyLogicState();
+      }
     });
 
     row.querySelector('.layer-name').addEventListener('click', function() {
@@ -230,6 +242,7 @@ function updateLayersListTheme(pal) {
     substrate: pal.pSubstrate,
     nwell: pal.nWell,
     well: pal.nWell,
+    depletion: isLight ? '#64748B' : '#94A3B8',
     active: pal.pPlusDiffusion,
     sde: pal.pSDE || pal.implantedPChannel,
     channel: pal.holeChannel,

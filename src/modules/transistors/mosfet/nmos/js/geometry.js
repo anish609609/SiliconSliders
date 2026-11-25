@@ -402,7 +402,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
 // ---------------------------------------------------------------------------
 // LAYER GROUPS & ORDER
 // ---------------------------------------------------------------------------
-var LAYER_ORDER = ['substrate', 'active', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'contact', 'metal'];
+var LAYER_ORDER = ['substrate', 'depletion', 'active', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'contact', 'metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -622,138 +622,419 @@ sdeDrnMesh.position.set(sdeDrnX, (Y.sdeTop + Y.sdeBot) / 2, 0);
 reg(sdeDrnMesh, 'sdeDrn', 'sde');
 
 // ---------------------------------------------------------------------------
-// 4. CONTINUOUS 3D INVERSION CHANNEL & PINCH-OFF REGION
+// 4. CONTINUOUS 3D INVERSION CHANNEL & 4-REGIME ENHANCEMENT DEPLETION SYSTEM
 // ---------------------------------------------------------------------------
-// A dynamic multi-segmented channel mesh whose length, taper, and pinch-off
-// profile dynamically respond to continuous (VGS, VDS) operating regions.
 var isInitLightNMOS = (typeof currentTheme !== 'undefined' ? currentTheme : document.documentElement.getAttribute('data-theme')) === 'light';
 var palInitNMOS = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLightNMOS ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLightNMOS ? 'light' : 'dark') : null);
 
-var chanGeom = new THREE.BoxGeometry(2.0, 0.18, actD, 32, 1, 2);
+var chanGeom = new THREE.BoxGeometry(2.0, 0.16, actD, 32, 1, 2);
 var chanMat = new THREE.MeshStandardMaterial({
   color: palInitNMOS ? palInitNMOS.electronChannel : (isInitLightNMOS ? 0x4ADE80 : 0x34D399),
   emissive: palInitNMOS ? palInitNMOS.electronChannel : (isInitLightNMOS ? 0x4ADE80 : 0x34D399),
   emissiveIntensity: isInitLightNMOS ? 0.15 : 0.40,
   transparent: true,
-  opacity: 0.55,
+  opacity: 0.72,
   depthWrite: false,
   roughness: 0.40,
   metalness: 0.15,
   side: THREE.DoubleSide
 });
 var channelMesh = new THREE.Mesh(chanGeom, chanMat);
-channelMesh.position.set(0, 2.918, 0);
+var yChanTop = Y.oxBot - 0.002; // 3.006, flush beneath SiO2
+channelMesh.position.set(0, yChanTop, 0);
 channelMesh.renderOrder = 3;
-channelMesh.userData.colorVar = '--c-sde-n';
+channelMesh.userData.baseEmissive = chanMat.emissive.getHex();
+channelMesh.userData.baseEmissiveIntensity = chanMat.emissiveIntensity;
 reg(channelMesh, 'channel', 'active');
 
-// Dedicated pinch-off space-charge gap mesh visible during Saturation (VDS >= VGS - VTH)
-// Base width is 1.0 along X so scale.x corresponds directly to physical deltaL
-var pinchGeom = new THREE.BoxGeometry(1.0, 0.16, actD, 12, 1, 2);
+// Desaturated grey-blue space-charge depletion material matching D-NMOS reference (~0.38 opacity)
+var deplColorInit = isInitLightNMOS ? 0x64748b : 0x94a3b8;
+var deplEmissiveInit = isInitLightNMOS ? 0x334155 : 0x475569;
 var pinchMat = new THREE.MeshStandardMaterial({
-  color: palInitNMOS ? palInitNMOS.depletion : 0x64748b,
-  emissive: 0x1e293b,
-  emissiveIntensity: 0.15,
+  color: deplColorInit,
+  emissive: deplEmissiveInit,
+  emissiveIntensity: 0.14,
   transparent: true,
-  opacity: palInitNMOS ? palInitNMOS.depletionOpacity : 0.26,
+  opacity: 0.38,
   depthWrite: false,
-  roughness: 0.50,
-  metalness: 0.10,
+  roughness: 0.55,
+  metalness: 0.08,
+  polygonOffset: true,
+  polygonOffsetFactor: -0.5,
+  polygonOffsetUnits: -0.5,
   side: THREE.DoubleSide
 });
-var pinchMesh = new THREE.Mesh(pinchGeom, pinchMat);
-pinchMesh.position.set(0.6, 2.918, 0);
-pinchMesh.renderOrder = 3;
-pinchMesh.visible = false;
-reg(pinchMesh, 'depletion', 'active');
 
-// Subtle edge highlight for the depletion region
-var pinchEdgeGeo = new THREE.EdgesGeometry(pinchGeom);
-var pinchEdgeMat = new THREE.LineBasicMaterial({
-  color: 0x64748b,
+var DEPL_ETA = [0.0, 0.15, 0.30, 0.45, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.92, 0.97, 1.0];
+
+function deplSmoothstep(a, b, x) {
+  var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
+// Build perimeter for a single N+ well + LDD half-island (hx = 2.6665 < hz = 3.518 -> Z-spine)
+function buildWellShellPerimeter(cx, hx, hz, cr) {
+  var pts = [];
+  var sx = hx - cr;
+  var sz = hz - cr;
+  var spineHalfZ = Math.max(0, hz - hx);
+
+  function addPt(lx, lz) {
+    var zSpine = Math.max(-spineHalfZ, Math.min(spineHalfZ, lz));
+    var dx = lx;
+    var dz = lz - zSpine;
+    var len = Math.hypot(dx, dz) || 1;
+    pts.push({
+      cx: cx,
+      lx: lx,
+      lz: lz,
+      zSpine: zSpine,
+      nxh: dx / len,
+      nzh: dz / len
+    });
+  }
+
+  var nX = 36, nZ = 24, nC = 8, i, t, ang;
+  for (i = 0; i < nX; i++) {
+    t = i / nX;
+    addPt(-sx + t * (2 * sx), hz);
+  }
+  for (i = 0; i < nC; i++) {
+    ang = (Math.PI / 2) * (1 - i / nC);
+    addPt(sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
+  }
+  for (i = 0; i < nZ; i++) {
+    t = i / nZ;
+    addPt(hx, sz - t * (2 * sz));
+  }
+  for (i = 0; i < nC; i++) {
+    ang = -(Math.PI / 2) * (i / nC);
+    addPt(sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang));
+  }
+  for (i = 0; i < nX; i++) {
+    t = i / nX;
+    addPt(sx - t * (2 * sx), -hz);
+  }
+  for (i = 0; i < nC; i++) {
+    ang = -Math.PI / 2 - (Math.PI / 2) * (i / nC);
+    addPt(-sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang));
+  }
+  for (i = 0; i < nZ; i++) {
+    t = i / nZ;
+    addPt(-hx, -sz + t * (2 * sz));
+  }
+  for (i = 0; i < nC; i++) {
+    ang = Math.PI - (Math.PI / 2) * (i / nC);
+    addPt(-sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
+  }
+  return pts;
+}
+
+function createWellShellGeometry(perim) {
+  var nP = perim.length;
+  var nR = DEPL_ETA.length;
+  var outerCount = nR * nP;
+  var totalVerts = outerCount * 2 + nP * 2;
+  var positions = new Float32Array(totalVerts * 3);
+  var indices = [];
+
+  var i, j, nextJ, r0, r1, a, b, c, d;
+  for (i = 0; i < nR - 1; i++) {
+    r0 = i * nP;
+    r1 = (i + 1) * nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      a = r0 + j; b = r1 + j; c = r1 + nextJ; d = r0 + nextJ;
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+  for (i = 0; i < nR - 1; i++) {
+    r0 = outerCount + i * nP;
+    r1 = outerCount + (i + 1) * nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      a = r0 + j; b = r1 + j; c = r1 + nextJ; d = r0 + nextJ;
+      indices.push(a, d, b);
+      indices.push(b, d, c);
+    }
+  }
+  var topInnerStart = outerCount * 2;
+  var topOuterStart = topInnerStart + nP;
+  for (j = 0; j < nP; j++) {
+    nextJ = (j + 1) % nP;
+    var v0 = topInnerStart + j, v1 = topInnerStart + nextJ;
+    var v2 = topOuterStart + nextJ, v3 = topOuterStart + j;
+    indices.push(v0, v3, v1);
+    indices.push(v1, v3, v2);
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  return geo;
+}
+
+var srcPerim = buildWellShellPerimeter(-3.6515, 2.6665, 3.518, 0.25);
+var drnPerim = buildWellShellPerimeter(3.6515, 2.6665, 3.518, 0.25);
+
+var srcDeplGeo = createWellShellGeometry(srcPerim);
+var srcDeplMesh = new THREE.Mesh(srcDeplGeo, pinchMat);
+srcDeplMesh.renderOrder = 2;
+srcDeplMesh.userData.baseEmissive = pinchMat.emissive.getHex();
+srcDeplMesh.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
+reg(srcDeplMesh, 'depletion', 'depletion');
+
+var drnDeplGeo = createWellShellGeometry(drnPerim);
+var drnDeplMesh = new THREE.Mesh(drnDeplGeo, pinchMat);
+drnDeplMesh.renderOrder = 2;
+drnDeplMesh.userData.baseEmissive = pinchMat.emissive.getHex();
+drnDeplMesh.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
+reg(drnDeplMesh, 'depletion', 'depletion');
+
+var srcDeplEdgeGeo = new THREE.BufferGeometry();
+srcDeplEdgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(srcPerim.length * 3), 3));
+var deplEdgeMat = new THREE.LineBasicMaterial({
+  color: deplColorInit,
   transparent: true,
-  opacity: 0.40
+  opacity: 0.55,
+  depthWrite: false
 });
-var pinchEdgeLine = new THREE.LineSegments(pinchEdgeGeo, pinchEdgeMat);
-pinchMesh.add(pinchEdgeLine);
+var srcDeplEdgeLoop = new THREE.LineLoop(srcDeplEdgeGeo, deplEdgeMat);
+srcDeplEdgeLoop.raycast = function() {};
+srcDeplMesh.add(srcDeplEdgeLoop);
 
-// Function to dynamically deform channel thickness and taper based on MOSFET physics
+var drnDeplEdgeGeo = new THREE.BufferGeometry();
+drnDeplEdgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(drnPerim.length * 3), 3));
+var drnDeplEdgeLoop = new THREE.LineLoop(drnDeplEdgeGeo, deplEdgeMat);
+drnDeplEdgeLoop.raycast = function() {};
+drnDeplMesh.add(drnDeplEdgeLoop);
+
+// Subthreshold / Inversion / Saturation bulk depletion pocket beneath SiO2 & channel
+var gateDeplGeo = new THREE.BoxGeometry(1.0, 1.0, actD, 28, 1, 2);
+var gateDeplMesh = new THREE.Mesh(gateDeplGeo, pinchMat);
+gateDeplMesh.renderOrder = 2;
+gateDeplMesh.visible = false;
+gateDeplMesh.userData.baseEmissive = pinchMat.emissive.getHex();
+gateDeplMesh.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
+reg(gateDeplMesh, 'depletion', 'depletion');
+
+function getCachedBoxAxes(geom) {
+  var pos = geom.attributes.position;
+  if (!geom.userData.initialX || !geom.userData.initialSignY) {
+    var initX = new Float32Array(pos.count);
+    var initSignY = new Int8Array(pos.count);
+    for (var k = 0; k < pos.count; k++) {
+      initX[k] = pos.getX(k);
+      initSignY[k] = pos.getY(k) >= 0 ? 1 : -1;
+    }
+    geom.userData.initialX = initX;
+    geom.userData.initialSignY = initSignY;
+  }
+  return { pos: pos, initX: geom.userData.initialX, initSignY: geom.userData.initialSignY };
+}
+
+function getChannelThicknessAtX(x, hasChannel, maxH, isSat, dL, ratio) {
+  if (!hasChannel || x < -1.001 || x > 1.001) return 0;
+  var pinchX = 1.0 - dL;
+  if (isSat) {
+    if (x >= pinchX) return 0;
+    var sSat = Math.max(0, Math.min(1, (x + 1.0) / Math.max(0.001, 2.0 - dL)));
+    return maxH * Math.max(0, 1.0 - sSat);
+  }
+  var sLin = Math.max(0, Math.min(1, (x + 1.0) / 2.0));
+  return maxH * Math.max(0, 1.0 - sLin * ratio);
+}
+
+function updateHalfWellShell(geo, edgeGeo, perim, isDrain, wDep, hasChannel, maxH, isSat, dL, ratio) {
+  var posAttr = geo.attributes.position;
+  var pos = posAttr.array;
+  var edgeAttr = edgeGeo.attributes.position;
+  var edgeArr = edgeAttr.array;
+
+  var nP = perim.length;
+  var nR = DEPL_ETA.length;
+  var outerCount = nR * nP;
+  var topInnerStart = outerCount * 2;
+  var topOuterStart = topInnerStart + nP;
+  var yTop = Y.subTop + 0.002; // 3.002
+
+  for (var i = 0; i < nR; i++) {
+    var eta = DEPL_ETA[i];
+    var tDepth, tHoriz, outHWeight, outVWeight;
+
+    if (eta <= 0.45) {
+      var p1 = eta / 0.45;
+      tDepth = 0.85 * p1;
+      tHoriz = 1.0;
+      outHWeight = 1.0;
+      outVWeight = 0.0;
+    } else if (eta <= 0.65) {
+      var p2 = (eta - 0.45) / 0.20;
+      var ang = p2 * (Math.PI / 2);
+      tDepth = 0.85 + 0.15 * Math.sin(ang);
+      tHoriz = 0.85 + 0.15 * Math.cos(ang);
+      outHWeight = Math.cos(ang);
+      outVWeight = Math.sin(ang);
+    } else {
+      var p3 = (eta - 0.65) / 0.35;
+      tDepth = 1.0;
+      tHoriz = 0.85 * (1.0 - p3);
+      outHWeight = 0.0;
+      outVWeight = 1.0;
+    }
+
+    for (var j = 0; j < nP; j++) {
+      var pt = perim[j];
+      var inX = pt.cx + pt.lx * tHoriz;
+      var inZ = pt.zSpine + (pt.lz - pt.zSpine) * tHoriz;
+
+      // Stepped depth: shallow under LDD (|x| <= 1.85), deep under N+ well (|x| >= 2.08)
+      var tWell = deplSmoothstep(1.80, 2.08, Math.abs(inX));
+      var depth = 0.512 + (1.216 - 0.512) * tWell;
+      var inY = yTop - depth * tDepth;
+
+      var localW = wDep;
+      if (isDrain) {
+        // Asymmetrically widen Drain bulb toward outer Drain side & bottom when VDS > 0
+        var bulbFactor = 0.72 + 0.28 * deplSmoothstep(0.95, 2.50, inX);
+        localW = wDep * bulbFactor;
+      }
+
+      var outX = inX + pt.nxh * localW * outHWeight;
+      var outZ = inZ + pt.nzh * localW * outHWeight;
+      var outY = Math.max(Y.subBot + 0.02, inY - localW * outVWeight);
+
+      // Keep depletion strictly beneath any active inversion channel inside |x| < 1.0
+      if (hasChannel && Math.abs(inZ) <= (actD * 0.5 + 0.02)) {
+        var cTIn = getChannelThicknessAtX(inX, hasChannel, maxH, isSat, dL, ratio);
+        if (cTIn > 0.002) {
+          inY = Math.min(inY, yChanTop - cTIn - 0.004);
+        }
+        var cTOut = getChannelThicknessAtX(outX, hasChannel, maxH, isSat, dL, ratio);
+        if (cTOut > 0.002) {
+          outY = Math.min(outY, yChanTop - cTOut - 0.004);
+        }
+      }
+
+      var oIdx = (i * nP + j) * 3;
+      pos[oIdx] = outX; pos[oIdx + 1] = outY; pos[oIdx + 2] = outZ;
+
+      var iIdx = (outerCount + i * nP + j) * 3;
+      pos[iIdx] = inX; pos[iIdx + 1] = inY; pos[iIdx + 2] = inZ;
+
+      if (i === 0) {
+        var tiIdx = (topInnerStart + j) * 3;
+        pos[tiIdx] = inX; pos[tiIdx + 1] = inY; pos[tiIdx + 2] = inZ;
+
+        var toIdx = (topOuterStart + j) * 3;
+        pos[toIdx] = outX; pos[toIdx + 1] = outY; pos[toIdx + 2] = outZ;
+
+        var eIdx = j * 3;
+        edgeArr[eIdx] = outX; edgeArr[eIdx + 1] = outY + 0.0008; edgeArr[eIdx + 2] = outZ;
+      }
+    }
+  }
+
+  posAttr.needsUpdate = true;
+  geo.computeVertexNormals();
+  edgeAttr.needsUpdate = true;
+}
+
+function syncChannelBaseEmissive() {
+  var chanHex = chanMat.emissive ? chanMat.emissive.getHex() : 0;
+  channelMesh.userData.baseEmissive = chanHex;
+  channelMesh.userData.baseEmissiveIntensity = chanMat.emissiveIntensity;
+  var deplHex = pinchMat.emissive ? pinchMat.emissive.getHex() : 0;
+  [srcDeplMesh, drnDeplMesh, gateDeplMesh].forEach(function(m) {
+    m.userData.baseEmissive = deplHex;
+    m.userData.baseEmissiveIntensity = pinchMat.emissiveIntensity;
+  });
+}
+
+// Function to dynamically deform inversion channel and 4-regime depletion geometry based on E-NMOS physics
 window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
   var vth = 0.40;
   var vov = Math.max(0, vgs - vth);
+  var hasChannel = (region !== 'CUTOFF' && vov > 0.001);
+  var deplLayerOn = (window.showDepletionLayer !== false);
 
-  if (region === 'CUTOFF' || vov <= 0.001) {
-    channelMesh.visible = false;
-    pinchMesh.visible = false;
-    return;
-  }
-
-  channelMesh.visible = true;
-
-  // Base channel length along X is 2.0 (from -1.0 to +1.0)
-  var pos = chanGeom.attributes.position;
-  var maxH = 0.18;
-
-  // Cache initial unperturbed vertex X coordinates to avoid cumulative floating drift
-  if (!chanGeom.userData.initialX) {
-    var initX = new Float32Array(pos.count);
-    for (var k = 0; k < pos.count; k++) {
-      initX[k] = pos.getX(k);
-    }
-    chanGeom.userData.initialX = initX;
-  }
-  var initXArr = chanGeom.userData.initialX;
-
+  var maxH = 0.16;
   var vdsDiff = Math.max(0, vds - vov);
-  var isSat = (vds >= vov) && (region === 'SATURATION');
-
-  // Exact continuous physics model:
-  // In Linear: deltaL = 0. Channel tapers smoothly toward drain edge: thickness(s) = maxH * (1 - s * (vds/vov)).
-  // In Saturation: deltaL grows monotonically from 0 as k * sqrt(vds - vov), clamped to 0.40 * L.
-  // Channel shrinks to Leff = L - deltaL, ending at pinchX = 1.0 - deltaL where thickness = 0.
-  // Depletion gap mesh is anchored strictly to the drain edge (x = 1.0) and expands strictly toward source.
+  var isSat = hasChannel && (vds >= vov) && (region === 'SATURATION');
   var dL = isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vdsDiff)) : 0.0;
-  var pinchX = 1.0 - dL;
   var ratio = (vov > 0.0001) ? Math.min(1.0, Math.max(0, vds / vov)) : 1.0;
 
-  for (var i = 0; i < pos.count; i++) {
-    var origX = initXArr[i];
-    var s = (origX + 1.0) / 2.0; // Normalized position [0, 1] from Source (-1.0) to Drain (+1.0)
-    var mappedX, thickness;
-
-    if (!isSat) {
-      // Linear / Triode: Continuous channel from -1.0 to +1.0
-      mappedX = origX;
-      thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
-    } else {
-      // Saturation: Channel spans from Source (-1.0) to pinchX (1.0 - dL)
-      mappedX = -1.0 + s * (2.0 - dL);
-      thickness = maxH * Math.max(0.002, 1.0 - s);
-    }
-
-    pos.setX(i, mappedX);
-    var origSignY = pos.getY(i) >= 0 ? 1 : -1;
-    pos.setY(i, (origSignY * thickness) / 2);
-  }
-
-  pos.needsUpdate = true;
-  chanGeom.computeVertexNormals();
-
-  // Update dynamic channel material luminescence with IDS
-  var intensityNorm = Math.min(1.0, ids / 0.5);
-  chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
-
-  // Space-charge depletion gap mesh:
-  // Visible ONLY in Saturation when dL > 0. Anchor strictly to drain edge (right boundary at x = +1.0).
-  if (isSat && dL > 0.0005) {
-    pinchMesh.visible = true;
-    pinchMesh.scale.x = dL;
-    pinchMesh.position.x = 1.0 - dL / 2;
-    pinchMesh.position.y = 2.918;
-    pinchMat.emissiveIntensity = 0.30 + 0.40 * Math.min(1.0, vdsDiff / 0.8);
+  // 1. Update Inversion Channel Mesh (top flush beneath SiO2 at yChanTop = 3.006)
+  if (!hasChannel) {
+    channelMesh.visible = false;
   } else {
-    pinchMesh.visible = false;
+    channelMesh.visible = true;
+    var chanData = getCachedBoxAxes(chanGeom);
+    for (var i = 0; i < chanData.pos.count; i++) {
+      var origX = chanData.initX[i];
+      var s = (origX + 1.0) / 2.0;
+      var mappedX, thickness;
+      if (!isSat) {
+        mappedX = origX;
+        thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
+      } else {
+        mappedX = -1.0 + s * (2.0 - dL);
+        thickness = maxH * Math.max(0.002, 1.0 - s);
+      }
+      chanData.pos.setX(i, mappedX);
+      chanData.pos.setY(i, chanData.initSignY[i] > 0 ? 0.0 : -thickness);
+    }
+    chanData.pos.needsUpdate = true;
+    chanGeom.computeVertexNormals();
+
+    var intensityNorm = Math.min(1.0, ids / 0.5);
+    chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
   }
+
+  // 2. Update Separate Source & Drain Junction Depletion Shells
+  var vdsNorm = Math.sqrt(Math.max(0, vds) / 1.8);
+  var wSrc = 0.20;
+  var wDrn = 0.20 + 0.38 * vdsNorm;
+
+  updateHalfWellShell(srcDeplGeo, srcDeplEdgeGeo, srcPerim, false, wSrc, hasChannel, maxH, isSat, dL, ratio);
+  updateHalfWellShell(drnDeplGeo, drnDeplEdgeGeo, drnPerim, true, wDrn, hasChannel, maxH, isSat, dL, ratio);
+
+  // 3. Subthreshold / Inversion / Saturation Sub-Gate Bulk Depletion Pocket
+  // Equilibrium (VGS = 0): hidden so two separate S/D shells show with neutral bulk between them.
+  // Subthreshold (0 < VGS < VTH): grows downward beneath SiO2 and merges with S/D shells.
+  // Inversion / Linear & Saturation (VGS >= VTH): merged cradle sits beneath active channel & rises to SiO2 in pinch-off gap.
+  if (vgs <= 0.001 || !deplLayerOn) {
+    gateDeplMesh.visible = false;
+  } else {
+    gateDeplMesh.visible = true;
+    var subFrac = Math.min(1.0, Math.max(0, vgs / vth));
+    var xLeft = -0.985 + wSrc - 0.001;
+    var xRight = 0.985 - (wDrn * 0.72) + 0.001;
+    var yTopSurface = Y.subTop + 0.002; // 3.002
+    var gateData = getCachedBoxAxes(gateDeplGeo);
+
+    for (var g = 0; g < gateData.pos.count; g++) {
+      var gx0 = gateData.initX[g];
+      var gs = gx0 + 0.5; // [0, 1] from xLeft to xRight
+      var gx = xLeft + gs * (xRight - xLeft);
+
+      var cT = getChannelThicknessAtX(gx, hasChannel, maxH, isSat, dL, ratio);
+      var topY = (cT > 0.002) ? (yChanTop - cT - 0.004) : yTopSurface;
+
+      var drainBias = deplSmoothstep(0.15, 1.0, gs);
+      var pocketDepth = 0.46 * subFrac + 0.26 * vdsNorm * drainBias;
+      var botY = Math.min(topY - 0.008, yTopSurface - pocketDepth);
+
+      gateData.pos.setX(g, gx);
+      gateData.pos.setY(g, gateData.initSignY[g] > 0 ? topY : botY);
+    }
+    gateData.pos.needsUpdate = true;
+    gateDeplGeo.computeVertexNormals();
+  }
+
+  pinchMat.emissiveIntensity = isSat ? (0.20 + 0.22 * Math.min(1.0, vdsDiff / 0.8)) : (0.14 + 0.08 * Math.min(1.0, vgs / vth));
+  syncChannelBaseEmissive();
 };
 
 // 5. SUBSTRATE / BODY TAP (P+)
@@ -1143,9 +1424,13 @@ function updateMaterialsTheme() {
   }
 
   if (typeof pinchMat !== 'undefined' && pinchMat) {
-    if (pal) {
-      pinchMat.color.set(pal.depletion);
-      pinchMat.opacity = pal.depletionOpacity || 0.26;
+    var deplCol = isLight ? 0x64748b : 0x94a3b8;
+    var deplEm = isLight ? 0x334155 : 0x475569;
+    pinchMat.color.setHex(deplCol);
+    if (pinchMat.emissive) pinchMat.emissive.setHex(deplEm);
+    pinchMat.opacity = 0.38;
+    if (typeof deplEdgeMat !== 'undefined' && deplEdgeMat) {
+      deplEdgeMat.color.setHex(deplCol);
     }
   }
 
@@ -1154,6 +1439,7 @@ function updateMaterialsTheme() {
       chanMat.color.set(pal.electronChannel);
       chanMat.emissive.set(pal.electronChannel);
       chanMat.emissiveIntensity = isLight ? 0.15 : 0.40;
+      if (typeof syncChannelBaseEmissive === 'function') syncChannelBaseEmissive();
     }
   }
 
@@ -1238,9 +1524,9 @@ groups['metal'].add(gateCallout);
 var bodyCallout = createTerminalCallout('BODY (B)', '#9aa6b6', -6.5, Y.m1Top, 6.2, { x: -1.4, y: 1.6, z: 1.4 });
 groups['metal'].add(bodyCallout);
 
-// Gate length callout attached to groups['poly']
-var polyLengthCallout = createTerminalCallout('L = 28nm', '#ffffff', 0, Y.polyTop, 0, { x: 0, y: 1.2, z: -4.8 });
-groups['poly'].add(polyLengthCallout);
+// Depletion region callout attached to groups['depletion']
+var deplCallout = createTerminalCallout('DEPLETION', '#94a3b8', 6.45, Y.subTop + 0.002, 3.6, { x: 2.2, y: 1.5, z: 1.8 });
+groups['depletion'].add(deplCallout);
 
 function toggleLabels(visible) {
   labelSprites.forEach(function(s) {

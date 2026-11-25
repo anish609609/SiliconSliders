@@ -150,39 +150,48 @@ function switchWorkbenchTab(tabKey) {
 window.switchWorkbenchTab = switchWorkbenchTab;
 
 function buildUiPanels() {
-  /* Build Architecture Tree */
-  var treeEl = document.getElementById('arch-tree');
-  if (treeEl) {
-    var html = '<div class="tree-root-lbl">CMOS 2-INPUT NAND</div>';
-    for (var gi = 0; gi < TREE.length; gi++) {
-      var grp = TREE[gi];
-      html += '<div class="tree-grp" data-grp="' + gi + '">';
-      html += '<div class="tree-grp-hdr"><span>▾</span><span>' + grp.group + '</span></div>';
-      html += '<div class="tree-grp-items">';
-      for (var ii = 0; ii < grp.items.length; ii++) {
-        var it = grp.items[ii];
-        html += '<button type="button" class="tree-item" data-id="' + it.id + '">' +
-          '<span>' + it.label + '</span>' +
-          '<span class="tree-tag">' + it.tag + '</span>' +
-          '</button>';
+  /* Build Architecture Tree matching D-NMOS / CMOS Inverter tree structure */
+  var treeRoot = document.getElementById('tree');
+  if (treeRoot) {
+    treeRoot.innerHTML = '';
+    var hierarchy = [
+      {
+        label: 'CMOS 2-INPUT NAND',
+        children: TREE.map(function (grp) {
+          return {
+            label: grp.group,
+            children: grp.items.map(function (it) {
+              return { label: it.label, id: it.id };
+            })
+          };
+        })
       }
-      html += '</div></div>';
-    }
-    treeEl.innerHTML = html;
+    ];
 
-    treeEl.addEventListener('click', function (e) {
-      var hdr = e.target.closest('.tree-grp-hdr');
-      if (hdr) {
-        var grpEl = hdr.closest('.tree-grp');
-        grpEl.classList.toggle('collapsed');
-        hdr.firstElementChild.textContent = grpEl.classList.contains('collapsed') ? '▸' : '▾';
-        return;
-      }
-      var itemBtn = e.target.closest('.tree-item[data-id]');
-      if (itemBtn && typeof selectById === 'function') {
-        selectById(itemBtn.getAttribute('data-id'));
-      }
-    });
+    function renderTree(nodes) {
+      var ul = document.createElement('ul');
+      nodes.forEach(function (n) {
+        var li = document.createElement('li');
+        var row = document.createElement('div');
+        row.className = 'node';
+        row.dataset.id = n.id || '';
+        row.dataset.label = n.label || '';
+        var bullet = n.children ? '▸' : '·';
+        row.innerHTML = '<span class="bullet">' + bullet + '</span><span>' + n.label + '</span>';
+        if (n.id) {
+          row.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (typeof selectById === 'function') selectById(n.id);
+          });
+        }
+        li.appendChild(row);
+        if (n.children) li.appendChild(renderTree(n.children));
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+
+    treeRoot.appendChild(renderTree(hierarchy));
   }
 
   // Workbench Tab Switching Buttons

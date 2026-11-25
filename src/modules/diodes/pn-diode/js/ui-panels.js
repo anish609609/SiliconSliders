@@ -48,7 +48,8 @@ function getLayerColor(layerId, pal) {
     case 'active': return pal.pPlusDiffusion;
     case 'pRegion': return pal.pPlusDiffusion;
     case 'nRegion': return pal.nPlusDiffusion;
-    case 'depletion': return pal.depletion;
+    case 'depletion': return (typeof currentTheme !== 'undefined' && currentTheme === 'light') ? '#64748B' : '#94A3B8';
+    case 'depletionRegion': return (typeof currentTheme !== 'undefined' && currentTheme === 'light') ? '#64748B' : '#94A3B8';
     case 'passivation': return pal.fieldOxide;
     case 'sti': return pal.fieldOxide;
     case 'contact': return pal.via;

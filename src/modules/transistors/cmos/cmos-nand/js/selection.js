@@ -48,34 +48,35 @@ function setMeshHighlight(mesh, on) {
 }
 
 function updateInspector() {
-  var body = document.getElementById('inspector-body');
-  if (!body) return;
+  var container = document.getElementById('inspector') || document.getElementById('inspector-body');
+  if (!container) return;
 
   if (!selectedId || !INFO[selectedId]) {
-    body.innerHTML = '<div class="empty-inspector">Click any 3D layer, diffusion, gate, contact, or Metal-1 trace (or switch to Schematic) to inspect physical properties and λ design rules.</div>';
+    container.innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
     return;
   }
 
   var info = INFO[selectedId];
-  var html = '<div class="insp-title">' + info.title + '</div>' +
-    '<span class="insp-pill">' + info.layer + '</span>' +
-    '<div class="insp-kv"><div class="insp-k">Material / Structure</div><div class="insp-v">' + info.type + '</div></div>' +
-    '<div class="insp-kv"><div class="insp-k">Electrical &amp; Topological Role</div><div class="insp-v">' + info.role + '</div></div>' +
-    '<div class="insp-kv"><div class="insp-k">Fabrication Process</div><div class="insp-v">' + info.process + '</div></div>';
+  var html = '<div class="title">' + info.title + '</div>' +
+    '<div class="field"><div class="k">LAYER</div><div class="v">' + info.layer.toUpperCase() + '</div></div>' +
+    '<div class="field"><div class="k">MATERIAL / STRUCTURE</div><div class="v">' + info.type + '</div></div>' +
+    '<div class="field"><div class="k">ELECTRICAL &amp; TOPOLOGICAL ROLE</div><div class="v">' + info.role + '</div></div>' +
+    '<div class="field"><div class="k">FABRICATION PROCESS</div><div class="v">' + info.process + '</div></div>';
 
   if (typeof getDimensionRulesForId === 'function') {
     var rules = getDimensionRulesForId(selectedId);
     if (rules && rules.length) {
-      html += '<div class="insp-dims"><div class="insp-k">Process Dimensions (' + (typeof currentNodePreset !== 'undefined' ? currentNodePreset.node : '90nm') + ')</div>';
+      var nodeLbl = (typeof currentNodePreset !== 'undefined') ? currentNodePreset.node : '90nm';
+      html += '<div class="field"><div class="k">DIMENSIONS (' + nodeLbl + ')</div><div class="v" style="margin-top:4px;">';
       for (var i = 0; i < rules.length; i++) {
-        html += '<div class="dim-row"><span class="dim-lbl">' + rules[i].label + ' (' + rules[i].rule + ')</span>' +
-          '<span class="dim-val">' + rules[i].valueText + '</span></div>';
+        html += '<div class="dims-table-row"><span class="k">' + rules[i].label + ' (' + rules[i].rule + ')</span>' +
+          '<span class="v">' + rules[i].valueText + '</span></div>';
       }
-      html += '</div>';
+      html += '</div></div>';
     }
   }
 
-  body.innerHTML = html;
+  container.innerHTML = html;
 }
 
 function updatePopoverContent() {
@@ -113,20 +114,14 @@ function updatePopoverContent() {
 }
 
 function syncTreeAndSchematicSelection() {
-  var treeItems = document.querySelectorAll('.tree-item[data-id]');
-  for (var i = 0; i < treeItems.length; i++) {
-    var tid = treeItems[i].getAttribute('data-id');
-    var isAct = tid === selectedId;
-    treeItems[i].classList.toggle('active', isAct);
+  var treeNodes = document.querySelectorAll('#tree .node');
+  for (var i = 0; i < treeNodes.length; i++) {
+    var tid = treeNodes[i].dataset.id;
+    var isAct = !!selectedId && tid === selectedId;
+    treeNodes[i].classList.toggle('selected', isAct);
     if (isAct) {
-      var grp = treeItems[i].closest('.tree-grp');
-      if (grp && grp.classList.contains('collapsed')) {
-        grp.classList.remove('collapsed');
-        var chevron = grp.querySelector('.tree-grp-hdr span:first-child');
-        if (chevron) chevron.textContent = '▾';
-      }
       try {
-        treeItems[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        treeNodes[i].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       } catch (_) {}
     }
   }

@@ -27,7 +27,7 @@
     --c-poly: #DC2626;
     --c-contact: #CBD5E1;
     --c-metal: #94A3B8;
-    --c-depletion: #64748B;
+    --c-depletion: #94A3B8;
     --c-electron: #F59E0B;
     --c-hole: #F43F5E;
     --c-vdd: #e35d5d;
@@ -64,7 +64,7 @@
     --c-poly: #B91C1C;
     --c-contact: #334155;
     --c-metal: #475569;
-    --c-depletion: #475569;
+    --c-depletion: #64748B;
     --c-electron: #D97706;
     --c-hole: #BE123C;
     --c-vdd: #dc2626;
