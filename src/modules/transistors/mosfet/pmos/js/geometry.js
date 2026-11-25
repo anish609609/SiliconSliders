@@ -977,14 +977,19 @@ var labelCalloutGroups = [];
 function makeTextSprite(text, colorHex, opts) {
   opts = opts || {};
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var isWhite = (colorHex === '#ffffff' || colorHex === '#fff');
+  var textColor = isWhite ? (isLight ? '#0f172a' : '#f8fafc') : colorHex;
+  var strokeColor = isWhite ? (isLight ? '#94a3b8' : '#475569') : colorHex;
+  var bgColor = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)');
+
   var c = document.createElement('canvas');
   c.width = 384;
   c.height = 128;
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = opts.bg || (isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)');
-  ctx.strokeStyle = colorHex;
+  ctx.fillStyle = bgColor;
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = 4;
   var r = 16;
   ctx.beginPath();
@@ -1001,7 +1006,7 @@ function makeTextSprite(text, colorHex, opts) {
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = colorHex;
+  ctx.fillStyle = textColor;
   ctx.font = 'bold 36px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -1023,14 +1028,19 @@ function makeTextSprite(text, colorHex, opts) {
 }
 
 function updateLabelSprite(sprite, text, colorHex, isLight) {
+  var isWhite = (colorHex === '#ffffff' || colorHex === '#fff');
+  var textColor = isWhite ? (isLight ? '#0f172a' : '#f8fafc') : colorHex;
+  var strokeColor = isWhite ? (isLight ? '#94a3b8' : '#475569') : colorHex;
+  var bgColor = isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)';
+
   var c = document.createElement('canvas');
   c.width = 384;
   c.height = 128;
   var ctx = c.getContext('2d');
   ctx.clearRect(0, 0, c.width, c.height);
 
-  ctx.fillStyle = isLight ? 'rgba(255, 255, 255, 0.97)' : 'rgba(10, 14, 22, 0.96)';
-  ctx.strokeStyle = colorHex;
+  ctx.fillStyle = bgColor;
+  ctx.strokeStyle = strokeColor;
   ctx.lineWidth = 4;
   var r = 16;
   ctx.beginPath();
@@ -1047,7 +1057,7 @@ function updateLabelSprite(sprite, text, colorHex, isLight) {
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = colorHex;
+  ctx.fillStyle = textColor;
   ctx.font = 'bold 36px "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -1179,6 +1189,14 @@ function updateMaterialsTheme() {
     }
   });
 
+  labelCalloutGroups.forEach(function(g) {
+    if (g && g.userData && (g.userData.baseColorHex === '#ffffff' || g.userData.baseColorHex === '#fff')) {
+      var c = isLight ? 0x64748b : 0xffffff;
+      if (g.userData.line && g.userData.line.material) g.userData.line.material.color.set(c);
+      if (g.userData.dot && g.userData.dot.material) g.userData.dot.material.color.set(c);
+    }
+  });
+
   if (typeof updateLayersListTheme === 'function') {
     updateLayersListTheme(pal);
   }
@@ -1191,6 +1209,9 @@ window.updateMaterialsTheme = updateMaterialsTheme;
 
 function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
   var group = new THREE.Group();
+  var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var isWhite = (colorHex === '#ffffff' || colorHex === '#fff');
+  var leaderColorHex = isWhite ? (isLight ? '#64748b' : '#ffffff') : colorHex;
 
   // Thin vertical leader line
   var lineGeo = new THREE.BufferGeometry().setFromPoints([
@@ -1198,7 +1219,7 @@ function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
     new THREE.Vector3(offset.x, offset.y, offset.z)
   ]);
   var lineMat = new THREE.LineBasicMaterial({
-    color: new THREE.Color(colorHex),
+    color: new THREE.Color(leaderColorHex),
     transparent: true,
     opacity: 0.60,
     linewidth: 1.5
@@ -1208,7 +1229,7 @@ function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
 
   // Anchor dot on the metal pad
   var dotGeo = new THREE.SphereGeometry(0.08, 8, 8);
-  var dotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(colorHex) });
+  var dotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(leaderColorHex) });
   var dot = new THREE.Mesh(dotGeo, dotMat);
   group.add(dot);
 
@@ -1220,6 +1241,9 @@ function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
 
   group.position.set(padX, padY, padZ);
   group.userData.isTerminalTag = true;
+  group.userData.line = line;
+  group.userData.dot = dot;
+  group.userData.baseColorHex = colorHex;
   group.name = 'callout_' + text.replace(/[^a-zA-Z0-9]/g, '_');
   labelCalloutGroups.push(group);
   return group;

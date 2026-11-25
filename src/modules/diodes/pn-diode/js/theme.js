@@ -58,6 +58,8 @@ function initTheme(){
 function applyTheme(theme, savePreference){
   currentTheme = theme;
   document.documentElement.setAttribute('data-theme', theme);
+  document.documentElement.classList.toggle('light', theme === 'light');
+  document.documentElement.classList.toggle('dark', theme === 'dark');
 
   if (savePreference){
     setAllThemeKeys(theme);

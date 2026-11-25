@@ -5,7 +5,8 @@
 
 /* Unified Theme Contrast Variables */
 :root,
-[data-theme="dark"] {
+[data-theme="dark"],
+html:not(.light) {
   --v-bg-base: #07090e;
   --v-bg-panel: rgba(13, 17, 25, 0.88);
   --v-bg-panel-solid: #0f141f;
@@ -22,8 +23,9 @@
   --v-btn-hover: rgba(255, 255, 255, 0.08);
 }
 
+:root[data-theme="light"],
 [data-theme="light"],
-html.light {
+html.light:not([data-theme="dark"]) {
   --v-bg-base: #f8fafc;
   --v-bg-panel: rgba(255, 255, 255, 0.94);
   --v-bg-panel-solid: #ffffff;
@@ -78,6 +80,18 @@ html.light #loading .spin {
   border-color: var(--v-border-strong);
   background: var(--v-bg-input);
   transform: translateX(-1px);
+}
+
+[data-theme="dark"] .nav-back-link {
+  color: var(--v-text-secondary) !important;
+  background: var(--v-btn-hover);
+  border-color: var(--v-border);
+}
+
+[data-theme="dark"] .nav-back-link:hover {
+  color: var(--v-text-primary) !important;
+  border-color: var(--v-border-strong);
+  background: var(--v-bg-input);
 }
 
 /* Segmented Control Buttons (Layout, Flow, Logic States) */
@@ -432,6 +446,12 @@ input[type="range"] {
   user-select: none;
 }
 
+[data-theme="dark"] .scale-note-btn {
+  background: rgba(13, 17, 25, 0.88);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #94a3b8;
+}
+
 .scale-note-btn:hover,
 .scale-note-btn.active,
 .scale-note-wrap:hover .scale-note-btn {
@@ -561,6 +581,15 @@ input[type="range"] {
  */
 
 /* Segmented Switcher (Theory | Physical Layout | Schematic) */
+[data-theme="dark"] #mode-seg {
+  background: rgba(13, 17, 25, 0.88);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+[data-theme="dark"] #mode-seg button,
+[data-theme="dark"] #mode-seg .seg-btn {
+  color: #94a3b8;
+  background: transparent;
+}
 #mode-seg {
   display: inline-flex;
   align-items: center;

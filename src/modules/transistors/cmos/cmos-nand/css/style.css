@@ -132,14 +132,17 @@
   #input-a-group button.active,
   #input-b-group button.active,
   #flow-mode-group button.active,
+  #flow-seg button.active,
   [data-theme="dark"] #mode-seg button.active,
   [data-theme="dark"] #input-a-group button.active,
   [data-theme="dark"] #input-b-group button.active,
   [data-theme="dark"] #flow-mode-group button.active,
+  [data-theme="dark"] #flow-seg button.active,
   :root:not([data-theme="light"]) #mode-seg button.active,
   :root:not([data-theme="light"]) #input-a-group button.active,
   :root:not([data-theme="light"]) #input-b-group button.active,
-  :root:not([data-theme="light"]) #flow-mode-group button.active {
+  :root:not([data-theme="light"]) #flow-mode-group button.active,
+  :root:not([data-theme="light"]) #flow-seg button.active {
     background: var(--accent) !important;
     color: #061512 !important;
     font-weight: 700 !important;
@@ -149,11 +152,58 @@
   :root[data-theme="light"] #mode-seg .seg-btn.active,
   :root[data-theme="light"] #input-a-group button.active,
   :root[data-theme="light"] #input-b-group button.active,
-  :root[data-theme="light"] #flow-mode-group button.active {
+  :root[data-theme="light"] #flow-mode-group button.active,
+  :root[data-theme="light"] #flow-seg button.active {
     background: #0d9488 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     box-shadow: 0 1px 4px rgba(13, 148, 136, 0.3) !important;
+  }
+
+  /* Left workbench logic input state preset active buttons */
+  .wb-presets button.active,
+  .dp-preset-btn.active,
+  #nand-preset-seg button.active,
+  [data-theme="dark"] .wb-presets button.active,
+  [data-theme="dark"] .dp-preset-btn.active,
+  [data-theme="dark"] #nand-preset-seg button.active,
+  :root:not([data-theme="light"]) .wb-presets button.active,
+  :root:not([data-theme="light"]) .dp-preset-btn.active,
+  :root:not([data-theme="light"]) #nand-preset-seg button.active {
+    background: var(--accent) !important;
+    color: #061512 !important;
+    font-weight: 700 !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 1px 6px rgba(95, 217, 196, 0.45) !important;
+  }
+  :root[data-theme="light"] .wb-presets button.active,
+  :root[data-theme="light"] .dp-preset-btn.active,
+  :root[data-theme="light"] #nand-preset-seg button.active {
+    background: #0d9488 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-color: #0d9488 !important;
+    box-shadow: 0 1px 4px rgba(13, 148, 136, 0.3) !important;
+  }
+
+  [data-theme="dark"] .nav-back-link {
+    background: var(--panel-2) !important;
+    color: var(--text-dim) !important;
+    border-color: var(--border) !important;
+  }
+  [data-theme="dark"] .nav-back-link:hover {
+    background: #1b2230 !important;
+    color: var(--text) !important;
+    border-color: #33404f !important;
+  }
+  [data-theme="dark"] .scale-note-btn {
+    background: var(--panel-2) !important;
+    color: var(--text-dim) !important;
+    border-color: var(--border) !important;
+  }
+  [data-theme="dark"] .scale-note-btn:hover {
+    background: #1b2230 !important;
+    color: var(--text) !important;
   }
 
   .tbtn{

@@ -92,6 +92,8 @@ function applyTheme(theme) {
   currentTheme = theme === 'light' ? 'light' : 'dark';
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('data-theme', currentTheme);
+    document.documentElement.classList.toggle('light', currentTheme === 'light');
+    document.documentElement.classList.toggle('dark', currentTheme === 'dark');
   }
   setAllThemeKeys(currentTheme);
 
