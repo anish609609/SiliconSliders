@@ -52,6 +52,10 @@ function getLayerColor(layerId, pal) {
     case 'depletionRegion': return (typeof currentTheme !== 'undefined' && currentTheme === 'light') ? '#64748B' : '#94A3B8';
     case 'passivation': return pal.fieldOxide;
     case 'sti': return pal.fieldOxide;
+    case 'silicide':
+    case 'anodeSilicide':
+    case 'cathodeSilicide':
+      return (typeof currentTheme !== 'undefined' && currentTheme === 'light') ? '#647082' : '#6e7887';
     case 'contact': return pal.via;
     case 'metal': return pal.metal;
     case 'ions': return '#14b8a6';

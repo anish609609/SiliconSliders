@@ -53,17 +53,17 @@ var FAB_STEPS = [
   },
   {
     step: 6,
-    title: 'Tungsten (W) Contacts',
-    desc: 'Interlayer dielectric (ILD) is deposited, contact vias are plasma etched, and CVD Tungsten plugs with TiN barrier liners are polished flush via CMP.',
-    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact'],
-    newLayers: ['contact'],
-    narration: 'Tungsten contact plugs are deposited and planarized, providing low-resistance vertical vias to the active and gate regions.'
+    title: 'NiSi Salicide & Tungsten (W) Contacts',
+    desc: 'Self-aligned Nickel Silicide (NiSi) pads form over exposed S/D and Body Tap silicon outside the Si3N4 spacers, followed by ILD deposition and CVD Tungsten contact plugs.',
+    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'silicide', 'contact'],
+    newLayers: ['silicide', 'contact'],
+    narration: 'Self-aligned nickel silicide pads lower contact resistance on active regions, and tungsten contact plugs connect down cleanly onto the silicide pads.'
   },
   {
     step: 7,
     title: 'Metal-1 Interconnects',
     desc: 'First metallization layer patterned into Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body (B/GND) pads, completing the discrete NMOS transistor.',
-    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'contact', 'metal'],
+    layers: ['substrate', 'depletion', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'silicide', 'contact', 'metal'],
     newLayers: ['metal'],
     narration: 'Metal-1 copper runners are patterned, completing the discrete NMOS transistor with terminals for source, drain, gate, and body.'
   }

@@ -655,7 +655,15 @@ async function startTour(){
     updateUIForTourStep(step);
 
     // C. Reveal ONLY this step's 3D meshes + its 3D labels, and animate them dropping down from above (restY + 2.5 -> restY over 700ms)
-    const dropPromise = animateLayerDropIn(step.layerKey, DROP_DURATION_MS, runId);
+    const extraKeys = step.layerKey === 'poly' ? ['spacer'] : (step.layerKey === 'contact' ? ['silicide'] : []);
+    extraKeys.forEach(ek => {
+      const ecb = document.querySelector(`#layers-body input[data-layer="${ek}"]`);
+      if (ecb) ecb.checked = true;
+    });
+    const dropPromise = Promise.all([
+      animateLayerDropIn(step.layerKey, DROP_DURATION_MS, runId),
+      ...extraKeys.map(ek => animateLayerDropIn(ek, DROP_DURATION_MS, runId))
+    ]);
 
     // D. Play this step's Sarvam AI voiceover and wait until `audio.onended` fires
     const audioPromise = speakStepWithSarvam(step.narration, runId);

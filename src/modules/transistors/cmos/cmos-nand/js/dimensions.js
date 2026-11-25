@@ -130,6 +130,8 @@ var DIM_MAP = {
   nmosBHighk: ['highkThick', 'oxideThick', 'gateLen'],
   polyA: ['gateLen', 'polyPitch', 'polyExt'],
   polyB: ['gateLen', 'polyPitch', 'polyExt'],
+  spacer: ['sdeOverlap', 'gateLen'],
+  silicide: ['sdLen', 'activeW'],
   welltapCt: ['contactCut', 'viaPad'],
   pmosASrcCt: ['contactCut', 'viaPad'],
   pmosSharedDrnCt: ['contactCut', 'viaPad'],

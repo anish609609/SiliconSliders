@@ -44,6 +44,18 @@ var LEGEND = [
     note: 'Continuous vertical Gate A & Gate B stripes (Euler-path layout)'
   },
   {
+    key: 'spacer',
+    label: 'Gate Spacers (Si3N4)',
+    color: '#67e8f9',
+    note: 'Silicon nitride (Si3N4) sidewall spacers flanking Gate A and Gate B out to the SDE/LDD step-down boundary.'
+  },
+  {
+    key: 'silicide',
+    label: 'SILICIDE (NiSi)',
+    color: 'var(--c-silicide)',
+    note: 'Self-aligned nickel silicide (NiSi) layer formed on exposed Source/Drain silicon to create a low-resistance ohmic contact for Tungsten vias.'
+  },
+  {
     key: 'contact',
     label: 'Tungsten Contacts',
     color: '#4a4d54',
@@ -277,6 +289,20 @@ var INFO = {
     type: 'Silicided Gate Electrode (X = +3.0, L = 2λ)',
     role: 'Continuous vertical Euler-path gate simultaneously driving PMOS MP2 (active low) and NMOS MN2 (active high) from Input B.',
     process: 'LPCVD polysilicon / HKMG patterning aligned parallel to Gate A.'
+  },
+  spacer: {
+    title: 'Gate Sidewall Spacers (Si3N4)',
+    layer: 'spacer',
+    type: 'Silicon Nitride Dielectric Spacers (Si3N4, k ≈ 7.5)',
+    role: 'Flanks both Gate A and Gate B across the PMOS and NMOS rows cleanly out to the SDE/LDD step-down edges, isolating NiSi silicide from the gate electrodes.',
+    process: 'Conformal Si3N4 CVD followed by anisotropic reactive-ion etch (RIE).'
+  },
+  silicide: {
+    title: 'Self-Aligned Silicide (Salicide / NiSi)',
+    layer: 'silicide',
+    type: 'Nickel Monosilicide (NiSi) Ohmic Pads',
+    role: 'Low-resistance metallic silicide pads atop all exposed P+/N+ source/drain diffusions (strictly outside spacers), the series N+ bridge, and the N-Well/P-Well taps underneath the Tungsten vias.',
+    process: 'Self-aligned thermally annealed Ni/Si reaction selectively formed over exposed active silicon.'
   },
 
   /* 9 Tungsten Contacts */

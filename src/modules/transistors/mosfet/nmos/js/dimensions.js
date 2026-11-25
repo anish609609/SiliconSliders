@@ -74,6 +74,7 @@ renderDimsTable();
 var DIM_MAP = {
   poly:['gateLength','gateWidth','polyThickness'],
   spacer:['gateLength','polyThickness'],
+  srcSil:['sdLength','gateWidth'], drnSil:['sdLength','gateWidth'], subtapSil:['contactSize'], silicide:['sdLength','gateWidth'],
   oxide:['oxideThickness'],
   highk:['oxideThickness'],
   sdeSrc:['gateLength','gateWidth','activeDepth'],

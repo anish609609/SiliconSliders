@@ -29,6 +29,7 @@ var groups = {
   ions: new THREE.Group(),
   field: new THREE.Group(),
   passivation: new THREE.Group(),
+  silicide: new THREE.Group(),
   contact: new THREE.Group(),
   metal: new THREE.Group(),
   labels: new THREE.Group()
@@ -563,6 +564,16 @@ function buildDiodeGeometry() {
     depthWrite: false
   });
 
+  diodeMaterials.silicide = new THREE.MeshStandardMaterial({
+    color: isLight ? 0x647082 : 0x6e7887,
+    roughness: 0.28,
+    metalness: 0.80,
+    roughnessMap: metalTex,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.5,
+    polygonOffsetUnits: -1.5
+  });
+
   diodeMaterials.metal = new THREE.MeshStandardMaterial({
     color: metalColor,
     map: metalTex,
@@ -785,28 +796,60 @@ function buildDiodeGeometry() {
   groups.passivation.add(ildOuterRight);
 
   // =========================================================================
-  // 8. TUNGSTEN CONTACT VIAS (W VIA PLUGS)
+  // 7c. SELF-ALIGNED SILICIDE (NiSi) CONTACT PADS ATOP P+ ANODE & N+ CATHODE
+  // =========================================================================
+  var silH = 0.065;
+  var silBot = 0.006; // 0.002 clearance above pTub/nTap top (0.004)
+  var silTop = silBot + silH; // 0.071
+
+  function buildDiodeSilicidePad(w, d, xCenter, id) {
+    var geo = new THREE.BoxGeometry(w, silH, d);
+    var m = new THREE.Mesh(geo, diodeMaterials.silicide);
+    m.position.set(xCenter, silBot + silH / 2, 0);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    m.renderOrder = 6;
+    m.userData = { id: id, layerKey: 'silicide' };
+    var el = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo),
+      new THREE.LineBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.48, depthWrite: false })
+    );
+    el.raycast = function () {};
+    m.add(el);
+    clickableMeshes.push(m);
+    groups.silicide.add(m);
+    return m;
+  }
+
+  // Placed strictly over contact zones (x=-4.8 & x=+4.8) beneath W vias, clear of STI & junction edges
+  buildDiodeSilicidePad(1.9, 6.6, -4.8, 'anodeSilicide');
+  buildDiodeSilicidePad(2.4, 6.6, 4.8, 'cathodeSilicide');
+
+  // =========================================================================
+  // 8. TUNGSTEN CONTACT VIAS (W VIA PLUGS - land flush atop NiSi pads)
   // =========================================================================
   var viaH = 1.8;
+  var viaBot = silTop;
+  var viaSegH = viaH - viaBot;
   var viaR = 0.28;
   var viaZOffsets = [-2.4, 0.0, 2.4];
 
-  // Anode Tungsten Vias (X = -4.8, punching down into P+ tub)
+  // Anode Tungsten Vias (X = -4.8, landing cleanly atop Anode NiSi pad)
   viaZOffsets.forEach(function (vz, idx) {
-    var vGeo = new THREE.CylinderGeometry(viaR, viaR * 0.95, viaH, 16);
+    var vGeo = new THREE.CylinderGeometry(viaR, viaR * 0.95, viaSegH, 16);
     var vMesh = new THREE.Mesh(vGeo, diodeMaterials.contact);
-    vMesh.position.set(-4.8, viaH / 2, vz);
+    vMesh.position.set(-4.8, viaBot + viaSegH / 2, vz);
     vMesh.castShadow = true;
     vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'anode_' + idx };
     clickableMeshes.push(vMesh);
     groups.contact.add(vMesh);
   });
 
-  // Cathode Tungsten Vias (X = +4.8, punching down into N+ tap)
+  // Cathode Tungsten Vias (X = +4.8, landing cleanly atop Cathode NiSi pad)
   viaZOffsets.forEach(function (vz, idx) {
-    var vGeo = new THREE.CylinderGeometry(viaR, viaR * 0.95, viaH, 16);
+    var vGeo = new THREE.CylinderGeometry(viaR, viaR * 0.95, viaSegH, 16);
     var vMesh = new THREE.Mesh(vGeo, diodeMaterials.contact);
-    vMesh.position.set(4.8, viaH / 2, vz);
+    vMesh.position.set(4.8, viaBot + viaSegH / 2, vz);
     vMesh.castShadow = true;
     vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'cathode_' + idx };
     clickableMeshes.push(vMesh);
@@ -1034,6 +1077,7 @@ function updateMaterialsTheme() {
   }
   if (diodeMaterials.pRegion) diodeMaterials.pRegion.color.set(pal.pPlusDiffusion);
   if (diodeMaterials.nRegion) diodeMaterials.nRegion.color.set(pal.nPlusDiffusion);
+  if (diodeMaterials.silicide) diodeMaterials.silicide.color.setHex(isLight ? 0x647082 : 0x6e7887);
   if (diodeMaterials.metal) diodeMaterials.metal.color.set(pal.metal);
   if (diodeMaterials.contact) diodeMaterials.contact.color.set(pal.via);
   if (diodeMaterials.passivation) {

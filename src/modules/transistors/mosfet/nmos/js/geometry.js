@@ -402,7 +402,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
 // ---------------------------------------------------------------------------
 // LAYER GROUPS & ORDER
 // ---------------------------------------------------------------------------
-var LAYER_ORDER = ['substrate', 'depletion', 'active', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'contact', 'metal'];
+var LAYER_ORDER = ['substrate', 'depletion', 'active', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'silicide', 'contact', 'metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -535,6 +535,8 @@ var Y = {
   subTop: 3.0,
   actBot: 1.804,
   actTop: 3.004,
+  silBot: 3.006,
+  silTop: 3.076,
   sdeBot: 2.508,
   sdeTop: 3.008,
   oxBot: 3.008,
@@ -543,7 +545,7 @@ var Y = {
   hkTop: 3.428,
   polyBot: 3.428,
   polyTop: 4.458,
-  ctBot: 3.008,
+  ctBot: 3.076,
   ctTop: 5.158,
   m1Bot: 5.158,
   m1Top: 5.338
@@ -1105,8 +1107,17 @@ var polyMesh = box(gateL, Y.polyTop - Y.polyBot, polyRunnerLength, '--c-poly', {
 polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2, 1.2);
 reg(polyMesh, 'poly', 'poly');
 
-// Sleek, refined crystalline Si3N4 sidewall spacers (soft translucent dielectric)
-var spacerW = 0.20;
+// Widened Si3N4 sidewall spacers matching full N-SDE/LDD lateral width:
+// outer edge aligns flush with LDD-to-N+ step-down coordinate (+/- 2.10),
+// with a tiny inner clearance (+/- 1.004) for zero Z-fighting against gate sidewalls or SiO2/HfO2.
+var spacerInnerGap = 0.004;
+var spacerOuterX = gateL / 2 + sdeW;
+var spacerW = sdeW - spacerInnerGap;
+var spacerBot = Y.sdeTop + 0.002;
+var spacerH = Y.polyTop - spacerBot;
+var spacerCenterY = (Y.polyTop + spacerBot) / 2;
+var spacerCenterX = gateL / 2 + spacerInnerGap + spacerW / 2;
+
 var spacerMat = new THREE.MeshStandardMaterial({
   color: 0x7dd3fc,   // cohesive Si3N4 dielectric tone
   roughness: 0.45,   // soft satin finish, not harsh glass
@@ -1114,9 +1125,12 @@ var spacerMat = new THREE.MeshStandardMaterial({
   transparent: true,
   opacity: 0.62,     // refined translucency
   depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -0.5,
+  polygonOffsetUnits: -0.5,
   side: THREE.DoubleSide
 });
-var spacerGeo = new THREE.BoxGeometry(spacerW, Y.polyTop - Y.oxBot, actD);
+var spacerGeo = new THREE.BoxGeometry(spacerW, spacerH, actD);
 var spacerEdges = new THREE.EdgesGeometry(spacerGeo, 24);
 var spacerEdgeMat = new THREE.LineBasicMaterial({
   color: 0xbae6fd,
@@ -1127,7 +1141,8 @@ var spacerEdgeMat = new THREE.LineBasicMaterial({
 
 var spacerGroup = new THREE.Group();
 var leftSpacer = new THREE.Mesh(spacerGeo, spacerMat);
-leftSpacer.position.set(-gateL / 2 - spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
+leftSpacer.position.set(-spacerCenterX, spacerCenterY, 0);
+leftSpacer.renderOrder = 6;
 leftSpacer.userData.id = 'spacer';
 leftSpacer.userData.layer = 'spacer';
 var leftLine = new THREE.LineSegments(spacerEdges, spacerEdgeMat);
@@ -1136,7 +1151,8 @@ leftSpacer.add(leftLine);
 spacerGroup.add(leftSpacer);
 
 var rightSpacer = new THREE.Mesh(spacerGeo, spacerMat);
-rightSpacer.position.set(gateL / 2 + spacerW / 2, (Y.polyTop + Y.oxBot) / 2, 0);
+rightSpacer.position.set(spacerCenterX, spacerCenterY, 0);
+rightSpacer.renderOrder = 6;
 rightSpacer.userData.id = 'spacer';
 rightSpacer.userData.layer = 'spacer';
 var rightLine = new THREE.LineSegments(spacerEdges, spacerEdgeMat);
@@ -1145,6 +1161,86 @@ rightSpacer.add(rightLine);
 spacerGroup.add(rightSpacer);
 
 reg(spacerGroup, 'spacer', 'spacer');
+
+// ---------------------------------------------------------------------------
+// 7b. SELF-ALIGNED SILICIDE (SALICIDE / NiSi) CONTACT PADS
+// ---------------------------------------------------------------------------
+var silH = Y.silTop - Y.silBot;
+var silCenterY = (Y.silTop + Y.silBot) / 2;
+var silInnerEdgeX = spacerOuterX + 0.006;
+var silOuterEdgeX = Math.abs(srcX) + actW / 2 - 0.04;
+var silW = silOuterEdgeX - silInnerEdgeX;
+var silCenterX = (silOuterEdgeX + silInnerEdgeX) / 2;
+
+function createSalicidePadGeometry(w, h, d, outerDir) {
+  var hw = w / 2;
+  var hd = d / 2;
+  var rIn = 0.01;
+  var rOut = Math.min(0.40, hw * 0.45, hd * 0.45);
+  var rLeft = outerDir < 0 ? rOut : rIn;
+  var rRight = outerDir > 0 ? rOut : rIn;
+  var bevel = 0.008;
+
+  var shape = new THREE.Shape();
+  shape.moveTo(-hw + rLeft, -hd);
+  shape.lineTo(hw - rRight, -hd);
+  shape.quadraticCurveTo(hw, -hd, hw, -hd + rRight);
+  shape.lineTo(hw, hd - rRight);
+  shape.quadraticCurveTo(hw, hd, hw - rRight, hd);
+  shape.lineTo(-hw + rLeft, hd);
+  shape.quadraticCurveTo(-hw, hd, -hw, hd - rLeft);
+  shape.lineTo(-hw, -hd + rLeft);
+  shape.quadraticCurveTo(-hw, -hd, -hw + rLeft, -hd);
+
+  var geo = new THREE.ExtrudeGeometry(shape, {
+    steps: 1,
+    depth: Math.max(0.002, h - bevel * 2),
+    bevelEnabled: true,
+    bevelThickness: bevel,
+    bevelSize: bevel,
+    bevelOffset: 0,
+    bevelSegments: 1
+  });
+  geo.rotateX(Math.PI / 2);
+  geo.center();
+  return geo;
+}
+
+var silIsLightInit = (typeof currentTheme !== 'undefined' ? currentTheme : document.documentElement.getAttribute('data-theme')) === 'light';
+var silMat = new THREE.MeshStandardMaterial({
+  color: silIsLightInit ? 0x647082 : 0x6e7887,
+  roughness: 0.28,
+  metalness: 0.80,
+  roughnessMap: getBrushedMetalTexture(),
+  polygonOffset: true,
+  polygonOffsetFactor: -1.5,
+  polygonOffsetUnits: -1.5,
+  emissive: 0x000000,
+  emissiveIntensity: 0
+});
+
+function buildSilicidePadMesh(geo, id, xPos, zPos) {
+  var m = new THREE.Mesh(geo, silMat);
+  m.position.set(xPos, silCenterY, zPos);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  m.renderOrder = 5;
+  m.userData.isSilicide = true;
+  m.userData.baseEmissive = 0x000000;
+  m.userData.baseEmissiveIntensity = 0;
+  var eLine = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo, 24),
+    new THREE.LineBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.45, depthWrite: false })
+  );
+  eLine.raycast = function() {};
+  m.add(eLine);
+  reg(m, id, 'silicide');
+  return m;
+}
+
+var srcSilMesh = buildSilicidePadMesh(createSalicidePadGeometry(silW, silH, actD, -1), 'srcSil', -silCenterX, 0);
+var drnSilMesh = buildSilicidePadMesh(createSalicidePadGeometry(silW, silH, actD, 1), 'drnSil', silCenterX, 0);
+var tapSilMesh = buildSilicidePadMesh(createFilletedTraceGeometry(2.10, silH, 2.10, 0.25, 0.008), 'subtapSil', -6.5, 6.2);
 
 // ---------------------------------------------------------------------------
 // 8. TAPERED TUNGSTEN CONTACT VIA PLUGS (Matching CMOS Inverter Palette)
@@ -1441,6 +1537,10 @@ function updateMaterialsTheme() {
       chanMat.emissiveIntensity = isLight ? 0.15 : 0.40;
       if (typeof syncChannelBaseEmissive === 'function') syncChannelBaseEmissive();
     }
+  }
+
+  if (typeof silMat !== 'undefined' && silMat && silMat.color) {
+    silMat.color.setHex(isLight ? 0x647082 : 0x6e7887);
   }
 
   labelSprites.forEach(function(s) {

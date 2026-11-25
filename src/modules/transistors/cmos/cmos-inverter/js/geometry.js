@@ -686,6 +686,10 @@ function updateMaterialsTheme(){
     oxideNmos.material.opacity = pal.gateOxideOpacity || (isLight ? 0.28 : 0.35);
   }
 
+  if (typeof silMatInverter !== 'undefined' && silMatInverter && silMatInverter.color) {
+    silMatInverter.color.setHex(isLight ? 0x647082 : 0x6e7887);
+  }
+
   labelSprites.forEach(function(s){
     if (s && s.userData && s.userData.labelText && s.userData.colorHex){
       updateLabelSprite(s, s.userData.labelText, s.userData.colorHex, isLight);
@@ -713,6 +717,7 @@ var Y = {
   subBot: 0.0, subTop: 2.0,
   wellBot: 1.10, wellTop: 2.05,     // sits in the UPPER part of the substrate slab, barely proud of it
   actBot: 1.55, actTop: 1.95,       // recessed well below the well/substrate top surface
+  silBot: 1.952, silTop: 1.992,     // self-aligned NiSi silicide contact pads atop exposed silicon
   oxideBot: 1.95, oxideTop: 1.985,  // thin chemical SiO2 interfacial oxide under the gates
   highkBot: 1.985, highkTop: 2.02,  // High-k HfO2 dielectric layer
   polyBot: 2.02, polyTop: 2.32,
@@ -736,7 +741,7 @@ var POLY_CT_Z = PMOS_Z1 + 0.3;             // IN contact — on the poly tail, j
 
 var RAIL_Z = PMOS_Z1 + 1.6;                // VDD/GND rails sit outside active/poly footprint
 
-var LAYER_ORDER = ['substrate','well','active','oxide','highk','poly','contact','metal'];
+var LAYER_ORDER = ['substrate','well','active','oxide','highk','poly','spacer','silicide','contact','metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -1148,6 +1153,111 @@ var polyMesh = box(CH.max-CH.min, Y.polyTop-Y.polyBot, POLY_Z1-POLY_Z0, '--c-pol
 put(polyMesh, 0, (Y.polyTop+Y.polyBot)/2, (POLY_Z0+POLY_Z1)/2);
 reg(polyMesh, 'poly', 'poly');
 
+// ---------- GATE SIDEWALL SPACERS (Si3N4) - flush with SDE/LDD outer edges (±1.20) ----------
+var cmosSpacerGap = 0.004;
+var cmosSpacerOuterX = 1.20;
+var cmosSpacerW = cmosSpacerOuterX - CH.max - cmosSpacerGap; // 0.196
+var cmosSpacerBot = Y.oxideBot + 0.002;
+var cmosSpacerH = Y.polyTop - cmosSpacerBot;
+var cmosSpacerMidY = (Y.polyTop + cmosSpacerBot) / 2;
+var cmosSpacerCX = CH.max + cmosSpacerGap + cmosSpacerW / 2;
+
+var cmosSpacerMat = new THREE.MeshStandardMaterial({
+  color: 0x7dd3fc,
+  roughness: 0.45,
+  metalness: 0.04,
+  transparent: true,
+  opacity: 0.62,
+  depthWrite: false,
+  polygonOffset: true,
+  polygonOffsetFactor: -0.5,
+  polygonOffsetUnits: -0.5,
+  side: THREE.DoubleSide
+});
+var cmosSpacerGeo = new THREE.BoxGeometry(cmosSpacerW, cmosSpacerH, ACTIVE_W);
+var cmosSpacerEdges = new THREE.EdgesGeometry(cmosSpacerGeo, 24);
+var cmosSpacerEdgeMat = new THREE.LineBasicMaterial({ color: 0xbae6fd, transparent: true, opacity: 0.35, depthWrite: false });
+
+[PMOS_ZC, NMOS_ZC].forEach(function(zcRow) {
+  [-cmosSpacerCX, cmosSpacerCX].forEach(function(sx) {
+    var sp = new THREE.Mesh(cmosSpacerGeo, cmosSpacerMat);
+    put(sp, sx, cmosSpacerMidY, zcRow);
+    sp.renderOrder = 6;
+    var el = new THREE.LineSegments(cmosSpacerEdges, cmosSpacerEdgeMat);
+    el.raycast = function() {};
+    sp.add(el);
+    reg(sp, 'spacer', 'spacer');
+  });
+});
+
+// ---------- SELF-ALIGNED SILICIDE (SALICIDE / NiSi) CONTACT PADS ----------
+var silHInv = Y.silTop - Y.silBot;
+var silMidYInv = (Y.silTop + Y.silBot) / 2;
+var silInnerInv = cmosSpacerOuterX + 0.006; // strictly outside spacers (1.206)
+var silOuterInv = Math.abs(SRC_X0) - 0.04;    // 3.96
+var silWInv = silOuterInv - silInnerInv;      // 2.754
+var silCXInv = (silOuterInv + silInnerInv) / 2; // 2.583
+
+function createCmosSalicideGeo(w, h, d, outerDir) {
+  var hw = w / 2, hd = d / 2;
+  var rIn = outerDir === 0 ? 0.15 : 0.01;
+  var rOut = Math.min(0.35, hw * 0.45, hd * 0.45);
+  var rLeft = outerDir < 0 ? rOut : rIn;
+  var rRight = outerDir > 0 ? rOut : rIn;
+  var bevel = 0.006;
+  var shape = new THREE.Shape();
+  shape.moveTo(-hw + rLeft, -hd);
+  shape.lineTo(hw - rRight, -hd);
+  shape.quadraticCurveTo(hw, -hd, hw, -hd + rRight);
+  shape.lineTo(hw, hd - rRight);
+  shape.quadraticCurveTo(hw, hd, hw - rRight, hd);
+  shape.lineTo(-hw + rLeft, hd);
+  shape.quadraticCurveTo(-hw, hd, -hw, hd - rLeft);
+  shape.lineTo(-hw, -hd + rLeft);
+  shape.quadraticCurveTo(-hw, -hd, -hw + rLeft, -hd);
+  var geo = new THREE.ExtrudeGeometry(shape, {
+    steps: 1, depth: Math.max(0.002, h - bevel * 2),
+    bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel, bevelOffset: 0, bevelSegments: 1
+  });
+  geo.rotateX(Math.PI / 2);
+  geo.center();
+  return geo;
+}
+
+var silMatInverter = new THREE.MeshStandardMaterial({
+  color: isInitLight ? 0x647082 : 0x6e7887,
+  roughness: 0.28,
+  metalness: 0.80,
+  roughnessMap: getBrushedMetalTexture(),
+  polygonOffset: true,
+  polygonOffsetFactor: -1.5,
+  polygonOffsetUnits: -1.5,
+  emissive: 0x000000,
+  emissiveIntensity: 0
+});
+
+function addInverterSilicide(geo, xPos, zPos) {
+  var m = new THREE.Mesh(geo, silMatInverter);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  m.renderOrder = 5;
+  var el = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo, 24),
+    new THREE.LineBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.45, depthWrite: false })
+  );
+  el.raycast = function() {};
+  m.add(el);
+  put(m, xPos, silMidYInv, zPos);
+  reg(m, 'silicide', 'silicide');
+  return m;
+}
+
+[PMOS_ZC, NMOS_ZC].forEach(function(zcRow) {
+  addInverterSilicide(createCmosSalicideGeo(silWInv, silHInv, ACTIVE_W, -1), -silCXInv, zcRow);
+  addInverterSilicide(createCmosSalicideGeo(silWInv, silHInv, ACTIVE_W, 1), silCXInv, zcRow);
+  addInverterSilicide(createFilletedTraceGeometry(1.12, silHInv, 1.12, 0.20, 0.006), TAP_X, zcRow);
+});
+
 // ---------- CONTACTS (Tapered Tungsten Plugs) ----------
 function contactAt(x, z, topOfLower, id){
   var h = Y.metalBot - topOfLower;
@@ -1169,13 +1279,13 @@ function contactAt(x, z, topOfLower, id){
   reg(c, id, 'contact');
   return c;
 }
-contactAt(SRC_X, PMOS_ZC, Y.actTop, 'pmosSrcCt');
-contactAt(DRN_X, PMOS_ZC, Y.actTop, 'pmosDrnCt');
-contactAt(SRC_X, NMOS_ZC, Y.actTop, 'nmosSrcCt');
-contactAt(DRN_X, NMOS_ZC, Y.actTop, 'nmosDrnCt');
+contactAt(SRC_X, PMOS_ZC, Y.silTop, 'pmosSrcCt');
+contactAt(DRN_X, PMOS_ZC, Y.silTop, 'pmosDrnCt');
+contactAt(SRC_X, NMOS_ZC, Y.silTop, 'nmosSrcCt');
+contactAt(DRN_X, NMOS_ZC, Y.silTop, 'nmosDrnCt');
 contactAt(0, POLY_CT_Z, Y.polyTop, 'polyCt');
-contactAt(TAP_X, PMOS_ZC, Y.actTop, 'welltapCt');
-contactAt(TAP_X, NMOS_ZC, Y.actTop, 'subtapCt');
+contactAt(TAP_X, PMOS_ZC, Y.silTop, 'welltapCt');
+contactAt(TAP_X, NMOS_ZC, Y.silTop, 'subtapCt');
 
 // ---------- METAL-1 (Flat Ribbon Routes, 45° Chamfered Bends, Landing Pads & Metallic Shaders) ----------
 var metalH = Y.metalTop - Y.metalBot; // 0.15 = 1λ (flat ribbon thickness)

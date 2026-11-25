@@ -135,6 +135,45 @@ var COMPONENTS = {
     thickness: '1.60 μm ILD oxide height',
     area: 'Wafer surface with etched via cuts'
   },
+  silicide: {
+    id: 'silicide',
+    name: 'SILICIDE (NiSi)',
+    title: 'Self-Aligned Nickel Silicide (NiSi)',
+    layer: 'Silicide',
+    role: 'Low-resistance ohmic contact pads bridging active P+/N+ silicon to Tungsten vias.',
+    fn: 'Self-aligned nickel silicide (NiSi) layer formed on exposed Source/Drain silicon to create a low-resistance ohmic contact for Tungsten vias.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)',
+    colorVar: '--c-silicide',
+    colorHex: '#6e7887',
+    thickness: '0.065 μm (CAD normalized)',
+    area: 'Anode & Cathode contact windows'
+  },
+  anodeSilicide: {
+    id: 'anodeSilicide',
+    name: 'Anode Silicide Pad (NiSi)',
+    title: 'P+ Anode Nickel Silicide Pad (NiSi)',
+    layer: 'Silicide',
+    role: 'Lowers contact resistance between the P+ Anode tub and Anode Tungsten vias.',
+    fn: 'Flat metallic NiSi pad atop the P+ Anode contact zone directly underneath the three Tungsten via plugs.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)',
+    colorVar: '--c-silicide',
+    colorHex: '#6e7887',
+    thickness: '0.065 μm',
+    area: '1.9 μm × 6.6 μm'
+  },
+  cathodeSilicide: {
+    id: 'cathodeSilicide',
+    name: 'Cathode Silicide Pad (NiSi)',
+    title: 'N+ Cathode Nickel Silicide Pad (NiSi)',
+    layer: 'Silicide',
+    role: 'Lowers contact resistance between the N+ Cathode tap and Cathode Tungsten vias.',
+    fn: 'Flat metallic NiSi pad atop the N+ Cathode tap directly underneath the three Tungsten via plugs.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)',
+    colorVar: '--c-silicide',
+    colorHex: '#6e7887',
+    thickness: '0.065 μm',
+    area: '2.4 μm × 6.6 μm'
+  },
   tungstenVias: {
     id: 'tungstenVias',
     name: 'Tungsten Contact Vias (W Plugs)',
@@ -188,6 +227,7 @@ var LAYERS_LIST = [
   { id: 'ions',        name: 'Fixed Space-Charge Ions (±)',   color: '#14B8A6', visible: true },
   { id: 'field',       name: 'High-Field Breakdown Glow',     color: '#F43F5E', visible: true },
   { id: 'passivation', name: 'Dielectric Stack (STI & ILD)',  color: '#475569', visible: true },
+  { id: 'silicide',    name: 'SILICIDE (NiSi)',               color: '#6e7887', visible: true },
   { id: 'contact',     name: 'Contacts (Tungsten W Vias)',    color: '#CBD5E1', visible: true },
   { id: 'metal',       name: 'Metal-1 Interconnects (A & K)', color: '#94A3B8', visible: true }
 ];
@@ -230,6 +270,8 @@ var ARCHITECTURE_TREE = [
       {
         name: 'Contacts & Metallization',
         children: [
+          { name: 'Anode Silicide Pad (NiSi)', id: 'anodeSilicide' },
+          { name: 'Cathode Silicide Pad (NiSi)', id: 'cathodeSilicide' },
           { name: 'Tungsten Contact Vias (W Plugs)', id: 'tungstenVias' },
           { name: 'Anode Terminal Pad (Metal-1 · VA)', id: 'anodeMetal' },
           { name: 'Cathode Terminal Pad (Metal-1 · GND)', id: 'cathodeMetal' }

@@ -10,14 +10,6 @@ var selectedMeshes = [];
 var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta — kept far from the well's teal-green and every layer color so selection is unambiguous
 
 function clearSelection(){
-  selectedMeshes.forEach(function(m){
-    if (m && m.material && m.material.emissive){
-      var baseHex = (typeof m.userData.baseEmissive === 'number') ? m.userData.baseEmissive : 0;
-      var baseIntensity = (typeof m.userData.baseEmissiveIntensity === 'number') ? m.userData.baseEmissiveIntensity : 0;
-      m.material.emissive.setHex(baseHex);
-      m.material.emissiveIntensity = baseIntensity;
-    }
-  });
   selectedMeshes = [];
   lastSelectedId = null;
   document.querySelectorAll('#tree .node.selected').forEach(function(n){ n.classList.remove('selected'); });
@@ -30,10 +22,6 @@ function clearSelection(){
 function highlightMeshes(meshes){
   clearSelection();
   meshes.forEach(function(m){
-    if (m && m.material && m.material.emissive){
-      m.material.emissive = HIGHLIGHT_COLOR.clone();
-      m.material.emissiveIntensity = 0.55;
-    }
     selectedMeshes.push(m);
   });
 }

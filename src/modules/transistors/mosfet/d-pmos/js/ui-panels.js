@@ -31,6 +31,11 @@ var TREE = [
       { label: 'POLYSILICON RUNNER', id: 'poly' },
       { label: 'GATE SIDEWALL SPACERS (Si3N4)', id: 'spacer' }
     ]},
+    { label: 'SILICIDE (SALICIDE NiSi)', children: [
+      { label: 'SOURCE SILICIDE PAD (NiSi)', id: 'srcSil' },
+      { label: 'DRAIN SILICIDE PAD (NiSi)', id: 'drnSil' },
+      { label: 'WELL TAP SILICIDE PAD (NiSi)', id: 'welltapSil' }
+    ]},
     { label: 'CONTACTS (TUNGSTEN)', id: 'contact', children: [
       { label: 'SOURCE CONTACT (W)', id: 'pmosSrcCt' },
       { label: 'DRAIN CONTACT (W)', id: 'pmosDrnCt' },
@@ -64,6 +69,10 @@ function idToInfo(id) {
     highk: 'highk',
     poly: 'poly',
     spacer: 'spacer',
+    silicide: 'silicide',
+    srcSil: 'srcSil',
+    drnSil: 'drnSil',
+    welltapSil: 'welltapSil',
     contact: 'contact',
     pmosSrcCt: 'contact',
     pmosDrnCt: 'contact',
@@ -139,6 +148,7 @@ var layerMeta = [
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)' },
   { key: 'spacer',    name: 'GATE SPACERS (Si3N4)', color: '#67e8f9' },
+  { key: 'silicide',  name: 'SILICIDE (NiSi)', color: 'var(--c-silicide)' },
   { key: 'contact',   name: 'CONTACTS (TUNGSTEN W)', color: 'var(--c-contact)' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECTS', color: 'var(--c-metal)' }
 ];
@@ -264,6 +274,7 @@ function updateLayersListTheme(pal) {
     channel: pal.holeChannel,
     oxide: pal.gateOxide,
     poly: pal.polysilicon,
+    silicide: isLight ? '#647082' : '#6e7887',
     contact: pal.via,
     metal: pal.metal,
     src: pal.pPlusDiffusion,

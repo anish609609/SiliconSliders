@@ -20,7 +20,13 @@ var TREE = [
     ]},
     { label:'GATE OXIDE (SiO2)', children:[ { label:'PMOS OXIDE (SiO2)', id:'pmosOxide' }, { label:'NMOS OXIDE (SiO2)', id:'nmosOxide' } ] },
     { label:'HIGH-K DIELECTRIC (HfO2)', children:[ { label:'PMOS HIGH-K (HfO2)', id:'pmosHighk' }, { label:'NMOS HIGH-K (HfO2)', id:'nmosHighk' } ] },
-    { label:'POLYSILICON', children:[ { label:'COMMON GATE', id:'poly' } ] },
+    { label:'POLYSILICON & SPACERS', children:[
+      { label:'COMMON GATE', id:'poly' },
+      { label:'GATE SPACERS (Si3N4)', id:'spacer' }
+    ]},
+    { label:'SILICIDE (SALICIDE NiSi)', children:[
+      { label:'S/D & TAP SILICIDE (NiSi)', id:'silicide' }
+    ]},
     { label:'CONTACTS (TUNGSTEN)', id:'pmosSrcCt', children:[
       { label:'PMOS SRC CT', id:'pmosSrcCt' }, { label:'PMOS DRN CT', id:'pmosDrnCt' },
       { label:'NMOS SRC CT', id:'nmosSrcCt' }, { label:'NMOS DRN CT', id:'nmosDrnCt' },
@@ -47,7 +53,7 @@ function idToInfo(id){
     pmosSrcCt:'contact', pmosDrnCt:'contact', nmosSrcCt:'contact', nmosDrnCt:'contact', polyCt:'contact',
     welltapCt:'welltap', subtapCt:'subtap', welltapAct:'welltap', subtapAct:'subtap',
     vddRail:'vdd', vddStubPmos:'vdd', vddStubTap:'vdd', gndRail:'gnd', gndStubNmos:'gnd', gndStubTap:'gnd',
-    inPin:'inNet', outPin:'outNet', outSpine:'outNet', poly:'poly', nwell:'nwell', pwell:'pwell', psub:'psub' };
+    inPin:'inNet', outPin:'outNet', outSpine:'outNet', poly:'poly', spacer:'spacer', silicide:'silicide', nwell:'nwell', pwell:'pwell', psub:'psub' };
   return INFO[map[id]] || null;
 }
 
@@ -121,6 +127,8 @@ var layerMeta = [
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },
   { key: 'poly',      name: 'POLYSILICON / COMMON GATE', color: 'var(--c-poly)' },
+  { key: 'spacer',    name: 'GATE SPACERS (Si3N4)', color: '#67e8f9' },
+  { key: 'silicide',  name: 'SILICIDE (NiSi)', color: 'var(--c-silicide)' },
   { key: 'contact',   name: 'CONTACTS (TUNGSTEN W)', color: 'var(--c-contact)' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECTS', color: 'var(--c-metal)' }
 ];
@@ -202,6 +210,7 @@ function updateLayersListTheme(pal) {
     sde: 'linear-gradient(135deg, ' + pal.pSDE + ' 50%, ' + pal.nSDE + ' 50%)',
     oxide: pal.gateOxide,
     poly: pal.polysilicon,
+    silicide: isLight ? '#647082' : '#6e7887',
     contact: pal.via,
     metal: pal.metal,
     vdd: '#e35d5d',

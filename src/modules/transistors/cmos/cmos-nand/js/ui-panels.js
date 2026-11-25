@@ -70,7 +70,14 @@ var TREE = [
     group: 'POLYSILICON (GATES A & B)',
     items: [
       { id: 'polyA', label: 'Poly Gate A (MP1 + MN1)', tag: 'GA' },
-      { id: 'polyB', label: 'Poly Gate B (MP2 + MN2)', tag: 'GB' }
+      { id: 'polyB', label: 'Poly Gate B (MP2 + MN2)', tag: 'GB' },
+      { id: 'spacer', label: 'Gate Sidewall Spacers (Si3N4)', tag: 'SP' }
+    ]
+  },
+  {
+    group: 'SILICIDE (SALICIDE NiSi)',
+    items: [
+      { id: 'silicide', label: 'S/D, Bridge & Tap Silicide (NiSi)', tag: 'SI' }
     ]
   },
   {
@@ -275,6 +282,7 @@ function buildUiPanels() {
       sde: 'linear-gradient(135deg, ' + pal.pSDE + ' 50%, ' + pal.nSDE + ' 50%)',
       oxide: pal.gateOxide,
       poly: pal.polysilicon,
+      silicide: isLight ? '#647082' : '#6e7887',
       contact: pal.via,
       metal: pal.metal
     };

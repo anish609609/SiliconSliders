@@ -72,9 +72,9 @@ var TOUR_STEPS = [
   },
   {
     layer: 'poly',
-    layers: ['poly'],
+    layers: ['poly', 'spacer'],
     primaryId: 'polyA',
-    title: '6. Dual Continuous Polysilicon Gates (A & B)',
+    title: '6. Dual Continuous Polysilicon Gates & Spacers',
     cameraPos: { x: 17, y: 14, z: 19 },
     target: { x: 0.0, y: 2.3, z: 0 },
     scripts: {
@@ -85,9 +85,9 @@ var TOUR_STEPS = [
   },
   {
     layer: 'contact',
-    layers: ['contact'],
+    layers: ['silicide', 'contact'],
     primaryId: 'pmosASrcCt',
-    title: '7. Nine Tapered Tungsten Contact Plugs',
+    title: '7. NiSi Salicide & Nine Tungsten Contact Plugs',
     cameraPos: { x: 18, y: 15, z: 18 },
     target: { x: 0.0, y: 2.6, z: 0 },
     scripts: {

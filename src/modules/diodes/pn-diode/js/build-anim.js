@@ -58,10 +58,10 @@ var FAB_STEPS = [
   },
   {
     step: 6,
-    title: 'ILD Passivation & Tungsten Contact Vias',
-    desc: 'Interlayer dielectric (ILD SiO₂) passivates the surface; plasma-etched contact cuts are filled with vertical CVD Tungsten (W) via plugs.',
-    layers: ['substrate', 'nwell', 'passivation', 'active', 'depletion', 'ions', 'field', 'contact'],
-    newLayers: ['contact'],
+    title: 'NiSi Silicide, ILD & Tungsten Contact Vias',
+    desc: 'Self-aligned Nickel Silicide (NiSi) pads form over P+ Anode and N+ Cathode contact windows, capped by ILD SiO₂ and vertical CVD Tungsten (W) via plugs.',
+    layers: ['substrate', 'nwell', 'passivation', 'active', 'depletion', 'ions', 'field', 'silicide', 'contact'],
+    newLayers: ['silicide', 'contact'],
     camPos: { x: 1.5, y: 20, z: 26 },
     camTarget: { x: 0, y: 0.8, z: 0 }
   },
@@ -69,7 +69,7 @@ var FAB_STEPS = [
     step: 7,
     title: 'Metal-1 Interconnects & Terminal Callouts',
     desc: 'First metallization layer patterned into Anode (A / VA) and Cathode (K / GND) pads, completing the discrete planar silicon diode.',
-    layers: ['substrate', 'nwell', 'passivation', 'active', 'depletion', 'ions', 'field', 'contact', 'metal', 'labels'],
+    layers: ['substrate', 'nwell', 'passivation', 'active', 'depletion', 'ions', 'field', 'silicide', 'contact', 'metal', 'labels'],
     newLayers: ['metal', 'labels'],
     camPos: { x: 1.5, y: 24, z: 32 },
     camTarget: { x: 1.5, y: 0, z: 0 }
@@ -77,7 +77,7 @@ var FAB_STEPS = [
 ];
 
 var LAYER_KEYS = [
-  'substrate', 'nwell', 'active', 'depletion', 'ions', 'field', 'passivation', 'contact', 'metal', 'labels'
+  'substrate', 'nwell', 'active', 'depletion', 'ions', 'field', 'passivation', 'silicide', 'contact', 'metal', 'labels'
 ];
 
 var currentFabStep = FAB_STEPS.length;

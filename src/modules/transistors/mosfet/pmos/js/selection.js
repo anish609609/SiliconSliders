@@ -10,33 +10,10 @@ var selectedMeshes = [];
 var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta — kept far from the well's teal-green and every layer color so selection is unambiguous
 
 function applyEmissive(obj, color, intensity) {
-  if (!obj) return;
-  if (obj.isMesh && obj.material && obj.material.emissive) {
-    if (color !== null) {
-      if (obj.userData.baseEmissive === undefined) {
-        obj.userData.baseEmissive = obj.material.emissive.getHex();
-        obj.userData.baseEmissiveIntensity = obj.material.emissiveIntensity || 0;
-      }
-      obj.material.emissive.copy(color);
-      obj.material.emissiveIntensity = intensity;
-    } else {
-      var baseHex = (typeof obj.userData.baseEmissive === 'number') ? obj.userData.baseEmissive : 0;
-      var baseIntensity = (typeof obj.userData.baseEmissiveIntensity === 'number') ? obj.userData.baseEmissiveIntensity : 0;
-      obj.material.emissive.setHex(baseHex);
-      obj.material.emissiveIntensity = baseIntensity;
-    }
-  }
-  if (obj.children && obj.children.length) {
-    obj.children.forEach(function(child) {
-      applyEmissive(child, color, intensity);
-    });
-  }
+  // Disabled: preserve true fabrication material color on click/inspect
 }
 
 function clearSelection(){
-  selectedMeshes.forEach(function(m){
-    applyEmissive(m, null, 0);
-  });
   selectedMeshes = [];
   lastSelectedId = null;
   document.querySelectorAll('#tree .node.selected').forEach(function(n){ n.classList.remove('selected'); });
@@ -49,7 +26,6 @@ function clearSelection(){
 function highlightMeshes(meshes){
   clearSelection();
   meshes.forEach(function(m){
-    applyEmissive(m, HIGHLIGHT_COLOR, 0.55);
     selectedMeshes.push(m);
   });
 }

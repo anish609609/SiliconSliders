@@ -15,6 +15,7 @@ var LEGEND = [
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling without direct tunneling leakage.' },
   { key: 'poly',      name: 'POLYSILICON / METAL GATE', color: 'var(--c-poly)', desc: 'Gate electrode controlling electrostatic potential across the channel to induce hole inversion.' },
   { key: 'spacer',    name: 'GATE SIDEWALL SPACER (Si3N4)', color: '#67e8f9', desc: 'Silicon nitride (Si3N4) sidewall spacers flanking the gate stack. Acts as a self-aligned mask for deep P+ source/drain implants, offsets silicide/contacts from the gate, and passivates gate sidewalls.' },
+  { key: 'silicide',  name: 'SILICIDE (NiSi)', color: 'var(--c-silicide)', desc: 'Self-aligned nickel silicide (NiSi) layer formed on exposed Source/Drain silicon to create a low-resistance ohmic contact for Tungsten vias.' },
   { key: 'contact',   name: 'CONTACT (TUNGSTEN W)', color: 'var(--c-contact)', desc: 'Vertical CVD Tungsten via plugs bridging diffusion, well tap, and poly layers to the first metal interconnect.' },
   { key: 'metal',     name: 'METAL-1 INTERCONNECT', color: 'var(--c-metal)', desc: 'First metallization layer routing Source (S/VDD), Drain (D/OUT), Gate (G/VG), and N-Well Tap (B/VDD) terminals.' },
   { key: 'src',       name: 'SOURCE TERMINAL (S / VDD)', color: 'var(--c-active-p)', desc: 'Supplies carrier holes into the channel; tied to positive supply rail VDD (1.0V).' },
@@ -119,6 +120,38 @@ var INFO = {
     conn: 'Dielectric insulator flanking gate electrode and gate dielectric.',
     rel: 'Deposited conformally by LPCVD/PECVD and anisotropically reactive-ion etched (RIE) back with zero lateral mask.',
     doping: 'Dielectric insulator — Silicon Nitride (Si3N4, k ≈ 7.5)'
+  },
+  silicide: {
+    title: 'SELF-ALIGNED SILICIDE (SALICIDE / NiSi)',
+    fn: 'Low-resistivity nickel monosilicide (NiSi) ohmic contact pads selectively formed atop exposed Source/Drain and N-Well Tap silicon.',
+    role: 'Reduces parasitic sheet and contact resistance (Rc) between heavily doped silicon and vertical Tungsten vias while blocked from the gate sidewalls by the Si3N4 spacers.',
+    conn: 'P+ Source / P+ Drain / N+ Well Tap ↔ NiSi Silicide Pad ↔ Tungsten Contact Via',
+    rel: 'Self-aligned thermally annealed Ni/Si reaction strictly bounded by the outer edges of the Si3N4 sidewall spacers.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
+  },
+  srcSil: {
+    title: 'SOURCE SILICIDE PAD (NiSi)',
+    fn: 'Self-aligned nickel silicide (NiSi) layer formed directly on the exposed top surface of the P+ Source diffusion.',
+    role: 'Provides an ultra-low-resistance ohmic landing pad for the Source Tungsten contact via while isolated from the gate by the left Si3N4 spacer.',
+    conn: 'P+ Source Diffusion ↔ Source NiSi Pad ↔ Source Tungsten Via (W)',
+    rel: 'Starts flush outside the left Si3N4 spacer outer edge and spans across the exposed Source top surface matching active width Wp.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
+  },
+  drnSil: {
+    title: 'DRAIN SILICIDE PAD (NiSi)',
+    fn: 'Self-aligned nickel silicide (NiSi) layer formed directly on the exposed top surface of the P+ Drain diffusion.',
+    role: 'Provides an ultra-low-resistance ohmic landing pad for the Drain Tungsten contact via while isolated from the gate by the right Si3N4 spacer.',
+    conn: 'P+ Drain Diffusion ↔ Drain NiSi Pad ↔ Drain Tungsten Via (W)',
+    rel: 'Starts flush outside the right Si3N4 spacer outer edge and spans across the exposed Drain top surface matching active width Wp.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
+  },
+  welltapSil: {
+    title: 'N-WELL TAP SILICIDE PAD (NiSi)',
+    fn: 'Self-aligned nickel silicide (NiSi) contact pad formed atop the N+ Well Tap.',
+    role: 'Lowers ohmic contact resistance beneath the Well Tap Tungsten via holding the N-Well at VDD.',
+    conn: 'N+ Well Tap ↔ Well Tap NiSi Pad ↔ Well Tap Tungsten Via (W)',
+    rel: 'Seated flush between the N+ Well Tap surface and the Well Tap Tungsten plug.',
+    doping: 'Metallic silicide compound — Nickel Monosilicide (NiSi)'
   },
   contact: {
     title: 'TUNGSTEN CONTACT PLUG (W-VIA)',

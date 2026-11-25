@@ -75,6 +75,7 @@ var DIM_MAP = {
   channel:['gateLength','gateWidth','activeDepth'],
   poly:['gateLength','gateWidth','polyThickness'],
   spacer:['gateLength','polyThickness'],
+  srcSil:['sdLength','gateWidth'], drnSil:['sdLength','gateWidth'], welltapSil:['contactSize'], silicide:['sdLength','gateWidth'],
   oxide:['oxideThickness'],
   highk:['oxideThickness'],
   sdeSrc:['gateLength','gateWidth','activeDepth'],

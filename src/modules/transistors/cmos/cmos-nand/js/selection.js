@@ -33,18 +33,7 @@ function collectTargetMeshes(id) {
 }
 
 function setMeshHighlight(mesh, on) {
-  if (!mesh || !mesh.material) return;
-  if (on) {
-    if (mesh.material.emissive) {
-      mesh.material.emissive.setHex(getHighlightHex());
-      mesh.material.emissiveIntensity = 0.55;
-    }
-  } else {
-    if (mesh.material.emissive) {
-      mesh.material.emissive.setHex(mesh.userData.baseEmissive || 0x000000);
-      mesh.material.emissiveIntensity = mesh.userData.baseEmissiveIntensity || 0;
-    }
-  }
+  // Disabled: preserve true fabrication material color on click/inspect
 }
 
 function updateInspector() {
