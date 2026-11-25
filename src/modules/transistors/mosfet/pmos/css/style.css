@@ -471,7 +471,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
-    max-width: calc(100% - 380px);
+    max-width: min(290px, calc(100% - 28px));
     z-index: 10;
     pointer-events: none;
   }
@@ -529,21 +529,21 @@
     top: 14px;
     left: 50%;
     transform: translateX(-50%);
-    width: 440px;
-    max-width: calc(100% - 420px);
+    width: 416px;
+    max-width: calc(100% - 360px);
     background: rgba(15, 23, 42, 0.92);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 10px 14px;
+    padding: 9px 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     z-index: 25;
     pointer-events: auto;
     font-family: var(--mono);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px;
     animation: fadeInDown 0.25s ease-out;
   }
   @keyframes fadeInDown {
@@ -554,11 +554,14 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
   }
   .tour-banner .tb-badge-group {
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
+    flex: 1;
   }
   .tour-banner .tb-badge {
     background: var(--accent);
@@ -568,15 +571,20 @@
     padding: 2px 6px;
     border-radius: 4px;
     letter-spacing: 0.05em;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   .tour-banner .tb-title {
-    font-size: 11.5px;
+    font-size: 11px;
     color: var(--text);
     font-weight: 600;
+    line-height: 1.25;
   }
   .tour-banner .tb-controls {
     display: flex;
+    align-items: center;
     gap: 4px;
+    flex-shrink: 0;
   }
   .tour-banner .tb-btn {
     background: transparent;
@@ -589,13 +597,18 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 10px;
+    font-size: 11px;
     transition: all 0.15s ease;
   }
-  .tour-banner .tb-btn:hover {
+  .tour-banner .tb-btn:hover:not(:disabled) {
     color: var(--text);
     border-color: var(--border);
     background: var(--panel-2);
+  }
+  .tour-banner .tb-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
   }
   .tour-banner .tb-desc {
     font-size: 10.5px;

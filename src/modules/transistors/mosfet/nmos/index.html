@@ -650,16 +650,18 @@
       <div id="tour-banner" class="tour-banner" style="display: none;">
         <div class="tb-header">
           <div class="tb-badge-group">
-            <span class="tb-badge" id="tb-step-badge">STEP 1 OF 7</span>
+            <span class="tb-badge" id="tb-step-badge">STEP 1 OF 8</span>
             <b class="tb-title" id="tb-step-title">P-Substrate Preparation</b>
           </div>
           <div class="tb-controls">
-            <button id="tb-btn-pause" class="tb-btn" title="Pause / Resume tour"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
-            <button id="tb-btn-close" class="tb-btn" title="Close tour">&times;</button>
+            <button id="tb-btn-prev" class="tb-btn" title="Previous step" aria-label="Previous step" disabled><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+            <button id="tb-btn-pause" class="tb-btn" title="Pause tour" aria-label="Pause tour"><svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg></button>
+            <button id="tb-btn-next" class="tb-btn" title="Next step" aria-label="Next step"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+            <button id="tb-btn-close" class="tb-btn tb-btn-close" title="Stop and close tour" aria-label="Close tour">&times;</button>
           </div>
         </div>
         <div class="tb-desc" id="tb-step-desc">
-          Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) provides mechanical support and the bulk semiconductor body.
+          Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) providing the bulk semiconductor body and mechanical substrate.
         </div>
         <div class="tb-progress-track">
           <div class="tb-progress-fill" id="tb-progress-fill"></div>

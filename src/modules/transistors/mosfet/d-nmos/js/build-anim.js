@@ -1,84 +1,95 @@
 /**
  * build-anim.js - Depletion-Mode NMOS CAD Viewer
  * Step-by-step drop-down IC fabrication process sequence animation:
- * 1. P-Substrate (Bulk)
- * 2. N-Channel Threshold / Depletion Implant (Permanent normally-ON channel)
- * 3. Interfacial Gate Oxide (SiO2) & High-k Dielectric (HfO2)
- * 4. Polysilicon / Metal Gate
- * 5. Shallow N-SDE / LDD Extensions & Gate Sidewall Spacers (Si3N4)
- * 6. Heavily Doped N+ Source/Drain & P+ Body Tap
- * 7. Tungsten (W) Contacts
- * 8. Metal-1 Interconnects
+ * 1. P-Substrate Preparation
+ * 2. Threshold / N-Channel Implant (Normally-ON built-in channel)
+ * 3. Gate Dielectric Stack (SiO2 / HfO2)
+ * 4. Gate Electrode Patterning (Polysilicon / Metal Gate)
+ * 5. Shallow N-LDD / SDE Implant
+ * 6. Si3N4 Sidewall Spacer Formation
+ * 7. Deep N+ Source/Drain & P+ Body Tap Implant
+ * 8. Self-Aligned Silicide (Salicide / NiSi)
+ * 9. Contacts (W) & Metal-1 Interconnect
  */
 
 var FAB_STEPS = [
   {
     step: 1,
     title: 'P-Substrate Preparation',
-    desc: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) provides mechanical support and the bulk semiconductor body.',
+    desc: 'Single-crystal P-type silicon wafer (Na ≈ 1×10¹⁵ cm⁻³) providing the bulk semiconductor body and mechanical substrate.',
     layers: ['substrate'],
     newLayers: ['substrate'],
-    narration: 'We start with a single-crystal P-type silicon wafer lightly doped with boron, providing mechanical structure and bulk holes.'
+    narration: 'Single-crystal P-type silicon wafer lightly doped with boron prepares the bulk semiconductor body.'
   },
   {
     step: 2,
-    title: 'N-Channel Depletion Implant',
-    desc: 'Shallow donor ion implant (Arsenic/Phosphorus, Nd ≈ 2×10¹⁷ cm⁻³) establishes a permanent conductive n-channel bridging Source and Drain (VTH = -0.80V, Normally ON).',
+    title: 'Threshold / N-Channel Implant',
+    desc: 'Shallow donor ion implant (As/P, Nd ≈ 2×10¹⁷ cm⁻³) across the channel surface bridges the future Source and Drain regions (Normally ON).',
     layers: ['substrate', 'dchannel'],
     newLayers: ['dchannel'],
-    narration: 'A shallow donor ion implant patterns the built-in N-channel directly into the channel region, enabling conduction at zero gate bias.'
+    narration: 'A shallow donor threshold implant establishes the permanent conductive N-channel between the future Source and Drain.'
   },
   {
     step: 3,
     title: 'Gate Dielectric Stack (SiO2 / HfO2)',
-    desc: 'Ultra-thin interfacial SiO2 (~0.6 nm) passivates surface states, capped by ALD High-k HfO2 (k ≈ 25) to provide high gate capacitance without tunneling leakage.',
+    desc: 'Thermal growth of ultra-thin interfacial SiO2 (~0.6 nm) followed by ALD High-k HfO2 deposition (κ ≈ 25) to suppress gate tunneling leakage.',
     layers: ['substrate', 'dchannel', 'oxide', 'highk'],
     newLayers: ['oxide', 'highk'],
-    narration: 'An atomically thin interfacial silicon dioxide layer passivates interface traps, capped by hafnium dioxide to eliminate gate tunneling leakage.'
+    narration: 'Interfacial silicon dioxide is grown and capped with ALD hafnium dioxide to maximize gate capacitance with minimal leakage.'
   },
   {
     step: 4,
-    title: 'Polysilicon / Metal Gate',
-    desc: 'Workfunction-tuned gate electrode deposited and patterned by anisotropic dry etching to establish physical gate length L.',
+    title: 'Gate Electrode Patterning',
+    desc: 'Polysilicon / workfunction-tuned metal gate deposition and anisotropic lithographic dry etching establish physical gate length L.',
     layers: ['substrate', 'dchannel', 'oxide', 'highk', 'poly'],
     newLayers: ['poly'],
-    narration: 'Polysilicon is deposited and dry-etched to form the conductive gate electrode runner directly crossing the channel.'
+    narration: 'The polysilicon gate electrode is deposited and etched over the high-k dielectric to define the transistor gate length.'
   },
   {
     step: 5,
-    title: 'Shallow Extensions (N-SDE) & Spacers (Si3N4)',
-    desc: 'Low-energy self-aligned N-SDE / LDD implant reduces peak lateral electric field. Conformal Si3N4 sidewall spacers mask subsequent deep implants.',
-    layers: ['substrate', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer'],
-    newLayers: ['sde', 'spacer'],
-    narration: 'Lightly doped extensions curb peak lateral electric fields, flanked by silicon nitride sidewall spacers to self-align deep implants.'
+    title: 'Shallow N-LDD / SDE Implant',
+    desc: 'Self-aligned low-energy N- source/drain extension implant using the gate stack as a mask to reduce peak lateral electric fields.',
+    layers: ['substrate', 'dchannel', 'oxide', 'highk', 'poly', 'sde'],
+    newLayers: ['sde'],
+    narration: 'Low-energy arsenic implantation self-aligns to the gate edges to form shallow lightly doped N-LDD extensions.'
   },
   {
     step: 6,
-    title: 'Heavy N+ Source/Drain & P+ Body Tap',
-    desc: 'High-dose ion implantation forms heavily doped N+ Source/Drain regions (Nd ≈ 1×10²⁰ cm⁻³) and P+ ohmic body tap, establishing the continuous PN-junction depletion envelope after RTA.',
-    layers: ['substrate', 'depletion', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
-    newLayers: ['active', 'depletion'],
-    narration: 'Deep self-aligned arsenic implantation forms low-resistance N-plus Source and Drain terminals alongside the P-plus body tap and surrounding depletion envelope.'
+    title: 'Si3N4 Sidewall Spacer Formation',
+    desc: 'Conformal Si3N4 deposition and anisotropic RIE plasma etch leaving sidewall spacers flush over the shallow N-LDD extensions.',
+    layers: ['substrate', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer'],
+    newLayers: ['spacer'],
+    narration: 'Conformal silicon nitride is anisotropically etched into sidewall spacers sitting flush over the shallow LDD extensions.'
   },
   {
     step: 7,
-    title: 'NiSi Salicide & Tungsten (W) Contacts',
-    desc: 'Self-aligned Nickel Silicide (NiSi) pads form over exposed S/D and Body Tap silicon outside the Si3N4 spacers, followed by ILD deposition and CVD Tungsten contact plugs.',
-    layers: ['substrate', 'depletion', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'silicide', 'contact'],
-    newLayers: ['silicide', 'contact'],
-    narration: 'Self-aligned nickel silicide pads lower contact resistance on active regions, and tungsten contact plugs connect down cleanly onto the silicide pads.'
+    title: 'Deep N+ S/D & P+ Body Tap Implant',
+    desc: 'High-dose N+ Source/Drain implant (Nd ≈ 1×10²⁰ cm⁻³) self-aligned to the outer edge of the Si3N4 spacers, plus P+ Body Tap implant.',
+    layers: ['substrate', 'depletion', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active'],
+    newLayers: ['active', 'depletion'],
+    narration: 'Deep N-plus source/drain and P-plus body tap implants self-align to the outer spacer edges and form the PN junction depletion envelope.'
   },
   {
     step: 8,
-    title: 'Metal-1 Interconnects',
-    desc: 'First metallization layer patterned into Source (S/GND), Drain (D/VDS), Gate (G/VGS), and Body (B/GND) pads, completing the discrete D-NMOS transistor.',
+    title: 'Self-Aligned Silicide (Salicide / NiSi)',
+    desc: 'Nickel silicide (NiSi) contact pads formed over exposed S/D and Body Tap silicon, electrically isolated from the gate by the Si3N4 spacers.',
+    layers: ['substrate', 'depletion', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'silicide'],
+    newLayers: ['silicide'],
+    narration: 'Self-aligned nickel silicide pads form on exposed silicon terminals while Si3N4 spacers prevent bridging to the gate.'
+  },
+  {
+    step: 9,
+    title: 'Contacts (W) & Metal-1 Interconnect',
+    desc: 'Tungsten (W) contact vias land on the NiSi pads and gate, followed by patterned Metal-1 routing pads for Source, Drain, Gate, and Body.',
     layers: ['substrate', 'depletion', 'dchannel', 'oxide', 'highk', 'poly', 'sde', 'spacer', 'active', 'silicide', 'contact', 'metal'],
-    newLayers: ['metal'],
-    narration: 'Metal-1 copper runners are patterned, completing the discrete Depletion NMOS transistor with terminals for source, drain, gate, and body.'
+    newLayers: ['contact', 'metal'],
+    narration: 'Tungsten vias land onto the silicide pads and gate, connected by Metal-1 interconnect pads to complete the D-NMOS device.'
   }
 ];
 
-var currentFabStep = FAB_STEPS.length;
+var FAB_STEP_INTERVAL_MS = 2600;
+var currentFabStep = 1;
+var isTourActive = false;
 var isFabPlaying = false;
 var fabPlayInterval = null;
 var dropOffsets = {};
@@ -86,6 +97,46 @@ var dropOffsets = {};
 LAYER_ORDER.forEach(function(k) {
   dropOffsets[k] = 0;
 });
+
+function syncTourControls() {
+  var topbarTourBtn = document.getElementById('btn-build-anim');
+  if (topbarTourBtn) {
+    topbarTourBtn.classList.toggle('active', isTourActive);
+    var icon = topbarTourBtn.querySelector('.play-icon');
+    var label = topbarTourBtn.querySelector('.play-label');
+    var extra = topbarTourBtn.querySelector('.play-extra');
+    if (icon) icon.textContent = isTourActive ? '■' : '▶';
+    if (label) label.textContent = isTourActive ? 'STOP' : 'PLAY';
+    if (extra) extra.innerHTML = '&nbsp;TOUR';
+    topbarTourBtn.setAttribute('aria-label', isTourActive ? 'Stop 3D Fabrication Tour' : 'Play 3D Fabrication Tour');
+    topbarTourBtn.title = isTourActive ? 'Stop tour and restore complete transistor' : 'Watch step-by-step 3D fabrication sequence';
+  }
+
+  var pauseBtn = document.getElementById('tb-btn-pause');
+  if (pauseBtn) {
+    if (isFabPlaying) {
+      pauseBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+      pauseBtn.title = 'Pause tour';
+      pauseBtn.setAttribute('aria-label', 'Pause tour');
+    } else {
+      pauseBtn.innerHTML = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><polygon points="6,4 20,12 6,20"></polygon></svg>';
+      pauseBtn.title = 'Resume tour';
+      pauseBtn.setAttribute('aria-label', 'Resume tour');
+    }
+  }
+
+  var prevBtn = document.getElementById('tb-btn-prev');
+  if (prevBtn) {
+    prevBtn.disabled = currentFabStep <= 1;
+  }
+
+  var nextBtn = document.getElementById('tb-btn-next');
+  if (nextBtn) {
+    var isLast = currentFabStep >= FAB_STEPS.length;
+    nextBtn.title = isLast ? 'Finish and reset tour' : 'Next step';
+    nextBtn.setAttribute('aria-label', isLast ? 'Finish tour' : 'Next step');
+  }
+}
 
 function applyFabStep(stepNum, shouldAnimateDrop) {
   currentFabStep = Math.max(1, Math.min(FAB_STEPS.length, stepNum));
@@ -129,6 +180,8 @@ function applyFabStep(stepNum, shouldAnimateDrop) {
   if (descEl) descEl.textContent = stepData.desc;
   var progressEl = document.getElementById('tb-progress-fill');
   if (progressEl) progressEl.style.width = ((currentFabStep / FAB_STEPS.length) * 100) + '%';
+
+  syncTourControls();
 }
 
 function updateBuildAnimation(dt) {
@@ -148,25 +201,50 @@ function updateBuildAnimation(dt) {
   });
 }
 
+function scheduleFabAdvance() {
+  if (fabPlayInterval) {
+    clearInterval(fabPlayInterval);
+    fabPlayInterval = null;
+  }
+  isFabPlaying = true;
+  fabPlayInterval = setInterval(function() {
+    if (currentFabStep < FAB_STEPS.length) {
+      applyFabStep(currentFabStep + 1, true);
+    } else {
+      stopBuildAnimation(true);
+    }
+  }, FAB_STEP_INTERVAL_MS);
+}
+
+function pauseBuildAnimation() {
+  if (fabPlayInterval) {
+    clearInterval(fabPlayInterval);
+    fabPlayInterval = null;
+  }
+  isFabPlaying = false;
+  syncTourControls();
+}
+
+function resumeBuildAnimation() {
+  if (!isTourActive) {
+    startBuildAnimation();
+    return;
+  }
+  scheduleFabAdvance();
+  syncTourControls();
+}
+
 function stopBuildAnimation(restoreAll) {
+  if (restoreAll === undefined) restoreAll = true;
   if (fabPlayInterval) {
     clearInterval(fabPlayInterval);
     fabPlayInterval = null;
   }
   isFabPlaying = false;
 
-  var topbarTourBtn = document.getElementById('btn-build-anim');
-  if (topbarTourBtn) {
-    topbarTourBtn.classList.remove('active');
-    var label = topbarTourBtn.querySelector('.play-label');
-    if (label) label.textContent = 'PLAY';
-  }
-
-  var pauseBtn = document.getElementById('tb-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '';
-
   if (restoreAll) {
-    currentFabStep = FAB_STEPS.length;
+    isTourActive = false;
+    currentFabStep = 1;
     LAYER_ORDER.forEach(function(layerKey) {
       dropOffsets[layerKey] = 0;
       if (groups[layerKey]) {
@@ -180,47 +258,38 @@ function stopBuildAnimation(restoreAll) {
     var banner = document.getElementById('tour-banner');
     if (banner) banner.style.display = 'none';
   }
+
+  syncTourControls();
 }
 
 function startBuildAnimation() {
-  if (fabPlayInterval) clearInterval(fabPlayInterval);
-  isFabPlaying = true;
-
-  var topbarTourBtn = document.getElementById('btn-build-anim');
-  if (topbarTourBtn) {
-    topbarTourBtn.classList.add('active');
-    var label = topbarTourBtn.querySelector('.play-label');
-    if (label) label.textContent = 'PAUSE';
+  if (typeof toggleWorkbench === 'function') {
+    toggleWorkbench(false);
   }
-
-  var pauseBtn = document.getElementById('tb-btn-pause');
-  if (pauseBtn) pauseBtn.textContent = '';
-
-  // If tour was at the end, restart from step 1
-  if (currentFabStep >= FAB_STEPS.length) {
-    applyFabStep(1, true);
-  } else {
-    applyFabStep(currentFabStep, true);
-  }
-
-  fabPlayInterval = setInterval(function() {
-    if (currentFabStep < FAB_STEPS.length) {
-      applyFabStep(currentFabStep + 1, true);
-    } else {
-      stopBuildAnimation(false);
-    }
-  }, 2400);
+  isTourActive = true;
+  currentFabStep = 1;
+  scheduleFabAdvance();
+  applyFabStep(1, true);
 }
 
 // Event Listeners for Tour Controls
 var btnBuildAnim = document.getElementById('btn-build-anim');
 if (btnBuildAnim) {
   btnBuildAnim.addEventListener('click', function() {
-    if (isFabPlaying) {
-      stopBuildAnimation(false);
+    if (isTourActive) {
+      stopBuildAnimation(true);
     } else {
       startBuildAnimation();
     }
+  });
+}
+
+var tbBtnPrev = document.getElementById('tb-btn-prev');
+if (tbBtnPrev) {
+  tbBtnPrev.addEventListener('click', function() {
+    if (!isTourActive || currentFabStep <= 1) return;
+    applyFabStep(currentFabStep - 1, true);
+    if (isFabPlaying) scheduleFabAdvance();
   });
 }
 
@@ -228,9 +297,22 @@ var tbBtnPause = document.getElementById('tb-btn-pause');
 if (tbBtnPause) {
   tbBtnPause.addEventListener('click', function() {
     if (isFabPlaying) {
-      stopBuildAnimation(false);
+      pauseBuildAnimation();
     } else {
-      startBuildAnimation();
+      resumeBuildAnimation();
+    }
+  });
+}
+
+var tbBtnNext = document.getElementById('tb-btn-next');
+if (tbBtnNext) {
+  tbBtnNext.addEventListener('click', function() {
+    if (!isTourActive) return;
+    if (currentFabStep < FAB_STEPS.length) {
+      applyFabStep(currentFabStep + 1, true);
+      if (isFabPlaying) scheduleFabAdvance();
+    } else {
+      stopBuildAnimation(true);
     }
   });
 }
