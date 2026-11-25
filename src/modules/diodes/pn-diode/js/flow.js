@@ -149,6 +149,12 @@ function rebuildFlowSimulation() {
 
   var caption = document.getElementById('flow-caption');
 
+  if (window.isTourActive) {
+    flowGroup.visible = false;
+    if (caption) caption.textContent = 'FABRICATION TOUR ACTIVE: Device held in Equilibrium / Cutoff (Carriers suppressed).';
+    return;
+  }
+
   if (flowMode === 'off') {
     flowGroup.visible = false;
     if (caption) caption.textContent = 'CARRIER FLOW: OFF (Simulation Paused)';
@@ -382,6 +388,10 @@ function rebuildFlowSimulation() {
  * Per-frame animation tick updating particle positions
  */
 function updateFlowParticles(delta) {
+  if (window.isTourActive) {
+    if (flowGroup) flowGroup.visible = false;
+    return;
+  }
   if (!activeParticles.length) return;
   var dt = Math.min(0.05, delta || 0.016);
   var time = Date.now() * 0.004;

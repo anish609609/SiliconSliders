@@ -10,6 +10,7 @@ var TREE = [
   { label:'CMOS INVERTER', children:[
     { label:'SUBSTRATE', children:[ { label:'P-SUBSTRATE', id:'psub' } ] },
     { label:'WELL', children:[ { label:'N-WELL', id:'nwell' }, { label:'P-WELL', id:'pwell' } ] },
+    { label:'DEPLETION REGION', children:[ { label:'SPACE-CHARGE DEPLETION', id:'depletion' } ] },
     { label:'TRANSISTORS', children:[
       { label:'PMOS', id:'pmos', children:[
         { label:'SOURCE', id:'pmosSrc' }, { label:'P-SDE (SRC)', id:'pmosSrcSde' }, { label:'GATE', id:'poly' }, { label:'P-SDE (DRN)', id:'pmosDrnSde' }, { label:'DRAIN', id:'pmosDrn' }
@@ -53,7 +54,7 @@ function idToInfo(id){
     pmosSrcCt:'contact', pmosDrnCt:'contact', nmosSrcCt:'contact', nmosDrnCt:'contact', polyCt:'contact',
     welltapCt:'welltap', subtapCt:'subtap', welltapAct:'welltap', subtapAct:'subtap',
     vddRail:'vdd', vddStubPmos:'vdd', vddStubTap:'vdd', gndRail:'gnd', gndStubNmos:'gnd', gndStubTap:'gnd',
-    inPin:'inNet', outPin:'outNet', outSpine:'outNet', poly:'poly', spacer:'spacer', silicide:'silicide', nwell:'nwell', pwell:'pwell', psub:'psub' };
+    inPin:'inNet', outPin:'outNet', outSpine:'outNet', poly:'poly', spacer:'spacer', silicide:'silicide', depletion:'depletion', nwell:'nwell', pwell:'pwell', psub:'psub' };
   return INFO[map[id]] || null;
 }
 
@@ -70,12 +71,18 @@ function meshesForId(id){
   return findAllMeshes(id);
 }
 function findMesh(id){
-  for (var i=0;i<selectable.length;i++){ if (selectable[i].userData.id === id) return selectable[i]; }
-  return null;
+  var list = findAllMeshes(id);
+  return list.length ? list[0] : null;
 }
 function findAllMeshes(id){
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    var found = SiliconLayerHighlight.collectLayerMeshes(scene, id);
+    if (found.length) return found;
+  }
   var out = [];
-  for (var i=0;i<selectable.length;i++){ if (selectable[i].userData.id === id) out.push(selectable[i]); }
+  for (var i=0;i<selectable.length;i++){
+    if (selectable[i] && selectable[i].userData && (selectable[i].userData.layerId === id || selectable[i].userData.id === id)) out.push(selectable[i]);
+  }
   return out;
 }
 
@@ -218,6 +225,7 @@ function updateLayersListTheme(pal) {
   var colorMap = {
     substrate: pal.pSubstrate,
     well: 'linear-gradient(135deg, ' + pal.nWell + ' 50%, ' + pal.pWell + ' 50%)',
+    depletion: pal.depletion,
     active: 'linear-gradient(135deg, ' + pal.pPlusDiffusion + ' 50%, ' + pal.nPlusDiffusion + ' 50%)',
     sde: 'linear-gradient(135deg, ' + pal.pSDE + ' 50%, ' + pal.nSDE + ' 50%)',
     oxide: pal.gateOxide,

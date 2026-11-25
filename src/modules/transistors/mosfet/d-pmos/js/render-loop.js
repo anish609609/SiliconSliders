@@ -17,7 +17,8 @@ function animate(){
     updateBuildAnimation(dt);
   }
 
-  var isOffState = (typeof currentIn !== 'undefined' && currentIn === 'off');
+  var isOffState = (typeof currentIn !== 'undefined' && (currentIn === 'off' || currentIn === 1)) ||
+    (typeof isTourActive !== 'undefined' && isTourActive) || window.isTourActive === true;
 
   if (!isOffState){
     stepFlowMarkers(dt);

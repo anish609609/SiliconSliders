@@ -11,6 +11,11 @@
   var LEGACY_KEY_INVERTER = 'cmos_viewer_theme';
   var LEGACY_KEY_NAND = 'cmos_nand_viewer_theme';
 
+  function getTimeOfDayTheme() {
+    var hr = new Date().getHours();
+    return (hr >= 6 && hr < 18) ? 'light' : 'dark';
+  }
+
   function getStoredTheme() {
     try {
       var saved = localStorage.getItem(THEME_KEY) ||
@@ -19,7 +24,7 @@
                   localStorage.getItem(LEGACY_KEY_NAND);
       if (saved === 'light' || saved === 'dark') return saved;
     } catch (_) {}
-    return 'dark'; // default
+    return getTimeOfDayTheme();
   }
 
   function setStoredTheme(theme) {

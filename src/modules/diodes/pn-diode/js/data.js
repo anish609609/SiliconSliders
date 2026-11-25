@@ -235,7 +235,6 @@ var LAYERS_LIST = [
 var ARCHITECTURE_TREE = [
   {
     name: 'Planar Silicon PN Diode Assembly',
-    id: 'root',
     children: [
       {
         name: 'Silicon Body & Well Structure',

@@ -11,7 +11,7 @@ var Y = {
   metalBot: 2.95, metalTop: 3.10    // flat ribbon: 0.15 (1λ) thick
 };
 
-var LAYER_ORDER = ['substrate', 'well', 'active', 'oxide', 'highk', 'poly', 'spacer', 'silicide', 'contact', 'metal'];
+var LAYER_ORDER = ['substrate', 'well', 'depletion', 'active', 'sde', 'oxide', 'highk', 'poly', 'spacer', 'silicide', 'contact', 'metal'];
 var EXPLODE_GAP = 3.2;
 
 var allMeshes = [];
@@ -449,7 +449,16 @@ function makeMetalMaterial(colorVar) {
 function registerMesh(mesh, id, layer, opts) {
   opts = opts || {};
   mesh.userData.id = id;
+  if (!opts.decorative) mesh.userData.layerId = id;
   mesh.userData.layer = layer;
+  if (mesh.isGroup && !opts.decorative) {
+    mesh.traverse(function (child) {
+      if (child.isLine || child.isLineSegments || child.isPoints) return;
+      child.userData.id = id;
+      child.userData.layerId = id;
+      child.userData.layer = layer;
+    });
+  }
   mesh.userData.explodeLayer = opts.explodeLayer || layer;
   mesh.userData.explodeIdx = LAYER_ORDER.indexOf(mesh.userData.explodeLayer);
   if (mesh.userData.explodeIdx < 0) mesh.userData.explodeIdx = 0;
@@ -646,6 +655,12 @@ function updateMaterialsTheme() {
 
   if (typeof silMatNand !== 'undefined' && silMatNand && silMatNand.color) {
     silMatNand.color.setHex(isLightTheme ? 0x647082 : 0x6e7887);
+  }
+  if (typeof window.nandDeplMat !== 'undefined' && window.nandDeplMat) {
+    window.nandDeplMat.color.setHex(isLightTheme ? 0x64748b : 0x94a3b8);
+    window.nandDeplMat.emissive.setHex(isLightTheme ? 0x334155 : 0x475569);
+    window.nandDeplMat.emissiveIntensity = 0.14;
+    window.nandDeplMat.opacity = 0.38;
   }
 
   refreshAllLabelSprites();
@@ -869,6 +884,89 @@ function buildNand2Cell() {
     registerMesh(sdeMesh, sp.id, 'sde', { explodeLayer: 'active' });
   }
 
+  /* Dynamic Space-Charge Depletion Regions (6 S/D & bridge shells + 4 sub-gate pockets) */
+  var isInitLightDepl = document.documentElement.getAttribute('data-theme') === 'light';
+  var nandDeplMat = new THREE.MeshStandardMaterial({
+    color: isInitLightDepl ? 0x64748b : 0x94a3b8,
+    emissive: isInitLightDepl ? 0x334155 : 0x475569,
+    emissiveIntensity: 0.14,
+    transparent: true,
+    opacity: 0.38,
+    depthWrite: false,
+    roughness: 0.55,
+    metalness: 0.08,
+    polygonOffset: true,
+    polygonOffsetFactor: -0.5,
+    polygonOffsetUnits: -0.5,
+    side: THREE.DoubleSide,
+    clippingPlanes: activeClipPlanes
+  });
+  window.nandDeplMat = nandDeplMat;
+
+  function addNandDeplBox(w, h, d, x, y, z) {
+    var geo = new THREE.BoxGeometry(w, h, d);
+    var m = new THREE.Mesh(geo, nandDeplMat.clone());
+    m.position.set(x, y, z);
+    m.renderOrder = 2;
+    m.userData.baseEmissive = nandDeplMat.emissive.getHex();
+    m.userData.baseEmissiveIntensity = nandDeplMat.emissiveIntensity;
+    var edge = new THREE.LineSegments(
+      new THREE.EdgesGeometry(geo, 24),
+      new THREE.LineBasicMaterial({ color: isInitLightDepl ? 0x64748b : 0x94a3b8, transparent: true, opacity: 0.45, depthWrite: false, clippingPlanes: activeClipPlanes })
+    );
+    edge.raycast = function () {};
+    m.add(edge);
+    return registerMesh(m, 'depletion', 'depletion');
+  }
+
+  var sdDeplH = actH + 0.14;
+  var sdDeplMidY = (Y.actTop - 0.004) - sdDeplH / 2;
+  var mp1SrcDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, LEFT_X, sdDeplMidY, PMOS_ZC);
+  var pmosDrnDepl = addNandDeplBox(4.45, sdDeplH, ACTIVE_W + 0.48, MID_X, sdDeplMidY, PMOS_ZC);
+  var mp2SrcDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, RIGHT_X, sdDeplMidY, PMOS_ZC);
+  var mn1SrcDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, LEFT_X, sdDeplMidY, NMOS_ZC);
+  var nmosMidDepl = addNandDeplBox(4.45, sdDeplH, ACTIVE_W + 0.48, MID_X, sdDeplMidY, NMOS_ZC);
+  var mn2DrnDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, RIGHT_X, sdDeplMidY, NMOS_ZC);
+
+  var gateDeplH = 0.24;
+  var mp1GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_A_X, Y.actTop - 0.24, PMOS_ZC);
+  var mp2GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_B_X, Y.actTop - 0.24, PMOS_ZC);
+  var mn1GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_A_X, Y.actTop - 0.24, NMOS_ZC);
+  var mn2GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_B_X, Y.actTop - 0.24, NMOS_ZC);
+
+  window.updateNandDepletion = function(st) {
+    var frozen = !st || st.frozen || st.a === 'off' || st.b === 'off';
+    var va = frozen ? 0.50 : Number(st.a);
+    var vb = frozen ? 0.50 : Number(st.b);
+    var vout = frozen ? 0.50 : Number(st.vout);
+    var regs = (st && st.regions) ? st.regions : {};
+    var vx = (typeof regs.vx === 'number') ? regs.vx : (frozen ? 0.25 : 0.0);
+
+    var pmosDrnRev = frozen ? 0.15 : Math.max(0, 1.00 - vout);
+    var nmosMidRev = frozen ? 0.15 : Math.max(0, vx);
+    var nmosDrnRev = frozen ? 0.15 : Math.max(0, vout);
+
+    mp1SrcDepl.scale.set(1.0, 1.0, 1.0);
+    mp2SrcDepl.scale.set(1.0, 1.0, 1.0);
+    pmosDrnDepl.scale.set(1.0 + 0.16 * pmosDrnRev, 1.0 + 0.30 * pmosDrnRev, 1.0 + 0.08 * pmosDrnRev);
+    mn1SrcDepl.scale.set(1.0, 1.0, 1.0);
+    nmosMidDepl.scale.set(1.0 + 0.16 * nmosMidRev, 1.0 + 0.28 * nmosMidRev, 1.0 + 0.08 * nmosMidRev);
+    mn2DrnDepl.scale.set(1.0 + 0.20 * nmosDrnRev, 1.0 + 0.32 * nmosDrnRev, 1.0 + 0.08 * nmosDrnRev);
+
+    var updateGateDepl = function(mesh, on, reg) {
+      var depthScale = frozen ? 0.45 : (reg === 'CUTOFF' ? 0.35 : (on ? 0.95 : 0.65));
+      mesh.visible = true;
+      mesh.scale.set(1.0, depthScale, 1.0);
+      var targetY = (Y.actTop - 0.13) - (gateDeplH * depthScale) / 2;
+      mesh.position.y = targetY;
+      if (mesh.userData.restPos) mesh.userData.restPos.y = targetY;
+    };
+    updateGateDepl(mp1GateDepl, !frozen && va < 0.60, regs.mp1);
+    updateGateDepl(mp2GateDepl, !frozen && vb < 0.60, regs.mp2);
+    updateGateDepl(mn1GateDepl, !frozen && va > 0.40, regs.mn1);
+    updateGateDepl(mn2GateDepl, !frozen && vb > (vx + 0.40), regs.mn2);
+  };
+
   /* Gate Channel Inversion Layers under Gate A & Gate B */
   var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
   var palInitNAND = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLight ? 'light' : 'dark') : null);
@@ -995,6 +1093,9 @@ function buildNand2Cell() {
 
   // Dynamic channel updater called on logic state transitions
   window.updateNandChannels = function(st) {
+    if (typeof window.updateNandDepletion === 'function') {
+      window.updateNandDepletion(st);
+    }
     if (!st || st.frozen || st.a === 'off' || st.b === 'off') {
       ['chMP1', 'chMP2', 'chMN1', 'chMN2'].forEach(function(id) {
         if (nandChannelMeshes[id]) nandChannelMeshes[id].visible = false;
@@ -1357,22 +1458,23 @@ function buildNand2Cell() {
   addLabel('IN B', -10.5, Y.metalTop + 0.45, -1.55, 'metal', '#e6c94a');
   addLabel('OUT', 9.6, Y.metalTop + 0.45, 1.55, 'metal', '#57cf8f');
 
-  addLabel('N-WELL', 7.4, Y.wellTop + 0.35, 8.3, 'well', '#3f8f6f');
-  addLabel('P-WELL', 7.4, Y.wellTop + 0.35, -8.3, 'well', '#4a92c9');
+  addLabel('N-WELL', 7.4, Y.wellTop + 0.35, 8.3, 'well', '#4ade80');
+  addLabel('P-WELL', 7.4, Y.wellTop + 0.35, -8.3, 'well', '#60a5fa');
+  addLabel('DEPLETION', 7.4, Y.actTop + 0.35, PMOS_ZC - 1.9, 'depletion', '#94a3b8');
   addLabel('P-SUBSTRATE', 8.8, Y.subTop + 0.25, -11.3, 'substrate', '#9aa6b6');
 
   addLabel('POLY A', GATE_A_X, Y.polyTop + 0.35, -8.55, 'poly', '#d8503c');
   addLabel('POLY B', GATE_B_X, Y.polyTop + 0.35, -8.55, 'poly', '#d8503c');
 
-  addLabel('PMOS A (MP1)', LEFT_X, Y.actTop + 0.45, 3.25, 'active', '#cf8a4a');
-  addLabel('PMOS B (MP2)', RIGHT_X, Y.actTop + 0.45, 3.25, 'active', '#cf8a4a');
-  addLabel('SHARED P+ DRAIN', MID_X, Y.actTop + 0.45, 6.65, 'active', '#cf8a4a');
-  addLabel('NMOS A (MN1)', LEFT_X, Y.actTop + 0.45, -3.25, 'active', '#4a92c9');
-  addLabel('NMOS B (MN2)', RIGHT_X, Y.actTop + 0.45, -3.25, 'active', '#4a92c9');
-  addLabel('SERIES N+ BRIDGE', MID_X, Y.actTop + 0.45, -4.85, 'active', '#4a92c9');
+  addLabel('PMOS A (MP1)', LEFT_X, Y.actTop + 0.45, 3.25, 'active', '#60a5fa');
+  addLabel('PMOS B (MP2)', RIGHT_X, Y.actTop + 0.45, 3.25, 'active', '#60a5fa');
+  addLabel('SHARED P+ DRAIN', MID_X, Y.actTop + 0.45, 6.65, 'active', '#60a5fa');
+  addLabel('NMOS A (MN1)', LEFT_X, Y.actTop + 0.45, -3.25, 'active', '#4ade80');
+  addLabel('NMOS B (MN2)', RIGHT_X, Y.actTop + 0.45, -3.25, 'active', '#4ade80');
+  addLabel('SERIES N+ BRIDGE', MID_X, Y.actTop + 0.45, -4.85, 'active', '#4ade80');
 
-  addLabel('P-SDE', -3.925, Y.actTop + 0.32, 2.25, 'sde', '#f0b47a', { explodeLayer: 'active' });
-  addLabel('N-SDE', -3.925, Y.actTop + 0.32, -2.25, 'sde', '#8fd0f8', { explodeLayer: 'active' });
+  addLabel('P-SDE', -3.925, Y.actTop + 0.32, 2.25, 'sde', '#93c5fd', { explodeLayer: 'active' });
+  addLabel('N-SDE', -3.925, Y.actTop + 0.32, -2.25, 'sde', '#86efac', { explodeLayer: 'active' });
   addLabel('HIGH-K (HfO2)', GATE_B_X, Y.highkTop + 0.35, 3.3, 'highk', '#c084fc');
   addLabel('SiO2 OXIDE', GATE_A_X, Y.oxideTop + 0.32, 3.3, 'oxide', '#8fc9dc');
 }

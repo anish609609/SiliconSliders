@@ -191,23 +191,26 @@ renderer.domElement.addEventListener('click', function(e){
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
   scene.updateMatrixWorld(true);
   raycaster.setFromCamera(pointer, activeCamera);
-  var hits = raycaster.intersectObjects(selectable, true).filter(function(h){
-    if (h.object.userData && h.object.userData._isHighlightPart) return false;
-    if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
-    var cur = h.object;
-    while (cur) {
-      if (cur.visible === false) return false;
-      cur = cur.parent;
-    }
-    return true;
-  });
+  var hits = (typeof SiliconLayerHighlight !== 'undefined')
+    ? SiliconLayerHighlight.raycastLayer(raycaster, scene)
+    : raycaster.intersectObjects(selectable, true).filter(function(h){
+        if (h.object.userData && h.object.userData._isHighlightPart) return false;
+        if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
+        var cur = h.object;
+        while (cur) {
+          if (cur.visible === false) return false;
+          cur = cur.parent;
+        }
+        return true;
+      });
   if (hits.length){
     var m = hits[0].object;
-    while (m && (!m.userData || !m.userData.id) && m.parent && m.parent !== scene) {
+    while (m && (!m.userData || (!m.userData.layerId && !m.userData.id)) && m.parent && m.parent !== scene) {
       m = m.parent;
     }
-    if (m && m.userData && m.userData.id) {
-      selectById(m.userData.id);
+    var hitId = m && m.userData ? (m.userData.layerId || m.userData.id) : null;
+    if (hitId) {
+      selectById(hitId);
       return;
     }
   }

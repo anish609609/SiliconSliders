@@ -55,9 +55,9 @@ var FAB_STEPS = [
   },
   {
     badge: 'STEP 7 OF 9',
-    title: 'Deep N+/P+ S/D, Series Bridge & Well Taps',
-    desc: 'Heavy P+ and N+ implants define MP1/MP2 sources and shared drain, the series MN1–MN2 N+ bridge diffusion, and N+/P+ well-tie body taps.',
-    layers: ['active'],
+    title: 'Deep N+/P+ S/D, Series Bridge, Depletion & Taps',
+    desc: 'Heavy P+ and N+ implants define MP1/MP2 sources and shared drain, the series MN1–MN2 N+ bridge diffusion, and N+/P+ well-tie body taps, forming reverse-biasable PN depletion shells.',
+    layers: ['active', 'depletion'],
     camPos: [15, 14, 22],
     camTarget: [0, 2.2, 0]
   },
@@ -264,9 +264,15 @@ function updateBuildAnimation(dt) {
   }
 }
 
+var _savedTourInputs = null;
+
 function startBuildAnimation() {
   if (typeof clearSelection === 'function') clearSelection();
   if (typeof toggleWorkbench === 'function') toggleWorkbench(false);
+
+  if (_savedTourInputs === null && typeof currentA !== 'undefined' && typeof currentB !== 'undefined') {
+    _savedTourInputs = { a: currentA, b: currentB };
+  }
 
   if (typeof explodeX !== 'undefined') explodeX = 0;
   if (typeof explodeY !== 'undefined') explodeY = 0;
@@ -281,8 +287,13 @@ function startBuildAnimation() {
 
   isBuildAnimating = true;
   isTourRunning = true;
+  window.isTourActive = true;
   isFabPlaying = true;
   currentFabStep = 0;
+
+  if (typeof setInputs === 'function') {
+    setInputs('off', 'off');
+  }
 
   var banner = document.getElementById('tour-banner');
   if (banner) banner.style.display = 'flex';
@@ -316,6 +327,7 @@ function stopBuildAnimation(restoreAll) {
   }
   isBuildAnimating = false;
   isTourRunning = false;
+  window.isTourActive = false;
   isFabPlaying = false;
   fabState.phase = 'idle';
   fabState.layerTimers = {};
@@ -325,6 +337,13 @@ function stopBuildAnimation(restoreAll) {
   if (banner) banner.style.display = 'none';
 
   if (restoreAll !== false) {
+    if (_savedTourInputs !== null) {
+      var prev = _savedTourInputs;
+      _savedTourInputs = null;
+      if (typeof setInputs === 'function') {
+        setInputs(prev.a, prev.b);
+      }
+    }
     if (typeof layerVisibility !== 'undefined') {
       for (var k in layerVisibility) {
         if (Object.prototype.hasOwnProperty.call(layerVisibility, k)) {

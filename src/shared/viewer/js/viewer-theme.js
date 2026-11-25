@@ -13,18 +13,25 @@
   var currentTheme = 'dark';
   var listeners = [];
 
+  function getTimeOfDayTheme() {
+    var hr = new Date().getHours();
+    return (hr >= 6 && hr < 18) ? 'light' : 'dark';
+  }
+
   function getStoredTheme() {
     try {
-      var saved = localStorage.getItem(THEME_KEY) ||
+      var saved = localStorage.getItem('siliconsliders-theme') ||
+                  localStorage.getItem(THEME_KEY) ||
                   localStorage.getItem(LEGACY_KEY_INVERTER) ||
                   localStorage.getItem(LEGACY_KEY_NAND);
       if (saved === 'light' || saved === 'dark') return saved;
     } catch (_) {}
-    return 'dark';
+    return getTimeOfDayTheme();
   }
 
   function setStoredTheme(theme) {
     try {
+      localStorage.setItem('siliconsliders-theme', theme);
       localStorage.setItem(THEME_KEY, theme);
       localStorage.setItem(LEGACY_KEY_INVERTER, theme);
       localStorage.setItem(LEGACY_KEY_NAND, theme);

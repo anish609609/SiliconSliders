@@ -238,8 +238,12 @@
   }
 
   var SiliconSelectionHighlight = {
-    apply: function (obj, on, colorOverride) {
+    apply: function (obj, on, colorOverride, rootObj) {
       if (!obj) return;
+      if (root.SiliconLayerHighlight && typeof root.SiliconLayerHighlight.apply === 'function') {
+        root.SiliconLayerHighlight.apply(obj, on, colorOverride, rootObj);
+        return;
+      }
       var hlColor = on ? resolveHighlightColor(colorOverride) : null;
       if (typeof obj.traverse === 'function') {
         obj.traverse(function (child) {
@@ -251,6 +255,10 @@
       }
     },
     updateColor: function (meshes, colorOverride) {
+      if (root.SiliconLayerHighlight && typeof root.SiliconLayerHighlight.updateColor === 'function') {
+        root.SiliconLayerHighlight.updateColor(meshes, colorOverride);
+        return;
+      }
       if (!meshes || !meshes.length) return;
       var hlColor = resolveHighlightColor(colorOverride);
       if (!hlColor) return;

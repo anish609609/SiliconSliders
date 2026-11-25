@@ -12,6 +12,10 @@
                 localStorage.getItem('silicon_sliders_theme') ||
                 localStorage.getItem('cmos_viewer_theme') ||
                 localStorage.getItem('cmos_nand_viewer_theme');
+        if (t !== 'light' && t !== 'dark') {
+          var h = new Date().getHours();
+          t = (h >= 6 && h < 18) ? 'light' : 'dark';
+        }
         if (t === 'light') {
           document.documentElement.setAttribute('data-theme', 'light');
           document.documentElement.classList.add('light');
@@ -429,6 +433,7 @@
             <!-- Quick Jump Anchor Links -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#dpmos-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#dpmos-structure" class="theory-jump-chip">1. Implanted Architecture</a>
               <a href="#dpmos-dualmode" class="theory-jump-chip">2. Depletion vs. Enhancement</a>
               <a href="#dpmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
@@ -437,6 +442,27 @@
               <a href="#dpmos-applications" class="theory-jump-chip">6. Precision Analog Uses</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="dpmos-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. Historical Origin: Ion-Implanted Buried Channels &amp; Dual-Mode Loads (1960s–1970s)</h3>
+              <span class="theory-card-tag">Step 0 · Origins · Bell Labs &amp; Silicon-Gate Era</span>
+            </div>
+            <p class="theory-p">
+              Following the invention of the insulated-gate MOSFET by <b>Mohamed Atalla and Dawon Kahng (1959)</b>, designers needed a single-polarity transistor that conducted at zero gate bias to act as a compact, linear-behaving active load resistor. In the late 1960s and 1970s, ion-implantation pioneer advances allowed engineers to introduce shallow dopant profiles directly beneath the gate oxide, shifting threshold voltages across zero without corrupting oxide integrity.
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">From Native Inversion to Precision Implant</span>
+                <p class="theory-subcard-desc">Early P-channel metal-gate processes struggled with positive fixed oxide charge that pulled enhancement thresholds deeply negative, whereas controlled boron/BF₂ channel implants enabled tunable buried P-channels in N-well tubs for analog current sources, switched-capacitor bias chains, and dual-mode PMOS loads prior to full CMOS standardization.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Why Simulate D-PMOS Today?</span>
+                <p class="theory-subcard-desc">Understanding how a positive gate bias depletes a pre-formed hole channel until full pinch-off (<code>V<sub>GS</sub> ≥ +0.80V</code>) completes the symmetric enhancement/depletion MOSFET design space alongside D-NMOS.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Architecture & Implanted Channel -->
           <article id="dpmos-structure" class="theory-card">
@@ -874,6 +900,7 @@
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../../shared/three/layerHighlight.js"></script>
 <script src="../../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>

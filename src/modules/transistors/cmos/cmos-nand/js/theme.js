@@ -5,17 +5,20 @@ var currentTheme = 'dark';
 
 var THEME_COLOR_FALLBACKS = {
   dark: {
-    '--c-substrate': '#3a3f4b',
-    '--c-well': '#3f8f6f',
-    '--c-active-p': '#cf8a4a',
-    '--c-active-n': '#4a92c9',
-    '--c-sde-p': '#f0b47a',
-    '--c-sde-n': '#8fd0f8',
-    '--c-oxide': '#dff0f7',
+    '--c-substrate': '#1E3A5F',
+    '--c-well': '#166534',
+    '--c-pwell': '#1D4ED8',
+    '--c-active-p': '#3B82F6',
+    '--c-active-n': '#22C55E',
+    '--c-sde-p': '#60A5FA',
+    '--c-sde-n': '#4ADE80',
+    '--c-oxide': '#67E8F9',
     '--c-highk': '#a855f7',
-    '--c-poly': '#d8503c',
-    '--c-contact': '#e8e2d5',
-    '--c-metal': '#4f86c9',
+    '--c-poly': '#DC2626',
+    '--c-silicide': '#6e7887',
+    '--c-depletion': '#94A3B8',
+    '--c-contact': '#CBD5E1',
+    '--c-metal': '#94A3B8',
     '--c-vdd': '#e35d5d',
     '--c-gnd': '#6b7686',
     '--c-in': '#e6c94a',
@@ -24,15 +27,18 @@ var THEME_COLOR_FALLBACKS = {
     '--accent': '#5fd9c4'
   },
   light: {
-    '--c-substrate': '#64748B',
-    '--c-well': '#52B788',
-    '--c-active-p': '#d97706',
-    '--c-active-n': '#0284c7',
-    '--c-sde-p': '#f59e0b',
-    '--c-sde-n': '#38bdf8',
-    '--c-oxide': '#0284c7',
+    '--c-substrate': '#7BA7E1',
+    '--c-well': '#4ADE80',
+    '--c-pwell': '#4A86E8',
+    '--c-active-p': '#2563EB',
+    '--c-active-n': '#16A34A',
+    '--c-sde-p': '#3B82F6',
+    '--c-sde-n': '#22C55E',
+    '--c-oxide': '#0891B2',
     '--c-highk': '#7c3aed',
     '--c-poly': '#dc2626',
+    '--c-silicide': '#647082',
+    '--c-depletion': '#64748B',
     '--c-contact': '#334155',
     '--c-metal': '#2563eb',
     '--c-vdd': '#dc2626',
@@ -80,22 +86,32 @@ function setAllThemeKeys(theme) {
   safeStorageSet(THEME_STORAGE_KEY, theme);
 }
 
+function getTimeOfDayTheme() {
+  try {
+    var h = new Date().getHours();
+    return (h >= 6 && h < 18) ? 'light' : 'dark';
+  } catch (_) {}
+  return 'dark';
+}
+
 function loadSavedTheme() {
   var saved = safeStorageGet('siliconsliders-theme') || safeStorageGet('silicon_sliders_theme') || safeStorageGet(THEME_STORAGE_KEY) || safeStorageGet('cmos_viewer_theme');
   if (saved === 'light' || saved === 'dark') {
     return saved;
   }
-  return 'dark';
+  return getTimeOfDayTheme();
 }
 
-function applyTheme(theme) {
+function applyTheme(theme, savePreference) {
   currentTheme = theme === 'light' ? 'light' : 'dark';
   if (typeof document !== 'undefined' && document.documentElement) {
     document.documentElement.setAttribute('data-theme', currentTheme);
     document.documentElement.classList.toggle('light', currentTheme === 'light');
     document.documentElement.classList.toggle('dark', currentTheme === 'dark');
   }
-  setAllThemeKeys(currentTheme);
+  if (savePreference) {
+    setAllThemeKeys(currentTheme);
+  }
 
   var btn = typeof document !== 'undefined' ? (document.getElementById('btn-theme-toggle') || document.getElementById('btn-theme')) : null;
   if (btn) {
@@ -161,7 +177,7 @@ function applyTheme(theme) {
 }
 
 function toggleTheme() {
-  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+  applyTheme(currentTheme === 'dark' ? 'light' : 'dark', true);
 }
 
 // Auto-sync when returning via browser back button or bfcache
@@ -169,14 +185,14 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pageshow', function () {
     var fresh = loadSavedTheme();
     if (fresh !== currentTheme) {
-      applyTheme(fresh);
+      applyTheme(fresh, false);
     }
   });
 
   window.addEventListener('storage', function (e) {
     if (e.key === 'silicon_sliders_theme' || e.key === 'cmos_viewer_theme' || e.key === 'cmos_nand_viewer_theme' || e.key === THEME_STORAGE_KEY) {
       if (e.newValue === 'light' || e.newValue === 'dark') {
-        applyTheme(e.newValue);
+        applyTheme(e.newValue, false);
       }
     }
   });
@@ -184,7 +200,7 @@ if (typeof window !== 'undefined') {
 
 try {
   currentTheme = loadSavedTheme();
-  applyTheme(currentTheme);
+  applyTheme(currentTheme, false);
 } catch (err) {
   console.error('Theme initialization failed:', err);
 }

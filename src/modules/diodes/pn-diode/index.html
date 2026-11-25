@@ -11,6 +11,10 @@
               localStorage.getItem('silicon_sliders_theme') ||
               localStorage.getItem('cmos_viewer_theme') ||
               localStorage.getItem('cmos_nand_viewer_theme');
+      if (t !== 'light' && t !== 'dark') {
+        var hr = new Date().getHours();
+        t = (hr >= 6 && hr < 18) ? 'light' : 'dark';
+      }
       if (t === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.classList.add('light');
@@ -438,6 +442,7 @@
             <!-- Jump Chips -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#diode-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#diode-formation" class="theory-jump-chip">1. Formation &amp; Doping</a>
               <a href="#diode-vbi-depletion" class="theory-jump-chip">2. Vbi &amp; Depletion Width</a>
               <a href="#diode-biasing" class="theory-jump-chip">3. Forward &amp; Reverse Bias</a>
@@ -446,6 +451,31 @@
               <a href="#diode-fields" class="theory-jump-chip">6. Electric Field &amp; Capacitance</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="diode-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. The Origin Story: Russell Ohl&apos;s Cracked Silicon Ingot</h3>
+              <span class="theory-card-tag">Bell Labs, 1940</span>
+            </div>
+            <p class="theory-p">
+              Before solid-state electronics existed, radio engineers relied on temperamental cat&apos;s-whisker point-contact crystal detectors and bulky vacuum tubes. At <b>Bell Telephone Laboratories</b>, electrochemist <b>Russell Ohl</b> suspected that erratic detector performance was caused by trace impurities inside commercial silicon.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. The Mysterious Crack (Feb 1940)</span>
+                <p class="theory-subcard-desc">While testing an ultra-purified, slowly cooled silicon ingot cut into small rods, Ohl noticed one rod with a faint horizontal crack produced erratic resistance readings whenever a desk lamp shone nearby.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Accidental P–N Segregation</span>
+                <p class="theory-subcard-desc">Chemical analysis revealed that impurity segregation during freezing left boron-rich <b>P-type</b> silicon on one side of the crack and phosphorus-rich <b>N-type</b> silicon on the other—creating the first observed solid-state <b>P–N junction</b>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Birth of Silicon Electronics</span>
+                <p class="theory-subcard-desc">Shining light across that accidental barrier generated nearly half a volt—demonstrating both the silicon solar cell and the rectifying PN diode that paved the way for Shockley, Bardeen, and Brattain&apos;s transistor.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Formation & Doping -->
           <article id="diode-formation" class="theory-card">
@@ -848,6 +878,7 @@
 <script src="js/physics.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../shared/three/layerHighlight.js"></script>
 <script src="../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>

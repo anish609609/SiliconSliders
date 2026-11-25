@@ -87,6 +87,9 @@ function idToInfo(id) {
 }
 
 function meshesForId(id) {
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    return SiliconLayerHighlight.collectLayerMeshes(scene, id, VIRTUAL);
+  }
   if (VIRTUAL[id]) {
     var vList = [];
     VIRTUAL[id].meshes.forEach(function(mid) {
@@ -100,16 +103,19 @@ function meshesForId(id) {
 }
 
 function findMesh(id) {
-  for (var i = 0; i < selectable.length; i++) {
-    if (selectable[i].userData.id === id) return selectable[i];
-  }
-  return null;
+  var list = findAllMeshes(id);
+  return list.length ? list[0] : null;
 }
 
 function findAllMeshes(id) {
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    return SiliconLayerHighlight.collectLayerMeshes(scene, id);
+  }
   var out = [];
-  for (var i = 0; i < selectable.length; i++) {
-    if (selectable[i] && selectable[i].userData && selectable[i].userData.id === id) out.push(selectable[i]);
+  if (typeof scene !== 'undefined' && scene.traverse) {
+    scene.traverse(function(obj) {
+      if (obj && obj.isMesh && obj.userData && (obj.userData.layerId === id || obj.userData.id === id)) out.push(obj);
+    });
   }
   return out;
 }

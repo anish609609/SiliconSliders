@@ -11,6 +11,10 @@
               localStorage.getItem('silicon_sliders_theme') ||
               localStorage.getItem('cmos_viewer_theme') ||
               localStorage.getItem('cmos_nand_viewer_theme');
+      if (t !== 'light' && t !== 'dark') {
+        var hr = new Date().getHours();
+        t = (hr >= 6 && hr < 18) ? 'light' : 'dark';
+      }
       if (t === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.classList.add('light');
@@ -418,6 +422,7 @@
             <!-- Quick Jump Anchor Links -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#pmos-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#pmos-structure" class="theory-jump-chip">1. Architecture &amp; N-Well</a>
               <a href="#pmos-inversion" class="theory-jump-chip">2. Hole Inversion &amp; Threshold</a>
               <a href="#pmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
@@ -426,6 +431,31 @@
               <a href="#pmos-secondorder" class="theory-jump-chip">6. Second-Order &amp; Body Effect</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="pmos-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. The Origin Story: From Atalla &amp; Kahng to Complementary P-Channel Logic</h3>
+              <span class="theory-card-tag">Bell Labs, 1959 &amp; Fairchild, 1963</span>
+            </div>
+            <p class="theory-p">
+              Following <b>Mohamed Atalla</b> and <b>Dawon Kahng&apos;s</b> 1959 MOSFET breakthrough at Bell Labs, early commercial MOS integrated circuits actually favored <b>P-channel (PMOS)</b> transistors because positive sodium contamination in 1960s gate oxides shifted NMOS devices into erratic depletion behavior while keeping PMOS reliably normally-OFF.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. SiO₂ Surface Control (1959)</span>
+                <p class="theory-subcard-desc">Atalla and Kahng proved thermally grown SiO₂ could passivate silicon traps well enough to invert an N-type region into a conducting hole channel under negative gate bias.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Early PMOS Dominance (1960s)</span>
+                <p class="theory-subcard-desc">PMOS enabled the first commercial MOS shift registers, calculators, and memories—despite lower hole mobility—before ultra-clean gate oxidation tamed NMOS.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Wanlass&apos;s CMOS Pairing (1963)</span>
+                <p class="theory-subcard-desc"><b>Frank Wanlass</b> at Fairchild embedded PMOS alongside NMOS via complementary N-well/P-substrate engineering, making PMOS the essential rail-to-rail pull-up switch in all modern CMOS.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Architecture & N-Well Tub -->
           <article id="pmos-structure" class="theory-card">
@@ -842,6 +872,7 @@
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../../shared/three/layerHighlight.js"></script>
 <script src="../../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>

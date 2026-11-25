@@ -173,6 +173,8 @@ function updateBuildAnimation(dt) {
   });
 }
 
+var _savedTourVa = null;
+
 function stopBuildAnimation(restoreAll) {
   if (fabPlayInterval) {
     clearInterval(fabPlayInterval);
@@ -191,6 +193,7 @@ function stopBuildAnimation(restoreAll) {
   if (pauseBtn) pauseBtn.textContent = '▶';
 
   if (restoreAll) {
+    window.isTourActive = false;
     currentFabStep = FAB_STEPS.length;
     LAYER_KEYS.forEach(function (layerKey) {
       dropOffsets[layerKey] = 0;
@@ -205,6 +208,14 @@ function stopBuildAnimation(restoreAll) {
     var banner = document.getElementById('tour-banner');
     if (banner) banner.style.display = 'none';
 
+    if (_savedTourVa !== null && typeof window.setDiodeBiasVoltage === 'function') {
+      var restoredVa = _savedTourVa;
+      _savedTourVa = null;
+      window.setDiodeBiasVoltage(restoredVa);
+    } else if (typeof rebuildFlowSimulation === 'function') {
+      rebuildFlowSimulation();
+    }
+
     // Reset camera to default
     if (controls && activeCamera && typeof INITIAL_POS !== 'undefined') {
       activeCamera.position.copy(INITIAL_POS);
@@ -217,6 +228,18 @@ function stopBuildAnimation(restoreAll) {
 function startBuildAnimation() {
   if (fabPlayInterval) clearInterval(fabPlayInterval);
   isFabPlaying = true;
+  window.isTourActive = true;
+
+  if (_savedTourVa === null && typeof window.getDiodeState === 'function') {
+    var st = window.getDiodeState();
+    _savedTourVa = st ? st.va : 0.0;
+  }
+  if (typeof window.setDiodeBiasVoltage === 'function') {
+    window.setDiodeBiasVoltage(0.0);
+  }
+  if (typeof rebuildFlowSimulation === 'function') {
+    rebuildFlowSimulation();
+  }
 
   var topbarTourBtn = document.getElementById('btn-build-anim');
   if (topbarTourBtn) {
@@ -238,7 +261,7 @@ function startBuildAnimation() {
     if (currentFabStep < FAB_STEPS.length) {
       applyFabStep(currentFabStep + 1, true);
     } else {
-      stopBuildAnimation(false);
+      stopBuildAnimation(true);
     }
   }, 2500);
 }

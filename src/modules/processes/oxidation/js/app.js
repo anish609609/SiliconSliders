@@ -266,22 +266,24 @@
     var [rampRate, setRampRate] = useState(10);               // 5 - 150 °C/min
     var [initialOxide, setInitialOxide] = useState(1.0);       // 1.0 nm (Native) or 0.0 nm (HF Clean)
 
-    // Unified Light / Dark Theme State
+    // Unified Light / Dark Theme State (with local time-of-day fallback 06:00-17:59 Light, 18:00-05:59 Dark)
     var [theme, setTheme] = useState(function () {
       try {
-        var t = localStorage.getItem('silicon_sliders_theme') ||
+        var t = localStorage.getItem('siliconsliders-theme') ||
+                localStorage.getItem('silicon_sliders_theme') ||
                 localStorage.getItem('cmos_viewer_theme') ||
                 localStorage.getItem('cmos_nand_viewer_theme');
-        return t === 'light' ? 'light' : 'dark';
-      } catch (_) {
-        return 'dark';
-      }
+        if (t === 'light' || t === 'dark') return t;
+      } catch (_) {}
+      var hr = new Date().getHours();
+      return (hr >= 6 && hr < 18) ? 'light' : 'dark';
     });
 
     var toggleTheme = useCallback(function () {
       setTheme(function (prev) {
         var next = prev === 'dark' ? 'light' : 'dark';
         try {
+          localStorage.setItem('siliconsliders-theme', next);
           localStorage.setItem('silicon_sliders_theme', next);
           localStorage.setItem('cmos_viewer_theme', next);
           localStorage.setItem('cmos_nand_viewer_theme', next);

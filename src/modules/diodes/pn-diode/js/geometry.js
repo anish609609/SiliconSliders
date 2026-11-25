@@ -39,8 +39,29 @@ var groups = {
 groups.semiconductor = groups.active;
 groups.contacts = groups.contact;
 
-var clickableMeshes = [];
 var interactiveLabels = [];
+
+function registerDiodeMesh(obj, id, layerKey) {
+  if (!obj) return obj;
+  obj.userData = obj.userData || {};
+  obj.userData.id = id;
+  obj.userData.layerId = id;
+  obj.userData.layerKey = layerKey;
+  if (typeof obj.traverse === 'function') {
+    obj.traverse(function (child) {
+      if (child === obj || (child.userData && child.userData._isHighlightPart)) return;
+      if (child.isLine || child.isLineSegments || child.isPoints) return;
+      child.userData = child.userData || {};
+      if (!child.userData.id) child.userData.id = id;
+      if (!child.userData.layerId) child.userData.layerId = id;
+      if (!child.userData.layerKey) child.userData.layerKey = layerKey;
+    });
+  }
+  if (groups[layerKey]) {
+    groups[layerKey].add(obj);
+  }
+  return obj;
+}
 
 // Base Dimensions in 3D Units
 var SUB_L = 26.0;   // Substrate length X (-13 to +13)
@@ -614,9 +635,7 @@ function buildDiodeGeometry() {
   subMesh.position.set(0, -SUB_H / 2, 0); // Y: -4.0 to 0.0
   subMesh.renderOrder = 0;
   subMesh.receiveShadow = true;
-  subMesh.userData = { id: 'substrate', layerKey: 'substrate' };
-  clickableMeshes.push(subMesh);
-  groups.substrate.add(subMesh);
+  registerDiodeMesh(subMesh, 'substrate', 'substrate');
 
   var subEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(subGeo),
@@ -638,9 +657,7 @@ function buildDiodeGeometry() {
   nwellMesh.position.set(0, -WELL_H / 2 + 0.002, 0); // Y: -3.0 to 0.002
   nwellMesh.renderOrder = 1;
   nwellMesh.receiveShadow = true;
-  nwellMesh.userData = { id: 'nwell', layerKey: 'nwell' };
-  clickableMeshes.push(nwellMesh);
-  groups.nwell.add(nwellMesh);
+  registerDiodeMesh(nwellMesh, 'nwell', 'nwell');
 
   var wellEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(wellGeo),
@@ -664,9 +681,7 @@ function buildDiodeGeometry() {
   pTubMesh.renderOrder = 2;
   pTubMesh.castShadow = true;
   pTubMesh.receiveShadow = true;
-  pTubMesh.userData = { id: 'pRegion', layerKey: 'active' };
-  clickableMeshes.push(pTubMesh);
-  groups.active.add(pTubMesh);
+  registerDiodeMesh(pTubMesh, 'pRegion', 'active');
 
   var pEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(pTubGeo),
@@ -687,9 +702,7 @@ function buildDiodeGeometry() {
   nTapMesh.renderOrder = 2;
   nTapMesh.castShadow = true;
   nTapMesh.receiveShadow = true;
-  nTapMesh.userData = { id: 'nRegion', layerKey: 'active' };
-  clickableMeshes.push(nTapMesh);
-  groups.active.add(nTapMesh);
+  registerDiodeMesh(nTapMesh, 'nRegion', 'active');
 
   var nEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(nTapGeo),
@@ -707,9 +720,7 @@ function buildDiodeGeometry() {
   depletionShellMesh = new THREE.Mesh(depGeo, diodeMaterials.depletion);
   depletionShellMesh.position.set(-4.8, 0, 0);
   depletionShellMesh.renderOrder = 4;
-  depletionShellMesh.userData = { id: 'depletionRegion', layerKey: 'depletion' };
-  clickableMeshes.push(depletionShellMesh);
-  groups.depletion.add(depletionShellMesh);
+  registerDiodeMesh(depletionShellMesh, 'depletionRegion', 'depletion');
 
   var depLineColor = isLight ? 0x475569 : 0x94a3b8;
   function makeDepLoop(opacity) {
@@ -750,22 +761,16 @@ function buildDiodeGeometry() {
   var glowGeo = new THREE.BoxGeometry(1.6, P_TUB_D + 0.4, P_TUB_L + 0.4);
   breakdownGlowMesh = new THREE.Mesh(glowGeo, diodeMaterials.breakdownGlow);
   breakdownGlowMesh.position.set(-1.6, -P_TUB_D / 2, 0);
-  breakdownGlowMesh.userData = { id: 'breakdownGlow', layerKey: 'field' };
-  clickableMeshes.push(breakdownGlowMesh);
-  groups.field.add(breakdownGlowMesh);
+  registerDiodeMesh(breakdownGlowMesh, 'breakdownGlow', 'field');
 
   // =========================================================================
   // 6. FIXED SPACE-CHARGE IONS
   // =========================================================================
   fixedIonsPGroup = new THREE.Group();
-  fixedIonsPGroup.userData = { id: 'fixedIonsP', layerKey: 'ions' };
-  clickableMeshes.push(fixedIonsPGroup);
-  groups.ions.add(fixedIonsPGroup);
+  registerDiodeMesh(fixedIonsPGroup, 'fixedIonsP', 'ions');
 
   fixedIonsNGroup = new THREE.Group();
-  fixedIonsNGroup.userData = { id: 'fixedIonsN', layerKey: 'ions' };
-  clickableMeshes.push(fixedIonsNGroup);
-  groups.ions.add(fixedIonsNGroup);
+  registerDiodeMesh(fixedIonsNGroup, 'fixedIonsN', 'ions');
 
   buildIonMarkers();
 
@@ -777,24 +782,18 @@ function buildDiodeGeometry() {
   stiMesh = new THREE.Mesh(stiGeo, diodeMaterials.sti);
   stiMesh.position.set(0.2, -0.4 + 0.003, 0); // Y: -0.8 to 0.003
   stiMesh.renderOrder = 3;
-  stiMesh.userData = { id: 'sti', layerKey: 'passivation' };
-  clickableMeshes.push(stiMesh);
-  groups.passivation.add(stiMesh);
+  registerDiodeMesh(stiMesh, 'sti', 'passivation');
 
   // Outer Perimeter STI surrounding well edges
   var stiRimGeo1 = new THREE.BoxGeometry(2.5, 0.8, WELL_W);
   stiRimMesh1 = new THREE.Mesh(stiRimGeo1, diodeMaterials.sti);
   stiRimMesh1.position.set(-9.25, -0.4, 0);
-  stiRimMesh1.userData = { id: 'sti', layerKey: 'passivation' };
-  clickableMeshes.push(stiRimMesh1);
-  groups.passivation.add(stiRimMesh1);
+  registerDiodeMesh(stiRimMesh1, 'sti', 'passivation');
 
   var stiRimGeo2 = new THREE.BoxGeometry(2.5, 0.8, WELL_W);
   stiRimMesh2 = new THREE.Mesh(stiRimGeo2, diodeMaterials.sti);
   stiRimMesh2.position.set(9.25, -0.4, 0);
-  stiRimMesh2.userData = { id: 'sti', layerKey: 'passivation' };
-  clickableMeshes.push(stiRimMesh2);
-  groups.passivation.add(stiRimMesh2);
+  registerDiodeMesh(stiRimMesh2, 'sti', 'passivation');
 
   // 7b. Interlayer Dielectric (ILD Passivation SiO2)
   // Surface slab from Y = 0.0 to Y = 1.6 with etched contact cuts
@@ -803,27 +802,21 @@ function buildDiodeGeometry() {
   ildCenterMesh = new THREE.Mesh(ildCenterGeo, diodeMaterials.passivation);
   ildCenterMesh.position.set(0.0, ildHeight / 2 + 0.012, 0); // Center between via windows
   ildCenterMesh.renderOrder = 6;
-  ildCenterMesh.userData = { id: 'passivation', layerKey: 'passivation' };
-  clickableMeshes.push(ildCenterMesh);
-  groups.passivation.add(ildCenterMesh);
+  registerDiodeMesh(ildCenterMesh, 'passivation', 'passivation');
 
   ildOuterLeft = new THREE.Mesh(
     new THREE.BoxGeometry(3.5, ildHeight, P_TUB_L),
     diodeMaterials.passivation
   );
   ildOuterLeft.position.set(-9.25, ildHeight / 2, 0);
-  ildOuterLeft.userData = { id: 'passivation', layerKey: 'passivation' };
-  clickableMeshes.push(ildOuterLeft);
-  groups.passivation.add(ildOuterLeft);
+  registerDiodeMesh(ildOuterLeft, 'passivation', 'passivation');
 
   ildOuterRight = new THREE.Mesh(
     new THREE.BoxGeometry(3.5, ildHeight, P_TUB_L),
     diodeMaterials.passivation
   );
   ildOuterRight.position.set(9.25, ildHeight / 2, 0);
-  ildOuterRight.userData = { id: 'passivation', layerKey: 'passivation' };
-  clickableMeshes.push(ildOuterRight);
-  groups.passivation.add(ildOuterRight);
+  registerDiodeMesh(ildOuterRight, 'passivation', 'passivation');
 
   // =========================================================================
   // 7c. SELF-ALIGNED SILICIDE (NiSi) CONTACT PADS ATOP P+ ANODE & N+ CATHODE
@@ -839,15 +832,13 @@ function buildDiodeGeometry() {
     m.castShadow = true;
     m.receiveShadow = true;
     m.renderOrder = 6;
-    m.userData = { id: id, layerKey: 'silicide' };
     var el = new THREE.LineSegments(
       new THREE.EdgesGeometry(geo),
       new THREE.LineBasicMaterial({ color: 0xe2e8f0, transparent: true, opacity: 0.48, depthWrite: false })
     );
     el.raycast = function () {};
     m.add(el);
-    clickableMeshes.push(m);
-    groups.silicide.add(m);
+    registerDiodeMesh(m, id, 'silicide');
     return m;
   }
 
@@ -872,9 +863,8 @@ function buildDiodeGeometry() {
     var vMesh = new THREE.Mesh(vGeo, diodeMaterials.contact);
     vMesh.position.set(-4.8, viaBot + viaSegH / 2, vz);
     vMesh.castShadow = true;
-    vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'anode_' + idx };
-    clickableMeshes.push(vMesh);
-    groups.contact.add(vMesh);
+    vMesh.userData = { viaIdx: 'anode_' + idx };
+    registerDiodeMesh(vMesh, 'tungstenVias', 'contact');
     anodeVias.push(vMesh);
   });
 
@@ -884,9 +874,8 @@ function buildDiodeGeometry() {
     var vMesh = new THREE.Mesh(vGeo, diodeMaterials.contact);
     vMesh.position.set(4.8, viaBot + viaSegH / 2, vz);
     vMesh.castShadow = true;
-    vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'cathode_' + idx };
-    clickableMeshes.push(vMesh);
-    groups.contact.add(vMesh);
+    vMesh.userData = { viaIdx: 'cathode_' + idx };
+    registerDiodeMesh(vMesh, 'tungstenVias', 'contact');
     cathodeVias.push(vMesh);
   });
 
@@ -902,9 +891,7 @@ function buildDiodeGeometry() {
   anodeMesh = new THREE.Mesh(anodePadGeo, diodeMaterials.metal);
   anodeMesh.position.set(-4.8, viaH + padH / 2, 0);
   anodeMesh.castShadow = true;
-  anodeMesh.userData = { id: 'anodeMetal', layerKey: 'metal' };
-  clickableMeshes.push(anodeMesh);
-  groups.metal.add(anodeMesh);
+  registerDiodeMesh(anodeMesh, 'anodeMetal', 'metal');
 
   var anodeEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(anodePadGeo),
@@ -918,9 +905,7 @@ function buildDiodeGeometry() {
   cathodeMesh = new THREE.Mesh(cathodePadGeo, diodeMaterials.metal);
   cathodeMesh.position.set(4.8, viaH + padH / 2, 0);
   cathodeMesh.castShadow = true;
-  cathodeMesh.userData = { id: 'cathodeMetal', layerKey: 'metal' };
-  clickableMeshes.push(cathodeMesh);
-  groups.metal.add(cathodeMesh);
+  registerDiodeMesh(cathodeMesh, 'cathodeMetal', 'metal');
 
   var cathodeEdges = new THREE.LineSegments(
     new THREE.EdgesGeometry(cathodePadGeo),
@@ -974,7 +959,7 @@ function buildIonMarkers() {
     });
     var pSprite = new THREE.Sprite(pMat);
     pSprite.scale.set(0.44, 0.44, 1.0);
-    pSprite.userData = { id: 'fixedIonsP', idx: i };
+    pSprite.userData = { id: 'fixedIonsP', layerId: 'fixedIonsP', layerKey: 'ions', idx: i };
     fixedIonsPGroup.add(pSprite);
 
     var nMat = new THREE.SpriteMaterial({
@@ -986,7 +971,7 @@ function buildIonMarkers() {
     });
     var nSprite = new THREE.Sprite(nMat);
     nSprite.scale.set(0.44, 0.44, 1.0);
-    nSprite.userData = { id: 'fixedIonsN', idx: i };
+    nSprite.userData = { id: 'fixedIonsN', layerId: 'fixedIonsN', layerKey: 'ions', idx: i };
     fixedIonsNGroup.add(nSprite);
   }
 }

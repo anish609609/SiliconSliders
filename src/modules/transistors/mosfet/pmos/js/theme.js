@@ -16,6 +16,11 @@ function setAllThemeKeys(theme) {
   } catch(e){}
 }
 
+function getTimeOfDayTheme() {
+  var hr = new Date().getHours();
+  return (hr >= 6 && hr < 18) ? 'light' : 'dark';
+}
+
 function getStoredTheme() {
   try {
     var saved = localStorage.getItem('siliconsliders-theme') ||
@@ -26,7 +31,7 @@ function getStoredTheme() {
       return saved;
     }
   } catch(e){}
-  return 'dark';
+  return getTimeOfDayTheme();
 }
 
 function initTheme(){

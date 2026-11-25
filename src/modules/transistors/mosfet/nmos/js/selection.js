@@ -11,15 +11,21 @@ var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta 
 
 function applyEmissive(obj, color, intensity) {
   if (!obj) return;
-  if (typeof SiliconSelectionHighlight !== 'undefined') {
+  if (typeof SiliconLayerHighlight !== 'undefined') {
+    SiliconLayerHighlight.apply(obj, color !== null, color || HIGHLIGHT_COLOR, typeof scene !== 'undefined' ? scene : null);
+  } else if (typeof SiliconSelectionHighlight !== 'undefined') {
     SiliconSelectionHighlight.apply(obj, color !== null, color || HIGHLIGHT_COLOR);
   }
 }
 
 function clearSelection(){
-  selectedMeshes.forEach(function(m){
-    applyEmissive(m, null, 0);
-  });
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    SiliconLayerHighlight.clearHighlight(scene);
+  } else {
+    selectedMeshes.forEach(function(m){
+      applyEmissive(m, null, 0);
+    });
+  }
   selectedMeshes = [];
   lastSelectedId = null;
   document.querySelectorAll('#tree .node.selected').forEach(function(n){ n.classList.remove('selected'); });
@@ -231,45 +237,10 @@ renderer.domElement.addEventListener('click', function(e){
   pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
 
-  scene.updateMatrixWorld(true);
-  raycaster.setFromCamera(pointer, activeCamera);
-
-  var hits = raycaster.intersectObjects(selectable, true).filter(function(h){
-    if (h.object.userData && h.object.userData._isHighlightPart) return false;
-    var cur = h.object;
-    while (cur) {
-      if (cur.visible === false) return false;
-      cur = cur.parent;
-    }
-    if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
-    // Dynamic channel & depletion visibility gating
-    if (h.object.userData && h.object.userData.id === 'depletion') {
-      if (!h.object.visible || h.object.scale.x <= 0.001) return false;
-    }
-    if (h.object.userData && h.object.userData.id === 'channel') {
-      if (!h.object.visible) return false;
-    }
-    return true;
-  });
-
-  hits.sort(function(a, b){ return a.distance - b.distance; });
-
-  if (hits.length){
-    var targetId = null;
-    for (var i = 0; i < hits.length; i++) {
-      var cur = hits[i].object;
-      while (cur && !targetId) {
-        if (cur.userData && cur.userData.id) {
-          targetId = cur.userData.id;
-          break;
-        }
-        if (cur === scene) break;
-        cur = cur.parent;
-      }
-      if (targetId) break;
-    }
-    if (targetId) {
-      selectById(targetId);
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, scene);
+    if (hitRes && hitRes.layerId) {
+      selectById(hitRes.layerId);
       return;
     }
   }

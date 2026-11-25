@@ -16,8 +16,11 @@
                 localStorage.getItem('silicon_sliders_theme') ||
                 localStorage.getItem('cmos_viewer_theme') ||
                 localStorage.getItem('cmos_nand_viewer_theme');
-        if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
-        else document.documentElement.setAttribute('data-theme', 'dark');
+        if (t !== 'light' && t !== 'dark') {
+          var hr = new Date().getHours();
+          t = (hr >= 6 && hr < 18) ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
       } catch (_) {}
     })();
   </script>

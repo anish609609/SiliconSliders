@@ -225,23 +225,35 @@ renderer.domElement.addEventListener('click', function(e){
   scene.updateMatrixWorld(true);
   raycaster.setFromCamera(pointer, activeCamera);
 
-  var hits = raycaster.intersectObjects(selectable, true).filter(function(h){
-    if (h.object.userData && h.object.userData._isHighlightPart) return false;
-    var cur = h.object;
-    while (cur) {
-      if (cur.visible === false) return false;
-      cur = cur.parent;
-    }
-    if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
-    // Dynamic channel & depletion visibility gating
-    if (h.object.userData && h.object.userData.id === 'depletion') {
-      if (!h.object.visible || h.object.scale.x <= 0.001) return false;
-    }
-    if (h.object.userData && h.object.userData.id === 'channel' && !h.object.userData.isChannelShell) {
-      if (!h.object.visible) return false;
-    }
-    return true;
-  });
+  var hits = (typeof SiliconLayerHighlight !== 'undefined')
+    ? SiliconLayerHighlight.raycastLayer(raycaster, scene, {
+        filter: function(h) {
+          var uid = h.object.userData ? (h.object.userData.layerId || h.object.userData.id) : null;
+          if (uid === 'depletion') {
+            if (!h.object.visible || h.object.scale.x <= 0.001) return false;
+          }
+          if (uid === 'channel' && !h.object.userData.isChannelShell) {
+            if (!h.object.visible) return false;
+          }
+          return true;
+        }
+      })
+    : raycaster.intersectObjects(selectable, true).filter(function(h){
+        if (h.object.userData && h.object.userData._isHighlightPart) return false;
+        var cur = h.object;
+        while (cur) {
+          if (cur.visible === false) return false;
+          cur = cur.parent;
+        }
+        if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
+        if (h.object.userData && h.object.userData.id === 'depletion') {
+          if (!h.object.visible || h.object.scale.x <= 0.001) return false;
+        }
+        if (h.object.userData && h.object.userData.id === 'channel' && !h.object.userData.isChannelShell) {
+          if (!h.object.visible) return false;
+        }
+        return true;
+      });
 
   hits.sort(function(a, b){ return a.distance - b.distance; });
 
@@ -250,7 +262,7 @@ renderer.domElement.addEventListener('click', function(e){
     if (hits[0].object && hits[0].object.userData && hits[0].object.userData.isChannelShell) {
       for (var k = 1; k < hits.length; k++) {
         if ((hits[k].distance - hits[0].distance) > 0.6) break;
-        var innerUid = hits[k].object && hits[k].object.userData ? hits[k].object.userData.id : null;
+        var innerUid = hits[k].object && hits[k].object.userData ? (hits[k].object.userData.layerId || hits[k].object.userData.id) : null;
         if (innerUid === 'depletion' || (innerUid === 'channel' && !hits[k].object.userData.isChannelShell)) {
           targetId = innerUid;
           break;
@@ -260,8 +272,8 @@ renderer.domElement.addEventListener('click', function(e){
     for (var i = 0; i < hits.length && !targetId; i++) {
       var cur = hits[i].object;
       while (cur && !targetId) {
-        if (cur.userData && cur.userData.id) {
-          targetId = cur.userData.id;
+        if (cur.userData && (cur.userData.layerId || cur.userData.id)) {
+          targetId = cur.userData.layerId || cur.userData.id;
           break;
         }
         if (cur === scene) break;

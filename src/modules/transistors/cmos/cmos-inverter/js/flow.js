@@ -242,7 +242,8 @@ function refreshConnections() {
   selectable.forEach(function(m) { m.userData.pulsing = false; });
 
   var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
-  if (cur === 'off') {
+  var tourActive = (typeof isTourActive !== 'undefined' && isTourActive) || window.isTourActive === true;
+  if (tourActive || cur === 'off') {
     flowParticles.forEach(function(p) { p.visible = false; });
     updateFlowCaption();
     selectable.forEach(function(m) {
@@ -275,7 +276,8 @@ if (flowSeg) {
 
 function stepFlowMarkers(dt) {
   var cur = (typeof currentIn !== 'undefined') ? currentIn : (typeof window.currentIn !== 'undefined' ? window.currentIn : 'off');
-  if (cur === 'off') return;
+  var tourActive = (typeof isTourActive !== 'undefined' && isTourActive) || window.isTourActive === true;
+  if (tourActive || cur === 'off') return;
 
   var isCarrier = (flowMode === 'electron' || flowMode === 'carrier');
   var isShootThrough = (typeof cur === 'number' && cur >= 0.40 && cur <= 0.60);

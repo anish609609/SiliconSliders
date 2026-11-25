@@ -512,12 +512,53 @@ input[type="range"] {
     margin: 0 1px;
   }
   .scale-note-wrap {
-    bottom: calc(50vh + 10px);
-    left: 10px;
+    top: auto !important;
+    bottom: 12px !important;
+    left: 10px !important;
+    z-index: 22 !important;
+  }
+  .scale-note-btn {
+    padding: 4px 8px !important;
+    font-size: 9.5px !important;
+    gap: 4px !important;
   }
   .scale-note-popover {
-    width: calc(100vw - 32px);
-    max-width: 290px;
+    width: calc(100vw - 24px);
+    max-width: 280px;
+    left: 0;
+  }
+  .tour-banner {
+    top: auto !important;
+    bottom: 50px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: calc(100vw - 20px) !important;
+    max-width: calc(100vw - 20px) !important;
+    padding: 7px 10px !important;
+    gap: 4px !important;
+    border-radius: 8px !important;
+  }
+  .tour-banner .tb-header {
+    gap: 6px !important;
+  }
+  .tour-banner .tb-badge {
+    font-size: 8.5px !important;
+    padding: 1px 5px !important;
+  }
+  .tour-banner .tb-title {
+    font-size: 10px !important;
+    line-height: 1.2 !important;
+  }
+  .tour-banner .tb-desc {
+    font-size: 9.5px !important;
+    line-height: 1.3 !important;
+    max-height: 3.9em !important;
+    overflow-y: auto !important;
+  }
+  .tour-banner .tb-btn {
+    width: 20px !important;
+    height: 20px !important;
+    font-size: 10px !important;
   }
 }
 

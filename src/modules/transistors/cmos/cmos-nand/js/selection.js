@@ -18,13 +18,18 @@ function collectTargetMeshes(id) {
   if (typeof VIRTUAL !== 'undefined' && VIRTUAL[id]) {
     var ids = VIRTUAL[id];
     for (var i = 0; i < ids.length; i++) {
-      var arr = meshesById[ids[i]] || [];
+      var arr = (typeof SiliconLayerHighlight !== 'undefined' && typeof cellGroup !== 'undefined')
+        ? SiliconLayerHighlight.collectLayerMeshes(cellGroup, ids[i])
+        : (meshesById[ids[i]] || []);
       for (var j = 0; j < arr.length; j++) {
         if (list.indexOf(arr[j]) === -1) list.push(arr[j]);
       }
     }
-  } else if (meshesById[id]) {
-    var direct = meshesById[id];
+  } else {
+    var direct = (typeof SiliconLayerHighlight !== 'undefined' && typeof cellGroup !== 'undefined')
+      ? SiliconLayerHighlight.collectLayerMeshes(cellGroup, id)
+      : (meshesById[id] || []);
+    if (!direct.length && meshesById[id]) direct = meshesById[id];
     for (var k = 0; k < direct.length; k++) {
       list.push(direct[k]);
     }
@@ -264,20 +269,29 @@ if (renderer && renderer.domElement) {
     );
     raycaster.setFromCamera(ndc, camera);
 
-    var pickables = [];
-    for (var i = 0; i < allMeshes.length; i++) {
-      var m = allMeshes[i];
-      if (m.visible && !m.userData.decorative && !m.userData._isHighlightPart) {
-        pickables.push(m);
+    var rootObj = typeof cellGroup !== 'undefined' ? cellGroup : scene;
+    var hits = (typeof SiliconLayerHighlight !== 'undefined')
+      ? SiliconLayerHighlight.raycastLayer(raycaster, rootObj, {
+          filter: function (h) {
+            return !(h.object.userData && h.object.userData.decorative);
+          }
+        })
+      : raycaster.intersectObjects(allMeshes, true).filter(function (h) {
+          return h.object.visible && !(h.object.userData && (h.object.userData.decorative || h.object.userData._isHighlightPart));
+        });
+
+    if (hits.length > 0) {
+      var m = hits[0].object;
+      while (m && (!m.userData || (!m.userData.layerId && !m.userData.id)) && m.parent && m.parent !== rootObj) {
+        m = m.parent;
+      }
+      var hitId = m && m.userData ? (m.userData.layerId || m.userData.id) : null;
+      if (hitId) {
+        selectById(hitId);
+        return;
       }
     }
-
-    var hits = raycaster.intersectObjects(pickables, false);
-    if (hits.length > 0 && hits[0].object && hits[0].object.userData.id) {
-      selectById(hits[0].object.userData.id);
-    } else {
-      clearSelection();
-    }
+    clearSelection();
   });
 }
 

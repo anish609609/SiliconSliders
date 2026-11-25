@@ -11,6 +11,10 @@
               localStorage.getItem('silicon_sliders_theme') ||
               localStorage.getItem('cmos_viewer_theme') ||
               localStorage.getItem('cmos_nand_viewer_theme');
+      if (t !== 'light' && t !== 'dark') {
+        var h = new Date().getHours();
+        t = (h >= 6 && h < 18) ? 'light' : 'dark';
+      }
       if (t === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.classList.add('light');
@@ -457,6 +461,7 @@
             <!-- Quick Jump Anchor Links -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#inv-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#inv-topology" class="theory-jump-chip">1. Circuit Topology &amp; Operation</a>
               <a href="#inv-vtc" class="theory-jump-chip">2. VTC &amp; 5 Operating Regions</a>
               <a href="#inv-switching" class="theory-jump-chip">3. Switching Threshold (VM)</a>
@@ -465,6 +470,27 @@
               <a href="#inv-sizing" class="theory-jump-chip">6. Sizing Rules &amp; Euler Path</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="inv-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. Historical Origin: Frank Wanlass &amp; Chih-Tang Sah (1963)</h3>
+              <span class="theory-card-tag">Step 0 · Origins · Fairchild Semiconductor</span>
+            </div>
+            <p class="theory-p">
+              Early PMOS and NMOS logic families burned steady-state DC standby power whenever an output sat low, because a permanently active pull-up load drew current straight from supply to ground. In <b>1963</b> at <b>Fairchild Semiconductor</b>, <b>Frank Wanlass</b> and <b>Chih-Tang Sah</b> unveiled the complementary MOS (CMOS) inverter topology pairing an enhancement PMOS pull-up with an enhancement NMOS pull-down.
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Zero Static Standby Power Breakthrough</span>
+                <p class="theory-subcard-desc">By tying the shared input gate to both complementary transistors, either the PMOS or the NMOS is strictly cut off in steady state (<code>IN = 0</code> or <code>IN = 1</code>), slashing static dissipation by six orders of magnitude compared to resistor-loaded logic and unlocking battery-powered watches, spacecraft electronics, and VLSI microprocessors.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Why Twin Wells Matter</span>
+                <p class="theory-subcard-desc">Integrating both channel polarities cleanly on a single silicon wafer required isolated complementary wells (<code>N-Well</code> for PMOS, <code>P-Well/P-Substrate</code> for NMOS) biased via body taps to keep junctions reverse-biased and prevent latch-up.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Topology & Operation -->
           <article id="inv-topology" class="theory-card">
@@ -880,6 +906,7 @@
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../../shared/three/layerHighlight.js"></script>
 <script src="../../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>

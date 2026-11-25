@@ -417,10 +417,13 @@ var selectable = [];
 
 function reg(mesh, id, layerKey) {
   mesh.userData.id = id;
+  mesh.userData.layerId = id;
   mesh.userData.layer = layerKey;
   if (mesh.isGroup) {
     mesh.traverse(function(child) {
+      if (child.isLine || child.isLineSegments || child.isPoints) return;
       child.userData.id = id;
+      child.userData.layerId = id;
       child.userData.layer = layerKey;
     });
   }

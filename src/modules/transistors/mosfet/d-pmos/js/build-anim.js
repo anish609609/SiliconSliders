@@ -234,6 +234,8 @@ function resumeBuildAnimation() {
   syncTourControls();
 }
 
+var _savedTourBias = null;
+
 function stopBuildAnimation(restoreAll) {
   if (restoreAll === undefined) restoreAll = true;
   if (fabPlayInterval) {
@@ -244,6 +246,7 @@ function stopBuildAnimation(restoreAll) {
 
   if (restoreAll) {
     isTourActive = false;
+    window.isTourActive = false;
     currentFabStep = 1;
     LAYER_ORDER.forEach(function(layerKey) {
       dropOffsets[layerKey] = 0;
@@ -257,6 +260,13 @@ function stopBuildAnimation(restoreAll) {
     });
     var banner = document.getElementById('tour-banner');
     if (banner) banner.style.display = 'none';
+
+    if (_savedTourBias !== null) {
+      if (typeof currentVgs !== 'undefined') currentVgs = _savedTourBias.vgs;
+      if (typeof currentVds !== 'undefined') currentVds = _savedTourBias.vds;
+      _savedTourBias = null;
+      if (typeof applyLogicState === 'function') applyLogicState();
+    }
   }
 
   syncTourControls();
@@ -266,7 +276,15 @@ function startBuildAnimation() {
   if (typeof toggleWorkbench === 'function') {
     toggleWorkbench(false);
   }
+  if (_savedTourBias === null && typeof window.getMosfetPhysicsState === 'function') {
+    var st = window.getMosfetPhysicsState();
+    _savedTourBias = { vgs: st.vgs, vds: st.vds };
+  }
   isTourActive = true;
+  window.isTourActive = true;
+  // D-PMOS has VTH,p = +0.80V; VGS >= +0.80V enters full CUTOFF during fab tour
+  if (typeof currentVgs !== 'undefined') currentVgs = 1.20;
+  if (typeof applyLogicState === 'function') applyLogicState();
   currentFabStep = 1;
   scheduleFabAdvance();
   applyFabStep(1, true);

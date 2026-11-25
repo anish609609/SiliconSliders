@@ -62,11 +62,13 @@ function rebuildFlowCurves(optIsd, optRegion, optDeltaL) {
   var region = optRegion || state.region;
   var deltaL = (typeof optDeltaL === 'number') ? optDeltaL : state.deltaL;
 
-  if (flowMode === 'off' || region === 'CUTOFF' || isd <= 0.0001) {
+  if (window.isTourActive || (typeof isTourActive !== 'undefined' && isTourActive) || flowMode === 'off' || region === 'CUTOFF' || isd <= 0.0001) {
     flowGroup.visible = false;
     var caption = document.getElementById('flow-caption');
     if (caption) {
-      if (flowMode === 'off') {
+      if (window.isTourActive || (typeof isTourActive !== 'undefined' && isTourActive)) {
+        caption.textContent = 'FABRICATION TOUR ACTIVE: Device held in Cutoff (Carriers suppressed).';
+      } else if (flowMode === 'off') {
         caption.textContent = 'CARRIER FLOW: OFF (Simulation Paused)';
       } else {
         caption.textContent = 'CUTOFF REGION (VSG < |VTH,p|): Zero hole inversion layer; conduction carriers quenched.';
@@ -140,6 +142,11 @@ function stepFlowMarkers(dt) {
 }
 
 function updateFlowMarkers() {
+  if (window.isTourActive || (typeof isTourActive !== 'undefined' && isTourActive)) {
+    if (flowGroup) flowGroup.visible = false;
+    for (var k = 0; k < flowMarkers.length; k++) flowMarkers[k].visible = false;
+    return;
+  }
   if (flowMode === 'off' || !flowMarkers.length || !flowGroup.visible) return;
 
   for (var i = 0; i < flowMarkers.length; i++) {

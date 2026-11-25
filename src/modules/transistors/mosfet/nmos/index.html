@@ -11,6 +11,10 @@
               localStorage.getItem('silicon_sliders_theme') ||
               localStorage.getItem('cmos_viewer_theme') ||
               localStorage.getItem('cmos_nand_viewer_theme');
+      if (t !== 'light' && t !== 'dark') {
+        var hr = new Date().getHours();
+        t = (hr >= 6 && hr < 18) ? 'light' : 'dark';
+      }
       if (t === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.classList.add('light');
@@ -430,6 +434,7 @@
             <!-- Quick Jump Anchor Links -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#nmos-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#nmos-structure" class="theory-jump-chip">1. Structure &amp; Doping</a>
               <a href="#nmos-inversion" class="theory-jump-chip">2. Inversion &amp; Threshold</a>
               <a href="#nmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
@@ -438,6 +443,31 @@
               <a href="#nmos-secondorder" class="theory-jump-chip">6. Second-Order Effects</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="nmos-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. The Origin Story: Atalla, Kahng &amp; the Birth of the MOSFET</h3>
+              <span class="theory-card-tag">Bell Labs, 1959 &amp; Fairchild, 1963</span>
+            </div>
+            <p class="theory-p">
+              Julius Lilienfeld patented the concept of an insulated-gate field-effect transistor in 1925, yet for three decades every prototype failed because dangling silicon surface bonds trapped charge before an electric field could invert the channel.
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. Thermal SiO₂ Passivation (1959)</span>
+                <p class="theory-subcard-desc">At Bell Labs, <b>Mohamed Atalla</b> discovered that thermally growing ultra-pure silicon dioxide (SiO₂) chemically passivated surface states, unlocking clean electrostatic field control.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. First Working MOSFET (Nov 1959)</span>
+                <p class="theory-subcard-desc"><b>Dawon Kahng</b> and Atalla fabricated the first working metal-oxide-semiconductor field-effect transistor—laying the physical blueprint for every planar NMOS and PMOS switch.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Complementary Logic (1963)</span>
+                <p class="theory-subcard-desc"><b>Frank Wanlass</b> at Fairchild Semiconductor paired enhancement N-channel and P-channel MOSFETs into complementary logic, launching modern ultra-dense VLSI scaling.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Structure & Doping -->
           <article id="nmos-structure" class="theory-card">
@@ -889,6 +919,7 @@
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../../shared/three/layerHighlight.js"></script>
 <script src="../../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>

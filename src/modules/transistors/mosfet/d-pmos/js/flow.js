@@ -60,7 +60,8 @@ function rebuildFlowCurves(optIsd, optRegion, optDeltaL) {
   var region = optRegion || state.region;
   var deltaL = (typeof optDeltaL === 'number') ? optDeltaL : state.deltaL;
 
-  if (flowMode === 'off' || region === 'CUTOFF' || isd <= 0.0001) {
+  var tourRunning = (typeof isTourActive !== 'undefined' && isTourActive) || window.isTourActive === true;
+  if (tourRunning || flowMode === 'off' || region === 'CUTOFF' || isd <= 0.0001) {
     flowGroup.visible = false;
     var caption = document.getElementById('flow-caption');
     if (caption) {
@@ -143,7 +144,8 @@ function stepFlowMarkers(dt) {
 }
 
 function updateFlowMarkers() {
-  if (flowMode === 'off' || !flowMarkers.length || !flowGroup.visible) return;
+  var tourRunning = (typeof isTourActive !== 'undefined' && isTourActive) || window.isTourActive === true;
+  if (tourRunning || flowMode === 'off' || !flowMarkers.length || !flowGroup.visible) return;
 
   for (var i = 0; i < flowMarkers.length; i++) {
     var m = flowMarkers[i];

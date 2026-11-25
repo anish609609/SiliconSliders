@@ -20,21 +20,19 @@ var popoverContentEl = document.getElementById('popover-content');
 var popoverCloseBtn = document.getElementById('pop-close');
 
 function meshesForId(id) {
-  if (!id || typeof clickableMeshes === 'undefined') return [];
-  var out = [];
-  clickableMeshes.forEach(function (m) {
-    if (!m || !m.userData) return;
-    if (m.userData.id === id) {
-      out.push(m);
-    } else if (id === 'silicide' && (m.userData.id === 'anodeSilicide' || m.userData.id === 'cathodeSilicide')) {
-      out.push(m);
-    }
-  });
-  return out;
+  if (!id) return [];
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    return SiliconLayerHighlight.collectLayerMeshes(scene, id, {
+      silicide: ['anodeSilicide', 'cathodeSilicide']
+    });
+  }
+  return [];
 }
 
 function clearSelection() {
-  if (typeof SiliconSelectionHighlight !== 'undefined') {
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    SiliconLayerHighlight.clearHighlight(scene);
+  } else if (typeof SiliconSelectionHighlight !== 'undefined') {
     selectedMeshes.forEach(function (m) {
       SiliconSelectionHighlight.apply(m, false);
     });
@@ -63,14 +61,18 @@ function clearSelection() {
 window.clearSelection = clearSelection;
 
 function highlightMeshes(meshes) {
-  if (typeof SiliconSelectionHighlight !== 'undefined') {
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    SiliconLayerHighlight.clearHighlight(scene);
+  } else if (typeof SiliconSelectionHighlight !== 'undefined') {
     selectedMeshes.forEach(function (m) {
       SiliconSelectionHighlight.apply(m, false);
     });
   }
   selectedMeshes = [];
   meshes.forEach(function (m) {
-    if (typeof SiliconSelectionHighlight !== 'undefined') {
+    if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+      SiliconLayerHighlight.apply(m, true, null, scene);
+    } else if (typeof SiliconSelectionHighlight !== 'undefined') {
       SiliconSelectionHighlight.apply(m, true);
     }
     selectedMeshes.push(m);
@@ -139,26 +141,10 @@ function onCanvasClick(e) {
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-  scene.updateMatrixWorld(true);
-  raycaster.setFromCamera(mouse, activeCamera);
-
-  var hits = raycaster.intersectObjects(clickableMeshes, true).filter(function (h) {
-    var obj = h.object;
-    if (!obj || (obj.userData && obj.userData._isHighlightPart)) return false;
-    if (obj.isLine || obj.isLineSegments || obj.isPoints) return false;
-    if (!isObjectVisibleInHierarchy(obj)) return false;
-    if (obj.material && typeof obj.material.opacity === 'number' && obj.material.opacity <= 0.01) return false;
-    return true;
-  });
-
-  if (hits.length > 0) {
-    var hitObj = hits[0].object;
-    while (hitObj && (!hitObj.userData || !hitObj.userData.id) && hitObj.parent && hitObj.parent !== scene) {
-      hitObj = hitObj.parent;
-    }
-    var targetId = hitObj && hitObj.userData ? hitObj.userData.id : null;
-    if (targetId) {
-      selectComponentById(targetId, e.clientX, e.clientY);
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, scene);
+    if (hitRes && hitRes.layerId) {
+      selectComponentById(hitRes.layerId, e.clientX, e.clientY);
       return;
     }
   }

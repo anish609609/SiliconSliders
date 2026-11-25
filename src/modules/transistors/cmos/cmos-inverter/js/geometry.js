@@ -689,6 +689,12 @@ function updateMaterialsTheme(){
   if (typeof silMatInverter !== 'undefined' && silMatInverter && silMatInverter.color) {
     silMatInverter.color.setHex(isLight ? 0x647082 : 0x6e7887);
   }
+  if (typeof cmosDeplMat !== 'undefined' && cmosDeplMat) {
+    cmosDeplMat.color.setHex(isLight ? 0x64748b : 0x94a3b8);
+    cmosDeplMat.emissive.setHex(isLight ? 0x334155 : 0x475569);
+    cmosDeplMat.emissiveIntensity = 0.14;
+    cmosDeplMat.opacity = 0.38;
+  }
 
   labelSprites.forEach(function(s){
     if (s && s.userData && s.userData.labelText && s.userData.colorHex){
@@ -741,7 +747,7 @@ var POLY_CT_Z = PMOS_Z1 + 0.3;             // IN contact — on the poly tail, j
 
 var RAIL_Z = PMOS_Z1 + 1.6;                // VDD/GND rails sit outside active/poly footprint
 
-var LAYER_ORDER = ['substrate','well','active','sde','oxide','highk','poly','spacer','silicide','contact','metal'];
+var LAYER_ORDER = ['substrate','well','depletion','active','sde','oxide','highk','poly','spacer','silicide','contact','metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -751,7 +757,16 @@ var selectable = [];   // meshes clickable / highlightable
 
 function reg(mesh, id, layerKey){
   mesh.userData.id = id;
+  mesh.userData.layerId = id;
   mesh.userData.layer = layerKey;
+  if (mesh.isGroup) {
+    mesh.traverse(function(child) {
+      if (child.isLine || child.isLineSegments || child.isPoints) return;
+      child.userData.id = id;
+      child.userData.layerId = id;
+      child.userData.layer = layerKey;
+    });
+  }
   selectable.push(mesh);
   groups[layerKey].add(mesh);
   return mesh;
@@ -891,7 +906,7 @@ function buildActiveRow(zc, srcColorVar, sdeColorVar, idPrefix, layerKey, doping
 
   return { src:src, drn:drn, srcSde:srcSde, drnSde:drnSde };
 }
-var pmosAct = buildActiveRow(PMOS_ZC, '--c-active-p', '--c-sde-p', 'pmos', 'active', '#60a5fa', '#93c5fd');
+var pmosAct = buildActiveRow(PMOS_ZC, '--c-active-p', '--c-sde-p', 'pmos', 'active', '#3b82f6', '#60a5fa');
 var nmosAct = buildActiveRow(NMOS_ZC, '--c-active-n', '--c-sde-n', 'nmos', 'active', '#22c55e', '#4ade80');
 
 // ---------- WELL TAP / SUBSTRATE TAP — Gaussian ohmic contact diffusions ----------
@@ -907,9 +922,86 @@ var subTapPad = gaussianDopingMesh(1.3, Y.actTop-Y.actBot, 1.3, '--c-substrate',
 put(subTapPad, TAP_X, (Y.actTop+Y.actBot)/2, NMOS_ZC);
 reg(subTapPad, 'subtapAct', 'active');
 
-// ---------- 3D DYNAMIC INVERSION CHANNELS & PINCH-OFF REGIONS ----------
+// ---------- 3D DYNAMIC SPACE-CHARGE DEPLETION REGIONS ----------
 var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
 var palInitCMOS = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLight ? 'light' : 'dark') : null);
+
+var cmosDeplMat = new THREE.MeshStandardMaterial({
+  color: isInitLight ? 0x64748b : 0x94a3b8,
+  emissive: isInitLight ? 0x334155 : 0x475569,
+  emissiveIntensity: 0.14,
+  transparent: true,
+  opacity: 0.38,
+  depthWrite: false,
+  roughness: 0.55,
+  metalness: 0.08,
+  polygonOffset: true,
+  polygonOffsetFactor: -0.5,
+  polygonOffsetUnits: -0.5,
+  side: THREE.DoubleSide
+});
+
+function createCmosDeplBox(w, h, d, x, y, z) {
+  var geo = new THREE.BoxGeometry(w, h, d);
+  var m = new THREE.Mesh(geo, cmosDeplMat.clone());
+  m.position.set(x, y, z);
+  m.renderOrder = 2;
+  m.userData.baseEmissive = cmosDeplMat.emissive.getHex();
+  m.userData.baseEmissiveIntensity = cmosDeplMat.emissiveIntensity;
+  var edge = new THREE.LineSegments(
+    new THREE.EdgesGeometry(geo, 24),
+    new THREE.LineBasicMaterial({ color: isInitLight ? 0x64748b : 0x94a3b8, transparent: true, opacity: 0.45, depthWrite: false })
+  );
+  edge.raycast = function() {};
+  m.add(edge);
+  reg(m, 'depletion', 'depletion');
+  return m;
+}
+
+var sdDeplH = (Y.actTop - Y.actBot) + 0.14;
+var sdDeplMidY = (Y.actTop - 0.004) - sdDeplH / 2;
+var pmosSrcDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, SRC_X, sdDeplMidY, PMOS_ZC);
+var pmosDrnDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, DRN_X, sdDeplMidY, PMOS_ZC);
+var nmosSrcDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, SRC_X, sdDeplMidY, NMOS_ZC);
+var nmosDrnDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, DRN_X, sdDeplMidY, NMOS_ZC);
+
+var gateDeplBaseH = 0.24;
+var pmosGateDepl = createCmosDeplBox(CH.max - CH.min, gateDeplBaseH, ACTIVE_W, 0, Y.actTop - 0.24, PMOS_ZC);
+var nmosGateDepl = createCmosDeplBox(CH.max - CH.min, gateDeplBaseH, ACTIVE_W, 0, Y.actTop - 0.24, NMOS_ZC);
+
+window.updateInverterDepletion = function(vin, vout, nmosReg, pmosReg) {
+  var isOff = (vin === 'off' || vin === null || vin === undefined);
+  var vInNum = isOff ? 0.50 : Number(vin);
+  var vOutNum = isOff ? 0.50 : Number(vout);
+
+  // Junction reverse-bias expansion (drain widens most when transistor is OFF and VDS/VSD is high)
+  var pmosSrcRev = 0.0;
+  var pmosDrnRev = isOff ? 0.15 : Math.max(0, 1.00 - vOutNum);
+  var nmosSrcRev = 0.0;
+  var nmosDrnRev = isOff ? 0.15 : Math.max(0, vOutNum);
+
+  if (pmosSrcDepl) pmosSrcDepl.scale.set(1.0 + 0.10 * pmosSrcRev, 1.0 + 0.15 * pmosSrcRev, 1.0 + 0.04 * pmosSrcRev);
+  if (pmosDrnDepl) pmosDrnDepl.scale.set(1.0 + 0.20 * pmosDrnRev, 1.0 + 0.32 * pmosDrnRev, 1.0 + 0.08 * pmosDrnRev);
+  if (nmosSrcDepl) nmosSrcDepl.scale.set(1.0 + 0.10 * nmosSrcRev, 1.0 + 0.15 * nmosSrcRev, 1.0 + 0.04 * nmosSrcRev);
+  if (nmosDrnDepl) nmosDrnDepl.scale.set(1.0 + 0.20 * nmosDrnRev, 1.0 + 0.32 * nmosDrnRev, 1.0 + 0.08 * nmosDrnRev);
+
+  if (pmosGateDepl) {
+    var pGateOn = (!isOff && vInNum < 0.75);
+    var pGateDepthScale = isOff ? 0.45 : (pmosReg === 'CUTOFF' ? 0.35 : (pGateOn ? 0.95 : 0.65));
+    pmosGateDepl.visible = true;
+    pmosGateDepl.scale.set(1.0, pGateDepthScale, 1.0);
+    pmosGateDepl.position.y = (Y.actTop - 0.13) - (gateDeplBaseH * pGateDepthScale) / 2;
+  }
+  if (nmosGateDepl) {
+    var nGateOn = (!isOff && vInNum > 0.25);
+    var nGateDepthScale = isOff ? 0.45 : (nmosReg === 'CUTOFF' ? 0.35 : (nGateOn ? 0.95 : 0.65));
+    nmosGateDepl.visible = true;
+    nmosGateDepl.scale.set(1.0, nGateDepthScale, 1.0);
+    nmosGateDepl.position.y = (Y.actTop - 0.13) - (gateDeplBaseH * nGateDepthScale) / 2;
+  }
+};
+
+// ---------- 3D DYNAMIC INVERSION CHANNELS & PINCH-OFF REGIONS ----------
 
 // NMOS Channel (Electron Inversion Layer)
 var nmosChanGeom = new THREE.BoxGeometry(CH.max - CH.min, 0.12, ACTIVE_W, 24, 1, 2);
@@ -985,6 +1077,9 @@ groups['active'].add(pmosPinchMesh);
 
 // Function to dynamically update channel inversion profiles based on CMOS operating regions
 window.updateInverterChannels = function(vin, vout, nmosReg, pmosReg) {
+  if (typeof window.updateInverterDepletion === 'function') {
+    window.updateInverterDepletion(vin, vout, nmosReg, pmosReg);
+  }
   if (vin === 'off') {
     nmosChanMesh.visible = false;
     nmosPinchMesh.visible = false;
@@ -1410,17 +1505,18 @@ function addLabel(text, x,y,z, colorHex, groupKey){
   return s;
 }
 addLabel('VDD', -9, Y.metalTop+0.6, RAIL_Z, '#e35d5d', 'metal');
-addLabel('PMOS', SRC_X-1.2, Y.actTop+0.9, PMOS_ZC, '#cf8a4a', 'active');
-addLabel('P-SDE', -0.925, Y.actTop+0.45, PMOS_ZC - 3.4, '#f0b47a', 'sde');
-addLabel('N-WELL', 4.8, Y.wellTop+0.5, nwellZC, '#3f8f6f', 'well');
-addLabel('P-WELL', 4.8, Y.wellTop+0.5, pwellZC, '#4a92c9', 'well');
+addLabel('PMOS', SRC_X-1.2, Y.actTop+0.9, PMOS_ZC, '#60a5fa', 'active');
+addLabel('P-SDE', -0.925, Y.actTop+0.45, PMOS_ZC - 3.4, '#93c5fd', 'sde');
+addLabel('N-WELL', 4.8, Y.wellTop+0.5, nwellZC, '#4ade80', 'well');
+addLabel('P-WELL', 4.8, Y.wellTop+0.5, pwellZC, '#60a5fa', 'well');
+addLabel('DEPLETION', 4.8, Y.actTop+0.35, PMOS_ZC - 1.9, '#94a3b8', 'depletion');
 addLabel('POLY GATE', 0, Y.polyTop+0.7, 0, '#d8503c', 'poly');
 addLabel('HIGH-K (HfO2)', -1.9, Y.highkTop+0.35, PMOS_ZC, '#c084fc', 'highk');
 addLabel('SiO2 OXIDE', 1.9, Y.oxideTop+0.35, PMOS_ZC, '#8fc9dc', 'oxide');
 addLabel('IN', 0, Y.metalTop+0.6, POLY_CT_Z+1.1, '#e6c94a', 'metal');
 addLabel('OUT', DRN_X+3.6, Y.metalTop+0.6, 0, '#57cf8f', 'metal');
-addLabel('NMOS', SRC_X-1.2, Y.actTop+0.9, NMOS_ZC, '#4a92c9', 'active');
-addLabel('N-SDE', -0.925, Y.actTop+0.45, NMOS_ZC - 3.4, '#8fd0f8', 'sde');
+addLabel('NMOS', SRC_X-1.2, Y.actTop+0.9, NMOS_ZC, '#4ade80', 'active');
+addLabel('N-SDE', -0.925, Y.actTop+0.45, NMOS_ZC - 3.4, '#86efac', 'sde');
 addLabel('P-SUBSTRATE', 8.5, Y.subTop+0.4, 0, '#9aa6b6', 'substrate');
 addLabel('GND', -9, Y.metalTop+0.6, -RAIL_Z, '#9aa6b6', 'metal');
 

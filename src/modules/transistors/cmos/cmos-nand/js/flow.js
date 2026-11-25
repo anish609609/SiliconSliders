@@ -178,7 +178,7 @@ function rebuildFlowCurves() {
 }
 
 function getActiveCurves() {
-  if (typeof isTourRunning !== 'undefined' && isTourRunning) return [];
+  if ((typeof isTourRunning !== 'undefined' && isTourRunning) || window.isTourActive === true) return [];
   if (typeof currentA === 'undefined' || typeof currentB === 'undefined') return [];
   if (currentA === 'off' || currentB === 'off') return [];
 
@@ -272,6 +272,10 @@ function positionPoolOnCurve(pool, curve) {
 }
 
 function updateFlowMarkers(dt) {
+  if ((typeof isTourRunning !== 'undefined' && isTourRunning) || window.isTourActive === true) {
+    hideAllFlowMarkers();
+    return;
+  }
   var active = getActiveCurves();
   if (!active.length) {
     hideAllFlowMarkers();

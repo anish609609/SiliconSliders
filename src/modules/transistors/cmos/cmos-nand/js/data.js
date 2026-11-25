@@ -14,6 +14,12 @@ var LEGEND = [
     note: 'Twin-well retrograde Gaussian implants isolating PMOS & NMOS'
   },
   {
+    key: 'depletion',
+    label: 'Depletion Region',
+    color: 'var(--c-depletion)',
+    note: 'Reverse-biased & gate-induced space-charge depletion shells around P+/N+ S/D junctions, bridge & channels'
+  },
+  {
     key: 'active',
     label: 'Active S/D & Taps',
     color: 'linear-gradient(135deg, var(--c-active-p) 50%, var(--c-active-n) 50%)',
@@ -93,6 +99,13 @@ var INFO = {
     type: 'Boron retrograde Gaussian well (~5e16 cm⁻³)',
     role: 'Provides a controlled p-type threshold-adjusted body for series pull-down NMOS transistors MN1 and MN2. Tied to GND via the P+ substrate tap.',
     process: 'Twin-well boron implantation + drive-in anneal preventing latch-up and setting NMOS Vth.'
+  },
+  depletion: {
+    title: 'Space-Charge Depletion Regions',
+    layer: 'depletion',
+    type: 'Ionized Depleted Lattice Shells (P+/N-Well & N+/P-Well)',
+    role: 'Isolates MP1/MP2 sources, shared P+ drain, MN1 source, series N+ bridge, and MN2 drain from their wells, widening dynamically under reverse bias (VOUT, Vx) and gate pinch-off.',
+    process: 'Self-consistent Poisson electrostatic depletion surrounding diffused junctions and sub-gate inversion zones (translucent depthWrite: false).'
   },
 
   /* Body Taps */

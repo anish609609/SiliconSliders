@@ -55,9 +55,9 @@ var FAB_STEPS = [
   },
   {
     badge: 'STEP 7 OF 9',
-    title: 'Deep N+/P+ S/D & Well Taps',
-    desc: 'With spacers masking the LDD regions, heavy P+ source/drain (PMOS), N+ source/drain (NMOS), and N+/P+ well-tie body taps are implanted and annealed.',
-    layers: ['active'],
+    title: 'Deep N+/P+ S/D, Depletion & Well Taps',
+    desc: 'With spacers masking the LDD regions, heavy P+ source/drain (PMOS), N+ source/drain (NMOS), and N+/P+ well-tie body taps are implanted, establishing PN space-charge depletion junctions.',
+    layers: ['active', 'depletion'],
     camPos: [14, 14, 21],
     camTarget: [0, 2.2, 0]
   },
@@ -236,9 +236,16 @@ function updateBuildAnimation(dt) {
   }
 }
 
+var _savedTourVin = null;
+
 function startBuildAnimation() {
   if (typeof clearSelection === 'function') clearSelection();
   if (typeof toggleWorkbench === 'function') toggleWorkbench(false);
+
+  // Save current input state and force CUTOFF/OFF during fabrication tour
+  if (_savedTourVin === null && typeof currentVin !== 'undefined') {
+    _savedTourVin = currentVin;
+  }
 
   // Reset explode & section clipping to assemble cleanly
   if (typeof applyExplode === 'function') applyExplode(0, 0, 0);
@@ -251,9 +258,17 @@ function startBuildAnimation() {
   var vezEl = document.getElementById('val-explode-z'); if (vezEl) vezEl.textContent = '0%';
 
   isTourActive = true;
+  window.isTourActive = true;
   isBuildAnimating = true;
   isFabPlaying = true;
   currentFabStep = 0;
+
+  if (typeof setVinState === 'function') {
+    setVinState('off');
+  } else if (typeof currentVin !== 'undefined') {
+    currentVin = 'off';
+    if (typeof applyLogicState === 'function') applyLogicState();
+  }
 
   var banner = document.getElementById('tour-banner');
   if (banner) banner.style.display = 'flex';
@@ -286,6 +301,7 @@ function stopBuildAnimation(restoreAll) {
     fabAutoTimer = null;
   }
   isTourActive = false;
+  window.isTourActive = false;
   isBuildAnimating = false;
   isFabPlaying = false;
   fabState.phase = 'idle';
@@ -296,6 +312,16 @@ function stopBuildAnimation(restoreAll) {
   if (banner) banner.style.display = 'none';
 
   if (restoreAll !== false) {
+    if (_savedTourVin !== null) {
+      var prevVin = _savedTourVin;
+      _savedTourVin = null;
+      if (typeof setVinState === 'function') {
+        setVinState(prevVin);
+      } else if (typeof currentVin !== 'undefined') {
+        currentVin = prevVin;
+        if (typeof applyLogicState === 'function') applyLogicState();
+      }
+    }
     LAYER_ORDER.forEach(function(k) {
       if (groups[k]) {
         groups[k].visible = true;

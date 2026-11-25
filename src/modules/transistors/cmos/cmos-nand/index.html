@@ -11,6 +11,10 @@
               localStorage.getItem('silicon_sliders_theme') ||
               localStorage.getItem('cmos_nand_viewer_theme') ||
               localStorage.getItem('cmos_viewer_theme');
+      if (t !== 'light' && t !== 'dark') {
+        var h = new Date().getHours();
+        t = (h >= 6 && h < 18) ? 'light' : 'dark';
+      }
       if (t === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.classList.add('light');
@@ -545,6 +549,7 @@
             <!-- Quick Jump Anchor Links -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#nand-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#nand-topology" class="theory-jump-chip">1. PUN / PDN Topology</a>
               <a href="#nand-truthtable" class="theory-jump-chip">2. Truth Table &amp; States</a>
               <a href="#nand-sizing" class="theory-jump-chip">3. Series Sizing Rules</a>
@@ -553,6 +558,27 @@
               <a href="#nand-euler" class="theory-jump-chip">6. Euler Path &amp; Layout</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="nand-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. Historical Origin: From RTL/TTL Bipolar Gates to CMOS NAND2 Standard Cells (1960s–1970s)</h3>
+              <span class="theory-card-tag">Step 0 · Origins · CD4000 &amp; Early Microprocessor Era</span>
+            </div>
+            <p class="theory-p">
+              Throughout the 1960s, digital integrated circuits relied on power-hungry <b>Resistor-Transistor Logic (RTL)</b> and multi-emitter <b>Transistor-Transistor Logic (TTL)</b> bipolar gates whose static bias currents limited chip integration density. With the emergence of RCA's <b>CD4000 CMOS logic family (1968)</b> and early CMOS microprocessors like the <b>RCA CDP1802</b> alongside silicon-gate LSI calculators/CPUs such as the <b>Intel 4004</b> era, the 4-transistor <b>CMOS NAND2</b> replaced the inverter as the foundational multi-input universal standard cell.
+            </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Why NAND2 Outperforms NOR2 in Silicon</span>
+                <p class="theory-subcard-desc">Because electron mobility exceeds hole mobility (<code>μ<sub>n</sub> ≈ 2–3× μ<sub>p</sub></code>), placing two fast NMOS transistors in series (pull-down) and two wider PMOS transistors in parallel (pull-up) keeps rise and fall propagation delays balanced without excessive PMOS area.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Euler-Path Continuous Poly Striping</span>
+                <p class="theory-subcard-desc">Routing unbroken vertical Gate A and Gate B polysilicon stripes across a shared P+ drain and series N+ bridge lets automated standard-cell synthesis pack dense universal logic with zero wasted diffusion breaks.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Topology & Operation -->
           <article id="nand-topology" class="theory-card">
@@ -952,6 +978,7 @@
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../../shared/three/layerHighlight.js"></script>
 <script src="../../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>

@@ -30,7 +30,8 @@ var TREE = [
       { id: 'nwell', label: 'N-Well (Pull-Up Body)', tag: 'NW' },
       { id: 'pwell', label: 'P-Well (Pull-Down Body)', tag: 'PW' },
       { id: 'welltapAct', label: 'N-Well Body Tap (N+)', tag: 'TAP' },
-      { id: 'subtapAct', label: 'P-Well Body Tap (P+)', tag: 'TAP' }
+      { id: 'subtapAct', label: 'P-Well Body Tap (P+)', tag: 'TAP' },
+      { id: 'depletion', label: 'Space-Charge Depletion Regions', tag: 'DEP' }
     ]
   },
   {
@@ -278,6 +279,7 @@ function buildUiPanels() {
     var colorMap = {
       substrate: pal.pSubstrate,
       well: 'linear-gradient(135deg, ' + pal.nWell + ' 50%, ' + pal.pWell + ' 50%)',
+      depletion: pal.depletion,
       active: 'linear-gradient(135deg, ' + pal.pPlusDiffusion + ' 50%, ' + pal.nPlusDiffusion + ' 50%)',
       sde: 'linear-gradient(135deg, ' + pal.pSDE + ' 50%, ' + pal.nSDE + ' 50%)',
       oxide: pal.gateOxide,

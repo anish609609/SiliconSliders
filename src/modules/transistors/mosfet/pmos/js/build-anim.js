@@ -225,6 +225,8 @@ function resumeBuildAnimation() {
   syncTourControls();
 }
 
+var _savedTourBias = null;
+
 function stopBuildAnimation(restoreAll) {
   if (restoreAll === undefined) restoreAll = true;
   if (fabPlayInterval) {
@@ -235,6 +237,7 @@ function stopBuildAnimation(restoreAll) {
 
   if (restoreAll) {
     isTourActive = false;
+    window.isTourActive = false;
     currentFabStep = 1;
     LAYER_ORDER.forEach(function(layerKey) {
       dropOffsets[layerKey] = 0;
@@ -248,6 +251,13 @@ function stopBuildAnimation(restoreAll) {
     });
     var banner = document.getElementById('tour-banner');
     if (banner) banner.style.display = 'none';
+
+    if (_savedTourBias !== null) {
+      if (typeof currentVsg !== 'undefined') currentVsg = _savedTourBias.vsg;
+      if (typeof currentVsd !== 'undefined') currentVsd = _savedTourBias.vsd;
+      _savedTourBias = null;
+      if (typeof applyLogicState === 'function') applyLogicState();
+    }
   }
 
   syncTourControls();
@@ -257,7 +267,14 @@ function startBuildAnimation() {
   if (typeof toggleWorkbench === 'function') {
     toggleWorkbench(false);
   }
+  if (_savedTourBias === null && typeof window.getMosfetPhysicsState === 'function') {
+    var st = window.getMosfetPhysicsState();
+    _savedTourBias = { vsg: st.vsg, vsd: st.vsd };
+  }
   isTourActive = true;
+  window.isTourActive = true;
+  if (typeof currentVsg !== 'undefined') currentVsg = 0.0;
+  if (typeof applyLogicState === 'function') applyLogicState();
   currentFabStep = 1;
   scheduleFabAdvance();
   applyFabStep(1, true);

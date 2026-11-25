@@ -4,7 +4,8 @@
   "description": "Interactive 3D Semiconductor CAD, Fab Process Simulations & MEMS Sensors Platform",
   "scripts": {
     "start": "node dev-server.js",
-    "dev": "node dev-server.js"
+    "dev": "node dev-server.js",
+    "verify": "node scripts/verify-devices.ts"
   },
   "keywords": [
     "semiconductor",

@@ -11,6 +11,10 @@
               localStorage.getItem('silicon_sliders_theme') ||
               localStorage.getItem('cmos_viewer_theme') ||
               localStorage.getItem('cmos_nand_viewer_theme');
+      if (t !== 'light' && t !== 'dark') {
+        var hr = new Date().getHours();
+        t = (hr >= 6 && hr < 18) ? 'light' : 'dark';
+      }
       if (t === 'light') {
         document.documentElement.setAttribute('data-theme', 'light');
         document.documentElement.classList.add('light');
@@ -429,6 +433,7 @@
             <!-- Quick Jump Anchor Links -->
             <div class="theory-jump-bar">
               <span class="theory-jump-label">Jump to:</span>
+              <a href="#dnmos-origin-story" class="theory-jump-chip">0. Origin Story</a>
               <a href="#dnmos-structure" class="theory-jump-chip">1. Implanted Architecture</a>
               <a href="#dnmos-dualmode" class="theory-jump-chip">2. Depletion vs. Enhancement</a>
               <a href="#dnmos-pinchoff" class="theory-jump-chip">3. Pinch-Off Mechanism</a>
@@ -437,6 +442,31 @@
               <a href="#dnmos-applications" class="theory-jump-chip">6. VLSI &amp; Active Load Uses</a>
             </div>
           </div>
+
+          <!-- Section 0: Historical Origin Story -->
+          <article id="dnmos-origin-story" class="theory-card">
+            <div class="theory-card-header">
+              <h3 class="theory-card-title">0. The Origin Story: Buried-Channel Loads &amp; the NMOS Logic Era</h3>
+              <span class="theory-card-tag">Late 1960s – 1970s VLSI</span>
+            </div>
+            <p class="theory-p">
+              Before complementary CMOS solved static power dissipation, 1970s microprocessor designers needed a compact, fast pull-up element for single-polarity <b>NMOS logic</b>. Using a resistive polysilicon strip wasted huge die area, while an enhancement NMOS pull-up lost a full threshold drop (<code>V<sub>DD</sub> - V<sub>TH</sub></code>).
+            </p>
+            <div class="theory-grid-3">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">1. Ion Implantation Control (1970s)</span>
+                <p class="theory-subcard-desc">Engineers used controlled donor ion implantation beneath the gate oxide to shift <code>V<sub>TH</sub></code> negative—creating a buried/surface N-channel that conducts even at <code>V<sub>GS</sub> = 0 V</code>.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">2. Depletion-Load NMOS Revolution</span>
+                <p class="theory-subcard-desc">By tying gate to source (<code>V<sub>GS</sub> = 0 V</code>), a single compact depletion NMOS acted as a nonlinear constant-current active load—sharpening inverter gain and enabling full rail-to-rail <code>V<sub>DD</sub></code> pull-up.</p>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">3. Bridge to CMOS Scaling</span>
+                <p class="theory-subcard-desc">Depletion-load NMOS powered iconic 1970s–early 1980s CPUs and memories (such as the Motorola 6800, MOS 6502, and Intel 8080/8086 families) until static power limits drove full CMOS adoption.</p>
+              </div>
+            </div>
+          </article>
 
           <!-- Section 1: Architecture & Implanted Channel -->
           <article id="dnmos-structure" class="theory-card">
@@ -870,6 +900,7 @@
 <script src="js/data.js"></script>
 <script src="js/scene.js"></script>
 <script src="js/theme.js"></script>
+<script src="../../../../shared/three/layerHighlight.js"></script>
 <script src="../../../../shared/viewer/js/viewer-core.js"></script>
 <script src="js/geometry.js"></script>
 <script src="js/ui-panels.js"></script>
