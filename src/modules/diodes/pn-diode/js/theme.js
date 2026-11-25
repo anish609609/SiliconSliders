@@ -90,6 +90,11 @@ function applyTheme(theme, savePreference){
     updateMaterialsTheme();
   }
 
+  if (typeof SiliconSelectionHighlight !== 'undefined' && typeof selectedMeshes !== 'undefined' && typeof cssVar === 'function'){
+    var hlHex = cssVar('--highlight');
+    if (hlHex) SiliconSelectionHighlight.updateColor(selectedMeshes, hlHex);
+  }
+
   if (typeof renderGraphs === 'function'){
     renderGraphs();
   }

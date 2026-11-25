@@ -10,10 +10,16 @@ var selectedMeshes = [];
 var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta — kept far from the well's teal-green and every layer color so selection is unambiguous
 
 function applyEmissive(obj, color, intensity) {
-  // Disabled: preserve true fabrication material color on click/inspect
+  if (!obj) return;
+  if (typeof SiliconSelectionHighlight !== 'undefined') {
+    SiliconSelectionHighlight.apply(obj, color !== null, color || HIGHLIGHT_COLOR);
+  }
 }
 
 function clearSelection(){
+  selectedMeshes.forEach(function(m){
+    applyEmissive(m, null, 0);
+  });
   selectedMeshes = [];
   lastSelectedId = null;
   document.querySelectorAll('#tree .node.selected').forEach(function(n){ n.classList.remove('selected'); });
@@ -26,6 +32,7 @@ function clearSelection(){
 function highlightMeshes(meshes){
   clearSelection();
   meshes.forEach(function(m){
+    applyEmissive(m, HIGHLIGHT_COLOR, 0.55);
     selectedMeshes.push(m);
   });
 }
@@ -228,6 +235,7 @@ renderer.domElement.addEventListener('click', function(e){
   raycaster.setFromCamera(pointer, activeCamera);
 
   var hits = raycaster.intersectObjects(selectable, true).filter(function(h){
+    if (h.object.userData && h.object.userData._isHighlightPart) return false;
     var cur = h.object;
     while (cur) {
       if (cur.visible === false) return false;

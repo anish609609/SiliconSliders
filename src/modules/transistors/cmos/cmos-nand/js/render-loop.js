@@ -56,7 +56,11 @@ function renderTick(now) {
     var dt = Math.min(0.05, Math.max(0, (now - _lastTime) / 1000));
     _lastTime = now;
 
-    var tourActive = typeof isTourRunning !== 'undefined' && isTourRunning;
+    if (typeof updateBuildAnimation === 'function') {
+      updateBuildAnimation(dt);
+    }
+
+    var tourActive = (typeof isTourRunning !== 'undefined' && isTourRunning) || (typeof isBuildAnimating !== 'undefined' && isBuildAnimating);
     var frozen = typeof isCircuitFrozen !== 'undefined' && isCircuitFrozen;
 
     if (!tourActive && !frozen) {

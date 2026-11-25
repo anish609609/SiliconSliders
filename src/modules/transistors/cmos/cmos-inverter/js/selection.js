@@ -10,6 +10,11 @@ var selectedMeshes = [];
 var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta — kept far from the well's teal-green and every layer color so selection is unambiguous
 
 function clearSelection(){
+  if (typeof SiliconSelectionHighlight !== 'undefined') {
+    selectedMeshes.forEach(function(m){
+      SiliconSelectionHighlight.apply(m, false);
+    });
+  }
   selectedMeshes = [];
   lastSelectedId = null;
   document.querySelectorAll('#tree .node.selected').forEach(function(n){ n.classList.remove('selected'); });
@@ -22,6 +27,9 @@ function clearSelection(){
 function highlightMeshes(meshes){
   clearSelection();
   meshes.forEach(function(m){
+    if (typeof SiliconSelectionHighlight !== 'undefined') {
+      SiliconSelectionHighlight.apply(m, true, HIGHLIGHT_COLOR);
+    }
     selectedMeshes.push(m);
   });
 }
@@ -181,15 +189,30 @@ renderer.domElement.addEventListener('click', function(e){
   var rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
+  scene.updateMatrixWorld(true);
   raycaster.setFromCamera(pointer, activeCamera);
-  var hits = raycaster.intersectObjects(selectable, false).filter(function(h){ return h.object.visible !== false && h.object.parent.visible; });
+  var hits = raycaster.intersectObjects(selectable, true).filter(function(h){
+    if (h.object.userData && h.object.userData._isHighlightPart) return false;
+    if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
+    var cur = h.object;
+    while (cur) {
+      if (cur.visible === false) return false;
+      cur = cur.parent;
+    }
+    return true;
+  });
   if (hits.length){
     var m = hits[0].object;
-    selectById(m.userData.id);
-  } else {
-    clearSelection();
-    hidePopover();
-    document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
-    document.getElementById('crumb-sel').textContent = '';
+    while (m && (!m.userData || !m.userData.id) && m.parent && m.parent !== scene) {
+      m = m.parent;
+    }
+    if (m && m.userData && m.userData.id) {
+      selectById(m.userData.id);
+      return;
+    }
   }
+  clearSelection();
+  hidePopover();
+  document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';
+  document.getElementById('crumb-sel').textContent = '';
 });

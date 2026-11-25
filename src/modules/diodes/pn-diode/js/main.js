@@ -201,14 +201,29 @@ function resetAll() {
   var tempSlider = document.getElementById('temp-slider');
   if (tempSlider) { tempSlider.value = 300; tempSlider.dispatchEvent(new Event('input')); }
 
-  var expY = document.getElementById('explode-y-slider');
-  if (expY) { expY.value = 0; expY.dispatchEvent(new Event('input')); }
-  var expX = document.getElementById('explode-x-slider');
-  if (expX) { expX.value = 0; expX.dispatchEvent(new Event('input')); }
-  var expZ = document.getElementById('explode-z-slider');
-  if (expZ) { expZ.value = 0; expZ.dispatchEvent(new Event('input')); }
+  if (typeof window.resetExplodeAndScrub === 'function') {
+    window.resetExplodeAndScrub();
+  } else {
+    var expY = document.getElementById('explode-y-slider');
+    if (expY) { expY.value = 0; expY.dispatchEvent(new Event('input')); }
+    var expX = document.getElementById('explode-x-slider');
+    if (expX) { expX.value = 0; expX.dispatchEvent(new Event('input')); }
+    var expZ = document.getElementById('explode-z-slider');
+    if (expZ) { expZ.value = 0; expZ.dispatchEvent(new Event('input')); }
+  }
 
+  if (typeof clearSelection === 'function') clearSelection();
   if (typeof hidePopover === 'function') hidePopover();
+
+  // Reset flow mode to default Carrier
+  if (typeof flowMode !== 'undefined') flowMode = 'carrier';
+  var flowSeg = document.getElementById('flow-seg');
+  if (flowSeg) {
+    flowSeg.querySelectorAll('button').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.flow === 'carrier');
+    });
+  }
+  if (typeof rebuildFlowSimulation === 'function') rebuildFlowSimulation();
 
   // Reset workbench tab to Controls (default)
   if (typeof switchWorkbenchTab === 'function') {

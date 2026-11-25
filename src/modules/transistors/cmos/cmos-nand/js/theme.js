@@ -124,6 +124,13 @@ function applyTheme(theme) {
     console.error('updateMaterialsTheme failed:', err);
   }
   try {
+    if (typeof SiliconSelectionHighlight !== 'undefined' && typeof selectedMeshes !== 'undefined') {
+      SiliconSelectionHighlight.updateColor(selectedMeshes, cssVar('--highlight'));
+    }
+  } catch (err) {
+    console.error('SiliconSelectionHighlight.updateColor failed:', err);
+  }
+  try {
     if (typeof window.updateFlowTheme === 'function') {
       window.updateFlowTheme(currentTheme);
     }

@@ -277,8 +277,8 @@ function renderSingleVtcGraph(canvas, st, isModal) {
 
   var dpr = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
-  var W = rect.width || (isModal ? 560 : 310);
-  var H = rect.height || (isModal ? 380 : 225);
+  var W = canvas.clientWidth || rect.width || (isModal ? 560 : 310);
+  var H = canvas.clientHeight || rect.height || (isModal ? 380 : 225);
 
   if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
     canvas.width = Math.round(W * dpr);
@@ -618,11 +618,19 @@ function initLogicStateControls() {
   var expandBtn = document.getElementById('iv-expand-btn');
   var modalBackdrop = document.getElementById('iv-modal-backdrop');
   var modalCloseBtn = document.getElementById('iv-modal-close');
+  var modalResizeObserver = null;
 
   function openIvModal() {
     if (!modalBackdrop) return;
     modalBackdrop.style.display = 'flex';
+    if (!modalResizeObserver && typeof ResizeObserver !== 'undefined' && modalCanvas) {
+      modalResizeObserver = new ResizeObserver(function() {
+        if (modalBackdrop.style.display !== 'none') drawVtcGraph();
+      });
+      modalResizeObserver.observe(modalCanvas.parentElement || modalCanvas);
+    }
     drawVtcGraph();
+    requestAnimationFrame(drawVtcGraph);
   }
   function closeIvModal() {
     if (!modalBackdrop) return;

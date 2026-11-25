@@ -353,19 +353,19 @@ function updateTelemetryAndUi() {
   colorRegion(rMN2, s.regions.mn2);
 
   // Sync modal telemetry readouts if modal is present
-  var mVa = document.getElementById('modal-readout-va');
-  var mVb = document.getElementById('modal-readout-vb');
-  var mVout = document.getElementById('modal-readout-vout');
-  var mLog = document.getElementById('modal-readout-logic');
-  var mMP1 = document.getElementById('modal-mp1-reg');
-  var mMP2 = document.getElementById('modal-mp2-reg');
-  var mMN1 = document.getElementById('modal-mn1-reg');
-  var mMN2 = document.getElementById('modal-mn2-reg');
+  var mVa = document.getElementById('iv-m-va');
+  var mVb = document.getElementById('iv-m-vb');
+  var mVout = document.getElementById('iv-m-vout');
+  var mLog = document.getElementById('iv-m-state');
+  var mMP1 = document.getElementById('iv-m-mp1');
+  var mMP2 = document.getElementById('iv-m-mp2');
+  var mMN1 = document.getElementById('iv-m-mn1');
+  var mMN2 = document.getElementById('iv-m-mn2');
 
   if (mVa) mVa.textContent = currentA === 'off' ? 'OFF' : Number(currentA).toFixed(2) + ' V';
   if (mVb) mVb.textContent = currentB === 'off' ? 'OFF' : Number(currentB).toFixed(2) + ' V';
   if (mVout) mVout.textContent = s.frozen ? 'FLOATING' : s.vout.toFixed(2) + ' V';
-  if (mLog) mLog.textContent = s.frozen ? 'HIGH-Z' : (s.vout >= 0.70 ? '1 (HIGH)' : (s.vout <= 0.30 ? '0 (LOW)' : 'TRANSITION'));
+  if (mLog) mLog.textContent = s.frozen ? 'HIGH-Z' : (s.vout >= 0.70 ? '1 (VDD)' : (s.vout <= 0.30 ? '0 (GND)' : 'TRANSITION'));
 
   colorRegion(mMP1, s.regions.mp1);
   colorRegion(mMP2, s.regions.mp2);
@@ -392,8 +392,8 @@ function drawTransferOnCanvas(canvasId) {
   var isModal = (canvasId === 'iv-modal-canvas');
   var dpr = window.devicePixelRatio || 1;
   var rect = canvas.getBoundingClientRect();
-  var W = rect.width || (isModal ? 560 : 310);
-  var H = rect.height || (isModal ? 380 : 225);
+  var W = canvas.clientWidth || rect.width || (isModal ? 560 : 310);
+  var H = canvas.clientHeight || rect.height || (isModal ? 380 : 225);
 
   if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
     canvas.width = Math.round(W * dpr);
@@ -608,7 +608,7 @@ function drawTransferOnCanvas(canvasId) {
 function drawTransferGraph() {
   drawTransferOnCanvas('iv-canvas');
   var modalBackdrop = document.getElementById('iv-modal-backdrop');
-  if (modalBackdrop && !modalBackdrop.classList.contains('hidden')) {
+  if (modalBackdrop && !modalBackdrop.classList.contains('hidden') && modalBackdrop.style.display !== 'none') {
     drawTransferOnCanvas('iv-modal-canvas');
   }
 }
@@ -628,16 +628,18 @@ window.setInputs = setInputs;
 function setupCanvasDrag(canvasId) {
   var canvas = document.getElementById(canvasId);
   if (!canvas) return;
+  var isModal = (canvasId === 'iv-modal-canvas');
 
   var isDragging = false;
   function updateFromPointer(e) {
     var rect = canvas.getBoundingClientRect();
-    var padLeft = 40;
-    var padRight = 18;
-    var plotW = canvas.width - padLeft - padRight;
-    var scale = canvas.width / rect.width;
+    var w = rect.width || canvas.clientWidth;
+    if (!w || w <= 0) return;
+    var padLeft = isModal ? 50 : 44;
+    var padRight = isModal ? 36 : 28;
+    var plotW = w - padLeft - padRight;
 
-    var clickX = (e.clientX - rect.left) * scale;
+    var clickX = e.clientX - rect.left;
     var vin = (clickX - padLeft) / plotW;
     vin = Math.max(0, Math.min(1.0, vin));
     vin = Math.round(vin * 100) / 100;
@@ -741,16 +743,30 @@ function initLogicStateControls() {
   var expandBtn = document.getElementById('iv-expand-btn');
   var modalBackdrop = document.getElementById('iv-modal-backdrop');
   var modalClose = document.getElementById('iv-modal-close');
+  var modalCanvasEl = document.getElementById('iv-modal-canvas');
+  var modalResizeObserver = null;
 
   function openModal() {
     if (!modalBackdrop) return;
     modalBackdrop.classList.remove('hidden');
+    modalBackdrop.style.display = 'flex';
+    if (!modalResizeObserver && typeof ResizeObserver !== 'undefined' && modalCanvasEl) {
+      modalResizeObserver = new ResizeObserver(function() {
+        if (modalBackdrop.style.display !== 'none' && !modalBackdrop.classList.contains('hidden')) {
+          drawTransferOnCanvas('iv-modal-canvas');
+        }
+      });
+      modalResizeObserver.observe(modalCanvasEl.parentElement || modalCanvasEl);
+    }
+    updateTelemetryAndUi();
     drawTransferOnCanvas('iv-modal-canvas');
+    requestAnimationFrame(function() { drawTransferOnCanvas('iv-modal-canvas'); });
   }
 
   function closeModal() {
     if (!modalBackdrop) return;
     modalBackdrop.classList.add('hidden');
+    modalBackdrop.style.display = 'none';
   }
 
   if (expandBtn) expandBtn.addEventListener('click', openModal);
@@ -763,7 +779,7 @@ function initLogicStateControls() {
   }
 
   window.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && modalBackdrop && !modalBackdrop.classList.contains('hidden')) {
+    if (e.key === 'Escape' && modalBackdrop && modalBackdrop.style.display !== 'none' && !modalBackdrop.classList.contains('hidden')) {
       closeModal();
     }
   });

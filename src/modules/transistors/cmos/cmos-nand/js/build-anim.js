@@ -1,402 +1,410 @@
-/* 8-Step sequential 3D Fabrication Tour with smoothstep camera lerp, 700ms drop-in & audio prefetch lockstep */
+/**
+ * build-anim.js - Local Step-by-Step 3D Planar CMOS NAND2 Fabrication Process Tour
+ * Fully offline/local sequential build animation with Previous / Pause-Resume / Next
+ * controls, progress bar, auto-collapsing workbench, and clean reset.
+ */
 
-var isTourRunning = false;
-var tourAbortController = null;
-var tourRunToken = 0;
-
-var TOUR_STEPS = [
+var FAB_STEPS = [
   {
-    layer: 'substrate',
+    badge: 'STEP 1 OF 9',
+    title: 'P-Type Silicon Substrate',
+    desc: 'Single-crystal P-type silicon wafer provides mechanical support and the common bulk substrate for the 4-transistor CMOS NAND2 cell.',
     layers: ['substrate'],
-    primaryId: 'psub',
-    title: '1. P-Type Silicon Substrate Wafer',
-    cameraPos: { x: 26, y: 18, z: 28 },
-    target: { x: -0.5, y: 1.0, z: 0 },
-    scripts: {
-      'en-IN': 'Step one starts with the lightly doped p-type silicon substrate wafer. It forms the mechanical base and ground-referenced bulk isolating our two-input NAND cell.',
-      'hi-IN': 'पहले चरण में हम पी-टाइप सिलिकॉन सब्सट्रेट वेफर से शुरुआत करते हैं। यह पूरे टू-इनपुट नैंड गेट का आधार और ग्राउंड रेफरेंस प्रदान करता है।',
-      'te-IN': 'మొదటి దశలో పి-టైప్ సిలికాన్ సబ్‌స్ట్రేట్ వేఫర్ ఉంటుంది. ఇది టూ-ఇన్‌పుట్ నాండ్ గేట్‌కు ఆధారాన్ని మరియు గ్రౌండ్ రిఫరెన్స్‌ను ఇస్తుంది.'
-    }
+    camPos: [0, 15, 25],
+    camTarget: [0, 1.5, 0]
   },
   {
-    layer: 'well',
+    badge: 'STEP 2 OF 9',
+    title: 'Twin-Well Formation (N-Well & P-Well)',
+    desc: 'Dual retrograde wells isolate the parallel PMOS pull-up pair (N-Well at Z > 0) from the series NMOS pull-down pair (P-Well at Z < 0).',
     layers: ['well'],
-    primaryId: 'nwell',
-    title: '2. Retrograde N-Well & P-Well Implantation',
-    cameraPos: { x: 22, y: 15, z: 24 },
-    target: { x: -0.5, y: 1.6, z: 0 },
-    scripts: {
-      'en-IN': 'Next, twin retrograde Gaussian wells are implanted: the N-Well on the positive Z side houses parallel pull-up PMOS devices, while the P-Well on negative Z houses series pull-down NMOS devices across a clean substrate corridor.',
-      'hi-IN': 'दूसरे चरण में एन-वेल और पी-वेल इम्प्लांट किए जाते हैं। एन-वेल में पैरेलल पुल-अप पीमॉस ट्रांजिस्टर और पी-वेल में सीरीज पुल-डाउन एनमॉस ट्रांजिस्टर बनते हैं।',
-      'te-IN': 'రెండవ దశలో ఎన్-వెల్ మరియు పి-వెల్ ఇంప్లాంట్ చేయబడతాయి. ఎన్-వెల్‌లో ప్యారలల్ పిమాస్ మరియు పి-వెల్‌లో సిరీస్ ఎన్మాస్ ట్రాన్సిస్టర్లు ఏర్పడతాయి.'
-    }
+    camPos: [-13, 14, 22],
+    camTarget: [0, 2.0, 0]
   },
   {
-    layer: 'active',
-    layers: ['active', 'sde'],
-    primaryId: 'pmosA',
-    title: '3. Active Diffusions, SDEs & Series N+ Bridge',
-    cameraPos: { x: 16, y: 13, z: 22 },
-    target: { x: 0.0, y: 1.8, z: 0 },
-    scripts: {
-      'en-IN': 'Heavy P-plus and N-plus active diffusions plus shallow SDE extensions are implanted. Notice the merged P-plus drain shared by both parallel PMOS devices, and the uncontacted series N-plus silicon bridge linking MN1 and MN2.',
-      'hi-IN': 'तीसरे चरण में पी-प्लस और एन-प्लस एक्टिव डिफ्यूजन तथा शैलो एसडीई एक्सटेंशन बनते हैं। बीच का पी-प्लस ड्रेन दोनों पीमॉस में साझा है, जबकि एनमॉस में एक अनकॉन्टैक्टेड सीरीज एन-प्लस ब्रिज है।',
-      'te-IN': 'మూడవ దశలో పి-ప్లస్, ఎన్-ప్లస్ డిఫ్యూషన్లు మరియు ఎస్‌డిఈ ఎక్స్‌టెన్షన్లు వేయబడతాయి. మధ్యలో ఉన్న పి-ప్లస్ డ్రెయిన్ రెండు పిమాస్‌లకు ఉమ్మడిగా ఉంటుంది, మరియు ఎన్మాస్‌లలో సిరీస్ ఎన్-ప్లస్ బ్రిడ్జ్ ఉంటుంది.'
-    }
+    badge: 'STEP 3 OF 9',
+    title: 'Gate Dielectric Stack (SiO₂ + HfO₂)',
+    desc: 'Interfacial SiO₂ and high-κ HfO₂ gate dielectrics are formed beneath both dual-gate channels (Gate A and Gate B) across pull-up and pull-down pairs.',
+    layers: ['oxide', 'highk'],
+    camPos: [11, 13, 20],
+    camTarget: [0, 2.2, 0]
   },
   {
-    layer: 'oxide',
-    layers: ['oxide'],
-    primaryId: 'pmosAOxide',
-    title: '4. Interfacial Thermal Gate Oxide (SiO2)',
-    cameraPos: { x: 12, y: 10, z: 16 },
-    target: { x: 0.0, y: 2.0, z: 0 },
-    scripts: {
-      'en-IN': 'An ultra-thin interfacial thermal silicon dioxide layer grows across the four transistor channel windows beneath gates A and B, guaranteeing clean carrier mobility.',
-      'hi-IN': 'चौथे चरण में गेट ए और गेट बी के नीचे चारों चैनल विंडो पर अत्यंत पतली थर्मल सिलिकॉन डाइऑक्साइड ऑक्साइड परत उगाई जाती है।',
-      'te-IN': 'నాల్గవ దశలో గేట్ ఎ మరియు గేట్ బి కింద నాలుగు ఛానెల్ స్థానాలలో అతి పలుచని సిలికాన్ డయాక్సైడ్ ఆక్సైడ్ పొర ఏర్పడుతుంది.'
-    }
+    badge: 'STEP 4 OF 9',
+    title: 'Polysilicon Gate Patterning (Gates A & B)',
+    desc: 'Two parallel polysilicon gate stripes route Input A (MP1 + MN1) and Input B (MP2 + MN2) along the Euler layout path.',
+    layers: ['poly'],
+    camPos: [-15, 14, 21],
+    camTarget: [0, 2.5, 0]
   },
   {
-    layer: 'highk',
-    layers: ['highk'],
-    primaryId: 'pmosAHighk',
-    title: '5. Atomic Layer Deposited High-K (HfO2)',
-    cameraPos: { x: 12, y: 10, z: 16 },
-    target: { x: 0.0, y: 2.1, z: 0 },
-    scripts: {
-      'en-IN': 'Atop the oxide sits Atomic Layer Deposited Hafnium Dioxide, a High-K dielectric that boosts gate capacitance while suppressing quantum tunneling gate leakage.',
-      'hi-IN': 'पांचवें चरण में ऑक्साइड के ऊपर एएलडी द्वारा हैफनियम डाइऑक्साइड हाई-के डाइइलेक्ट्रिक जमा किया जाता है, जो गेट लीकेज को रोकता है।',
-      'te-IN': 'ఐదవ దశలో ఆక్సైడ్ పైన హాఫ్నియం డయాక్సైడ్ హై-కె డైఎలెక్ట్రిక్ పొర వేయబడుతుంది, ఇది గేట్ లీకేజీని గణనీయంగా తగ్గిస్తుంది.'
-    }
+    badge: 'STEP 5 OF 9',
+    title: 'Self-Aligned LDD / SDE Extensions',
+    desc: 'Shallow BF₂ (P-SDE) and arsenic (N-SDE) extensions self-align to Gate A and Gate B edges before spacer formation to control short-channel fields.',
+    layers: ['sde'],
+    camPos: [14, 13, 19],
+    camTarget: [0, 2.2, 0]
   },
   {
-    layer: 'poly',
-    layers: ['poly', 'spacer'],
-    primaryId: 'polyA',
-    title: '6. Dual Continuous Polysilicon Gates & Spacers',
-    cameraPos: { x: 17, y: 14, z: 19 },
-    target: { x: 0.0, y: 2.3, z: 0 },
-    scripts: {
-      'en-IN': 'Following an Euler-path layout, two continuous vertical polysilicon stripes form Gate A and Gate B, each simultaneously driving one PMOS pull-up and one NMOS pull-down transistor.',
-      'hi-IN': 'छठे चरण में यूलर-पाथ टोपोलॉजी के अनुसार दो सीधी वर्टिकल पॉलीसिलिकॉन गेट ए और गेट बी पट्टियां बनती हैं, जो एक साथ पीमॉस और एनमॉस को नियंत्रित करती हैं।',
-      'te-IN': 'ఆరవ దశలో యూలర్-పాత్ లేఅవుట్ ప్రకారం గేట్ ఎ మరియు గేట్ బి అనే రెండు పాలీసిలికాన్ గేట్లు పిమాస్ మరియు ఎన్మాస్‌లను ఒకేసారి నియంత్రిస్తాయి.'
-    }
+    badge: 'STEP 6 OF 9',
+    title: 'Si₃N₄ Gate Sidewall Spacers',
+    desc: 'Anisotropic etch-back of conformal Si₃N₄ forms dielectric sidewall spacers along both Gate A and Gate B.',
+    layers: ['spacer'],
+    camPos: [-11, 12, 18],
+    camTarget: [0, 2.3, 0]
   },
   {
-    layer: 'contact',
-    layers: ['silicide', 'contact'],
-    primaryId: 'pmosASrcCt',
-    title: '7. NiSi Salicide & Nine Tungsten Contact Plugs',
-    cameraPos: { x: 18, y: 15, z: 18 },
-    target: { x: 0.0, y: 2.6, z: 0 },
-    scripts: {
-      'en-IN': 'Nine tapered CVD tungsten plugs drop down to connect well taps, PMOS sources and shared drain, NMOS source and top drain, plus Gate A and Gate B safely inside the inter-well corridor.',
-      'hi-IN': 'सातवें चरण में नौ टंगस्टन कॉन्टैक्ट प्लग वेल टैप, सोर्स, ड्रेन और दोनों गेट्स को ऊपर की मेटल परत से जोड़ने के लिए बनाए जाते हैं।',
-      'te-IN': 'ఏడవ దశలో తొమ్మిది టంగ్‌స్టన్ కాంటాక్ట్ ప్లగ్స్ వెల్ ట్యాప్స్, సోర్స్, డ్రెయిన్ మరియు గేట్‌లను మెటల్ పొరకు కలుపుతాయి.'
-    }
+    badge: 'STEP 7 OF 9',
+    title: 'Deep N+/P+ S/D, Series Bridge & Well Taps',
+    desc: 'Heavy P+ and N+ implants define MP1/MP2 sources and shared drain, the series MN1–MN2 N+ bridge diffusion, and N+/P+ well-tie body taps.',
+    layers: ['active'],
+    camPos: [15, 14, 22],
+    camTarget: [0, 2.2, 0]
   },
   {
-    layer: 'metal',
-    layers: ['metal'],
-    primaryId: 'outPin',
-    title: '8. Planar Zero-Crossing Metal-1 Interconnect',
-    cameraPos: { x: -0.5, y: 34, z: 18 },
-    target: { x: -0.5, y: 2.5, z: 0 },
-    scripts: {
-      'en-IN': 'Finally, brushed Metal-1 completes the VDD and GND rails, parallel Input A and Input B tracks, and the collector Output pin with 45-degree chamfered junctions and zero signal crossings.',
-      'hi-IN': 'अंतिम चरण में ब्रश्ड मेटल-1 बिना किसी क्रॉसिंग के वीडीडी, ग्राउंड, इनपुट ए, इनपुट बी और आउटपुट पिन को जोड़कर नैंड2 सेल को पूरा करता है।',
-      'te-IN': 'చివరి దశలో మెటల్-1 లేయర్ ఎటువంటి క్రాసింగ్‌లు లేకుండా వీడీడీ, గ్రౌండ్, ఇన్‌పుట్ ఎ, ఇన్‌పుట్ బి మరియు అవుట్‌పుట్ పిన్‌లను కలుపుతూ నాండ్2 సెల్‌ను పూర్తి చేస్తుంది.'
-    }
+    badge: 'STEP 8 OF 9',
+    title: 'Self-Aligned NiSi Silicide (Salicide)',
+    desc: 'Nickel reacts selectively with exposed silicon across every active diffusion, series bridge, body tap, and poly gate contact area to form NiSi.',
+    layers: ['silicide'],
+    camPos: [-13, 14, 21],
+    camTarget: [0, 2.5, 0]
+  },
+  {
+    badge: 'STEP 9 OF 9',
+    title: 'Tungsten Contacts & Metal-1 Interconnects',
+    desc: 'Tungsten (W) vias connect S/D diffusions, body taps, and gates to Metal-1 power rails (VDD, GND), Input A/B straps, and the wired Output bus (OUT).',
+    layers: ['contact', 'metal'],
+    camPos: [17, 16, 23],
+    camTarget: [0, 2.8, 0]
   }
 ];
 
-function getTourLanguageAndSpeaker() {
-  var langEl = document.getElementById('va-lang');
-  var spkEl = document.getElementById('va-persona');
-  return {
-    lang: (langEl && langEl.value) || 'en-IN',
-    speaker: (spkEl && spkEl.value) || 'aparna_en_edtech'
-  };
+var isBuildAnimating = false;
+var isTourRunning = false;
+var isFabPlaying = false;
+var currentFabStep = 0;
+var fabAutoTimer = null;
+var fabState = { phase: 'idle', layerTimers: {} };
+
+var SVG_PAUSE_ICON = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>';
+var SVG_PLAY_ICON = '<svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>';
+
+function syncTourControls() {
+  var prevBtn = document.getElementById('tb-btn-prev');
+  var pauseBtn = document.getElementById('tb-btn-pause');
+  var nextBtn = document.getElementById('tb-btn-next');
+  var btnAnim = document.getElementById('btn-build-anim');
+
+  if (prevBtn) prevBtn.disabled = currentFabStep <= 0;
+  if (nextBtn) nextBtn.disabled = false;
+
+  if (pauseBtn) {
+    pauseBtn.innerHTML = isFabPlaying ? SVG_PAUSE_ICON : SVG_PLAY_ICON;
+    pauseBtn.title = isFabPlaying ? 'Pause tour' : 'Resume tour';
+    pauseBtn.setAttribute('aria-label', pauseBtn.title);
+  }
+
+  if (btnAnim) {
+    if (isBuildAnimating) {
+      btnAnim.classList.add('active');
+      btnAnim.innerHTML = '<span class="play-icon">&#9632;</span><span class="play-label">STOP</span><span class="play-extra">&nbsp;TOUR</span>';
+      btnAnim.title = 'Stop 3D fabrication tour';
+      btnAnim.setAttribute('aria-label', 'Stop 3D Fabrication Tour');
+    } else {
+      btnAnim.classList.remove('active');
+      btnAnim.innerHTML = '<span class="play-icon">▶</span><span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>';
+      btnAnim.title = 'Watch step-by-step 3D fabrication sequence';
+      btnAnim.setAttribute('aria-label', 'Play 3D Fabrication Tour');
+    }
+  }
 }
 
-function getCurrentMeshTargetY(m) {
-  var ey = (typeof explodeY !== 'undefined' ? explodeY : 1) / 100;
-  return m.userData.restPos.y + m.userData.explodeIdx * EXPLODE_GAP * ey;
+function updateTourBanner(stepIndex) {
+  var step = FAB_STEPS[stepIndex];
+  if (!step) return;
+  var badgeEl = document.getElementById('tb-step-badge');
+  var titleEl = document.getElementById('tb-step-title');
+  var descEl = document.getElementById('tb-step-desc');
+  var fillEl = document.getElementById('tb-progress-fill');
+
+  if (badgeEl) badgeEl.textContent = step.badge;
+  if (titleEl) titleEl.textContent = step.title;
+  if (descEl) descEl.textContent = step.desc;
+  if (fillEl) fillEl.style.width = (((stepIndex + 1) / FAB_STEPS.length) * 100) + '%';
 }
 
-function animateStepDropAndCamera(step, token) {
-  var targetLayers = step.layers || [step.layer];
-  var stepMeshes = [];
-  var stepLabels = [];
+function applyTourPositions(activeLayers) {
+  if (typeof allMeshes !== 'undefined') {
+    for (var i = 0; i < allMeshes.length; i++) {
+      var m = allMeshes[i];
+      var layer = m.userData.layer;
+      var rp = m.userData.restPos;
+      if (typeof layerVisibility !== 'undefined') {
+        layerVisibility[layer] = !!activeLayers[layer];
+      }
+      var st = fabState.layerTimers[layer];
+      var dropY = (st && st.active) ? st.dropY : 0;
+      if (rp) m.position.set(rp.x, rp.y + dropY, rp.z);
+    }
+  }
+  if (typeof labelsList !== 'undefined') {
+    for (var j = 0; j < labelsList.length; j++) {
+      var lbl = labelsList[j];
+      var lyr = lbl.userData.layer;
+      var lrp = lbl.userData.restPos;
+      var lst = fabState.layerTimers[lyr];
+      var lDrop = (lst && lst.active) ? lst.dropY : 0;
+      if (lrp) lbl.position.set(lrp.x, lrp.y + lDrop, lrp.z);
+    }
+  }
+  if (typeof applyLayerVisibility === 'function') applyLayerVisibility();
+  if (typeof syncVisibilityCheckboxes === 'function') syncVisibilityCheckboxes();
+}
 
-  for (var i = 0; i < allMeshes.length; i++) {
-    var m = allMeshes[i];
-    if (targetLayers.indexOf(m.userData.layer) !== -1) {
-      m.visible = true;
-      var finalY = getCurrentMeshTargetY(m);
-      m.position.y = finalY + 2.5;
-      stepMeshes.push({ obj: m, startY: finalY + 2.5, endY: finalY });
+function scheduleFabAdvance() {
+  if (fabAutoTimer) {
+    clearTimeout(fabAutoTimer);
+    fabAutoTimer = null;
+  }
+  if (!isBuildAnimating || !isFabPlaying) return;
+  fabAutoTimer = setTimeout(function() {
+    fabAutoTimer = null;
+    if (!isBuildAnimating || !isFabPlaying) return;
+    if (currentFabStep < FAB_STEPS.length - 1) {
+      applyFabStep(currentFabStep + 1, true);
+    } else {
+      stopBuildAnimation(true);
+    }
+  }, 3200);
+}
+
+function applyFabStep(stepNum, shouldAnimate) {
+  if (fabAutoTimer) {
+    clearTimeout(fabAutoTimer);
+    fabAutoTimer = null;
+  }
+  currentFabStep = Math.max(0, Math.min(FAB_STEPS.length - 1, stepNum));
+
+  var activeLayers = {};
+  var prevLayers = {};
+  for (var i = 0; i <= currentFabStep; i++) {
+    var st = FAB_STEPS[i];
+    for (var j = 0; j < st.layers.length; j++) {
+      var lk = st.layers[j];
+      activeLayers[lk] = true;
+      if (i < currentFabStep) prevLayers[lk] = true;
     }
   }
 
-  for (var j = 0; j < labelsList.length; j++) {
-    var lbl = labelsList[j];
-    if (targetLayers.indexOf(lbl.userData.layer) !== -1 && (typeof showLabels3D === 'undefined' || showLabels3D)) {
-      lbl.visible = true;
-      var lFinalY = getCurrentMeshTargetY(lbl);
-      lbl.position.y = lFinalY + 2.5;
-      stepLabels.push({ obj: lbl, startY: lFinalY + 2.5, endY: lFinalY });
+  fabState.layerTimers = {};
+  Object.keys(activeLayers).forEach(function(lk) {
+    if (shouldAnimate && !prevLayers[lk]) {
+      fabState.layerTimers[lk] = { dropY: 3.5, active: true };
+    } else {
+      fabState.layerTimers[lk] = { dropY: 0, active: false };
     }
+  });
+
+  applyTourPositions(activeLayers);
+
+  var curStep = FAB_STEPS[currentFabStep];
+  if (curStep && typeof camera !== 'undefined' && typeof controls !== 'undefined') {
+    if (curStep.camPos) camera.position.set(curStep.camPos[0], curStep.camPos[1], curStep.camPos[2]);
+    if (curStep.camTarget) controls.target.set(curStep.camTarget[0], curStep.camTarget[1], curStep.camTarget[2]);
+    controls.update();
   }
 
-  var startCam = camera.position.clone();
-  var endCam = new THREE.Vector3(step.cameraPos.x, step.cameraPos.y, step.cameraPos.z);
-  var startTgt = controls.target.clone();
-  var endTgt = new THREE.Vector3(step.target.x, step.target.y, step.target.z);
+  fabState.phase = shouldAnimate ? 'animating' : 'idle';
+  updateTourBanner(currentFabStep);
+  syncTourControls();
+  if (!shouldAnimate && isFabPlaying) {
+    scheduleFabAdvance();
+  }
+}
 
-  var duration = 700;
-  var t0 = performance.now();
+function updateBuildAnimation(dt) {
+  if (!isBuildAnimating || fabState.phase !== 'animating') return;
 
-  return new Promise(function (resolve) {
-    function frame(now) {
-      if (!isTourRunning || token !== tourRunToken) {
-        resolve();
-        return;
-      }
-      var raw = Math.min(1, (now - t0) / duration);
-      var cubicOut = 1 - Math.pow(1 - raw, 3);
-      var smooth = raw * raw * (3 - 2 * raw);
-
-      for (var k = 0; k < stepMeshes.length; k++) {
-        var sm = stepMeshes[k];
-        sm.obj.position.y = sm.startY + (sm.endY - sm.startY) * cubicOut;
-      }
-      for (var l = 0; l < stepLabels.length; l++) {
-        var sl = stepLabels[l];
-        sl.obj.position.y = sl.startY + (sl.endY - sl.startY) * cubicOut;
-      }
-
-      camera.position.lerpVectors(startCam, endCam, smooth);
-      controls.target.lerpVectors(startTgt, endTgt, smooth);
-
-      if (raw < 1) {
-        requestAnimationFrame(frame);
+  var allSettled = true;
+  Object.keys(fabState.layerTimers).forEach(function(k) {
+    var st = fabState.layerTimers[k];
+    if (st && st.active) {
+      st.dropY -= dt * 8.5;
+      if (st.dropY <= 0) {
+        st.dropY = 0;
+        st.active = false;
       } else {
-        resolve();
+        allSettled = false;
       }
     }
-    requestAnimationFrame(frame);
   });
-}
 
-function prefetchStepPcm(step, lang, speaker, signal) {
-  if (!step || typeof fetchSarvamTtsPcm !== 'function') {
-    return Promise.resolve(null);
+  if (typeof allMeshes !== 'undefined') {
+    for (var i = 0; i < allMeshes.length; i++) {
+      var m = allMeshes[i];
+      var st = fabState.layerTimers[m.userData.layer];
+      var rp = m.userData.restPos;
+      if (st && rp) m.position.y = rp.y + st.dropY;
+    }
   }
-  var text = (step.scripts && (step.scripts[lang] || step.scripts['en-IN'])) || step.title;
-  return fetchSarvamTtsPcm(text, lang, speaker, signal, { silentError: true }).catch(function () {
-    return null;
-  });
+  if (typeof labelsList !== 'undefined') {
+    for (var j = 0; j < labelsList.length; j++) {
+      var lbl = labelsList[j];
+      var lst = fabState.layerTimers[lbl.userData.layer];
+      var lrp = lbl.userData.restPos;
+      if (lst && lrp) lbl.position.y = lrp.y + lst.dropY;
+    }
+  }
+
+  if (allSettled) {
+    fabState.phase = 'idle';
+    if (isFabPlaying) {
+      scheduleFabAdvance();
+    }
+  }
 }
 
-function playStepAudioOrFallback(pcmPromise, scriptText, token, signal) {
-  var fallbackMs = Math.max(3000, Math.min(6500, (scriptText ? scriptText.length : 80) * 36));
+function startBuildAnimation() {
+  if (typeof clearSelection === 'function') clearSelection();
+  if (typeof toggleWorkbench === 'function') toggleWorkbench(false);
 
-  function waitWithSpeechSynthesis() {
-    return new Promise(function (resolve) {
-      var resolved = false;
-      function done() {
-        if (resolved) return;
-        resolved = true;
-        resolve();
-      }
+  if (typeof explodeX !== 'undefined') explodeX = 0;
+  if (typeof explodeY !== 'undefined') explodeY = 0;
+  if (typeof explodeZ !== 'undefined') explodeZ = 0;
+  if (typeof resetExplodeAndScrub === 'function') {
+    resetExplodeAndScrub();
+    explodeY = 0;
+    var eyEl0 = document.getElementById('explode-y'); if (eyEl0) eyEl0.value = '0';
+    var veyEl0 = document.getElementById('val-explode-y'); if (veyEl0) veyEl0.textContent = '0%';
+    if (typeof applyExplode === 'function') applyExplode();
+  }
 
-      var timer = setTimeout(done, fallbackMs);
-      if (signal) {
-        signal.addEventListener('abort', function () {
-          clearTimeout(timer);
-          if ('speechSynthesis' in window) {
-            try { window.speechSynthesis.cancel(); } catch (_) {}
-          }
-          done();
-        }, { once: true });
-      }
+  isBuildAnimating = true;
+  isTourRunning = true;
+  isFabPlaying = true;
+  currentFabStep = 0;
 
-      if ('speechSynthesis' in window && scriptText) {
-        try {
-          window.speechSynthesis.cancel();
-          var utter = new SpeechSynthesisUtterance(scriptText);
-          utter.rate = 1.0;
-          utter.onend = function () {
-            clearTimeout(timer);
-            done();
-          };
-          utter.onerror = function () {
-            clearTimeout(timer);
-            done();
-          };
-          window.speechSynthesis.speak(utter);
-        } catch (_) {
-          // fallback timer handles it
+  var banner = document.getElementById('tour-banner');
+  if (banner) banner.style.display = 'flex';
+
+  applyFabStep(0, true);
+}
+
+function pauseBuildAnimation() {
+  if (!isBuildAnimating) return;
+  isFabPlaying = false;
+  if (fabAutoTimer) {
+    clearTimeout(fabAutoTimer);
+    fabAutoTimer = null;
+  }
+  syncTourControls();
+}
+
+function resumeBuildAnimation() {
+  if (!isBuildAnimating) return;
+  isFabPlaying = true;
+  syncTourControls();
+  if (fabState.phase === 'idle') {
+    scheduleFabAdvance();
+  }
+}
+
+function stopBuildAnimation(restoreAll) {
+  if (fabAutoTimer) {
+    clearTimeout(fabAutoTimer);
+    fabAutoTimer = null;
+  }
+  isBuildAnimating = false;
+  isTourRunning = false;
+  isFabPlaying = false;
+  fabState.phase = 'idle';
+  fabState.layerTimers = {};
+  currentFabStep = 0;
+
+  var banner = document.getElementById('tour-banner');
+  if (banner) banner.style.display = 'none';
+
+  if (restoreAll !== false) {
+    if (typeof layerVisibility !== 'undefined') {
+      for (var k in layerVisibility) {
+        if (Object.prototype.hasOwnProperty.call(layerVisibility, k)) {
+          layerVisibility[k] = true;
         }
       }
-    });
+    }
+    if (typeof resetExplodeAndScrub === 'function') {
+      resetExplodeAndScrub();
+    } else if (typeof applyExplode === 'function') {
+      applyExplode();
+    }
+    if (typeof applyLayerVisibility === 'function') applyLayerVisibility();
+    if (typeof syncVisibilityCheckboxes === 'function') syncVisibilityCheckboxes();
+
+    if (typeof camera !== 'undefined' && typeof TOP_VIEW_POS !== 'undefined' && typeof controls !== 'undefined' && typeof INITIAL_TARGET !== 'undefined') {
+      camera.position.copy(TOP_VIEW_POS);
+      controls.target.copy(INITIAL_TARGET);
+      controls.update();
+    }
   }
 
-  return pcmPromise.then(function (pcmBytes) {
-    if (!isTourRunning || token !== tourRunToken) return;
-    if (!pcmBytes || !pcmBytes.byteLength || typeof playBufferedPcm !== 'function') {
-      return waitWithSpeechSynthesis();
-    }
-    return playBufferedPcm(pcmBytes, signal);
-  }).catch(function () {
-    if (!isTourRunning || token !== tourRunToken) return;
-    return waitWithSpeechSynthesis();
-  });
+  syncTourControls();
 }
 
-function updateTourBanner(stepIndex, step, lang) {
-  var hud = document.getElementById('tour-hud');
-  var pill = document.getElementById('tour-step-pill');
-  var title = document.getElementById('tour-title');
-  var scriptEl = document.getElementById('tour-script');
-  var bar = document.getElementById('tour-progress-bar');
+function initBuildAnimationControls() {
+  var btnAnim = document.getElementById('btn-build-anim');
+  var btnPrev = document.getElementById('tb-btn-prev');
+  var btnPause = document.getElementById('tb-btn-pause');
+  var btnNext = document.getElementById('tb-btn-next');
+  var btnClose = document.getElementById('tb-btn-close');
 
-  if (hud) hud.classList.remove('hidden');
-  if (pill) pill.textContent = 'STEP ' + (stepIndex + 1) + ' / ' + TOUR_STEPS.length;
-  if (title) title.textContent = step.title;
-  if (scriptEl) {
-    scriptEl.textContent = (step.scripts && (step.scripts[lang] || step.scripts['en-IN'])) || '';
-  }
-  if (bar) {
-    bar.style.width = (((stepIndex + 1) / TOUR_STEPS.length) * 100).toFixed(1) + '%';
-  }
-}
-
-function stopTour() {
-  if (!isTourRunning) return;
-  isTourRunning = false;
-  tourRunToken++;
-
-  if (tourAbortController) {
-    try { tourAbortController.abort(); } catch (_) {}
-    tourAbortController = null;
-  }
-  if (typeof stopVoiceAudio === 'function') {
-    stopVoiceAudio();
-  }
-  if ('speechSynthesis' in window) {
-    try { window.speechSynthesis.cancel(); } catch (_) {}
-  }
-
-  document.body.classList.remove('tour-running');
-  var tourHud = document.getElementById('tour-hud');
-  if (tourHud) tourHud.classList.add('hidden');
-
-  var btnInner = document.querySelector('#btn-build-anim .tour-btn-inner');
-  if (btnInner) btnInner.textContent = ' PLAY TOUR';
-
-  if (typeof syncVisibilityCheckboxes === 'function') {
-    syncVisibilityCheckboxes();
-  }
-  if (typeof applyExplode === 'function') {
-    applyExplode();
-  }
-  if (typeof applyLogicTint === 'function') {
-    applyLogicTint();
-  }
-}
-
-async function startTour() {
-  if (isTourRunning) {
-    stopTour();
-    return;
-  }
-
-  if (typeof setViewMode === 'function') setViewMode('layout');
-  if (typeof clearSelection === 'function') clearSelection();
-  if (typeof hideAllFlowMarkers === 'function') hideAllFlowMarkers();
-  if (typeof clearGuideLines === 'function') clearGuideLines();
-
-  isTourRunning = true;
-  var token = ++tourRunToken;
-  tourAbortController = new AbortController();
-  var signal = tourAbortController.signal;
-
-  document.body.classList.add('tour-running');
-  var btnInner = document.querySelector('#btn-build-anim .tour-btn-inner');
-  if (btnInner) btnInner.textContent = ' STOP TOUR';
-
-  /* Hide all meshes & labels initially */
-  for (var i = 0; i < allMeshes.length; i++) {
-    allMeshes[i].visible = false;
-  }
-  for (var j = 0; j < labelsList.length; j++) {
-    labelsList[j].visible = false;
-  }
-
-  var pref = getTourLanguageAndSpeaker();
-  var nextAudioPromise = prefetchStepPcm(TOUR_STEPS[0], pref.lang, pref.speaker, signal);
-
-  for (var sIdx = 0; sIdx < TOUR_STEPS.length; sIdx++) {
-    if (!isTourRunning || token !== tourRunToken) break;
-
-    var step = TOUR_STEPS[sIdx];
-    var currentAudioPromise = nextAudioPromise;
-
-    /* Prefetch step i+1 in background while step i plays */
-    if (sIdx + 1 < TOUR_STEPS.length) {
-      nextAudioPromise = prefetchStepPcm(TOUR_STEPS[sIdx + 1], pref.lang, pref.speaker, signal);
-    } else {
-      nextAudioPromise = Promise.resolve(null);
-    }
-
-    updateTourBanner(sIdx, step, pref.lang);
-
-    /* Synchronize UI with this tour step: select node & update Property Inspector */
-    if (step.primaryId && typeof selectById === 'function') {
-      selectById(step.primaryId);
-    }
-
-    /* Check layer visibility checkbox */
-    var targetLayers = step.layers || [step.layer];
-    for (var tl = 0; tl < targetLayers.length; tl++) {
-      var lk = targetLayers[tl];
-      if (typeof layerVisibility !== 'undefined' && layerVisibility.hasOwnProperty(lk)) {
-        layerVisibility[lk] = true;
+  if (btnAnim) {
+    btnAnim.addEventListener('click', function() {
+      if (isBuildAnimating) {
+        stopBuildAnimation(true);
+      } else {
+        startBuildAnimation();
       }
-      var cb = document.querySelector('#sec-layers input[data-layer="' + lk + '"]') ||
-               document.querySelector('.layer-row input[data-layer="' + lk + '"]');
-      if (cb) cb.checked = true;
-    }
-
-    var scriptText = (step.scripts && (step.scripts[pref.lang] || step.scripts['en-IN'])) || step.title;
-
-    var dropPromise = animateStepDropAndCamera(step, token);
-    var audioPromise = playStepAudioOrFallback(currentAudioPromise, scriptText, token, signal);
-
-    await Promise.all([dropPromise, audioPromise]);
-  }
-
-  if (token === tourRunToken && isTourRunning) {
-    stopTour();
-  }
-}
-
-function initTourControls() {
-  var btn = document.getElementById('btn-build-anim');
-  var stopBtn = document.getElementById('tour-stop-btn');
-  if (btn) {
-    btn.addEventListener('click', function () {
-      startTour();
     });
   }
-  if (stopBtn) {
-    stopBtn.addEventListener('click', function () {
-      stopTour();
+
+  if (btnPrev) {
+    btnPrev.addEventListener('click', function() {
+      if (!isBuildAnimating || currentFabStep <= 0) return;
+      applyFabStep(currentFabStep - 1, true);
     });
   }
+
+  if (btnPause) {
+    btnPause.addEventListener('click', function() {
+      if (!isBuildAnimating) return;
+      if (isFabPlaying) pauseBuildAnimation();
+      else resumeBuildAnimation();
+    });
+  }
+
+  if (btnNext) {
+    btnNext.addEventListener('click', function() {
+      if (!isBuildAnimating) return;
+      if (currentFabStep < FAB_STEPS.length - 1) {
+        applyFabStep(currentFabStep + 1, true);
+      } else {
+        stopBuildAnimation(true);
+      }
+    });
+  }
+
+  if (btnClose) {
+    btnClose.addEventListener('click', function() {
+      stopBuildAnimation(true);
+    });
+  }
+
+  syncTourControls();
 }
 
-initTourControls();
+window.updateBuildAnimation = updateBuildAnimation;
+window.startBuildAnimation = startBuildAnimation;
+window.stopBuildAnimation = stopBuildAnimation;
+window.stopTour = function() { stopBuildAnimation(true); };
+
+initBuildAnimationControls();

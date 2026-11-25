@@ -133,6 +133,258 @@
     }
   };
 
+  // =========================================================================
+  // Shared Non-Destructive 3D Selection Highlight Engine
+  // Attaches a translucent tint overlay + crisp CAD edge outline without
+  // mutating base material colors or leaking across shared materials.
+  // =========================================================================
+  function resolveHighlightColor(colorOverride) {
+    if (typeof THREE === 'undefined') return null;
+    if (colorOverride && colorOverride.isColor) return colorOverride.clone();
+    if (typeof colorOverride === 'string' || typeof colorOverride === 'number') {
+      return new THREE.Color(colorOverride);
+    }
+    try {
+      var css = getComputedStyle(document.documentElement).getPropertyValue('--highlight').trim();
+      if (css) return new THREE.Color(css);
+    } catch (_) {}
+    return new THREE.Color('#ff2fb0');
+  }
+
+  function clearNodeHighlight(node) {
+    if (!node || !node.userData) return;
+    if (node.userData._hlOverlay) {
+      if (node.userData._hlOverlay.parent) node.userData._hlOverlay.parent.remove(node.userData._hlOverlay);
+      if (node.userData._hlOverlay.material) node.userData._hlOverlay.material.dispose();
+      node.userData._hlOverlay = null;
+    }
+    if (node.userData._hlEdge) {
+      if (node.userData._hlEdge.parent) node.userData._hlEdge.parent.remove(node.userData._hlEdge);
+      if (node.userData._hlEdge.geometry) node.userData._hlEdge.geometry.dispose();
+      if (node.userData._hlEdge.material) node.userData._hlEdge.material.dispose();
+      node.userData._hlEdge = null;
+    }
+    if (node.isSprite && node.userData._hlSpriteSaved) {
+      if (node.material && node.material.color && node.userData._hlOrigColor) {
+        node.material.color.copy(node.userData._hlOrigColor);
+      }
+      if (node.userData._hlOrigScale) {
+        node.scale.copy(node.userData._hlOrigScale);
+      }
+      node.userData._hlSpriteSaved = false;
+    }
+  }
+
+  function applyNodeHighlight(node, on, hlColor) {
+    if (!node || typeof THREE === 'undefined') return;
+    if (node.userData && node.userData._isHighlightPart) return;
+
+    clearNodeHighlight(node);
+    if (!on) return;
+
+    if (node.isSprite) {
+      if (!node.userData._hlSpriteSaved) {
+        node.userData._hlOrigScale = node.scale.clone();
+        node.userData._hlOrigColor = (node.material && node.material.color) ? node.material.color.clone() : null;
+        node.userData._hlSpriteSaved = true;
+      }
+      if (node.material && node.material.color) {
+        node.material.color.copy(hlColor);
+      }
+      node.scale.set(node.userData._hlOrigScale.x * 1.35, node.userData._hlOrigScale.y * 1.35, node.userData._hlOrigScale.z);
+      return;
+    }
+
+    if (!node.isMesh || (node.userData && node.userData.decorative) || !node.geometry) return;
+
+    var clipPlanes = (node.material && node.material.clippingPlanes) ||
+                     (typeof root.renderer !== 'undefined' && root.renderer && root.renderer.clippingPlanes) ||
+                     null;
+
+    var ovMat = new THREE.MeshBasicMaterial({
+      color: hlColor.clone(),
+      transparent: true,
+      opacity: 0.22,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4,
+      clippingPlanes: clipPlanes
+    });
+    var ovMesh = new THREE.Mesh(node.geometry, ovMat);
+    ovMesh.userData._isHighlightPart = true;
+    ovMesh.renderOrder = 60;
+    ovMesh.raycast = function () {};
+    node.add(ovMesh);
+    node.userData._hlOverlay = ovMesh;
+
+    try {
+      var edgeGeo = new THREE.EdgesGeometry(node.geometry, 24);
+      var edgeMat = new THREE.LineBasicMaterial({
+        color: hlColor.clone(),
+        transparent: true,
+        opacity: 0.95,
+        depthWrite: false,
+        clippingPlanes: clipPlanes
+      });
+      var edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+      edgeLines.userData._isHighlightPart = true;
+      edgeLines.renderOrder = 61;
+      edgeLines.raycast = function () {};
+      node.add(edgeLines);
+      node.userData._hlEdge = edgeLines;
+    } catch (_) {}
+  }
+
+  var SiliconSelectionHighlight = {
+    apply: function (obj, on, colorOverride) {
+      if (!obj) return;
+      var hlColor = on ? resolveHighlightColor(colorOverride) : null;
+      if (typeof obj.traverse === 'function') {
+        obj.traverse(function (child) {
+          if (child.userData && child.userData._isHighlightPart) return;
+          applyNodeHighlight(child, !!on, hlColor);
+        });
+      } else {
+        applyNodeHighlight(obj, !!on, hlColor);
+      }
+    },
+    updateColor: function (meshes, colorOverride) {
+      if (!meshes || !meshes.length) return;
+      var hlColor = resolveHighlightColor(colorOverride);
+      if (!hlColor) return;
+      for (var i = 0; i < meshes.length; i++) {
+        var obj = meshes[i];
+        if (!obj || typeof obj.traverse !== 'function') continue;
+        obj.traverse(function (child) {
+          if (child.userData && child.userData._hlOverlay && child.userData._hlOverlay.material) {
+            child.userData._hlOverlay.material.color.copy(hlColor);
+          }
+          if (child.userData && child.userData._hlEdge && child.userData._hlEdge.material) {
+            child.userData._hlEdge.material.color.copy(hlColor);
+          }
+        });
+      }
+    }
+  };
+  root.SiliconSelectionHighlight = SiliconSelectionHighlight;
+
+  // =========================================================================
+  // Shared 3-State Viewport Auto-Rotation Control (Off -> CW -> CCW -> Off)
+  // =========================================================================
+  var AUTO_ROTATE_STATES = ['off', 'cw', 'ccw'];
+  var autoRotateState = 'off';
+
+  function getAutoRotateButtonHtml(state) {
+    var iconSvg = '';
+    var labelText = 'Auto-Rotate: Off';
+    if (state === 'cw') {
+      iconSvg = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><polyline points="21 3 21 9 15 9"></polyline></svg>';
+      labelText = 'Auto-Rotate: CW';
+    } else if (state === 'ccw') {
+      iconSvg = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 2.64-6.36"></path><polyline points="3 3 3 9 9 9"></polyline></svg>';
+      labelText = 'Auto-Rotate: CCW';
+    } else {
+      iconSvg = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path><polyline points="21 3 21 8 16 8"></polyline></svg>';
+      labelText = 'Auto-Rotate: Off';
+    }
+    return '<span class="ar-icon">' + iconSvg + '</span><span class="ar-label">' + labelText + '</span>';
+  }
+
+  function applyAutoRotateState(state) {
+    autoRotateState = state;
+    var ctrl = root.controls;
+    if (ctrl) {
+      if (state === 'cw') {
+        ctrl.autoRotate = true;
+        ctrl.autoRotateSpeed = -2.0;
+      } else if (state === 'ccw') {
+        ctrl.autoRotate = true;
+        ctrl.autoRotateSpeed = 2.0;
+      } else {
+        ctrl.autoRotate = false;
+      }
+    }
+
+    var btn = document.getElementById('btn-auto-rotate');
+    if (btn) {
+      btn.setAttribute('data-rotate-state', state);
+      btn.classList.toggle('is-active', state !== 'off');
+      btn.innerHTML = getAutoRotateButtonHtml(state);
+      var tip = state === 'cw'
+        ? 'Auto-Rotate: Clockwise (CW) — Click for Counter-Clockwise (CCW)'
+        : (state === 'ccw'
+          ? 'Auto-Rotate: Counter-Clockwise (CCW) — Click to Stop'
+          : 'Auto-Rotate: Off — Click for Clockwise (CW)');
+      btn.title = tip;
+      btn.setAttribute('aria-label', tip);
+    }
+  }
+
+  function syncAutoRotateVisibility() {
+    var btn = document.getElementById('btn-auto-rotate');
+    if (!btn) return;
+    var theoryEl = document.getElementById('theory-overlay');
+    var schEl = document.getElementById('schematic-overlay');
+    var j2dEl = document.getElementById('junction-2d-overlay');
+    var isHiddenOverlay = function (el) {
+      if (!el) return false;
+      return el.classList.contains('visible') || el.style.display === 'block' || el.style.display === 'flex';
+    };
+    var hide = isHiddenOverlay(theoryEl) || isHiddenOverlay(schEl) || isHiddenOverlay(j2dEl);
+    btn.style.display = hide ? 'none' : '';
+  }
+
+  function initAutoRotateControl() {
+    var vp = document.getElementById('viewport-wrap');
+    if (!vp) return;
+    var btn = document.getElementById('btn-auto-rotate');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = 'btn-auto-rotate';
+      btn.className = 'auto-rotate-btn';
+      vp.appendChild(btn);
+    }
+    if (!btn.dataset.arBound) {
+      btn.dataset.arBound = '1';
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var idx = AUTO_ROTATE_STATES.indexOf(autoRotateState);
+        var next = AUTO_ROTATE_STATES[(idx + 1) % AUTO_ROTATE_STATES.length];
+        applyAutoRotateState(next);
+      });
+    }
+    applyAutoRotateState(autoRotateState);
+    syncAutoRotateVisibility();
+
+    if (typeof MutationObserver !== 'undefined') {
+      ['theory-overlay', 'schematic-overlay', 'junction-2d-overlay'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el && !el.dataset.arObserved) {
+          el.dataset.arObserved = '1';
+          var obs = new MutationObserver(syncAutoRotateVisibility);
+          obs.observe(el, { attributes: true, attributeFilter: ['class', 'style'] });
+        }
+      });
+    }
+  }
+
+  root.SiliconAutoRotate = {
+    init: initAutoRotateControl,
+    setState: applyAutoRotateState,
+    getState: function () { return autoRotateState; }
+  };
+
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAutoRotateControl);
+    } else {
+      initAutoRotateControl();
+    }
+  }
+
   root.SiliconViewer = SiliconViewer;
 
 })(typeof window !== 'undefined' ? window : this);

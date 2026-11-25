@@ -1,60 +1,184 @@
 /**
  * selection.js - PN Junction Diode CAD Viewer
- * 3D Raycasting, element picking, popover card presentation,
- * and cross-linking between 3D CAD, Architecture Tree, and Property Inspector.
+ * 3D Raycasting (6px drag threshold), non-destructive mesh highlighting,
+ * popover card presentation, and cross-linking between 3D CAD,
+ * Architecture Tree, and Property Inspector.
  */
 
 var raycaster = new THREE.Raycaster();
 var mouse = new THREE.Vector2();
 var lastSelectedId = null;
+var selectedMeshes = [];
+
+var pointerDownCanvas = false;
+var pointerDownPos = { x: 0, y: 0 };
+var isDragCanvas = false;
+var DRAG_DISTANCE_THRESHOLD = 6; // px
 
 var popoverEl = document.getElementById('popover');
 var popoverContentEl = document.getElementById('popover-content');
 var popoverCloseBtn = document.getElementById('pop-close');
 
+function meshesForId(id) {
+  if (!id || typeof clickableMeshes === 'undefined') return [];
+  var out = [];
+  clickableMeshes.forEach(function (m) {
+    if (!m || !m.userData) return;
+    if (m.userData.id === id) {
+      out.push(m);
+    } else if (id === 'silicide' && (m.userData.id === 'anodeSilicide' || m.userData.id === 'cathodeSilicide')) {
+      out.push(m);
+    }
+  });
+  return out;
+}
+
+function clearSelection() {
+  if (typeof SiliconSelectionHighlight !== 'undefined') {
+    selectedMeshes.forEach(function (m) {
+      SiliconSelectionHighlight.apply(m, false);
+    });
+  }
+  selectedMeshes = [];
+  lastSelectedId = null;
+
+  document.querySelectorAll('.tree-node.active, .tree-node.selected').forEach(function (n) {
+    n.classList.remove('active', 'selected');
+  });
+
+  var crumbSel = document.getElementById('crumb-sel');
+  if (crumbSel) crumbSel.textContent = '';
+
+  var inspector = document.getElementById('inspector');
+  if (inspector) {
+    inspector.innerHTML = '<div class="empty">Click any layer in the 3D model, schematic, or tree to inspect its electrical role, doping, and physics.</div>';
+  }
+
+  hidePopover();
+
+  if (typeof window.clearVoiceAssistantContext === 'function') {
+    window.clearVoiceAssistantContext();
+  }
+}
+window.clearSelection = clearSelection;
+
+function highlightMeshes(meshes) {
+  if (typeof SiliconSelectionHighlight !== 'undefined') {
+    selectedMeshes.forEach(function (m) {
+      SiliconSelectionHighlight.apply(m, false);
+    });
+  }
+  selectedMeshes = [];
+  meshes.forEach(function (m) {
+    if (typeof SiliconSelectionHighlight !== 'undefined') {
+      SiliconSelectionHighlight.apply(m, true);
+    }
+    selectedMeshes.push(m);
+  });
+}
+
 function initSelection() {
   if (renderer && renderer.domElement) {
-    renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown);
+    renderer.domElement.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0) return;
+      pointerDownCanvas = true;
+      pointerDownPos.x = e.clientX;
+      pointerDownPos.y = e.clientY;
+      isDragCanvas = false;
+    });
+
+    window.addEventListener('pointermove', function (e) {
+      if (!pointerDownCanvas) return;
+      var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+      if (dist > DRAG_DISTANCE_THRESHOLD) {
+        isDragCanvas = true;
+      }
+    });
+
+    window.addEventListener('pointerup', function (e) {
+      if (pointerDownCanvas) {
+        var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+        if (dist > DRAG_DISTANCE_THRESHOLD) {
+          isDragCanvas = true;
+        }
+      }
+      setTimeout(function () {
+        pointerDownCanvas = false;
+        isDragCanvas = false;
+      }, 40);
+    });
+
+    renderer.domElement.addEventListener('click', onCanvasClick);
   }
 
   if (popoverCloseBtn) {
-    popoverCloseBtn.addEventListener('click', hidePopover);
+    popoverCloseBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      clearSelection();
+    });
   }
 }
 
-function onCanvasPointerDown(e) {
+function isObjectVisibleInHierarchy(obj) {
+  var cur = obj;
+  while (cur) {
+    if (cur.visible === false) return false;
+    cur = cur.parent;
+  }
+  return true;
+}
+
+function onCanvasClick(e) {
   if (currentViewMode !== 'layout') return;
-  // Ignore clicks that originated from overlays or controls
   if (e.target !== renderer.domElement) return;
+  if (!pointerDownCanvas || isDragCanvas) return;
+  var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+  if (dist > DRAG_DISTANCE_THRESHOLD) return;
 
   var rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
+  scene.updateMatrixWorld(true);
   raycaster.setFromCamera(mouse, activeCamera);
-  var hits = raycaster.intersectObjects(clickableMeshes, true);
+
+  var hits = raycaster.intersectObjects(clickableMeshes, true).filter(function (h) {
+    var obj = h.object;
+    if (!obj || (obj.userData && obj.userData._isHighlightPart)) return false;
+    if (obj.isLine || obj.isLineSegments || obj.isPoints) return false;
+    if (!isObjectVisibleInHierarchy(obj)) return false;
+    if (obj.material && typeof obj.material.opacity === 'number' && obj.material.opacity <= 0.01) return false;
+    return true;
+  });
 
   if (hits.length > 0) {
     var hitObj = hits[0].object;
-    // Climb up to find userData.id if child line or sub-mesh was clicked
     while (hitObj && (!hitObj.userData || !hitObj.userData.id) && hitObj.parent && hitObj.parent !== scene) {
       hitObj = hitObj.parent;
     }
     var targetId = hitObj && hitObj.userData ? hitObj.userData.id : null;
     if (targetId) {
       selectComponentById(targetId, e.clientX, e.clientY);
+      return;
     }
-  } else {
-    hidePopover();
   }
+
+  clearSelection();
 }
 
 function selectComponentById(id, clientX, clientY) {
-  lastSelectedId = id;
   var info = idToInfo(id);
   if (!info) return;
 
-  // 1. Update Property Inspector in Right Panel
+  lastSelectedId = id;
+  highlightMeshes(meshesForId(id));
+
+  var crumbSel = document.getElementById('crumb-sel');
+  if (crumbSel) {
+    crumbSel.textContent = '— ' + info.title;
+  }
+
+  // 1. Update Property Inspector in Left Workbench
   updateInspector(info);
 
   // 2. Highlight Architecture Tree Node
@@ -121,6 +245,7 @@ function highlightTreeNode(id) {
   var treeNodes = document.querySelectorAll('.tree-node');
   treeNodes.forEach(function (n) {
     n.classList.toggle('active', n.dataset.id === id);
+    n.classList.toggle('selected', n.dataset.id === id);
   });
 }
 
@@ -144,7 +269,6 @@ function showPopover(info, clientX, clientY) {
   var x = clientX || (window.innerWidth / 2);
   var y = clientY || (window.innerHeight / 2 - 80);
 
-  // Position popover and clamp to viewport
   popoverEl.style.left = Math.min(window.innerWidth - 300, Math.max(20, x - 140)) + 'px';
   popoverEl.style.top = Math.min(window.innerHeight - 150, Math.max(60, y - 90)) + 'px';
   popoverEl.classList.add('visible');

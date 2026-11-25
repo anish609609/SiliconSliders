@@ -77,34 +77,50 @@ function initFlowControls() {
 function getPlanarPoint(t, zOffset, xJitter) {
   t = Math.max(0.0, Math.min(1.0, t));
   var x, y, z;
-  z = zOffset || 0.0;
+  var zOff = zOffset || 0.0;
   var xj = xJitter || 0.0;
 
+  var exp = window.pnExplodeState || { pctX: 0, pctY: 0, pctZ: 0 };
+  var px = exp.pctX || 0;
+  var py = exp.pctY || 0;
+  var pz = exp.pctZ || 0;
+
+  var anodeX = -4.8 - px * 4.0;
+  var cathodeX = 4.8 + px * 4.0;
+  var juncX = -1.6 - px * 2.0;
+
   if (t < 0.18) {
-    // 1. Descending Anode Tungsten Via: from Y = 2.0 to 0.0 at X = -4.8
+    // 1. Descending Anode Tungsten Via -> P+ Anode Tub
     var s = t / 0.18;
-    x = -4.8 + xj * 0.4;
-    y = 2.0 - s * 2.0;
+    x = anodeX + xj * 0.4;
+    y = (2.0 + py * 15.2) * (1 - s) + (py * 9.0) * s;
+    z = zOff + (pz * 6.8) * (1 - s) + (pz * 0.8) * s;
   } else if (t < 0.40) {
-    // 2. Curving through P+ Anode Tub towards metallurgical junction (X = -1.6)
+    // 2. Curving through P+ Anode Tub towards metallurgical junction
     var s2 = (t - 0.18) / 0.22;
-    x = -4.8 + s2 * 3.2 + xj * 0.6;
-    y = -s2 * 1.0 - 0.2 * Math.sin(s2 * Math.PI);
+    x = anodeX + s2 * (juncX - anodeX) + xj * 0.6;
+    y = (-s2 * 1.0 - 0.2 * Math.sin(s2 * Math.PI)) + (py * 9.0) * (1 - s2) + (py * 6.8) * s2;
+    z = zOff + (pz * 0.8) * (1 - s2) + (-pz * 1.8) * s2;
   } else if (t < 0.62) {
     // 3. Crossing Conformal Depletion Shell & N-Well towards N+ Tap
     var s3 = (t - 0.40) / 0.22;
-    x = -1.6 + s3 * 3.6 + xj * 0.5;
-    y = -1.0 - 0.3 * Math.cos(s3 * Math.PI);
+    var tapEdgeX = 2.0 + px * 4.0;
+    x = juncX + s3 * (tapEdgeX - juncX) + xj * 0.5;
+    y = (-1.0 - 0.3 * Math.cos(s3 * Math.PI)) + (py * 6.8) * (1 - s3) + (py * 10.8) * s3;
+    z = zOff + (-pz * 1.8) * (1 - s3) + (pz * 0.8) * s3;
   } else if (t < 0.82) {
     // 4. Entering N+ Cathode Tap and curving up toward via base
     var s4 = (t - 0.62) / 0.20;
-    x = 2.0 + s4 * 2.8 + xj * 0.4;
-    y = -1.0 + s4 * 1.0;
+    var tapEdgeX2 = 2.0 + px * 4.0;
+    x = tapEdgeX2 + s4 * (cathodeX - tapEdgeX2) + xj * 0.4;
+    y = (-1.0 + s4 * 1.0) + py * 10.8;
+    z = zOff + pz * 0.8;
   } else {
-    // 5. Ascending Cathode Tungsten Via: from Y = 0.0 to 2.0 at X = +4.8
+    // 5. Ascending Cathode Tungsten Via
     var s5 = (t - 0.82) / 0.18;
-    x = 4.8 + xj * 0.4;
-    y = s5 * 2.0;
+    x = cathodeX + xj * 0.4;
+    y = (py * 10.8) * (1 - s5) + (2.0 + py * 15.2) * s5;
+    z = zOff + (pz * 0.8) * (1 - s5) + (pz * 6.8) * s5;
   }
 
   return { x: x, y: y, z: z };

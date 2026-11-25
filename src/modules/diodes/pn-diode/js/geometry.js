@@ -71,6 +71,21 @@ var depMidLoop = null;
 var breakdownGlowMesh = null;
 var fixedIonsPGroup = null;
 var fixedIonsNGroup = null;
+var stiMesh = null;
+var stiRimMesh1 = null;
+var stiRimMesh2 = null;
+var ildCenterMesh = null;
+var ildOuterLeft = null;
+var ildOuterRight = null;
+var anodeSilicideMesh = null;
+var cathodeSilicideMesh = null;
+var anodeVias = [];
+var cathodeVias = [];
+var anodeMesh = null;
+var cathodeMesh = null;
+var lblAnode = null;
+var lblCathode = null;
+var lblJunction = null;
 
 var DEP_LAYERS = 14;
 var DEP_PERIM = 40;
@@ -260,6 +275,10 @@ function updateDepletionShellVertices(xpVis, xnVis) {
   if (depMidLoop) {
     depMidLoop.geometry.getAttribute('position').needsUpdate = true;
     depMidLoop.geometry.computeBoundingSphere();
+  }
+
+  if (depletionShellMesh && depletionShellMesh.userData && depletionShellMesh.userData._hlEdge && typeof SiliconSelectionHighlight !== 'undefined') {
+    SiliconSelectionHighlight.apply(depletionShellMesh, true);
   }
 }
 
@@ -732,6 +751,7 @@ function buildDiodeGeometry() {
   breakdownGlowMesh = new THREE.Mesh(glowGeo, diodeMaterials.breakdownGlow);
   breakdownGlowMesh.position.set(-1.6, -P_TUB_D / 2, 0);
   breakdownGlowMesh.userData = { id: 'breakdownGlow', layerKey: 'field' };
+  clickableMeshes.push(breakdownGlowMesh);
   groups.field.add(breakdownGlowMesh);
 
   // =========================================================================
@@ -739,10 +759,12 @@ function buildDiodeGeometry() {
   // =========================================================================
   fixedIonsPGroup = new THREE.Group();
   fixedIonsPGroup.userData = { id: 'fixedIonsP', layerKey: 'ions' };
+  clickableMeshes.push(fixedIonsPGroup);
   groups.ions.add(fixedIonsPGroup);
 
   fixedIonsNGroup = new THREE.Group();
   fixedIonsNGroup.userData = { id: 'fixedIonsN', layerKey: 'ions' };
+  clickableMeshes.push(fixedIonsNGroup);
   groups.ions.add(fixedIonsNGroup);
 
   buildIonMarkers();
@@ -752,7 +774,7 @@ function buildDiodeGeometry() {
   // =========================================================================
   // 7a. Shallow Trench Isolation (STI) between P+ tub and N+ tap: X in [-1.6, 2.0]
   var stiGeo = new THREE.BoxGeometry(3.6, 0.8, P_TUB_L + 1.2);
-  var stiMesh = new THREE.Mesh(stiGeo, diodeMaterials.sti);
+  stiMesh = new THREE.Mesh(stiGeo, diodeMaterials.sti);
   stiMesh.position.set(0.2, -0.4 + 0.003, 0); // Y: -0.8 to 0.003
   stiMesh.renderOrder = 3;
   stiMesh.userData = { id: 'sti', layerKey: 'passivation' };
@@ -761,38 +783,46 @@ function buildDiodeGeometry() {
 
   // Outer Perimeter STI surrounding well edges
   var stiRimGeo1 = new THREE.BoxGeometry(2.5, 0.8, WELL_W);
-  var stiRimMesh1 = new THREE.Mesh(stiRimGeo1, diodeMaterials.sti);
+  stiRimMesh1 = new THREE.Mesh(stiRimGeo1, diodeMaterials.sti);
   stiRimMesh1.position.set(-9.25, -0.4, 0);
+  stiRimMesh1.userData = { id: 'sti', layerKey: 'passivation' };
+  clickableMeshes.push(stiRimMesh1);
   groups.passivation.add(stiRimMesh1);
 
   var stiRimGeo2 = new THREE.BoxGeometry(2.5, 0.8, WELL_W);
-  var stiRimMesh2 = new THREE.Mesh(stiRimGeo2, diodeMaterials.sti);
+  stiRimMesh2 = new THREE.Mesh(stiRimGeo2, diodeMaterials.sti);
   stiRimMesh2.position.set(9.25, -0.4, 0);
+  stiRimMesh2.userData = { id: 'sti', layerKey: 'passivation' };
+  clickableMeshes.push(stiRimMesh2);
   groups.passivation.add(stiRimMesh2);
 
   // 7b. Interlayer Dielectric (ILD Passivation SiO2)
   // Surface slab from Y = 0.0 to Y = 1.6 with etched contact cuts
   var ildHeight = 1.6;
   var ildCenterGeo = new THREE.BoxGeometry(4.8, ildHeight, P_TUB_L);
-  var ildCenterMesh = new THREE.Mesh(ildCenterGeo, diodeMaterials.passivation);
+  ildCenterMesh = new THREE.Mesh(ildCenterGeo, diodeMaterials.passivation);
   ildCenterMesh.position.set(0.0, ildHeight / 2 + 0.012, 0); // Center between via windows
   ildCenterMesh.renderOrder = 6;
   ildCenterMesh.userData = { id: 'passivation', layerKey: 'passivation' };
   clickableMeshes.push(ildCenterMesh);
   groups.passivation.add(ildCenterMesh);
 
-  var ildOuterLeft = new THREE.Mesh(
+  ildOuterLeft = new THREE.Mesh(
     new THREE.BoxGeometry(3.5, ildHeight, P_TUB_L),
     diodeMaterials.passivation
   );
   ildOuterLeft.position.set(-9.25, ildHeight / 2, 0);
+  ildOuterLeft.userData = { id: 'passivation', layerKey: 'passivation' };
+  clickableMeshes.push(ildOuterLeft);
   groups.passivation.add(ildOuterLeft);
 
-  var ildOuterRight = new THREE.Mesh(
+  ildOuterRight = new THREE.Mesh(
     new THREE.BoxGeometry(3.5, ildHeight, P_TUB_L),
     diodeMaterials.passivation
   );
   ildOuterRight.position.set(9.25, ildHeight / 2, 0);
+  ildOuterRight.userData = { id: 'passivation', layerKey: 'passivation' };
+  clickableMeshes.push(ildOuterRight);
   groups.passivation.add(ildOuterRight);
 
   // =========================================================================
@@ -822,8 +852,8 @@ function buildDiodeGeometry() {
   }
 
   // Placed strictly over contact zones (x=-4.8 & x=+4.8) beneath W vias, clear of STI & junction edges
-  buildDiodeSilicidePad(1.9, 6.6, -4.8, 'anodeSilicide');
-  buildDiodeSilicidePad(2.4, 6.6, 4.8, 'cathodeSilicide');
+  anodeSilicideMesh = buildDiodeSilicidePad(1.9, 6.6, -4.8, 'anodeSilicide');
+  cathodeSilicideMesh = buildDiodeSilicidePad(2.4, 6.6, 4.8, 'cathodeSilicide');
 
   // =========================================================================
   // 8. TUNGSTEN CONTACT VIAS (W VIA PLUGS - land flush atop NiSi pads)
@@ -833,6 +863,8 @@ function buildDiodeGeometry() {
   var viaSegH = viaH - viaBot;
   var viaR = 0.28;
   var viaZOffsets = [-2.4, 0.0, 2.4];
+  anodeVias = [];
+  cathodeVias = [];
 
   // Anode Tungsten Vias (X = -4.8, landing cleanly atop Anode NiSi pad)
   viaZOffsets.forEach(function (vz, idx) {
@@ -843,6 +875,7 @@ function buildDiodeGeometry() {
     vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'anode_' + idx };
     clickableMeshes.push(vMesh);
     groups.contact.add(vMesh);
+    anodeVias.push(vMesh);
   });
 
   // Cathode Tungsten Vias (X = +4.8, landing cleanly atop Cathode NiSi pad)
@@ -854,6 +887,7 @@ function buildDiodeGeometry() {
     vMesh.userData = { id: 'tungstenVias', layerKey: 'contact', viaIdx: 'cathode_' + idx };
     clickableMeshes.push(vMesh);
     groups.contact.add(vMesh);
+    cathodeVias.push(vMesh);
   });
 
   // =========================================================================
@@ -865,7 +899,7 @@ function buildDiodeGeometry() {
 
   // Anode Metal-1 Pad (Left, X = -4.8, atop vias at Y = viaH + padH/2)
   var anodePadGeo = new THREE.BoxGeometry(padW, padH, padL);
-  var anodeMesh = new THREE.Mesh(anodePadGeo, diodeMaterials.metal);
+  anodeMesh = new THREE.Mesh(anodePadGeo, diodeMaterials.metal);
   anodeMesh.position.set(-4.8, viaH + padH / 2, 0);
   anodeMesh.castShadow = true;
   anodeMesh.userData = { id: 'anodeMetal', layerKey: 'metal' };
@@ -881,7 +915,7 @@ function buildDiodeGeometry() {
 
   // Cathode Metal-1 Pad (Right, X = +4.8, atop vias at Y = viaH + padH/2)
   var cathodePadGeo = new THREE.BoxGeometry(padW, padH, padL);
-  var cathodeMesh = new THREE.Mesh(cathodePadGeo, diodeMaterials.metal);
+  cathodeMesh = new THREE.Mesh(cathodePadGeo, diodeMaterials.metal);
   cathodeMesh.position.set(4.8, viaH + padH / 2, 0);
   cathodeMesh.castShadow = true;
   cathodeMesh.userData = { id: 'cathodeMetal', layerKey: 'metal' };
@@ -898,17 +932,17 @@ function buildDiodeGeometry() {
   // =========================================================================
   // 10. 3D FLOATING TERMINAL LABELS
   // =========================================================================
-  var lblAnode = makeLabelSprite('ANODE (A)', '#ea580c', 'P+ Anode Terminal (VA)');
+  lblAnode = makeLabelSprite('ANODE (A)', '#ea580c', 'P+ Anode Terminal (VA)');
   lblAnode.position.set(-4.8, viaH + padH + 1.8, 0);
   groups.labels.add(lblAnode);
   interactiveLabels.push(lblAnode);
 
-  var lblCathode = makeLabelSprite('CATHODE (K)', '#1d4ed8', 'N+ Cathode Terminal (GND)');
+  lblCathode = makeLabelSprite('CATHODE (K)', '#1d4ed8', 'N+ Cathode Terminal (GND)');
   lblCathode.position.set(4.8, viaH + padH + 1.8, 0);
   groups.labels.add(lblCathode);
   interactiveLabels.push(lblCathode);
 
-  var lblJunction = makeLabelSprite('P+/N JUNCTION', '#94a3b8', 'Metallurgical Boundary');
+  lblJunction = makeLabelSprite('P+/N JUNCTION', '#94a3b8', 'Metallurgical Boundary');
   lblJunction.position.set(-1.6, -P_TUB_D - 1.2, 0);
   groups.labels.add(lblJunction);
   interactiveLabels.push(lblJunction);

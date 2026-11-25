@@ -670,10 +670,15 @@
     font-size: 10px;
     transition: all 0.15s ease;
   }
-  .tour-banner .tb-btn:hover {
+  .tour-banner .tb-btn:hover:not(:disabled) {
     color: var(--text);
     border-color: var(--border);
     background: var(--panel-2);
+  }
+  .tour-banner .tb-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
   }
   .tour-banner .tb-desc {
     font-size: 10.5px;

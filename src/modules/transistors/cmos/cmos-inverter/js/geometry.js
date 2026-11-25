@@ -741,7 +741,7 @@ var POLY_CT_Z = PMOS_Z1 + 0.3;             // IN contact — on the poly tail, j
 
 var RAIL_Z = PMOS_Z1 + 1.6;                // VDD/GND rails sit outside active/poly footprint
 
-var LAYER_ORDER = ['substrate','well','active','oxide','highk','poly','spacer','silicide','contact','metal'];
+var LAYER_ORDER = ['substrate','well','active','sde','oxide','highk','poly','spacer','silicide','contact','metal'];
 var EXPLODE_GAP = 3.2;
 
 var groups = {};
@@ -849,7 +849,7 @@ function buildActiveRow(zc, srcColorVar, sdeColorVar, idPrefix, layerKey, doping
   });
   put(srcSde, -0.925, sdeMidY, zc);
   srcSde.userData.colorVar = sdeColorVar;
-  reg(srcSde, idPrefix+'SrcSde', layerKey);
+  reg(srcSde, idPrefix+'SrcSde', 'sde');
 
   // Decorative gate inversion channel segment under the gate
   var gateSeg = box(CH.max-CH.min, actH*0.7, ACTIVE_W, srcColorVar,
@@ -873,7 +873,7 @@ function buildActiveRow(zc, srcColorVar, sdeColorVar, idPrefix, layerKey, doping
   });
   put(drnSde, 0.925, sdeMidY, zc);
   drnSde.userData.colorVar = sdeColorVar;
-  reg(drnSde, idPrefix+'DrnSde', layerKey);
+  reg(drnSde, idPrefix+'DrnSde', 'sde');
 
   // Drain — shallow Gaussian implant
   var drn = gaussianDopingMesh(actW_D, actH, ACTIVE_W, srcColorVar, {
@@ -1411,7 +1411,7 @@ function addLabel(text, x,y,z, colorHex, groupKey){
 }
 addLabel('VDD', -9, Y.metalTop+0.6, RAIL_Z, '#e35d5d', 'metal');
 addLabel('PMOS', SRC_X-1.2, Y.actTop+0.9, PMOS_ZC, '#cf8a4a', 'active');
-addLabel('P-SDE', -0.925, Y.actTop+0.45, PMOS_ZC - 3.4, '#f0b47a', 'active');
+addLabel('P-SDE', -0.925, Y.actTop+0.45, PMOS_ZC - 3.4, '#f0b47a', 'sde');
 addLabel('N-WELL', 4.8, Y.wellTop+0.5, nwellZC, '#3f8f6f', 'well');
 addLabel('P-WELL', 4.8, Y.wellTop+0.5, pwellZC, '#4a92c9', 'well');
 addLabel('POLY GATE', 0, Y.polyTop+0.7, 0, '#d8503c', 'poly');
@@ -1420,7 +1420,7 @@ addLabel('SiO2 OXIDE', 1.9, Y.oxideTop+0.35, PMOS_ZC, '#8fc9dc', 'oxide');
 addLabel('IN', 0, Y.metalTop+0.6, POLY_CT_Z+1.1, '#e6c94a', 'metal');
 addLabel('OUT', DRN_X+3.6, Y.metalTop+0.6, 0, '#57cf8f', 'metal');
 addLabel('NMOS', SRC_X-1.2, Y.actTop+0.9, NMOS_ZC, '#4a92c9', 'active');
-addLabel('N-SDE', -0.925, Y.actTop+0.45, NMOS_ZC - 3.4, '#8fd0f8', 'active');
+addLabel('N-SDE', -0.925, Y.actTop+0.45, NMOS_ZC - 3.4, '#8fd0f8', 'sde');
 addLabel('P-SUBSTRATE', 8.5, Y.subTop+0.4, 0, '#9aa6b6', 'substrate');
 addLabel('GND', -9, Y.metalTop+0.6, -RAIL_Z, '#9aa6b6', 'metal');
 

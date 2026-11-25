@@ -58,13 +58,25 @@ function idToInfo(id){
 }
 
 function meshesForId(id){
-  if (VIRTUAL[id]) return VIRTUAL[id].meshes.map(findMesh).filter(Boolean);
-  var m = findMesh(id);
-  return m ? [m] : [];
+  if (VIRTUAL[id]) {
+    var vList = [];
+    VIRTUAL[id].meshes.forEach(function(mid){
+      findAllMeshes(mid).forEach(function(m){
+        if (vList.indexOf(m) === -1) vList.push(m);
+      });
+    });
+    return vList;
+  }
+  return findAllMeshes(id);
 }
 function findMesh(id){
   for (var i=0;i<selectable.length;i++){ if (selectable[i].userData.id === id) return selectable[i]; }
   return null;
+}
+function findAllMeshes(id){
+  var out = [];
+  for (var i=0;i<selectable.length;i++){ if (selectable[i].userData.id === id) out.push(selectable[i]); }
+  return out;
 }
 
 // build tree DOM

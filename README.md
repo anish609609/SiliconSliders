@@ -1,7 +1,7 @@
 # Silicon Sliders — Interactive 3D Semiconductor CAD & Fab Engineering Platform
 
 [![Platform](https://img.shields.io/badge/Platform-Silicon%20Sliders-00e5ff.svg)](index.html)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Zero Build Overhead](https://img.shields.io/badge/Build-Zero%20Bundler%20Overhead-ffcf4d.svg)](index.html)
 [![Three.js](https://img.shields.io/badge/3D-Three.js%20r128-a855f7.svg)](https://threejs.org/)
 
@@ -167,4 +167,4 @@ The Silicon Sliders architecture is engineered to make adding new devices, proce
 
 ## 📄 License & Attribution
 
-This project is open-source under the [MIT License](LICENSE).
+This project is open-source under the [Apache License 2.0](LICENSE).

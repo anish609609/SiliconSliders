@@ -100,6 +100,9 @@ function applyTheme(theme, savePreference){
   if (typeof HIGHLIGHT_COLOR !== 'undefined' && typeof cssVar === 'function'){
     var hlHex = cssVar('--highlight');
     if (hlHex) HIGHLIGHT_COLOR.set(hlHex);
+    if (typeof SiliconSelectionHighlight !== 'undefined' && typeof selectedMeshes !== 'undefined') {
+      SiliconSelectionHighlight.updateColor(selectedMeshes, HIGHLIGHT_COLOR);
+    }
   }
 
   // 4. Update carrier flow marker theme colors

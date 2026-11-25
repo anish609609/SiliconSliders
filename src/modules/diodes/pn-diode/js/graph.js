@@ -20,12 +20,21 @@ var isDraggingIV = false;
 var modalCanvas = document.getElementById('iv-modal-canvas');
 var modalBackdrop = document.getElementById('iv-modal-backdrop');
 var isModalOpen = false;
+var modalResizeObserver = null;
 
 function openIvModal() {
   if (!modalBackdrop) return;
   modalBackdrop.style.display = 'flex';
   isModalOpen = true;
+  if (!modalResizeObserver && typeof ResizeObserver !== 'undefined' && modalCanvas) {
+    var target = modalCanvas.parentElement || modalCanvas;
+    modalResizeObserver = new ResizeObserver(function() {
+      if (isModalOpen) renderGraphs();
+    });
+    modalResizeObserver.observe(target);
+  }
   renderGraphs();
+  requestAnimationFrame(renderGraphs);
 }
 
 function closeIvModal() {
@@ -109,10 +118,12 @@ function updateModalReadouts(state) {
   var mW = document.getElementById('iv-m-w');
   var mVbr = document.getElementById('iv-m-vbr');
 
+  var iVal = Number(state.currentMa) || 0;
+  var wNm = Number(state.wNm) || 0;
   if (mVa) mVa.textContent = state.va.toFixed(2) + ' V';
-  if (mI) mI.textContent = state.iCurrent.toFixed(2) + ' mA';
+  if (mI) mI.textContent = (Math.abs(iVal) >= 100 ? iVal.toFixed(0) : iVal.toFixed(2)) + ' mA';
   if (mVbi) mVbi.textContent = state.vbi.toFixed(2) + ' V';
-  if (mW) mW.textContent = (state.w * 1000).toFixed(0) + ' nm';
+  if (mW) mW.textContent = wNm >= 1000 ? (wNm / 1000).toFixed(2) + ' µm' : wNm.toFixed(0) + ' nm';
   if (mVbr) mVbr.textContent = state.vbr.toFixed(1) + ' V';
 }
 
@@ -127,7 +138,19 @@ function renderGraphs() {
   }
 
   if (isModalOpen && modalCanvas) {
-    renderIVCurve(state, modalCanvas);
+    var modalTitle = document.querySelector('#iv-modal-title span');
+    var modalHint = document.querySelector('.iv-modal-hint');
+    if (activeGraphMode === 'field') {
+      if (modalTitle) modalTitle.textContent = 'Space-Charge ρ(x) & Electric Field E(x) Profile';
+      if (modalHint) modalHint.textContent = 'Inspect depletion space-charge (-q·NA / +q·ND) and triangular electric field |E(x)| relative to Ecrit.';
+      modalCanvas.style.cursor = 'default';
+      renderFieldProfile(state, modalCanvas);
+    } else {
+      if (modalTitle) modalTitle.textContent = 'PN Junction Diode I–V Characteristic Curve';
+      if (modalHint) modalHint.innerHTML = 'Drag or click anywhere on the graph to modulate V<sub>A</sub> and set operating point. Fully synced with sliders &amp; 3D model.';
+      modalCanvas.style.cursor = 'crosshair';
+      renderIVCurve(state, modalCanvas);
+    }
     updateModalReadouts(state);
   }
 }
@@ -139,24 +162,17 @@ function renderIVCurve(state, targetCanvas) {
   var canvas = targetCanvas || ivCanvas;
   if (!canvas) return;
   var ctx = canvas.getContext('2d');
+  if (!ctx) return;
   var dpr = window.devicePixelRatio || 1;
-  var w = canvas.clientWidth;
-  var h = canvas.clientHeight;
+  var rect = canvas.getBoundingClientRect();
+  var w = canvas.clientWidth || Math.round(rect.width);
+  var h = canvas.clientHeight || Math.round(rect.height);
   if (w <= 0 || h <= 0) return;
-  if (canvas.width !== w * dpr || canvas.height !== h * dpr) {
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
-  }
-  if (!ivCanvas) return;
-  var ctx = ivCanvas.getContext('2d');
-  var dpr = window.devicePixelRatio || 1;
-  var w = ivCanvas.clientWidth;
-  var h = ivCanvas.clientHeight;
-  if (w <= 0 || h <= 0) return;
-
-  if (ivCanvas.width !== w * dpr || ivCanvas.height !== h * dpr) {
-    ivCanvas.width = w * dpr;
-    ivCanvas.height = h * dpr;
+  var targetW = Math.round(w * dpr);
+  var targetH = Math.round(h * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
   }
 
   ctx.save();
@@ -321,17 +337,22 @@ function renderIVCurve(state, targetCanvas) {
 // ---------------------------------------------------------------------------
 // 2. RENDER SPACE-CHARGE rho(x) & ELECTRIC FIELD E(x) PROFILE
 // ---------------------------------------------------------------------------
-function renderFieldProfile(state) {
-  if (!fieldCanvas) return;
-  var ctx = fieldCanvas.getContext('2d');
+function renderFieldProfile(state, targetCanvas) {
+  var canvas = targetCanvas || fieldCanvas;
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
   var dpr = window.devicePixelRatio || 1;
-  var w = fieldCanvas.clientWidth;
-  var h = fieldCanvas.clientHeight;
+  var rect = canvas.getBoundingClientRect();
+  var w = canvas.clientWidth || Math.round(rect.width);
+  var h = canvas.clientHeight || Math.round(rect.height);
   if (w <= 0 || h <= 0) return;
 
-  if (fieldCanvas.width !== w * dpr || fieldCanvas.height !== h * dpr) {
-    fieldCanvas.width = w * dpr;
-    fieldCanvas.height = h * dpr;
+  var targetW = Math.round(w * dpr);
+  var targetH = Math.round(h * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
   }
 
   ctx.save();
@@ -470,11 +491,14 @@ function renderFieldProfile(state) {
 // INTERACTIVE MOUSE / TOUCH DRAGGING ON I-V GRAPH
 // ---------------------------------------------------------------------------
 function updateVAFromPointer(clientX, targetCanvas) {
+  if (activeGraphMode !== 'iv') return;
   var canvas = targetCanvas || (isModalOpen && modalCanvas ? modalCanvas : ivCanvas);
   if (!canvas) return;
   var rect = canvas.getBoundingClientRect();
+  var w = rect.width || canvas.clientWidth;
+  if (!w || w <= 0) return;
   var padL = 38, padR = 30;
-  var plotW = rect.width - padL - padR;
+  var plotW = w - padL - padR;
   var xRel = Math.max(0, Math.min(plotW, (clientX - rect.left) - padL));
   var frac = xRel / plotW;
   var newVa = -20.0 + frac * 20.8; // [-20.0, +0.8]

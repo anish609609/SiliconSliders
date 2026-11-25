@@ -33,7 +33,10 @@ function collectTargetMeshes(id) {
 }
 
 function setMeshHighlight(mesh, on) {
-  // Disabled: preserve true fabrication material color on click/inspect
+  if (!mesh) return;
+  if (typeof SiliconSelectionHighlight !== 'undefined') {
+    SiliconSelectionHighlight.apply(mesh, !!on, getHighlightHex());
+  }
 }
 
 function updateInspector() {
@@ -264,7 +267,7 @@ if (renderer && renderer.domElement) {
     var pickables = [];
     for (var i = 0; i < allMeshes.length; i++) {
       var m = allMeshes[i];
-      if (m.visible && !m.userData.decorative) {
+      if (m.visible && !m.userData.decorative && !m.userData._isHighlightPart) {
         pickables.push(m);
       }
     }

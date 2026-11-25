@@ -92,15 +92,16 @@ function idToInfo(id) {
 }
 
 function meshesForId(id) {
-  if (VIRTUAL[id]) return VIRTUAL[id].meshes.map(findMesh).filter(Boolean);
-  if (id === 'channel' || id === 'depletion') {
-    var list = selectable.filter(function(item) {
-      return item && item.userData && item.userData.id === id;
+  if (VIRTUAL[id]) {
+    var vList = [];
+    VIRTUAL[id].meshes.forEach(function(mid) {
+      findAllMeshes(mid).forEach(function(m) {
+        if (vList.indexOf(m) === -1) vList.push(m);
+      });
     });
-    if (list.length) return list;
+    return vList;
   }
-  var m = findMesh(id);
-  return m ? [m] : [];
+  return findAllMeshes(id);
 }
 
 function findMesh(id) {
@@ -108,6 +109,14 @@ function findMesh(id) {
     if (selectable[i].userData.id === id) return selectable[i];
   }
   return null;
+}
+
+function findAllMeshes(id) {
+  var out = [];
+  for (var i = 0; i < selectable.length; i++) {
+    if (selectable[i] && selectable[i].userData && selectable[i].userData.id === id) out.push(selectable[i]);
+  }
+  return out;
 }
 
 // Build Architecture Tree DOM

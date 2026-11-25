@@ -185,7 +185,9 @@ function initCameraHint() {
 initCameraHint();
 
 function resetAll() {
-  if (typeof isTourRunning !== 'undefined' && isTourRunning && typeof stopTour === 'function') {
+  if (typeof stopBuildAnimation === 'function') {
+    stopBuildAnimation(true);
+  } else if (typeof isTourRunning !== 'undefined' && isTourRunning && typeof stopTour === 'function') {
     stopTour();
   }
 

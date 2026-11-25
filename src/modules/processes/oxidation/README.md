@@ -129,5 +129,5 @@ This module models thermal oxidation for educational study and intuition buildin
 
 ## 📄 License & Attribution
 
-Part of the **Silicon Sliders** platform under the [MIT License](../../../LICENSE).  
+Part of the **Silicon Sliders** platform under the [Apache License 2.0](../../../LICENSE).  
 Developed by **Raydurg Anish** ([Portfolio](https://raydurg-anish-portfolio-amta50oot-anish609609s-projects.vercel.app/) · [GitHub](https://github.com/anish609609)).

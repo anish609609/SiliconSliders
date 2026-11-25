@@ -111,9 +111,19 @@ function applyDiodeState() {
   if (presetSeg) {
     presetSeg.querySelectorAll('button').forEach(function (btn) {
       var p = btn.dataset.preset;
-      btn.classList.toggle('active', (state.regimeCode === p));
+      var isBreakdown = (state.regimeCode === 'zener' || state.regimeCode === 'avalanche' || state.regimeCode === 'mixed');
+      btn.classList.toggle('active', (p === 'breakdown' && isBreakdown) || state.regimeCode === p);
     });
   }
+
+  document.querySelectorAll('.doping-preset-btn').forEach(function (btn) {
+    var type = btn.dataset.doping;
+    var match = false;
+    if (type === 'standard') match = Math.abs(currentLogNa - 17.0) < 0.05 && Math.abs(currentLogNd - 16.0) < 0.05;
+    else if (type === 'zener') match = Math.abs(currentLogNa - 18.5) < 0.05 && Math.abs(currentLogNd - 18.5) < 0.05;
+    else if (type === 'symmetric') match = Math.abs(currentLogNa - 16.0) < 0.05 && Math.abs(currentLogNd - 16.0) < 0.05;
+    btn.classList.toggle('active', match);
+  });
 
   // 6. Docked Panel Telemetry Readouts
   var rVa = document.getElementById('tele-va');
