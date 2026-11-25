@@ -16,7 +16,7 @@
 - `js/build-anim.js` -> Offline 7-step `FAB_STEPS` drop-down fabrication tour (`applyFabStep`, `updateBuildAnimation`).
 - `js/controls-explode-scrub.js` -> Layer Y-explode and X/Y/Z clipping-plane cross-section scrub (`initExplodeAndScrub`, `pnExplodeState`).
 - `js/selection.js` -> 6px drag-threshold raycasting via `SiliconLayerHighlight.raycastLayer`, synced with tree, inspector, and popover.
-- `js/ui-panels.js` -> Layer checkboxes (`buildLayersList`), legend (`buildLegendList`), Architecture Tree (`buildArchitectureTree`), and tabs (`switchWorkbenchTab`).
+- `js/ui-panels.js` -> Unified layer list (`buildLayersList`, `getLayerDescription`), Architecture Tree (`buildArchitectureTree`), and tabs (`switchWorkbenchTab`).
 - `js/dimensions.js` -> λ process-node dimension table renderer (`initDimensions`).
 - `js/view-mode.js` -> Switches 3D Layout, 2D Junction, and Schematic views (`setViewMode`, `setSubView`, `initViewMode`).
 - `js/scene.js` -> Three.js renderer, camera, lights, grid, and resize/theme handlers (`applySceneTheme`, `resize`).

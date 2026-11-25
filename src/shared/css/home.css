@@ -218,18 +218,24 @@
 
 /* Pillar-Specific Accents & Curves */
 .card-cad {
-  border-top: 3px solid var(--accent-cyan);
+  border-top: 3px solid var(--accent-emerald);
 }
 .card-cad:hover {
-  border-color: rgba(56, 189, 248, 0.5);
+  border-color: rgba(16, 185, 129, 0.5);
+}
+[data-theme="light"] .card-cad:hover {
+  border-color: rgba(5, 150, 105, 0.45);
 }
 
 .card-process {
-  border-top: 3px solid var(--accent-gold);
+  border-top: 3px solid var(--accent-cyan);
   justify-content: flex-start;
 }
 .card-process:hover {
-  border-color: rgba(245, 158, 11, 0.5);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+[data-theme="light"] .card-process:hover {
+  border-color: rgba(2, 132, 199, 0.45);
 }
 .card-process .card-actions {
   width: 100%;
@@ -263,10 +269,24 @@
   justify-content: center;
 }
 
+.glyph-emerald {
+  background: var(--accent-emerald-glow);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+}
+
+[data-theme="light"] .glyph-emerald {
+  border-color: rgba(5, 150, 105, 0.25);
+}
+
 .glyph-cyan {
   background: var(--accent-cyan-glow);
   color: var(--accent-cyan);
   border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+[data-theme="light"] .glyph-cyan {
+  border-color: rgba(2, 132, 199, 0.25);
 }
 
 .glyph-gold {
@@ -295,10 +315,12 @@
   color: var(--text-heading);
 }
 
+.text-emerald { color: var(--accent-emerald); }
 .text-cyan { color: var(--accent-cyan); }
 .text-gold { color: var(--accent-gold); }
 .text-purple { color: var(--accent-purple); }
 
+.text-emerald-dim { color: var(--accent-emerald-dim); font-weight: 500; }
 .text-cyan-dim { color: var(--accent-cyan-dim); font-weight: 500; }
 .text-gold-dim { color: var(--accent-gold-dim); font-weight: 500; }
 .text-purple-dim { color: var(--accent-purple-dim); font-weight: 500; }
@@ -317,10 +339,24 @@
   border-radius: var(--radius-full);
 }
 
+.badge-emerald {
+  background: var(--accent-emerald-glow);
+  color: var(--accent-emerald);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+}
+
+[data-theme="light"] .badge-emerald {
+  border-color: rgba(5, 150, 105, 0.28);
+}
+
 .badge-cyan {
   background: var(--accent-cyan-glow);
   color: var(--accent-cyan);
   border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+[data-theme="light"] .badge-cyan {
+  border-color: rgba(2, 132, 199, 0.28);
 }
 
 .badge-gold {
@@ -384,11 +420,16 @@
   color: var(--btn-hover-text);
 }
 
-.card-btn-cyan:hover {
+.card-btn-cyan:hover,
+.card-btn-cyan:focus-visible {
   border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 10px var(--accent-cyan-glow);
+  outline: none;
 }
 
-.card-btn-gold:hover {
+.card-btn-gold:hover,
+.card-btn-gold:focus-visible {
   border-color: var(--accent-gold);
 }
 
@@ -398,12 +439,14 @@
   font-weight: 600;
 }
 
-.card-btn:hover .arr {
+.card-btn:hover .arr,
+.card-btn:focus-visible .arr {
   transform: translateX(4px);
   color: var(--accent-cyan);
 }
 
-.card-btn-gold:hover .arr {
+.card-btn-gold:hover .arr,
+.card-btn-gold:focus-visible .arr {
   color: var(--accent-gold);
 }
 
@@ -432,7 +475,11 @@
 }
 
 .family-group:hover {
-  border-color: rgba(56, 189, 248, 0.4);
+  border-color: rgba(16, 185, 129, 0.42);
+}
+
+[data-theme="light"] .family-group:hover {
+  border-color: rgba(5, 150, 105, 0.38);
 }
 
 .family-header {
@@ -466,9 +513,9 @@
 }
 
 .family-badge.live {
-  background: var(--accent-cyan-glow);
-  color: var(--accent-cyan);
-  border-color: rgba(56, 189, 248, 0.35);
+  background: var(--accent-emerald-glow);
+  color: var(--accent-emerald);
+  border-color: rgba(16, 185, 129, 0.35);
 }
 
 .family-btn-grid {
@@ -526,10 +573,12 @@
   transition: all var(--transition-fast);
 }
 
-.family-card-btn:hover {
+.family-card-btn:hover,
+.family-card-btn:focus-visible {
   background: var(--btn-hover-bg);
-  border-color: var(--accent-cyan);
+  border-color: var(--accent-emerald);
   transform: translateY(-1px);
+  outline: none;
 }
 
 .family-card-btn .btn-text {
@@ -541,6 +590,12 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  transition: color var(--transition-fast);
+}
+
+.family-card-btn:hover .btn-text,
+.family-card-btn:focus-visible .btn-text {
+  color: var(--accent-emerald);
 }
 
 .family-card-btn .btn-sub {
@@ -548,12 +603,17 @@
 }
 
 .family-card-btn.active-btn {
-  border-color: rgba(56, 189, 248, 0.3);
+  border-color: rgba(16, 185, 129, 0.3);
 }
 
-.family-card-btn.active-btn:hover {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 10px var(--accent-cyan-glow);
+[data-theme="light"] .family-card-btn.active-btn {
+  border-color: rgba(5, 150, 105, 0.28);
+}
+
+.family-card-btn.active-btn:hover,
+.family-card-btn.active-btn:focus-visible {
+  border-color: var(--accent-emerald);
+  box-shadow: 0 0 10px var(--accent-emerald-glow);
 }
 
 /* Subtle Upcoming / Disabled Tile Aesthetic */
@@ -624,7 +684,7 @@
 
 .future-tag.more {
   border: none;
-  color: var(--accent-cyan);
+  color: var(--accent-emerald);
   font-weight: 600;
 }
 

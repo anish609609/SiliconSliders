@@ -33,6 +33,9 @@ function applyExplode() {
     var lrp = lbl.userData.restPos;
     var lpos = computeExplodedPosition(lrp, lbl.userData.explodeLayer, lbl.userData.explodeIdx, ex, ey, ez);
     lbl.position.set(lpos.x, lpos.y, lpos.z);
+    if (lbl.userData && lbl.userData.leaderLine) {
+      lbl.userData.leaderLine.position.set(lpos.x, lpos.y, lpos.z);
+    }
   }
 
   if (typeof rebuildFlowCurves === 'function') {

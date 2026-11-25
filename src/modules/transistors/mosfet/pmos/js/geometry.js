@@ -1398,13 +1398,15 @@ function makeTextSprite(text, colorHex, opts) {
   var tex = new THREE.CanvasTexture(c);
   var mat = new THREE.SpriteMaterial({
     map: tex,
-    depthTest: true,
+    depthTest: false,
     depthWrite: false,
     transparent: true
   });
   var sprite = new THREE.Sprite(mat);
   sprite.scale.set(3.2, 1.1, 1.0);
   sprite.renderOrder = 999;
+  sprite.raycast = function() {};
+  sprite.userData.isLabel = true;
   sprite.userData.labelText = text;
   sprite.userData.colorHex = colorHex;
   return sprite;
@@ -1614,15 +1616,21 @@ function createTerminalCallout(text, colorHex, padX, padY, padZ, offset) {
     color: new THREE.Color(leaderColorHex),
     transparent: true,
     opacity: 0.60,
+    depthTest: false,
+    depthWrite: false,
     linewidth: 1.5
   });
   var line = new THREE.Line(lineGeo, lineMat);
+  line.renderOrder = 998;
+  line.raycast = function() {};
   group.add(line);
 
   // Anchor dot on the metal pad
   var dotGeo = new THREE.SphereGeometry(0.08, 8, 8);
-  var dotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(leaderColorHex) });
+  var dotMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(leaderColorHex), depthTest: false, depthWrite: false, transparent: true });
   var dot = new THREE.Mesh(dotGeo, dotMat);
+  dot.renderOrder = 998;
+  dot.raycast = function() {};
   group.add(dot);
 
   // Text sprite badge

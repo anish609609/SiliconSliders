@@ -593,12 +593,12 @@ function box(w,h,d, colorVar, opts){
 }
 function put(mesh, x,y,z){ mesh.position.set(x,y,z); return mesh; }
 
-// canvas-sprite labels with depth testing enabled so viewing from below correctly occludes them
+// canvas-sprite labels with depthTest disabled so scene geometry never clips through badges
 var labelSprites = [];
 
 function makeLabel(text, colorHex){
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var pad = 12, fontSize = 32;
+  var pad = 10, fontSize = 30;
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
   ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
@@ -615,11 +615,12 @@ function makeLabel(text, colorHex){
   ctx.fillText(text, pad, canvas.height/2 + 1);
   var tex = new THREE.CanvasTexture(canvas);
   tex.minFilter = THREE.LinearFilter;
-  var mat = new THREE.SpriteMaterial({ map: tex, depthTest:true, depthWrite:false, transparent:true });
+  var mat = new THREE.SpriteMaterial({ map: tex, depthTest:false, depthWrite:false, transparent:true });
   var sprite = new THREE.Sprite(mat);
-  var scale = 0.014;
+  var scale = 0.0118;
   sprite.scale.set(canvas.width*scale, canvas.height*scale, 1);
   sprite.renderOrder = 999;
+  sprite.raycast = function(){};
   sprite.userData.isLabel = true;
   sprite.userData.labelText = text;
   sprite.userData.colorHex = colorHex;
@@ -628,7 +629,7 @@ function makeLabel(text, colorHex){
 }
 
 function updateLabelSprite(sprite, text, colorHex, isLight){
-  var pad = 12, fontSize = 32;
+  var pad = 10, fontSize = 30;
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
   ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
@@ -650,6 +651,7 @@ function updateLabelSprite(sprite, text, colorHex, isLight){
   tex.minFilter = THREE.LinearFilter;
   sprite.material.map = tex;
   sprite.material.needsUpdate = true;
+  sprite.scale.set(canvas.width * 0.0118, canvas.height * 0.0118, 1);
 }
 
 function updateMaterialsTheme(){
@@ -1883,35 +1885,71 @@ metalBar(0, 0, POLY_CT_Z, POLY_CT_Z+0.9, '--c-in', 'inPin');
 metalViaPad(0, POLY_CT_Z, '--c-in', 'inPin');
 
 // =====================================================================
-// LABELS
+// LABELS (Perimeter bulk + staggered elevations + subtle leader lines)
 // =====================================================================
-function addLabel(text, x,y,z, colorHex, groupKey){
+function addLabel(text, x, y, z, colorHex, groupKey, anchorPt){
   var s = makeLabel(text, colorHex);
-  s.position.set(x,y,z);
+  s.position.set(x, y, z);
   s.userData.isLabel = true;
   groups[groupKey].add(s);
+
+  if (anchorPt && anchorPt.length === 3) {
+    var dx = anchorPt[0] - x;
+    var dy = anchorPt[1] - y;
+    var dz = anchorPt[2] - z;
+    if (Math.hypot(dx, dy, dz) > 0.05) {
+      var lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(dx, dy, dz)
+      ]);
+      var lineMat = new THREE.LineBasicMaterial({
+        color: new THREE.Color(colorHex),
+        transparent: true,
+        opacity: 0.60,
+        depthTest: false,
+        depthWrite: false
+      });
+      var line = new THREE.Line(lineGeo, lineMat);
+      line.position.set(x, y, z);
+      line.renderOrder = 998;
+      line.raycast = function(){};
+      line.userData.isLabel = true;
+      groups[groupKey].add(line);
+      s.userData.leaderLine = line;
+    }
+  }
   return s;
 }
-addLabel('VDD', -9, Y.metalTop+0.6, RAIL_Z, '#e35d5d', 'metal');
-addLabel('PMOS', SRC_X-1.2, Y.actTop+0.9, PMOS_ZC, '#60a5fa', 'active');
-addLabel('P-SDE', -0.925, Y.actTop+0.45, PMOS_ZC - 3.4, '#93c5fd', 'sde');
-addLabel('N-WELL', 4.8, Y.wellTop+0.5, nwellZC, '#4ade80', 'well');
-addLabel('P-WELL', 4.8, Y.wellTop+0.5, pwellZC, '#60a5fa', 'well');
-addLabel('DEPLETION', 4.8, Y.actTop+0.35, PMOS_ZC - 1.9, '#94a3b8', 'depletion');
-addLabel('POLY GATE', 0, Y.polyTop+0.7, 0, '#d8503c', 'poly');
-addLabel('HIGH-K (HfO2)', -1.9, Y.highkTop+0.35, PMOS_ZC, '#c084fc', 'highk');
-addLabel('SiO2 OXIDE', 1.9, Y.oxideTop+0.35, PMOS_ZC, '#8fc9dc', 'oxide');
-addLabel('IN', 0, Y.metalTop+0.6, POLY_CT_Z+1.1, '#e6c94a', 'metal');
-addLabel('OUT', DRN_X+3.6, Y.metalTop+0.6, 0, '#57cf8f', 'metal');
-addLabel('NMOS', SRC_X-1.2, Y.actTop+0.9, NMOS_ZC, '#4ade80', 'active');
-addLabel('N-SDE', -0.925, Y.actTop+0.45, NMOS_ZC - 3.4, '#86efac', 'sde');
-addLabel('P-SUBSTRATE', 8.5, Y.subTop+0.4, 0, '#9aa6b6', 'substrate');
-addLabel('GND', -9, Y.metalTop+0.6, -RAIL_Z, '#9aa6b6', 'metal');
+
+// Perimeter bulk & external pin callouts
+addLabel('VDD', -9.0, Y.metalTop + 0.85, RAIL_Z + 0.35, '#e35d5d', 'metal', [-9.0, Y.metalTop, RAIL_Z]);
+addLabel('GND', -9.0, Y.metalTop + 0.85, -RAIL_Z - 0.35, '#9aa6b6', 'metal', [-9.0, Y.metalTop, -RAIL_Z]);
+addLabel('IN', 0.0, Y.metalTop + 0.90, POLY_CT_Z + 1.35, '#e6c94a', 'metal', [0.0, Y.metalTop, POLY_CT_Z]);
+addLabel('OUT', DRN_X + 3.8, Y.metalTop + 0.85, 0.0, '#57cf8f', 'metal', [DRN_X + 3.2, Y.metalTop, 0.0]);
+
+addLabel('N-WELL', 5.5, Y.wellTop + 0.85, 8.2, '#4ade80', 'well', [5.4, Y.wellTop, 8.0]);
+addLabel('P-WELL', 5.5, Y.wellTop + 0.85, -8.2, '#60a5fa', 'well', [5.4, Y.wellTop, -8.0]);
+addLabel('P-SUBSTRATE', 8.8, Y.subTop + 0.55, -10.8, '#9aa6b6', 'substrate', [8.8, Y.subTop, -10.8]);
+
+// Staggered internal callouts with vertical/clean leader lines
+addLabel('POLY GATE', 0.0, Y.polyTop + 1.85, 0.0, '#d8503c', 'poly', [0.0, Y.polyTop, 0.0]);
+addLabel('PMOS', SRC_X - 1.0, Y.actTop + 1.55, PMOS_ZC, '#60a5fa', 'active', [SRC_X, Y.actTop, PMOS_ZC]);
+addLabel('NMOS', SRC_X - 1.0, Y.actTop + 1.55, NMOS_ZC, '#4ade80', 'active', [SRC_X, Y.actTop, NMOS_ZC]);
+addLabel('DEPLETION', 3.2, Y.actTop + 1.35, PMOS_ZC - 1.9, '#94a3b8', 'depletion', [2.6, Y.actTop - 0.05, PMOS_ZC - 1.6]);
+addLabel('P-SDE', -1.05, Y.actTop + 1.05, PMOS_ZC - 3.2, '#93c5fd', 'sde', [-0.925, Y.actTop, PMOS_ZC - 2.6]);
+addLabel('N-SDE', -1.05, Y.actTop + 1.05, NMOS_ZC + 3.2, '#86efac', 'sde', [-0.925, Y.actTop, NMOS_ZC + 2.6]);
+addLabel('HIGH-K (HfO2)', -2.0, Y.highkTop + 2.35, PMOS_ZC + 1.5, '#c084fc', 'highk', [-0.85, Y.highkTop, PMOS_ZC + 0.8]);
+addLabel('SiO2 OXIDE', 1.9, Y.oxideTop + 2.15, PMOS_ZC + 1.6, '#8fc9dc', 'oxide', [0.85, Y.oxideTop, PMOS_ZC + 0.8]);
 
 function toggleLabels(visible) {
   if (typeof labelSprites !== 'undefined') {
     labelSprites.forEach(function(s) {
-      if (s) s.visible = visible;
+      if (s) {
+        s.visible = visible;
+        if (s.userData && s.userData.leaderLine) {
+          s.userData.leaderLine.visible = visible;
+        }
+      }
     });
   }
 }

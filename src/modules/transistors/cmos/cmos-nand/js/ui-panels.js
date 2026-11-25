@@ -126,6 +126,9 @@ function applyLayerVisibility() {
     var lbl = labelsList[j];
     var lvis = showLabels3D && (layerVisibility[lbl.userData.layer] !== false);
     lbl.visible = lvis;
+    if (lbl.userData && lbl.userData.leaderLine) {
+      lbl.userData.leaderLine.visible = lvis;
+    }
   }
 }
 

@@ -828,6 +828,108 @@ body.left-open .hud-top-left-stack {
   padding-left: 17px;
 }
 
+/* Dimensions (Lambda Design Rules) matching E-NMOS Workbench */
+.dims-row-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 0 10px 0;
+}
+.dims-lbl {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+#lambda-select {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  padding: 5px 6px;
+  cursor: pointer;
+}
+#lambda-select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.dims-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+.dims-table thead th {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  text-align: left;
+  padding: 4px 2px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.dims-table thead th:nth-child(2),
+.dims-table thead th:nth-child(3) {
+  text-align: right;
+}
+.dims-table tbody tr {
+  border-bottom: 1px dashed var(--border-soft);
+}
+.dims-table tbody tr:last-child {
+  border-bottom: none;
+}
+.dims-table tbody td {
+  padding: 5px 2px;
+  vertical-align: middle;
+}
+.dims-table tbody td:first-child {
+  color: var(--text-dim);
+}
+.dims-table tbody td:first-child b {
+  font-weight: 500;
+}
+.dims-table tbody td:nth-child(2) {
+  color: var(--text-faint);
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 8px;
+}
+.dims-table tbody td:nth-child(3) {
+  color: var(--accent);
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+  padding-left: 10px;
+}
+.dims-table-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px;
+  border-bottom: 1px dashed var(--border-soft);
+  font-family: var(--mono);
+  font-size: 10.5px;
+}
+.dims-table-row:last-child { border-bottom: none; }
+.dims-table-row .k { color: var(--text-dim); }
+.dims-table-row .v { color: var(--accent); font-weight: 600; }
+.dims-note {
+  margin: 10px 0 0 0;
+  font-size: 9.5px;
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+:root[data-theme="light"] .unified-layer-row .swatch {
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
 :root[data-theme="light"] #left-workbench {
   background: #ffffff;
   border-color: #cbd5e1;

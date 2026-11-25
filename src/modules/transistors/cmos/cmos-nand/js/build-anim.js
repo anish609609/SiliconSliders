@@ -154,7 +154,12 @@ function applyTourPositions(activeLayers) {
       var lrp = lbl.userData.restPos;
       var lst = fabState.layerTimers[lyr];
       var lDrop = (lst && lst.active) ? lst.dropY : 0;
-      if (lrp) lbl.position.set(lrp.x, lrp.y + lDrop, lrp.z);
+      if (lrp) {
+        lbl.position.set(lrp.x, lrp.y + lDrop, lrp.z);
+        if (lbl.userData && lbl.userData.leaderLine) {
+          lbl.userData.leaderLine.position.set(lrp.x, lrp.y + lDrop, lrp.z);
+        }
+      }
     }
   }
   if (typeof applyLayerVisibility === 'function') applyLayerVisibility();
@@ -252,7 +257,12 @@ function updateBuildAnimation(dt) {
       var lbl = labelsList[j];
       var lst = fabState.layerTimers[lbl.userData.layer];
       var lrp = lbl.userData.restPos;
-      if (lst && lrp) lbl.position.y = lrp.y + lst.dropY;
+      if (lst && lrp) {
+        lbl.position.y = lrp.y + lst.dropY;
+        if (lbl.userData && lbl.userData.leaderLine) {
+          lbl.userData.leaderLine.position.y = lrp.y + lst.dropY;
+        }
+      }
     }
   }
 

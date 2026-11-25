@@ -535,7 +535,7 @@ function contactAt(id, x, z, topOfLower) {
 
 function renderLabelCanvasTexture(text, colorHex) {
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var pad = 12, fontSize = 32;
+  var pad = 10, fontSize = 30;
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
   ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
@@ -558,7 +558,7 @@ function renderLabelCanvasTexture(text, colorHex) {
 
 function makeLabel(text, colorHex) {
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  var pad = 12, fontSize = 32;
+  var pad = 10, fontSize = 30;
   var canvas = document.createElement('canvas');
   var ctx = canvas.getContext('2d');
   ctx.font = 'bold ' + fontSize + 'px "IBM Plex Mono", monospace';
@@ -576,9 +576,10 @@ function makeLabel(text, colorHex) {
 
   var tex = new THREE.CanvasTexture(canvas);
   tex.minFilter = THREE.LinearFilter;
-  var mat = new THREE.SpriteMaterial({ map: tex, depthTest: true, depthWrite: false, transparent: true });
+  var mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true });
   var sprite = new THREE.Sprite(mat);
-  sprite.scale.set(canvas.width * 0.014, canvas.height * 0.014, 1);
+  var scale = 0.0112;
+  sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
   sprite.renderOrder = 999;
   sprite.raycast = function () {};
   sprite.userData.isLabel = true;
@@ -598,6 +599,37 @@ function addLabel(text, x, y, z, layerKey, colorHex, opts) {
   if (sprite.userData.explodeIdx < 0) sprite.userData.explodeIdx = 0;
   sprite.userData.restPos = sprite.position.clone();
   cellGroup.add(sprite);
+
+  if (opts.anchor && opts.anchor.length === 3) {
+    var dx = opts.anchor[0] - x;
+    var dy = opts.anchor[1] - y;
+    var dz = opts.anchor[2] - z;
+    if (Math.hypot(dx, dy, dz) > 0.05) {
+      var lineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(dx, dy, dz)
+      ]);
+      var lineMat = new THREE.LineBasicMaterial({
+        color: new THREE.Color(colorHex),
+        transparent: true,
+        opacity: 0.60,
+        depthTest: false,
+        depthWrite: false
+      });
+      var leader = new THREE.Line(lineGeo, lineMat);
+      leader.position.set(x, y, z);
+      leader.renderOrder = 998;
+      leader.raycast = function () {};
+      leader.userData.isLabel = true;
+      leader.userData.isLabelLeader = true;
+      leader.userData.layer = layerKey;
+      leader.userData.explodeLayer = sprite.userData.explodeLayer;
+      leader.userData.explodeIdx = sprite.userData.explodeIdx;
+      leader.userData.restPos = sprite.userData.restPos.clone();
+      cellGroup.add(leader);
+      sprite.userData.leaderLine = leader;
+    }
+  }
   return sprite;
 }
 
@@ -609,7 +641,7 @@ function refreshAllLabelSprites() {
     if (sprite.material.map) sprite.material.map.dispose();
     sprite.material.map = built.tex;
     sprite.material.needsUpdate = true;
-    sprite.scale.set(built.width * 0.014, built.height * 0.014, 1);
+    sprite.scale.set(built.width * 0.0112, built.height * 0.0112, 1);
   }
 }
 
@@ -1808,32 +1840,37 @@ function buildNand2Cell() {
 
   addMetalTrace('outPin', 8.0, 0.8, 5.0, METAL_W, '--c-out');
 
-  /* 9. 3D Floating Depth-Tested Labels */
-  addLabel('VDD', -10.5, Y.metalTop + 0.45, RAIL_Z + 0.85, 'metal', '#e35d5d');
-  addLabel('GND', -10.5, Y.metalTop + 0.45, -RAIL_Z - 0.85, 'metal', '#9aa6b6');
-  addLabel('IN A', -10.5, Y.metalTop + 0.45, 1.55, 'metal', '#e6c94a');
-  addLabel('IN B', -10.5, Y.metalTop + 0.45, -1.55, 'metal', '#e6c94a');
-  addLabel('OUT', 9.6, Y.metalTop + 0.45, 1.55, 'metal', '#57cf8f');
+  /* 9. 3D Floating Callouts (Perimeter bulk + staggered elevations + subtle leader lines) */
+  addLabel('VDD', -10.8, Y.metalTop + 0.70, RAIL_Z + 0.95, 'metal', '#e35d5d', { anchor: [-10.2, Y.metalTop, RAIL_Z] });
+  addLabel('GND', -10.8, Y.metalTop + 0.70, -RAIL_Z - 0.95, 'metal', '#9aa6b6', { anchor: [-10.2, Y.metalTop, -RAIL_Z] });
+  addLabel('IN A', -10.8, Y.metalTop + 0.85, 1.85, 'metal', '#e6c94a', { anchor: [-10.0, Y.metalTop, 1.55] });
+  addLabel('IN B', -10.8, Y.metalTop + 0.85, -1.85, 'metal', '#e6c94a', { anchor: [-10.0, Y.metalTop, -1.55] });
+  addLabel('OUT', 10.2, Y.metalTop + 0.85, 0.80, 'metal', '#57cf8f', { anchor: [9.8, Y.metalTop, 0.80] });
 
-  addLabel('N-WELL', 7.4, Y.wellTop + 0.35, 8.3, 'well', '#4ade80');
-  addLabel('P-WELL', 7.4, Y.wellTop + 0.35, -8.3, 'well', '#60a5fa');
-  addLabel('DEPLETION', 7.4, Y.actTop + 0.35, PMOS_ZC - 1.9, 'depletion', '#94a3b8');
-  addLabel('P-SUBSTRATE', 8.8, Y.subTop + 0.25, -11.3, 'substrate', '#9aa6b6');
+  /* Perimeter placement for bulk wells & substrate */
+  addLabel('N-WELL', 7.6, Y.wellTop + 0.90, 8.65, 'well', '#4ade80', { anchor: [7.4, Y.wellTop, 8.30] });
+  addLabel('P-WELL', 7.6, Y.wellTop + 0.90, -8.65, 'well', '#60a5fa', { anchor: [7.4, Y.wellTop, -8.30] });
+  addLabel('P-SUBSTRATE', 9.5, Y.subTop + 0.55, -11.4, 'substrate', '#9aa6b6', { anchor: [9.5, Y.subTop, -11.4] });
 
-  addLabel('POLY A', GATE_A_X, Y.polyTop + 0.35, -8.55, 'poly', '#d8503c');
-  addLabel('POLY B', GATE_B_X, Y.polyTop + 0.35, -8.55, 'poly', '#d8503c');
+  addLabel('POLY A', GATE_A_X - 0.3, Y.polyTop + 1.15, -8.55, 'poly', '#d8503c', { anchor: [GATE_A_X, Y.polyTop, -7.8] });
+  addLabel('POLY B', GATE_B_X + 0.3, Y.polyTop + 1.15, -8.55, 'poly', '#d8503c', { anchor: [GATE_B_X, Y.polyTop, -7.8] });
 
-  addLabel('PMOS A (MP1)', LEFT_X, Y.actTop + 0.45, 3.25, 'active', '#60a5fa');
-  addLabel('PMOS B (MP2)', RIGHT_X, Y.actTop + 0.45, 3.25, 'active', '#60a5fa');
-  addLabel('SHARED P+ DRAIN', MID_X, Y.actTop + 0.45, 6.65, 'active', '#60a5fa');
-  addLabel('NMOS A (MN1)', LEFT_X, Y.actTop + 0.45, -3.25, 'active', '#4ade80');
-  addLabel('NMOS B (MN2)', RIGHT_X, Y.actTop + 0.45, -3.25, 'active', '#4ade80');
-  addLabel('SERIES N+ BRIDGE', MID_X, Y.actTop + 0.45, -4.85, 'active', '#4ade80');
+  /* Staggered Tier 1 (S/D diffusions) */
+  addLabel('PMOS A (MP1)', -6.0, Y.actTop + 1.25, 5.20, 'active', '#60a5fa', { anchor: [LEFT_X, Y.actTop, PMOS_ZC] });
+  addLabel('PMOS B (MP2)',  6.0, Y.actTop + 1.25, 5.20, 'active', '#60a5fa', { anchor: [RIGHT_X, Y.actTop, PMOS_ZC] });
+  addLabel('NMOS A (MN1)', -6.0, Y.actTop + 1.25, -5.20, 'active', '#4ade80', { anchor: [LEFT_X, Y.actTop, NMOS_ZC] });
+  addLabel('NMOS B (MN2)',  6.0, Y.actTop + 1.25, -5.20, 'active', '#4ade80', { anchor: [RIGHT_X, Y.actTop, NMOS_ZC] });
 
-  addLabel('P-SDE', -3.925, Y.actTop + 0.32, 2.25, 'sde', '#93c5fd', { explodeLayer: 'active' });
-  addLabel('N-SDE', -3.925, Y.actTop + 0.32, -2.25, 'sde', '#86efac', { explodeLayer: 'active' });
-  addLabel('HIGH-K (HfO2)', GATE_B_X, Y.highkTop + 0.35, 3.3, 'highk', '#c084fc');
-  addLabel('SiO2 OXIDE', GATE_A_X, Y.oxideTop + 0.32, 3.3, 'oxide', '#8fc9dc');
+  /* Staggered Tier 2 (Central shared nodes & depletion with leader lines) */
+  addLabel('SHARED P+ DRAIN',  MID_X, Y.actTop + 2.25, 6.20, 'active', '#60a5fa', { anchor: [MID_X, Y.actTop, PMOS_ZC + 0.6] });
+  addLabel('SERIES N+ BRIDGE', MID_X, Y.actTop + 2.25, -5.00, 'active', '#4ade80', { anchor: [MID_X, Y.actTop, NMOS_ZC] });
+  addLabel('DEPLETION', 3.3, Y.actTop + 1.85, 2.30, 'depletion', '#94a3b8', { anchor: [2.1, Y.actTop - 0.05, 2.4] });
+
+  /* Staggered Tier 3 (SDE extensions & gate dielectrics) */
+  addLabel('P-SDE', -3.925, Y.actTop + 1.65, 2.15, 'sde', '#93c5fd', { explodeLayer: 'active', anchor: [-3.925, Y.actTop, 2.40] });
+  addLabel('N-SDE', -3.925, Y.actTop + 1.65, -2.15, 'sde', '#86efac', { explodeLayer: 'active', anchor: [-3.925, Y.actTop, -2.40] });
+  addLabel('SiO2 OXIDE', GATE_A_X, Y.oxideTop + 2.55, 4.00, 'oxide', '#8fc9dc', { anchor: [GATE_A_X, Y.oxideTop, 3.30] });
+  addLabel('HIGH-K (HfO2)', GATE_B_X, Y.highkTop + 2.65, 4.00, 'highk', '#c084fc', { anchor: [GATE_B_X, Y.highkTop, 3.30] });
 }
 
 function toggleLabels(visible) {
@@ -1843,7 +1880,11 @@ function toggleLabels(visible) {
       var s = labelSprites[i];
       if (s) {
         var layerVis = (typeof layerVisibility !== 'undefined' && s.userData && s.userData.layer) ? (layerVisibility[s.userData.layer] !== false) : true;
-        s.visible = visible && layerVis;
+        var v = visible && layerVis;
+        s.visible = v;
+        if (s.userData && s.userData.leaderLine) {
+          s.userData.leaderLine.visible = v;
+        }
       }
     }
   }

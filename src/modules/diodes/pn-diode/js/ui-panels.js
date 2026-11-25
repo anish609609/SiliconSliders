@@ -23,7 +23,6 @@ window.switchWorkbenchTab = switchWorkbenchTab;
 
 function initUIPanels() {
   buildLayersList();
-  buildLegendList();
   buildArchitectureTree();
   setupWorkbenchTabs();
   setupAccordions();
@@ -81,24 +80,38 @@ function updateLayersListTheme(pal) {
       }
     });
   }
-
-  var refLegendBody = document.getElementById('ref-legend-body');
-  if (refLegendBody && typeof COMPONENTS !== 'undefined') {
-    refLegendBody.querySelectorAll('.ref-legend-item').forEach(function(item) {
-      var titleEl = item.querySelector('.lh b');
-      var swatch = item.querySelector('.swatch');
-      if (titleEl && swatch) {
-        var name = titleEl.textContent;
-        var matchedKey = Object.keys(COMPONENTS).find(function(k) { return COMPONENTS[k].name === name; });
-        if (matchedKey) {
-          var c = getLayerColor(matchedKey, pal);
-          if (c) swatch.style.background = c;
-        }
-      }
-    });
-  }
 }
 window.updateLayersListTheme = updateLayersListTheme;
+
+function getLayerDescription(layerId) {
+  if (typeof COMPONENTS !== 'undefined' && COMPONENTS[layerId]) {
+    return COMPONENTS[layerId].fn || COMPONENTS[layerId].role || '';
+  }
+  switch (layerId) {
+    case 'active':
+      return 'Heavily doped P+ Anode tub (injects holes under VA > 0) and degenerate N+ Cathode ohmic tap inside the N-Well.';
+    case 'depletion':
+      return (typeof COMPONENTS !== 'undefined' && COMPONENTS.depletionRegion)
+        ? COMPONENTS.depletionRegion.fn
+        : 'Continuous space-charge barrier swept free of mobile carriers straddling the metallurgical P+/N junction.';
+    case 'ions':
+      return 'Fixed ionized Boron acceptors (NA⁻) on the P+ side and Phosphorus donors (ND⁺) on the N-Well side supporting the built-in electric field.';
+    case 'field':
+      return (typeof COMPONENTS !== 'undefined' && COMPONENTS.breakdownGlow)
+        ? COMPONENTS.breakdownGlow.fn
+        : 'Visualizes peak electric field concentration along junction sidewalls when VA ≤ -VBR.';
+    case 'passivation':
+      return 'Shallow Trench Isolation (STI) oxide separating active zones beneath thick CVD SiO2 Interlayer Dielectric with etched contact windows.';
+    case 'contact':
+      return (typeof COMPONENTS !== 'undefined' && COMPONENTS.tungstenVias)
+        ? COMPONENTS.tungstenVias.fn
+        : 'Vertical CVD Tungsten plugs with Ti/TiN liners punching through the ILD down to P+ Anode and N+ Cathode silicide pads.';
+    case 'metal':
+      return 'Metal-1 interconnect pads delivering external applied anode bias VA and cathode ground reference (GND).';
+    default:
+      return '';
+  }
+}
 
 function buildLayersList() {
   var layersBody = document.getElementById('layers-body');
@@ -121,10 +134,7 @@ function buildLayersList() {
       '<span class="swatch" style="background:' + swatchCol + '"></span>' +
       '<span class="layer-name" title="Toggle visibility">' + layer.name + '</span>';
 
-    var descText = '';
-    if (typeof COMPONENTS !== 'undefined' && COMPONENTS[layer.id]) {
-      descText = COMPONENTS[layer.id].fn || COMPONENTS[layer.id].role || '';
-    }
+    var descText = getLayerDescription(layer.id);
 
     var desc = document.createElement('div');
     desc.className = 'unified-layer-desc';
@@ -145,25 +155,6 @@ function buildLayersList() {
       cb.checked = !cb.checked;
       cb.dispatchEvent(new Event('change'));
     });
-  });
-}
-
-function buildLegendList() {
-  var refLegendBody = document.getElementById('ref-legend-body');
-  if (!refLegendBody || typeof COMPONENTS === 'undefined') return;
-  refLegendBody.innerHTML = '';
-
-  var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(currentTheme) : (window.getMaterialPalette ? window.getMaterialPalette(currentTheme) : null);
-
-  Object.keys(COMPONENTS).forEach(function (key) {
-    var c = COMPONENTS[key];
-    var div = document.createElement('div');
-    div.className = 'ref-legend-item';
-    var swatchCol = getLayerColor(key, pal) || c.colorHex;
-    div.innerHTML =
-      '<div class="lh"><span class="swatch" style="background:' + swatchCol + '"></span><b>' + c.name + '</b></div>' +
-      '<p>' + (c.role || c.fn || '') + '</p>';
-    refLegendBody.appendChild(div);
   });
 }
 

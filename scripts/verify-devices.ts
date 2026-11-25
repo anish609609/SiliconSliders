@@ -869,7 +869,8 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
     'tb-btn-prev', 'tb-btn-pause', 'tb-btn-next', 'tb-btn-close', 'btn-build-anim',
     'iv-canvas', 'iv-modal-canvas', 'iv-modal-backdrop', 'iv-expand-btn', 'iv-modal-close',
     'flow-caption', 'flow-seg', 'flow-mode-group', 'btn-theme-toggle', 'loading',
-    'explode-slider', 'explode-val',
+    'explode-slider', 'explode-val', 'explode-y-slider', 'explode-x-slider', 'explode-z-slider',
+    'lambda-select', 'dims-table', 'toggle-labels',
   ]) {
     makeEl('div', id);
   }
@@ -1068,6 +1069,8 @@ function runModuleVerification(mod: ModuleSpec): { ok: boolean; errors: string[]
   if (mod.id === 'pn-diode') {
     if (typeof ctx.buildDiodeGeometry === 'function') ctx.buildDiodeGeometry();
     if (typeof ctx.initUIPanels === 'function') ctx.initUIPanels();
+    if (typeof ctx.initDimensions === 'function') ctx.initDimensions();
+    if (typeof ctx.initExplodeAndScrub === 'function') ctx.initExplodeAndScrub();
     if (typeof ctx.initSelection === 'function') ctx.initSelection();
     if (typeof ctx.initFlowControls === 'function') ctx.initFlowControls();
     if (typeof ctx.initLogicControls === 'function') ctx.initLogicControls();
@@ -1403,6 +1406,115 @@ function runModuleVerification(mod: ModuleSpec): { ok: boolean; errors: string[]
     if (typeof ctx.applyTheme === 'function') ctx.applyTheme('dark');
   }
 
+  // 2D. Task 1 Check (pn-diode unified Layers tab + styled Lambda rules)
+  if (mod.id === 'pn-diode') {
+    const htmlCode = fs.readFileSync(path.join(modDir, 'index.html'), 'utf8');
+    const cssCode = fs.readFileSync(path.join(modDir, 'css/style.css'), 'utf8');
+    if (htmlCode.includes('ref-legend-body') || htmlCode.includes('COMPONENTS &amp; REGIONS REFERENCE')) {
+      errors.push('pn-diode/index.html still contains redundant COMPONENTS & REGIONS REFERENCE section');
+    }
+    if (!cssCode.includes('#lambda-select') || !cssCode.includes('.dims-table') || !cssCode.includes('.dims-row-select')) {
+      errors.push('pn-diode/css/style.css missing styled Dimensions (lambda rules) classes');
+    }
+    const layersBody = ctx.document.getElementById('layers-body');
+    const layerItems = layersBody?.children || [];
+    if (layerItems.length !== (ctx.LAYERS_LIST?.length || 10)) {
+      errors.push(`pn-diode #layers-body expected ${ctx.LAYERS_LIST?.length || 10} items, got ${layerItems.length}`);
+    }
+    for (const item of layerItems) {
+      const hasDesc = (item.children || []).some((c: any) => c.className === 'unified-layer-desc' || (c.textContent && c.textContent.trim().length > 10));
+      if (!hasDesc) {
+        errors.push('pn-diode unified layer item missing description element');
+      }
+    }
+    const dimsTableHtml = ctx.document.getElementById('dims-table').innerHTML || '';
+    if (!dimsTableHtml.includes('<th>RULE</th>') || !dimsTableHtml.includes('<th>DESIGN RULE</th>') || !dimsTableHtml.includes('<th>PHYSICAL</th>')) {
+      errors.push('pn-diode #dims-table missing RULE | DESIGN RULE | PHYSICAL headers');
+    }
+  }
+
+  // 2E. Task 3 Check (3D Floating Labels: depthTest=false, depthWrite=false, renderOrder>=999, leader lines, explode sync)
+  {
+    const labelList: any[] = [];
+    root.traverse((o: any) => {
+      if (o && o.isSprite && o.userData && o.userData.isLabel) {
+        labelList.push(o);
+      }
+    });
+    if (!labelList.length) {
+      errors.push(`${mod.id} found 0 3D floating label sprites with userData.isLabel`);
+    }
+    for (const lbl of labelList) {
+      if (!lbl.material || lbl.material.depthTest !== false || lbl.material.depthWrite !== false) {
+        errors.push(`${mod.id} label "${lbl.userData.labelText || '?'}" must have depthTest=false and depthWrite=false`);
+      }
+      if ((lbl.renderOrder || 0) < 999) {
+        errors.push(`${mod.id} label "${lbl.userData.labelText || '?'}" has renderOrder=${lbl.renderOrder} (< 999)`);
+      }
+    }
+
+    // Check pairwise spacing and leader lines on dense CMOS layouts
+    if (mod.id === 'cmos-inverter' || mod.id === 'cmos-nand') {
+      const worldPos = (o: any) => {
+        let x = o.position?.x || 0, y = o.position?.y || 0, z = o.position?.z || 0;
+        let p = o.parent;
+        while (p) { x += p.position?.x || 0; y += p.position?.y || 0; z += p.position?.z || 0; p = p.parent; }
+        return { x, y, z };
+      };
+      const leaders = labelList.map((l) => l.userData.leaderLine).filter(Boolean);
+      if (leaders.length < 10) {
+        errors.push(`${mod.id} expected >= 10 label leader lines, found ${leaders.length}`);
+      }
+      for (const ln of leaders) {
+        if (!ln.isLine || !ln.material || ln.material.depthTest !== false || ln.material.depthWrite !== false) {
+          errors.push(`${mod.id} leader line must be THREE.Line with depthTest=false and depthWrite=false`);
+        }
+      }
+      for (let i = 0; i < labelList.length; i++) {
+        const p1 = worldPos(labelList[i]);
+        for (let j = i + 1; j < labelList.length; j++) {
+          const p2 = worldPos(labelList[j]);
+          const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+          if (dist < 0.8) {
+            errors.push(`${mod.id} labels "${labelList[i].userData.labelText}" and "${labelList[j].userData.labelText}" collide (dist=${dist.toFixed(2)})`);
+          }
+        }
+      }
+
+      // Check toggleLabels toggles both sprites and leader lines
+      if (typeof ctx.toggleLabels === 'function') {
+        ctx.toggleLabels(false);
+        if (labelList.some((l) => l.visible) || leaders.some((ln) => ln.visible)) {
+          errors.push(`${mod.id} toggleLabels(false) left visible label or leaderLine`);
+        }
+        ctx.toggleLabels(true);
+        if (labelList.some((l) => !l.visible) || leaders.some((ln) => !ln.visible)) {
+          errors.push(`${mod.id} toggleLabels(true) failed to restore label or leaderLine visibility`);
+        }
+      }
+
+      // Check explode sync moves non-substrate labels and leaderLines in Y
+      if (mod.id === 'cmos-inverter' && typeof ctx.applyExplode === 'function') {
+        ctx.applyExplode(0, 60, 0);
+        const polyLbl = labelList.find((l) => l.userData.labelText === 'POLY GATE');
+        const py = (polyLbl?.position?.y || 0) + (polyLbl?.parent?.position?.y || 0);
+        if (!(py > 5.0)) errors.push(`cmos-inverter explode Y=60% did not elevate POLY GATE label (y=${py})`);
+        ctx.applyExplode(0, 1, 0);
+      } else if (mod.id === 'cmos-nand' && typeof ctx.applyExplode === 'function') {
+        const polyLbl = labelList.find((l) => l.userData.labelText === 'POLY A');
+        const baseY = polyLbl?.position?.y || 0;
+        const baseLnY = polyLbl?.userData?.leaderLine?.position?.y || 0;
+        ctx.explodeY = 60;
+        ctx.applyExplode();
+        if (!((polyLbl.position.y > baseY + 1.0) && (polyLbl.userData.leaderLine.position.y > baseLnY + 1.0))) {
+          errors.push('cmos-nand applyExplode() did not elevate POLY A label + leaderLine');
+        }
+        ctx.explodeY = 1;
+        ctx.applyExplode();
+      }
+    }
+  }
+
   // 3. Process Tour Step Integrity & Cutoff/Carrier Suppression
   const fabSteps = ctx.FAB_STEPS || [];
   if (!fabSteps.length) {
@@ -1558,9 +1670,40 @@ function verifyTimeOfDayThemeHelpers(errors: string[]) {
   }
 }
 
+function verifyLandingCardAccents(errors: string[]) {
+  const indexHtml = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const homeCss = fs.readFileSync(path.join(ROOT, 'src/shared/css/home.css'), 'utf8');
+  const cadBlock = indexHtml.slice(indexHtml.indexOf('card-cad'), indexHtml.indexOf('card-process'));
+  const procBlock = indexHtml.slice(indexHtml.indexOf('card-process'), indexHtml.indexOf('card-mems'));
+  if (!cadBlock.includes('glyph-emerald') || !cadBlock.includes('badge-emerald') || !cadBlock.includes('text-emerald') || !cadBlock.includes('text-emerald-dim')) {
+    errors.push('index.html Solid-State Device CAD card missing emerald accent classes');
+  }
+  if (cadBlock.includes('glyph-cyan') || cadBlock.includes('badge-cyan') || cadBlock.includes('text-cyan')) {
+    errors.push('index.html Solid-State Device CAD card still uses old cyan accent classes');
+  }
+  if (!procBlock.includes('glyph-cyan') || !procBlock.includes('badge-cyan') || !procBlock.includes('text-cyan') || !procBlock.includes('card-btn-cyan')) {
+    errors.push('index.html Process Engineering Lab card missing blue/cyan accent classes');
+  }
+  if (procBlock.includes('gold')) {
+    errors.push('index.html Process Engineering Lab card still uses old gold/amber accent classes');
+  }
+  if (!homeCss.includes('.glyph-emerald') || !homeCss.includes('.badge-emerald') || !homeCss.includes('border-top: 3px solid var(--accent-emerald)')) {
+    errors.push('home.css missing emerald CAD card styles');
+  }
+}
+
 function main() {
   let totalErrors = 0;
   console.log('SiliconSliders Device Verification Suite\n');
+
+  const landingErrors: string[] = [];
+  verifyLandingCardAccents(landingErrors);
+  if (landingErrors.length) {
+    totalErrors += landingErrors.length;
+    console.error('[FAIL] landing-cards:', landingErrors.join('; '));
+  } else {
+    console.log('[PASS] landing-cards: CAD=emerald green, Process=blue/cyan, MEMS=purple');
+  }
 
   const todErrors: string[] = [];
   verifyTimeOfDayThemeHelpers(todErrors);

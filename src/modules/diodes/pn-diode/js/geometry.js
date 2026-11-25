@@ -390,10 +390,12 @@ function makeLabelSprite(text, color, subtext) {
 
   var tex = new THREE.CanvasTexture(c);
   tex.minFilter = THREE.LinearFilter;
-  var mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false });
+  var mat = new THREE.SpriteMaterial({ map: tex, depthTest: false, depthWrite: false, transparent: true });
   var sprite = new THREE.Sprite(mat);
   sprite.scale.set(4.2, 1.25, 1.0);
-  sprite.renderOrder = 998;
+  sprite.renderOrder = 999;
+  sprite.raycast = function () {};
+  sprite.userData.isLabel = true;
   return sprite;
 }
 
