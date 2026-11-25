@@ -25,7 +25,7 @@
 
 ## Key Symbols
 
-- **Geometry & Channels:** `Y`, `LAYER_ORDER`, `buildActiveRow`, `createCmosDeplBox`, `updateInverterDepletion`, `createCmosSalicideGeo`, `addInverterSilicide`, `updateInverterChannels`, `updateChannelThemes`, `updateMaterialsTheme`, `toggleLabels`.
+- **Geometry & Channels:** `Y`, `LAYER_ORDER`, `resolveInverterCanonProp`, `buildActiveRow`, `buildCmosWellShellPerimeter`, `createCmosWellShellGeometry`, `updateCmosWellShell`, `updateInverterDepletion`, `createCmosSalicideGeo`, `addInverterSilicide`, `updateInverterChannels`, `updateChannelThemes`, `updateMaterialsTheme`, `toggleLabels`.
 - **Physics & State:** `calcCmosState`, `getVoutAt`, `getIddAt`, `applyLogicState`, `setOnOffTint`, `setVinState`, `initLogicStateControls`.
 - **VTC Graph & Modal:** `drawVtcGraph`, `renderSingleVtcGraph`, `openIvModal`, `closeIvModal`, `VTC_GRAPH_PAD`.
 - **Carrier Flow:** `PMOS_PATH_IDS`, `NMOS_PATH_IDS`, `SHOOT_THROUGH_PATH_IDS`, `METAL_FLOW_Y`, `rebuildFlowCurves`, `refreshConnections`, `stepFlowMarkers`.

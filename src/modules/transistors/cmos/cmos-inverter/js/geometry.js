@@ -29,10 +29,27 @@ function cssVar(name){
 //   Iso-concentration contour lines mark equal-concentration shells at
 //   0.85, 0.60, 0.35, 0.15, and 0.05 of peak concentration.
 // ---------------------------------------------------------------------------
+function resolveInverterCanonProp(colorVarOrHex, isLightTheme) {
+  var isL = isLightTheme !== undefined ? isLightTheme : (document.documentElement.getAttribute('data-theme') === 'light');
+  var fn = (typeof getMaterialProperties === 'function') ? getMaterialProperties : window.getMaterialProperties;
+  var props = fn ? fn(isL ? 'light' : 'dark') : null;
+  if (props && colorVarOrHex) {
+    if (colorVarOrHex === '--c-substrate') return props.substrate;
+    if (colorVarOrHex === '--c-well') return props.nWell;
+    if (colorVarOrHex === '--c-pwell') return props.pWell;
+    if (colorVarOrHex === '--c-active-p') return props.pPlusImplant;
+    if (colorVarOrHex === '--c-active-n') return props.nPlusImplant;
+    if (colorVarOrHex === '--c-sde-p') return props.pSDE;
+    if (colorVarOrHex === '--c-sde-n') return props.nSDE;
+  }
+  return null;
+}
+
 var gaussTexCache = {};
 function gaussianDepthTexture(colorVarOrHex, peakV, sigmaV, opts){
   opts = opts || {};
-  var rawColor = colorVarOrHex.indexOf('--') === 0 ? cssVar(colorVarOrHex) : colorVarOrHex;
+  var canonProp = resolveInverterCanonProp(colorVarOrHex);
+  var rawColor = canonProp ? canonProp.color : (colorVarOrHex.indexOf('--') === 0 ? cssVar(colorVarOrHex) : colorVarOrHex);
   var key = [rawColor, peakV, sigmaV, opts.isoLines || 5].join('|');
   if (gaussTexCache[key]) return gaussTexCache[key];
 
@@ -241,18 +258,21 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
   opts = opts || {};
   var peakV = opts.peakV !== undefined ? opts.peakV : 0.25;
   var sigmaV = opts.sigmaV !== undefined ? opts.sigmaV : 0.25;
+  var canonProp = resolveInverterCanonProp(colorVar);
 
   var geo = createGaussianTubGeometry(w, h, d, opts);
   var tex = gaussianDepthTexture(colorVar, peakV, sigmaV, opts);
 
-  var baseColor = new THREE.Color(cssVar(colorVar));
+  var rawHex = canonProp ? canonProp.color : (colorVar.indexOf('--') === 0 ? cssVar(colorVar) : colorVar);
+  var baseColor = new THREE.Color(rawHex);
+  var outlineHex = opts.outlineColor || (canonProp && canonProp.outlineColor) || null;
   var mat = new THREE.MeshStandardMaterial({
     color: baseColor,
     map: tex,
-    roughness: opts.roughness !== undefined ? opts.roughness : 0.50,
-    metalness: opts.metalness !== undefined ? opts.metalness : 0.15,
+    roughness: opts.roughness !== undefined ? opts.roughness : (canonProp && canonProp.roughness !== undefined ? canonProp.roughness : 0.50),
+    metalness: opts.metalness !== undefined ? opts.metalness : (canonProp && canonProp.metalness !== undefined ? canonProp.metalness : 0.15),
     transparent: true,
-    opacity: opts.opacity !== undefined ? opts.opacity : 0.88,
+    opacity: opts.opacity !== undefined ? opts.opacity : (canonProp && canonProp.opacity !== undefined ? canonProp.opacity : 0.88),
     side: THREE.DoubleSide,
     depthWrite: opts.depthWrite !== undefined ? opts.depthWrite : false,
     polygonOffset: true,
@@ -272,7 +292,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
   mesh.userData.peakV = peakV;
   mesh.userData.sigmaV = sigmaV;
   mesh.userData.opts = opts;
-  mesh.userData.outlineColor = opts.outlineColor;
+  mesh.userData.outlineColor = outlineHex;
   mesh.renderOrder = opts.renderOrder || 2;
 
   // Add 3D Iso-concentration Contour Wire Loops at depths eta = 0.25, 0.50, 0.75
@@ -316,12 +336,15 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
     }
     var lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
     var lineMat = new THREE.LineBasicMaterial({
-      color: opts.outlineColor ? new THREE.Color(opts.outlineColor) : baseColor.clone().offsetHSL(0, 0.1, 0.2),
+      color: outlineHex ? new THREE.Color(outlineHex) : baseColor.clone().offsetHSL(0, 0.1, 0.2),
       transparent: true,
       opacity: 0.70 - idx * 0.15,
       depthWrite: false
     });
     var loop = new THREE.LineLoop(lineGeo, lineMat);
+    loop.userData.isGaussOutline = true;
+    loop.userData.isDepthRing = true;
+    loop.userData.hasFixedOutline = Boolean(opts.outlineColor);
     loop.raycast = function(){}; // Keep clicks focused on parent mesh
     mesh.add(loop);
   });
@@ -336,12 +359,15 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
   }
   var topGeo = new THREE.BufferGeometry().setFromPoints(topPts);
   var topMat = new THREE.LineBasicMaterial({
-    color: opts.outlineColor ? new THREE.Color(opts.outlineColor) : baseColor,
+    color: outlineHex ? new THREE.Color(outlineHex) : baseColor,
     transparent: true,
     opacity: 0.85,
     depthWrite: false
   });
   var topLoop = new THREE.LineLoop(topGeo, topMat);
+  topLoop.userData.isGaussOutline = true;
+  topLoop.userData.isDepthRing = false;
+  topLoop.userData.hasFixedOutline = Boolean(opts.outlineColor);
   topLoop.raycast = function(){};
   mesh.add(topLoop);
 
@@ -365,6 +391,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts){
   var coreMesh = new THREE.Mesh(coreGeo, coreMat);
   coreMesh.position.y = (h * 0.5) - (coreH * 0.5) - (h * (peakV * 0.5));
   coreMesh.raycast = function(){};
+  mesh.userData.coreMesh = coreMesh;
   mesh.add(coreMesh);
 
   return mesh;
@@ -628,20 +655,25 @@ function updateLabelSprite(sprite, text, colorHex, isLight){
 function updateMaterialsTheme(){
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
   var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLight ? 'light' : 'dark') : null);
+  var propsFn = (typeof getMaterialProperties === 'function') ? getMaterialProperties : window.getMaterialProperties;
+  var props = propsFn ? propsFn(isLight ? 'light' : 'dark') : null;
 
   selectable.forEach(function(m){
     if (m && m.userData && m.userData.colorVar && m.material && m.material.color){
       if (typeof nmosChanMesh !== 'undefined' && m === nmosChanMesh) return;
       if (typeof pmosChanMesh !== 'undefined' && m === pmosChanMesh) return;
       var cv = m.userData.colorVar;
-      var hex = cssVar(cv);
-      if (cv === '--c-substrate' && pal && pal.pSubstrate) hex = pal.pSubstrate;
-      else if (cv === '--c-well' && pal && pal.nWell) hex = pal.nWell;
-      else if (cv === '--c-pwell' && pal && pal.pWell) hex = pal.pWell;
-      else if (cv === '--c-active-p' && pal && pal.pPlusDiffusion) hex = pal.pPlusDiffusion;
-      else if (cv === '--c-active-n' && pal && pal.nPlusDiffusion) hex = pal.nPlusDiffusion;
-      else if (cv === '--c-sde-p' && pal && pal.pSDE) hex = pal.pSDE;
-      else if (cv === '--c-sde-n' && pal && pal.nSDE) hex = pal.nSDE;
+      var canonProp = resolveInverterCanonProp(cv, isLight);
+      var hex = canonProp ? canonProp.color : cssVar(cv);
+      if (!canonProp && pal) {
+        if (cv === '--c-substrate' && pal.pSubstrate) hex = pal.pSubstrate;
+        else if (cv === '--c-well' && pal.nWell) hex = pal.nWell;
+        else if (cv === '--c-pwell' && pal.pWell) hex = pal.pWell;
+        else if (cv === '--c-active-p' && pal.pPlusDiffusion) hex = pal.pPlusDiffusion;
+        else if (cv === '--c-active-n' && pal.nPlusDiffusion) hex = pal.nPlusDiffusion;
+        else if (cv === '--c-sde-p' && pal.pSDE) hex = pal.pSDE;
+        else if (cv === '--c-sde-n' && pal.nSDE) hex = pal.nSDE;
+      }
 
       if (hex){
         m.material.color.set(hex);
@@ -657,22 +689,40 @@ function updateMaterialsTheme(){
         } catch (_) {}
       }
 
-      if (cv === '--c-substrate') {
-        m.material.roughness = 0.85;
+      if (canonProp) {
+        if (canonProp.roughness !== undefined) m.material.roughness = canonProp.roughness;
+        if (canonProp.metalness !== undefined) m.material.metalness = canonProp.metalness;
+      }
+      if (cv === '--c-substrate' || cv === '--c-well' || cv === '--c-pwell') {
+        if (cv === '--c-substrate') m.material.roughness = 0.85;
+        else m.material.roughness = isLight ? 0.75 : 0.60;
         if (m.material.emissive) m.material.emissive.set(0x000000);
         m.material.emissiveIntensity = 0;
-      } else if (cv === '--c-well' || cv === '--c-pwell') {
-        m.material.roughness = isLight ? 0.75 : 0.50;
-        if (m.material.emissive) m.material.emissive.set(0x000000);
-        m.material.emissiveIntensity = 0;
+      }
+      if (m.userData.coreMesh && m.userData.coreMesh.material && m.userData.coreMesh.material.color && hex) {
+        m.userData.coreMesh.material.color.set(hex);
+      }
+      if (m.children && m.children.length) {
+        var nextOutlineHex = (canonProp && canonProp.outlineColor) || hex;
+        m.children.forEach(function(ch){
+          if (ch.isLineLoop && ch.userData && ch.userData.isGaussOutline && !ch.userData.hasFixedOutline && ch.material && ch.material.color && nextOutlineHex) {
+            ch.material.color.set(nextOutlineHex);
+          }
+        });
       }
     }
   });
 
   if (typeof subMesh !== 'undefined' && subMesh && subMesh.material) {
-    if (pal && pal.pSubstrate) subMesh.material.color.set(pal.pSubstrate);
-    subMesh.material.roughness = 0.85;
-    subMesh.material.metalness = 0.05;
+    if (props && props.substrate) {
+      subMesh.material.color.set(props.substrate.color);
+      subMesh.material.roughness = props.substrate.roughness;
+      subMesh.material.metalness = props.substrate.metalness;
+    } else if (pal && pal.pSubstrate) {
+      subMesh.material.color.set(pal.pSubstrate);
+      subMesh.material.roughness = 0.85;
+      subMesh.material.metalness = 0.05;
+    }
     if (subMesh.material.emissive) subMesh.material.emissive.set(0x000000);
     subMesh.material.emissiveIntensity = 0;
   }
@@ -689,11 +739,38 @@ function updateMaterialsTheme(){
   if (typeof silMatInverter !== 'undefined' && silMatInverter && silMatInverter.color) {
     silMatInverter.color.setHex(isLight ? 0x647082 : 0x6e7887);
   }
+  var dp = (props && props.depletion) ? props.depletion : {
+    colorHex: isLight ? 0x64748b : 0x94a3b8,
+    emissiveHex: isLight ? 0x334155 : 0x475569,
+    emissiveIntensity: 0.14,
+    opacity: 0.38,
+    roughness: 0.55,
+    metalness: 0.08,
+    edgeOpacity: 0.55
+  };
   if (typeof cmosDeplMat !== 'undefined' && cmosDeplMat) {
-    cmosDeplMat.color.setHex(isLight ? 0x64748b : 0x94a3b8);
-    cmosDeplMat.emissive.setHex(isLight ? 0x334155 : 0x475569);
-    cmosDeplMat.emissiveIntensity = 0.14;
-    cmosDeplMat.opacity = 0.38;
+    cmosDeplMat.color.setHex(dp.colorHex);
+    cmosDeplMat.emissive.setHex(dp.emissiveHex);
+    cmosDeplMat.emissiveIntensity = dp.emissiveIntensity;
+    cmosDeplMat.opacity = dp.opacity;
+    cmosDeplMat.roughness = dp.roughness;
+    cmosDeplMat.metalness = dp.metalness;
+  }
+  if (typeof cmosDeplEdgeMat !== 'undefined' && cmosDeplEdgeMat) {
+    cmosDeplEdgeMat.color.setHex(dp.colorHex);
+    cmosDeplEdgeMat.opacity = dp.edgeOpacity;
+  }
+  if (groups && groups['depletion']) {
+    groups['depletion'].children.forEach(function(dm){
+      if (dm && dm.userData && dm.userData.layerId === 'depletion' && dm.material) {
+        dm.material.color.setHex(dp.colorHex);
+        if (dm.material.emissive) dm.material.emissive.setHex(dp.emissiveHex);
+        dm.material.emissiveIntensity = dp.emissiveIntensity;
+        dm.material.opacity = dp.opacity;
+        dm.userData.baseEmissive = dp.emissiveHex;
+        dm.userData.baseEmissiveIntensity = dp.emissiveIntensity;
+      }
+    });
   }
 
   labelSprites.forEach(function(s){
@@ -801,7 +878,6 @@ var wellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-well', {
   sigmaV: 0.28,     // Broad Gaussian with high thermal straggle
   straggle: 0.08,   // Controlled lateral straggle ensuring active is fully enclosed at all depths
   cornerR: 0.35,    // Tight corner radius so active corners never protrude
-  opacity: 0.85,
   depthWrite: false,
   renderOrder: 2
 });
@@ -814,8 +890,6 @@ var pwellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-pwell', {
   sigmaV: 0.28,
   straggle: 0.08,
   cornerR: 0.35,
-  opacity: 0.80,
-  outlineColor: '#5a7799',
   depthWrite: false,
   renderOrder: 2
 });
@@ -906,8 +980,8 @@ function buildActiveRow(zc, srcColorVar, sdeColorVar, idPrefix, layerKey, doping
 
   return { src:src, drn:drn, srcSde:srcSde, drnSde:drnSde };
 }
-var pmosAct = buildActiveRow(PMOS_ZC, '--c-active-p', '--c-sde-p', 'pmos', 'active', '#3b82f6', '#60a5fa');
-var nmosAct = buildActiveRow(NMOS_ZC, '--c-active-n', '--c-sde-n', 'nmos', 'active', '#22c55e', '#4ade80');
+var pmosAct = buildActiveRow(PMOS_ZC, '--c-active-p', '--c-sde-p', 'pmos', 'active', null, null);
+var nmosAct = buildActiveRow(NMOS_ZC, '--c-active-n', '--c-sde-n', 'nmos', 'active', null, null);
 
 // ---------- WELL TAP / SUBSTRATE TAP — Gaussian ohmic contact diffusions ----------
 var wellTapPad = gaussianDopingMesh(1.3, Y.actTop-Y.actBot, 1.3, '--c-well', {
@@ -922,84 +996,398 @@ var subTapPad = gaussianDopingMesh(1.3, Y.actTop-Y.actBot, 1.3, '--c-substrate',
 put(subTapPad, TAP_X, (Y.actTop+Y.actBot)/2, NMOS_ZC);
 reg(subTapPad, 'subtapAct', 'active');
 
-// ---------- 3D DYNAMIC SPACE-CHARGE DEPLETION REGIONS ----------
+// ---------- 3D SCULPTED WRAP-AROUND SPACE-CHARGE DEPLETION REGIONS ----------
 var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';
 var palInitCMOS = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isInitLight ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isInitLight ? 'light' : 'dark') : null);
-
-var cmosDeplMat = new THREE.MeshStandardMaterial({
-  color: isInitLight ? 0x64748b : 0x94a3b8,
-  emissive: isInitLight ? 0x334155 : 0x475569,
+var propsInitCMOS = (typeof getMaterialProperties === 'function') ? getMaterialProperties(isInitLight ? 'light' : 'dark') : (window.getMaterialProperties ? window.getMaterialProperties(isInitLight ? 'light' : 'dark') : null);
+var deplPropsInit = (propsInitCMOS && propsInitCMOS.depletion) ? propsInitCMOS.depletion : {
+  colorHex: isInitLight ? 0x64748b : 0x94a3b8,
+  emissiveHex: isInitLight ? 0x334155 : 0x475569,
   emissiveIntensity: 0.14,
-  transparent: true,
   opacity: 0.38,
-  depthWrite: false,
   roughness: 0.55,
   metalness: 0.08,
+  edgeOpacity: 0.55
+};
+
+var cmosDeplMat = new THREE.MeshStandardMaterial({
+  color: deplPropsInit.colorHex,
+  emissive: deplPropsInit.emissiveHex,
+  emissiveIntensity: deplPropsInit.emissiveIntensity,
+  transparent: true,
+  opacity: deplPropsInit.opacity,
+  depthWrite: false,
+  roughness: deplPropsInit.roughness,
+  metalness: deplPropsInit.metalness,
   polygonOffset: true,
   polygonOffsetFactor: -0.5,
   polygonOffsetUnits: -0.5,
   side: THREE.DoubleSide
 });
 
-function createCmosDeplBox(w, h, d, x, y, z) {
-  var geo = new THREE.BoxGeometry(w, h, d);
+var cmosDeplEdgeMat = new THREE.LineBasicMaterial({
+  color: deplPropsInit.colorHex,
+  transparent: true,
+  opacity: deplPropsInit.edgeOpacity,
+  depthWrite: false
+});
+
+var CMOS_DEPL_ETA = [0.0, 0.15, 0.30, 0.45, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.92, 0.97, 1.0];
+
+function cmosDeplSmoothstep(a, b, x) {
+  var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
+// Build local rounded-rectangle perimeter for an S/D + SDE island (cx in world X, half-extents hx/hz)
+function buildCmosWellShellPerimeter(cx, hx, hz, cr) {
+  var pts = [];
+  var sx = Math.max(0, hx - cr);
+  var sz = Math.max(0, hz - cr);
+  var spineHalfZ = Math.max(0, hz - hx);
+
+  function addPt(lx, lz) {
+    var zSpine = Math.max(-spineHalfZ, Math.min(spineHalfZ, lz));
+    var dx = lx;
+    var dz = lz - zSpine;
+    var len = Math.hypot(dx, dz) || 1;
+    pts.push({
+      cx: cx,
+      lx: lx,
+      lz: lz,
+      zSpine: zSpine,
+      nxh: dx / len,
+      nzh: dz / len
+    });
+  }
+
+  var nX = 28, nZ = 20, nC = 6, i, t, ang;
+  for (i = 0; i < nX; i++) {
+    t = i / nX;
+    addPt(-sx + t * (2 * sx), hz);
+  }
+  for (i = 0; i < nC; i++) {
+    ang = (Math.PI / 2) * (1 - i / nC);
+    addPt(sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
+  }
+  for (i = 0; i < nZ; i++) {
+    t = i / nZ;
+    addPt(hx, sz - t * (2 * sz));
+  }
+  for (i = 0; i < nC; i++) {
+    ang = -(Math.PI / 2) * (i / nC);
+    addPt(sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang));
+  }
+  for (i = 0; i < nX; i++) {
+    t = i / nX;
+    addPt(sx - t * (2 * sx), -hz);
+  }
+  for (i = 0; i < nC; i++) {
+    ang = -Math.PI / 2 - (Math.PI / 2) * (i / nC);
+    addPt(-sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang));
+  }
+  for (i = 0; i < nZ; i++) {
+    t = i / nZ;
+    addPt(-hx, -sz + t * (2 * sz));
+  }
+  for (i = 0; i < nC; i++) {
+    ang = Math.PI - (Math.PI / 2) * (i / nC);
+    addPt(-sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
+  }
+  return pts;
+}
+
+function createCmosWellShellGeometry(perim) {
+  var nP = perim.length;
+  var nR = CMOS_DEPL_ETA.length;
+  var outerCount = nR * nP;
+  var totalVerts = outerCount * 2 + nP * 2;
+  var positions = new Float32Array(totalVerts * 3);
+  var indices = [];
+
+  var i, j, nextJ, r0, r1, a, b, c, d;
+  for (i = 0; i < nR - 1; i++) {
+    r0 = i * nP;
+    r1 = (i + 1) * nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      a = r0 + j; b = r1 + j; c = r1 + nextJ; d = r0 + nextJ;
+      indices.push(a, b, d);
+      indices.push(b, c, d);
+    }
+  }
+  for (i = 0; i < nR - 1; i++) {
+    r0 = outerCount + i * nP;
+    r1 = outerCount + (i + 1) * nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      a = r0 + j; b = r1 + j; c = r1 + nextJ; d = r0 + nextJ;
+      indices.push(a, d, b);
+      indices.push(b, d, c);
+    }
+  }
+  var topInnerStart = outerCount * 2;
+  var topOuterStart = topInnerStart + nP;
+  for (j = 0; j < nP; j++) {
+    nextJ = (j + 1) % nP;
+    var v0 = topInnerStart + j, v1 = topInnerStart + nextJ;
+    var v2 = topOuterStart + nextJ, v3 = topOuterStart + j;
+    indices.push(v0, v3, v1);
+    indices.push(v1, v3, v2);
+  }
+
+  var geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geo.setIndex(indices);
+  return geo;
+}
+
+function makeCmosShellMesh(cx, zc, perim) {
+  var geo = createCmosWellShellGeometry(perim);
   var m = new THREE.Mesh(geo, cmosDeplMat.clone());
-  m.position.set(x, y, z);
+  m.position.set(cx, Y.actTop, zc);
   m.renderOrder = 2;
   m.userData.baseEmissive = cmosDeplMat.emissive.getHex();
   m.userData.baseEmissiveIntensity = cmosDeplMat.emissiveIntensity;
-  var edge = new THREE.LineSegments(
-    new THREE.EdgesGeometry(geo, 24),
-    new THREE.LineBasicMaterial({ color: isInitLight ? 0x64748b : 0x94a3b8, transparent: true, opacity: 0.45, depthWrite: false })
-  );
-  edge.raycast = function() {};
-  m.add(edge);
+  m.userData.isSculptedDepletion = true;
+
+  var edgeGeo = new THREE.BufferGeometry();
+  edgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(perim.length * 3), 3));
+  var edgeLoop = new THREE.LineLoop(edgeGeo, cmosDeplEdgeMat);
+  edgeLoop.raycast = function() {};
+  m.add(edgeLoop);
+
+  reg(m, 'depletion', 'depletion');
+  return { mesh: m, geo: geo, edgeGeo: edgeGeo, perim: perim };
+}
+
+function getCmosChanThicknessAtWorldX(worldX, hasChannel, maxH, isSat, dL, ratio) {
+  if (!hasChannel || worldX < -1.001 || worldX > 1.001) return 0;
+  var pinchX = 1.0 - dL;
+  if (isSat) {
+    if (worldX >= pinchX) return 0;
+    var sSat = Math.max(0, Math.min(1, (worldX + 1.0) / Math.max(0.001, 2.0 - dL)));
+    return maxH * Math.max(0, 1.0 - sSat);
+  }
+  var sLin = Math.max(0, Math.min(1, (worldX + 1.0) / 2.0));
+  return maxH * Math.max(0, 1.0 - sLin * ratio);
+}
+
+function updateCmosWellShell(entry, isDrain, wDep, chState) {
+  var geo = entry.geo;
+  var edgeGeo = entry.edgeGeo;
+  var perim = entry.perim;
+  var posAttr = geo.attributes.position;
+  var pos = posAttr.array;
+  var edgeAttr = edgeGeo.attributes.position;
+  var edgeArr = edgeAttr.array;
+
+  var nP = perim.length;
+  var nR = CMOS_DEPL_ETA.length;
+  var outerCount = nR * nP;
+  var topInnerStart = outerCount * 2;
+  var topOuterStart = topInnerStart + nP;
+  var actH = Y.actTop - Y.actBot;       // 0.40 deep S/D tub
+  var sdeH = actH * 0.65;               // 0.26 shallow SDE wing
+  var minLocalY = (Y.wellBot + 0.03) - Y.actTop; // keep inside well (-0.82)
+
+  for (var i = 0; i < nR; i++) {
+    var eta = CMOS_DEPL_ETA[i];
+    var tDepth, tHoriz, outHWeight, outVWeight;
+
+    if (eta <= 0.45) {
+      var p1 = eta / 0.45;
+      tDepth = 0.85 * p1;
+      tHoriz = 1.0;
+      outHWeight = 1.0;
+      outVWeight = 0.0;
+    } else if (eta <= 0.65) {
+      var p2 = (eta - 0.45) / 0.20;
+      var ang = p2 * (Math.PI / 2);
+      tDepth = 0.85 + 0.15 * Math.sin(ang);
+      tHoriz = 0.85 + 0.15 * Math.cos(ang);
+      outHWeight = Math.cos(ang);
+      outVWeight = Math.sin(ang);
+    } else {
+      var p3 = (eta - 0.65) / 0.35;
+      tDepth = 1.0;
+      tHoriz = 0.85 * (1.0 - p3);
+      outHWeight = 0.0;
+      outVWeight = 1.0;
+    }
+
+    for (var j = 0; j < nP; j++) {
+      var pt = perim[j];
+      var inX = pt.lx * tHoriz;
+      var inZ = pt.zSpine + (pt.lz - pt.zSpine) * tHoriz;
+      var worldX = pt.cx + inX;
+
+      var tWell = cmosDeplSmoothstep(0.90, 1.15, Math.abs(worldX));
+      var depth = sdeH + (actH - sdeH) * tWell;
+      var inY = 0.002 - depth * tDepth;
+
+      var localW = wDep;
+      if (isDrain) {
+        var bulbFactor = 0.72 + 0.28 * cmosDeplSmoothstep(0.90, 2.50, Math.abs(worldX));
+        localW = wDep * bulbFactor;
+      }
+
+      var outX = inX + pt.nxh * localW * outHWeight;
+      var outZ = inZ + pt.nzh * localW * outHWeight;
+      var outY = Math.max(minLocalY, inY - localW * outVWeight);
+
+      if (chState && chState.hasChannel && Math.abs(inZ) <= (ACTIVE_W * 0.5 + 0.02)) {
+        var cTIn = getCmosChanThicknessAtWorldX(worldX, true, chState.maxH, chState.isSat, chState.dL, chState.ratio);
+        if (cTIn > 0.002) inY = Math.min(inY, -0.05 - cTIn * 0.5 - 0.004);
+        var worldOutX = pt.cx + outX;
+        var cTOut = getCmosChanThicknessAtWorldX(worldOutX, true, chState.maxH, chState.isSat, chState.dL, chState.ratio);
+        if (cTOut > 0.002) outY = Math.min(outY, -0.05 - cTOut * 0.5 - 0.004);
+      }
+
+      var oIdx = (i * nP + j) * 3;
+      pos[oIdx] = outX; pos[oIdx + 1] = outY; pos[oIdx + 2] = outZ;
+
+      var iIdx = (outerCount + i * nP + j) * 3;
+      pos[iIdx] = inX; pos[iIdx + 1] = inY; pos[iIdx + 2] = inZ;
+
+      if (i === 0) {
+        var tiIdx = (topInnerStart + j) * 3;
+        pos[tiIdx] = inX; pos[tiIdx + 1] = inY; pos[tiIdx + 2] = inZ;
+
+        var toIdx = (topOuterStart + j) * 3;
+        pos[toIdx] = outX; pos[toIdx + 1] = outY; pos[toIdx + 2] = outZ;
+
+        var eIdx = j * 3;
+        edgeArr[eIdx] = outX; edgeArr[eIdx + 1] = outY + 0.0008; edgeArr[eIdx + 2] = outZ;
+      }
+    }
+  }
+
+  posAttr.needsUpdate = true;
+  geo.computeVertexNormals();
+  edgeAttr.needsUpdate = true;
+}
+
+// Source [-4.0, -0.65] -> cx = -2.325, hx = 1.675 ; Drain [+0.65, +4.0] -> cx = +2.325, hx = 1.675
+var cmosSrcPerim = buildCmosWellShellPerimeter(-2.325, 1.675, ACTIVE_W * 0.5, 0.35);
+var cmosDrnPerim = buildCmosWellShellPerimeter( 2.325, 1.675, ACTIVE_W * 0.5, 0.35);
+
+var pmosSrcDeplEntry = makeCmosShellMesh(-2.325, PMOS_ZC, cmosSrcPerim);
+var pmosDrnDeplEntry = makeCmosShellMesh( 2.325, PMOS_ZC, cmosDrnPerim);
+var nmosSrcDeplEntry = makeCmosShellMesh(-2.325, NMOS_ZC, cmosSrcPerim);
+var nmosDrnDeplEntry = makeCmosShellMesh( 2.325, NMOS_ZC, cmosDrnPerim);
+
+var pmosSrcDepl = pmosSrcDeplEntry.mesh;
+var pmosDrnDepl = pmosDrnDeplEntry.mesh;
+var nmosSrcDepl = nmosSrcDeplEntry.mesh;
+var nmosDrnDepl = nmosDrnDeplEntry.mesh;
+
+function makeCmosGateDeplMesh(zc) {
+  var gGeo = new THREE.BoxGeometry(1.0, 1.0, ACTIVE_W, 24, 1, 2);
+  var pos = gGeo.attributes.position;
+  var initX = new Float32Array(pos.count);
+  var initSignY = new Int8Array(pos.count);
+  for (var k = 0; k < pos.count; k++) {
+    initX[k] = pos.getX(k);
+    initSignY[k] = pos.getY(k) >= 0 ? 1 : -1;
+  }
+  gGeo.userData.initialX = initX;
+  gGeo.userData.initialSignY = initSignY;
+
+  var m = new THREE.Mesh(gGeo, cmosDeplMat.clone());
+  m.position.set(0, Y.actTop, zc);
+  m.renderOrder = 2;
+  m.visible = false;
+  m.userData.baseEmissive = cmosDeplMat.emissive.getHex();
+  m.userData.baseEmissiveIntensity = cmosDeplMat.emissiveIntensity;
+  m.userData.isSculptedDepletion = true;
   reg(m, 'depletion', 'depletion');
   return m;
 }
 
-var sdDeplH = (Y.actTop - Y.actBot) + 0.14;
-var sdDeplMidY = (Y.actTop - 0.004) - sdDeplH / 2;
-var pmosSrcDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, SRC_X, sdDeplMidY, PMOS_ZC);
-var pmosDrnDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, DRN_X, sdDeplMidY, PMOS_ZC);
-var nmosSrcDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, SRC_X, sdDeplMidY, NMOS_ZC);
-var nmosDrnDepl = createCmosDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, DRN_X, sdDeplMidY, NMOS_ZC);
+var pmosGateDepl = makeCmosGateDeplMesh(PMOS_ZC);
+var nmosGateDepl = makeCmosGateDeplMesh(NMOS_ZC);
 
-var gateDeplBaseH = 0.24;
-var pmosGateDepl = createCmosDeplBox(CH.max - CH.min, gateDeplBaseH, ACTIVE_W, 0, Y.actTop - 0.24, PMOS_ZC);
-var nmosGateDepl = createCmosDeplBox(CH.max - CH.min, gateDeplBaseH, ACTIVE_W, 0, Y.actTop - 0.24, NMOS_ZC);
+function updateCmosGateCradle(mesh, gateDrive, vRev, wSrc, wDrn, chState) {
+  if (!mesh) return;
+  if (gateDrive <= 0.001) {
+    mesh.visible = false;
+    return;
+  }
+  mesh.visible = true;
+  var subFrac = Math.min(1.0, Math.max(0, gateDrive / 0.40));
+  var xLeft = -0.65 + wSrc * 0.90;
+  var xRight = Math.max(xLeft + 0.12, 0.65 - wDrn * 0.72);
+  var gGeo = mesh.geometry;
+  var pos = gGeo.attributes.position;
+  var initX = gGeo.userData.initialX;
+  var initSignY = gGeo.userData.initialSignY;
+
+  for (var g = 0; g < pos.count; g++) {
+    var gs = initX[g] + 0.5;
+    var gx = xLeft + gs * (xRight - xLeft);
+    var cT = (chState && chState.hasChannel)
+      ? getCmosChanThicknessAtWorldX(gx, true, chState.maxH, chState.isSat, chState.dL, chState.ratio)
+      : 0;
+    var topY = (cT > 0.002) ? (-0.05 - cT * 0.5 - 0.004) : -0.004;
+    var drainBias = cmosDeplSmoothstep(0.15, 1.0, gs);
+    var pocketDepth = 0.24 * subFrac + 0.16 * vRev * drainBias;
+    var botY = Math.max(-0.78, Math.min(topY - 0.01, -0.004 - pocketDepth));
+    pos.setX(g, gx);
+    pos.setY(g, initSignY[g] > 0 ? topY : botY);
+  }
+  pos.needsUpdate = true;
+  gGeo.computeVertexNormals();
+}
 
 window.updateInverterDepletion = function(vin, vout, nmosReg, pmosReg) {
   var isOff = (vin === 'off' || vin === null || vin === undefined);
   var vInNum = isOff ? 0.50 : Number(vin);
   var vOutNum = isOff ? 0.50 : Number(vout);
+  var maxH = 0.12;
 
-  // Junction reverse-bias expansion (drain widens most when transistor is OFF and VDS/VSD is high)
-  var pmosSrcRev = 0.0;
-  var pmosDrnRev = isOff ? 0.15 : Math.max(0, 1.00 - vOutNum);
-  var nmosSrcRev = 0.0;
-  var nmosDrnRev = isOff ? 0.15 : Math.max(0, vOutNum);
+  var pmosDrnRev = isOff ? 0.0 : Math.sqrt(Math.max(0, 1.00 - vOutNum));
+  var nmosDrnRev = isOff ? 0.0 : Math.sqrt(Math.max(0, vOutNum));
 
-  if (pmosSrcDepl) pmosSrcDepl.scale.set(1.0 + 0.10 * pmosSrcRev, 1.0 + 0.15 * pmosSrcRev, 1.0 + 0.04 * pmosSrcRev);
-  if (pmosDrnDepl) pmosDrnDepl.scale.set(1.0 + 0.20 * pmosDrnRev, 1.0 + 0.32 * pmosDrnRev, 1.0 + 0.08 * pmosDrnRev);
-  if (nmosSrcDepl) nmosSrcDepl.scale.set(1.0 + 0.10 * nmosSrcRev, 1.0 + 0.15 * nmosSrcRev, 1.0 + 0.04 * nmosSrcRev);
-  if (nmosDrnDepl) nmosDrnDepl.scale.set(1.0 + 0.20 * nmosDrnRev, 1.0 + 0.32 * nmosDrnRev, 1.0 + 0.08 * nmosDrnRev);
+  var wPSrc = 0.14;
+  var wPDrn = 0.14 + 0.18 * pmosDrnRev;
+  var wNSrc = 0.14;
+  var wNDrn = 0.14 + 0.18 * nmosDrnRev;
 
-  if (pmosGateDepl) {
-    var pGateOn = (!isOff && vInNum < 0.75);
-    var pGateDepthScale = isOff ? 0.45 : (pmosReg === 'CUTOFF' ? 0.35 : (pGateOn ? 0.95 : 0.65));
-    pmosGateDepl.visible = true;
-    pmosGateDepl.scale.set(1.0, pGateDepthScale, 1.0);
-    pmosGateDepl.position.y = (Y.actTop - 0.13) - (gateDeplBaseH * pGateDepthScale) / 2;
-  }
-  if (nmosGateDepl) {
-    var nGateOn = (!isOff && vInNum > 0.25);
-    var nGateDepthScale = isOff ? 0.45 : (nmosReg === 'CUTOFF' ? 0.35 : (nGateOn ? 0.95 : 0.65));
-    nmosGateDepl.visible = true;
-    nmosGateDepl.scale.set(1.0, nGateDepthScale, 1.0);
-    nmosGateDepl.position.y = (Y.actTop - 0.13) - (gateDeplBaseH * nGateDepthScale) / 2;
-  }
+  var vovN = isOff ? 0 : Math.max(0, vInNum - 0.40);
+  var hasChanN = !isOff && nmosReg !== 'CUTOFF' && nmosReg !== 'SUBTHRESHOLD' && vovN > 0.001;
+  var isSatN = hasChanN && (vOutNum >= vovN) && (nmosReg === 'SATURATION');
+  var nState = {
+    hasChannel: hasChanN,
+    maxH: maxH,
+    isSat: isSatN,
+    dL: isSatN ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vOutNum - vovN))) : 0.0,
+    ratio: (vovN > 0.0001) ? Math.min(1.0, Math.max(0, vOutNum / vovN)) : 1.0
+  };
+
+  var vovP = isOff ? 0 : Math.max(0, (1.00 - vInNum) - 0.40);
+  var vsdP = 1.00 - vOutNum;
+  var hasChanP = !isOff && pmosReg !== 'CUTOFF' && pmosReg !== 'SUBTHRESHOLD' && vovP > 0.001;
+  var isSatP = hasChanP && (vsdP >= vovP) && (pmosReg === 'SATURATION');
+  var pState = {
+    hasChannel: hasChanP,
+    maxH: maxH,
+    isSat: isSatP,
+    dL: isSatP ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vsdP - vovP))) : 0.0,
+    ratio: (vovP > 0.0001) ? Math.min(1.0, Math.max(0, vsdP / vovP)) : 1.0
+  };
+
+  updateCmosWellShell(pmosSrcDeplEntry, false, wPSrc, pState);
+  updateCmosWellShell(pmosDrnDeplEntry, true,  wPDrn, pState);
+  updateCmosWellShell(nmosSrcDeplEntry, false, wNSrc, nState);
+  updateCmosWellShell(nmosDrnDeplEntry, true,  wNDrn, nState);
+
+  updateCmosGateCradle(pmosGateDepl, isOff ? 0 : Math.max(0, 1.00 - vInNum), pmosDrnRev, wPSrc, wPDrn, pState);
+  updateCmosGateCradle(nmosGateDepl, isOff ? 0 : Math.max(0, vInNum),        nmosDrnRev, wNSrc, wNDrn, nState);
 };
+
+// Initial equilibrium sculpted shells
+window.updateInverterDepletion('off', 0.50, 'CUTOFF', 'CUTOFF');
 
 // ---------- 3D DYNAMIC INVERSION CHANNELS & PINCH-OFF REGIONS ----------
 

@@ -241,19 +241,12 @@ function applyLogicState() {
 
 function setOnOffTint(mesh, state) {
   if (!mesh) return;
-  if (state === 'partial') {
-    mesh.userData.baseEmissive = 0xd97706; // warm amber
-    mesh.userData.baseEmissiveIntensity = 0.32;
-  } else if (state === true) {
-    mesh.userData.baseEmissive = 0x2fbf7a; // emerald green ON
-    mesh.userData.baseEmissiveIntensity = 0.35;
-  } else {
-    mesh.userData.baseEmissive = 0x3a1414; // deep red OFF
-    mesh.userData.baseEmissiveIntensity = 0.25;
-  }
+  // Preserve exact canonical P+/N+ doping colors matching e-nmos / e-pmos (no red/amber emissive washout)
+  mesh.userData.baseEmissive = 0x000000;
+  mesh.userData.baseEmissiveIntensity = 0;
   if (typeof selectedMeshes !== 'undefined' && selectedMeshes.indexOf(mesh) === -1 && mesh.material && mesh.material.emissive) {
-    mesh.material.emissive.setHex(mesh.userData.baseEmissive);
-    mesh.material.emissiveIntensity = mesh.userData.baseEmissiveIntensity;
+    mesh.material.emissive.setHex(0x000000);
+    mesh.material.emissiveIntensity = 0;
   }
 }
 

@@ -142,19 +142,27 @@ function setOnOffTint(meshId, stateVal) {
   if (typeof meshesById === 'undefined') return;
   var arr = meshesById[meshId];
   if (!arr || !arr.length) return;
-  var tint = stateVal === true ? TINT_ON : (stateVal === 'partial' ? TINT_PARTIAL : TINT_OFF);
+  var isChan = (meshId === 'chMP1' || meshId === 'chMP2' || meshId === 'chMN1' || meshId === 'chMN2');
 
   for (var i = 0; i < arr.length; i++) {
     var m = arr[i];
     if (!m.material || !m.material.emissive) continue;
-    m.userData.baseEmissive = tint.color;
-    m.userData.baseEmissiveIntensity = tint.intensity;
+    if (isChan) {
+      // Channels glow using their canonical carrier channel hue
+      var tint = stateVal === true ? TINT_ON : (stateVal === 'partial' ? TINT_PARTIAL : TINT_OFF);
+      m.userData.baseEmissive = m.material.color ? m.material.color.getHex() : tint.color;
+      m.userData.baseEmissiveIntensity = (stateVal === true) ? 0.40 : 0.15;
+    } else {
+      // S/D & SDE implants preserve exact canonical e-nmos / e-pmos colors with zero emissive muddying
+      m.userData.baseEmissive = 0x000000;
+      m.userData.baseEmissiveIntensity = 0;
+    }
 
     if (typeof selectedMeshes !== 'undefined' && selectedMeshes.indexOf(m) !== -1) {
       continue;
     }
-    m.material.emissive.setHex(tint.color);
-    m.material.emissiveIntensity = tint.intensity;
+    m.material.emissive.setHex(m.userData.baseEmissive);
+    m.material.emissiveIntensity = m.userData.baseEmissiveIntensity;
   }
 }
 

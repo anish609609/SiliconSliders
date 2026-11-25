@@ -4,7 +4,7 @@
 
 ## Files
 
-- `materialPalette.js` -> Single source of truth for dark/light doping, dielectric, metal, and carrier colors (`MATERIAL_PALETTE`, `getMaterialPalette`).
+- `materialPalette.js` -> Single source of truth for dark/light doping, dielectric, metal, carrier colors, and canonical material finishes (`MATERIAL_PALETTE`, `MATERIAL_PROPERTIES`).
 - `css/design-tokens.css` -> Global EDA CSS variables, typography (`IBM Plex Mono`, `Inter`), and glassmorphic surface tokens.
 - `css/home.css` -> Landing page layout, module card grid, and responsive telemetry strip styles.
 - `js/home.js` -> Homepage theme persistence (`siliconsliders-theme` + time-of-day fallback) and cross-tab `pageshow`/`storage` sync.
@@ -20,10 +20,10 @@
 
 ## Key Symbols
 
-- **Palette (`materialPalette.js`):** `MATERIAL_PALETTE`, `getMaterialPalette` (registered on ESM export and `globalThis` / `window`).
+- **Palette (`materialPalette.js`):** `MATERIAL_PALETTE`, `MATERIAL_PROPERTIES`, `getMaterialPalette`, `getMaterialProperties` (registered on ESM export and `globalThis` / `window`).
 - **Viewer Theme (`viewer-theme.js`):** `ViewerTheme.init`, `ViewerTheme.getTheme`, `ViewerTheme.setTheme`, `ViewerTheme.toggleTheme`, `ViewerTheme.onThemeChange`.
 - **Homepage Theme (`home.js`):** `applyPlatformTheme`, `getPlatformTheme` (syncs `pageshow` and cross-tab `storage` events).
-- **Layer Highlight (`three/layerHighlight.ts` / `.js`):** `discoverClickableMeshes`, `collectLayerMeshes`, `raycastLayer`, `selectLayer`, `clearHighlight`, `applyHighlight`, `updateHighlightColor`, `SiliconLayerHighlight`.
+- **Layer Highlight (`three/layerHighlight.ts` / `.js`):** `discoverClickableMeshes`, `collectLayerMeshes`, `raycastLayer`, `raycastLayers`, `selectLayer`, `clearHighlight`, `applyHighlight`, `updateHighlightColor`, `SiliconLayerHighlight`.
 - **Viewer Core (`viewer-core.js`):** `SiliconViewer.init` (binds `#left-toggle`, `#right-toggle`, theme, topbar, and panels).
 - **Selection Highlight (`viewer-core.js`):** `SiliconSelectionHighlight.apply`, `SiliconSelectionHighlight.updateColor` (forwards to `SiliconLayerHighlight`).
 - **Auto-Rotate (`viewer-core.js`):** `SiliconAutoRotate.init`, `SiliconAutoRotate.setState`, `SiliconAutoRotate.getState`, `AUTO_ROTATE_STATES`, `applyAutoRotateState`, `syncAutoRotateVisibility`.

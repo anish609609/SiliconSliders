@@ -41,6 +41,8 @@ const MODULES: ModuleSpec[] = [
       '../../../shared/three/layerHighlight.js',
       '../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -59,6 +61,8 @@ const MODULES: ModuleSpec[] = [
       '../../../../shared/three/layerHighlight.js',
       '../../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -77,6 +81,8 @@ const MODULES: ModuleSpec[] = [
       '../../../../shared/three/layerHighlight.js',
       '../../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -95,6 +101,8 @@ const MODULES: ModuleSpec[] = [
       '../../../../shared/three/layerHighlight.js',
       '../../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -113,6 +121,8 @@ const MODULES: ModuleSpec[] = [
       '../../../../shared/three/layerHighlight.js',
       '../../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -131,6 +141,8 @@ const MODULES: ModuleSpec[] = [
       '../../../../shared/three/layerHighlight.js',
       '../../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -149,6 +161,8 @@ const MODULES: ModuleSpec[] = [
       '../../../../shared/three/layerHighlight.js',
       '../../../../shared/viewer/js/viewer-core.js',
       'js/geometry.js',
+      'js/controls-explode-scrub.js',
+      'js/dimensions.js',
       'js/ui-panels.js',
       'js/selection.js',
       'js/flow.js',
@@ -191,23 +205,54 @@ function createThreeMock() {
       return this;
     }
     distanceTo(v: any) { return Math.hypot(this.x - v.x, this.y - v.y, this.z - v.z); }
-    project() { return this; }
+    project() {
+      this.x = Math.max(-0.9, Math.min(0.9, this.x / 20));
+      this.y = Math.max(-0.9, Math.min(0.9, this.y / 20));
+      this.z = 0.25;
+      return this;
+    }
   }
 
   class Box3 {
     min = new Vector3(-1, -1, -1);
     max = new Vector3(1, 1, 1);
-    makeEmpty() { return this; }
-    expandByObject() { return this; }
-    setFromObject() { return this; }
-    isEmpty() { return false; }
+    private _empty = false;
+    makeEmpty() { this._empty = true; this.min.set(Infinity, Infinity, Infinity); this.max.set(-Infinity, -Infinity, -Infinity); return this; }
+    expandByObject(obj: any) {
+      if (!obj) return this;
+      let wx = obj.position?.x || 0, wy = obj.position?.y || 0, wz = obj.position?.z || 0;
+      let p = obj.parent;
+      while (p) {
+        wx += p.position?.x || 0;
+        wy += p.position?.y || 0;
+        wz += p.position?.z || 0;
+        p = p.parent;
+      }
+      if (this._empty) {
+        this._empty = false;
+        this.min.set(wx - 0.5, wy - 0.5, wz - 0.5);
+        this.max.set(wx + 0.5, wy + 0.5, wz + 0.5);
+      } else {
+        this.min.x = Math.min(this.min.x, wx - 0.5);
+        this.min.y = Math.min(this.min.y, wy - 0.5);
+        this.min.z = Math.min(this.min.z, wz - 0.5);
+        this.max.x = Math.max(this.max.x, wx + 0.5);
+        this.max.y = Math.max(this.max.y, wy + 0.5);
+        this.max.z = Math.max(this.max.z, wz + 0.5);
+      }
+      return this;
+    }
+    setFromObject(obj: any) { return this.makeEmpty().expandByObject(obj); }
+    isEmpty() { return this._empty; }
     getCenter(target?: Vector3) {
       const t = target || new Vector3();
-      return t.set(0, 0, 0);
+      if (this._empty) return t.set(0, 0, 0);
+      return t.set((this.min.x + this.max.x) * 0.5, (this.min.y + this.max.y) * 0.5, (this.min.z + this.max.z) * 0.5);
     }
     getSize(target?: Vector3) {
       const t = target || new Vector3();
-      return t.set(2, 2, 2);
+      if (this._empty) return t.set(0, 0, 0);
+      return t.set(this.max.x - this.min.x, this.max.y - this.min.y, this.max.z - this.min.z);
     }
   }
 
@@ -430,7 +475,12 @@ function createThreeMock() {
       cb(this);
       for (const c of [...this.children]) c.traverse(cb);
     }
-    updateMatrixWorld() {}
+    updateMatrixWorld() {
+      this.userData._matrixWorldCalls = (this.userData._matrixWorldCalls || 0) + 1;
+      for (const c of this.children) {
+        if (typeof c.updateMatrixWorld === 'function') c.updateMatrixWorld();
+      }
+    }
     lookAt() {}
   }
 
@@ -495,8 +545,34 @@ function createThreeMock() {
   }
 
   class Raycaster {
-    setFromCamera() {}
-    intersectObjects() { return []; }
+    static _testHitQueue: any[] = [];
+    static _setFromCameraCalls = 0;
+    setFromCamera() {
+      Raycaster._setFromCameraCalls++;
+    }
+    intersectObjects(objects: any[], recursive = false) {
+      const target = Raycaster._testHitQueue.length ? Raycaster._testHitQueue.shift() : null;
+      if (!target) return [];
+      const set = new Set<any>();
+      const collect = (obj: any) => {
+        if (!obj) return;
+        set.add(obj);
+        if (recursive && Array.isArray(obj.children)) {
+          obj.children.forEach(collect);
+        }
+      };
+      (objects || []).forEach(collect);
+      if (!set.has(target)) return [];
+      const wp = { x: target.position?.x || 0, y: target.position?.y || 0, z: target.position?.z || 0 };
+      let p = target.parent;
+      while (p) {
+        wp.x += p.position?.x || 0;
+        wp.y += p.position?.y || 0;
+        wp.z += p.position?.z || 0;
+        p = p.parent;
+      }
+      return [{ object: target, distance: 1.0, point: new Vector3(wp.x, wp.y, wp.z) }];
+    }
   }
 
   class Texture {
@@ -596,9 +672,24 @@ function createThreeMock() {
       toneMappingExposure = 1;
       outputEncoding = 0;
       constructor(opts: any = {}) {
-        this.domElement = opts.canvas || {
+        this.domElement = opts.canvas || (opts._fallbackCanvas) || {
+          _listeners: {} as Record<string, Function[]>,
           getBoundingClientRect: () => ({ left: 0, top: 0, width: 1024, height: 640 }),
-          addEventListener() {},
+          addEventListener(type: string, fn: any) {
+            if (!this._listeners[type]) this._listeners[type] = [];
+            this._listeners[type].push(fn);
+          },
+          removeEventListener(type: string, fn: any) {
+            if (!this._listeners[type]) return;
+            this._listeners[type] = this._listeners[type].filter((f: any) => f !== fn);
+          },
+          dispatchEvent(evt: any) {
+            const e = evt || {};
+            if (!e.target) e.target = this;
+            (this._listeners[e.type] || []).forEach((fn: any) => fn.call(this, e));
+          },
+          setPointerCapture() {},
+          releasePointerCapture() {},
           style: {},
         };
       }
@@ -677,6 +768,7 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
     const classes = new Set<string>();
     const attrs: Record<string, string> = {};
     const children: any[] = [];
+    const listeners: Record<string, Function[]> = {};
     const el: any = {
       tagName: tag.toUpperCase(),
       id,
@@ -691,6 +783,8 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
       height: 256,
       clientWidth: 800,
       clientHeight: 500,
+      offsetWidth: 260,
+      offsetHeight: 160,
       style: { display: '' },
       dataset: {},
       children,
@@ -710,18 +804,57 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
       removeAttribute: (k: string) => { delete attrs[k]; },
       appendChild: (c: any) => { c.parentElement = el; children.push(c); return c; },
       removeChild: (c: any) => c,
-      addEventListener() {},
-      removeEventListener() {},
-      dispatchEvent() {},
+      addEventListener(type: string, fn: any) {
+        if (!listeners[type]) listeners[type] = [];
+        listeners[type].push(fn);
+      },
+      removeEventListener(type: string, fn: any) {
+        if (!listeners[type]) return;
+        listeners[type] = listeners[type].filter((f) => f !== fn);
+      },
+      dispatchEvent(evt: any) {
+        const e = evt || {};
+        if (!e.target) e.target = el;
+        (listeners[e.type] || []).forEach((fn) => fn.call(el, e));
+      },
+      setPointerCapture() {},
+      releasePointerCapture() {},
+      scrollIntoView() {},
       querySelector: (sel: string) => {
         if (sel === 'input') return makeEl('input');
         if (sel === '.layer-name') return makeEl('span');
+        if (sel.startsWith('#')) return elementsById.get(sel.slice(1)) || null;
         return null;
       },
-      querySelectorAll: () => [],
+      querySelectorAll: (sel: string) => {
+        if (sel.includes('.node') || sel.includes('.tree-node')) {
+          const treeEl = elementsById.get('tree');
+          if (!treeEl) return [];
+          const matched: any[] = [];
+          const walkDom = (node: any) => {
+            if (!node) return;
+            if (node.dataset?.id || node.getAttribute?.('data-id') || node.classList?.contains('node') || node.classList?.contains('tree-node')) {
+              matched.push(node);
+            }
+            (node.children || []).forEach(walkDom);
+          };
+          walkDom(treeEl);
+          if (!matched.length && treeEl._innerHTML) {
+            const re = /data-id=["']([^"']+)["']/g;
+            let m: RegExpExecArray | null;
+            while ((m = re.exec(treeEl._innerHTML)) !== null) {
+              const vNode = makeEl('div');
+              vNode.dataset.id = m[1];
+              matched.push(vNode);
+            }
+          }
+          return matched;
+        }
+        return [];
+      },
       closest: () => null,
       getContext: () => ctx2d,
-      getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 500 }),
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1024, height: 640 }),
     };
     if (id) elementsById.set(id, el);
     return el;
@@ -731,14 +864,18 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
   for (const id of [
     'viewport', 'viewport-wrap', 'webgl-canvas', 'c', 'tree', 'layers-body', 'ref-legend-body',
     'inspector', 'inspector-body', 'crumb-sel', 'popover', 'pop-title', 'pop-sub', 'pop-body',
+    'left-workbench', 'wb-tabs', 'tab-inspect', 'tab-arch', 'tab-layers',
     'tour-banner', 'tb-step-badge', 'tb-step-title', 'tb-step-desc', 'tb-progress-fill',
     'tb-btn-prev', 'tb-btn-pause', 'tb-btn-next', 'tb-btn-close', 'btn-build-anim',
     'iv-canvas', 'iv-modal-canvas', 'iv-modal-backdrop', 'iv-expand-btn', 'iv-modal-close',
     'flow-caption', 'flow-seg', 'flow-mode-group', 'btn-theme-toggle', 'loading',
+    'explode-slider', 'explode-val',
   ]) {
     makeEl('div', id);
   }
 
+  const docListeners: Record<string, Function[]> = {};
+  const winListeners: Record<string, Function[]> = {};
   const docEl = makeEl('html');
   docEl.setAttribute('data-theme', 'dark');
 
@@ -755,8 +892,23 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
       if (sel.startsWith('#')) return documentMock.getElementById(sel.slice(1));
       return null;
     },
-    querySelectorAll: () => [],
-    addEventListener() {},
+    querySelectorAll: (sel: string) => {
+      if (sel.includes('.node') || sel.includes('.tree-node')) {
+        return elementsById.get('tree')?.querySelectorAll(sel) || [];
+      }
+      return [];
+    },
+    addEventListener(type: string, fn: any) {
+      if (!docListeners[type]) docListeners[type] = [];
+      docListeners[type].push(fn);
+    },
+    removeEventListener(type: string, fn: any) {
+      if (!docListeners[type]) return;
+      docListeners[type] = docListeners[type].filter((f) => f !== fn);
+    },
+    dispatchEvent(evt: any) {
+      (docListeners[evt?.type] || []).forEach((fn) => fn.call(documentMock, evt));
+    },
   };
 
   const THREE = createThreeMock();
@@ -801,7 +953,20 @@ function createDomSandbox(cssDefaults: Record<string, string>) {
     MutationObserver: class { observe() {} disconnect() {} },
     getMaterialPalette: paletteMod.getMaterialPalette,
     MATERIAL_PALETTE: paletteMod.MATERIAL_PALETTE,
-    addEventListener() {},
+    getMaterialProperties: paletteMod.getMaterialProperties,
+    MATERIAL_PROPERTIES: paletteMod.MATERIAL_PROPERTIES,
+    addEventListener(type: string, fn: any) {
+      if (!winListeners[type]) winListeners[type] = [];
+      winListeners[type].push(fn);
+    },
+    removeEventListener(type: string, fn: any) {
+      if (!winListeners[type]) return;
+      winListeners[type] = winListeners[type].filter((f) => f !== fn);
+    },
+    dispatchEvent(evt: any) {
+      const e = evt || {};
+      (winListeners[e.type] || []).forEach((fn) => fn.call(sandbox, e));
+    },
   };
   sandbox.window = sandbox;
   sandbox.self = sandbox;
@@ -1010,6 +1175,232 @@ function runModuleVerification(mod: ModuleSpec): { ok: boolean; errors: string[]
       }
     }
     roundTripCount++;
+  }
+
+  // 2B. Simulated Canvas Click-to-Inspect (Normal, EXPLODE Y > 0%, Collapsed Sidebar Popover, Drag Reject)
+  if (ctx.renderer && ctx.renderer.domElement && typeof ctx.renderer.domElement.dispatchEvent === 'function') {
+    const canvas = ctx.renderer.domElement;
+    const workbench = ctx.document.getElementById('left-workbench');
+    const popover = ctx.document.getElementById('popover');
+    const inspector = ctx.document.getElementById('inspector');
+    const crumbSel = ctx.document.getElementById('crumb-sel');
+    const origSwitchTab = ctx.switchWorkbenchTab;
+    const tabCalls: string[] = [];
+    ctx.switchWorkbenchTab = function (tab: string) {
+      tabCalls.push(tab);
+      if (typeof origSwitchTab === 'function') return origSwitchTab.apply(this, arguments);
+    };
+    ctx.window.switchWorkbenchTab = ctx.switchWorkbenchTab;
+
+    const getSelectedStateId = () => vm.runInContext(
+      `typeof selectedId !== 'undefined' ? selectedId : (typeof lastSelectedId !== 'undefined' ? lastSelectedId : null)`,
+      ctx
+    );
+
+    const simulateCanvasClick = (targetObj: any, dx = 2, dy = 1) => {
+      ctx.THREE.Raycaster._testHitQueue = targetObj ? [targetObj] : [];
+      const beforeMat = root.userData._matrixWorldCalls || 0;
+      const beforeRay = ctx.THREE.Raycaster._setFromCameraCalls;
+      canvas.dispatchEvent({
+        type: 'pointerdown',
+        button: 0,
+        pointerId: 1,
+        clientX: 400,
+        clientY: 250,
+        target: canvas,
+      });
+      ctx.window.dispatchEvent({
+        type: 'pointermove',
+        button: 0,
+        pointerId: 1,
+        clientX: 400 + dx,
+        clientY: 250 + dy,
+        target: canvas,
+      });
+      ctx.window.dispatchEvent({
+        type: 'pointerup',
+        button: 0,
+        pointerId: 1,
+        clientX: 400 + dx,
+        clientY: 250 + dy,
+        target: canvas,
+      });
+      canvas.dispatchEvent({
+        type: 'click',
+        button: 0,
+        clientX: 400 + dx,
+        clientY: 250 + dy,
+        target: canvas,
+      });
+      return {
+        matrixUpdated: (root.userData._matrixWorldCalls || 0) > beforeMat,
+        rayUpdated: ctx.THREE.Raycaster._setFromCameraCalls > beforeRay,
+      };
+    };
+
+    const pickTargetById = (preferIds: string[]) => {
+      for (const pid of preferIds) {
+        const match = clickable.find((m) => m.userData?.layerId === pid && !m.userData?.decorative && !m.userData?._isHighlightPart);
+        if (match) return match;
+      }
+      return clickable.find((m) => !m.userData?.decorative && !m.userData?._isHighlightPart) || null;
+    };
+
+    // Child-mesh parent-walk test setup: create an untagged child on an active layer mesh
+    const activeTarget = pickTargetById(
+      mod.id === 'pn-diode' ? ['pCore', 'nCore', 'depletionRegion'] :
+      mod.mode === 'mosfet' ? ['nmosSrc', 'pmosSrc', 'depletion'] :
+      ['pmosASrc', 'pmosSrc', 'depletion']
+    );
+    const deplTarget = pickTargetById(['depletionRegion', 'depletion']);
+
+    if (!activeTarget || !deplTarget) {
+      errors.push('Could not locate clickable mesh targets for simulated canvas click test');
+    } else {
+      // Case 1: Normal click with sidebar open -> Inspect tab + selectedId
+      workbench.classList.remove('collapsed');
+      if (typeof ctx.clearSelection === 'function') ctx.clearSelection();
+      tabCalls.length = 0;
+
+      const clickNormal = simulateCanvasClick(activeTarget, 2, 1);
+      if (!clickNormal.matrixUpdated) errors.push('Simulated canvas click did not call updateMatrixWorld(true)');
+      if (!clickNormal.rayUpdated) errors.push('Simulated canvas click did not call raycaster.setFromCamera(...)');
+      if (getSelectedStateId() !== activeTarget.userData.layerId) {
+        errors.push(`Normal canvas click on "${activeTarget.userData.layerId}" resulted in selected="${getSelectedStateId()}"`);
+      }
+      if (!tabCalls.includes('inspect')) {
+        errors.push(`Normal canvas click with open sidebar did not switch workbench to "inspect"`);
+      }
+      const inspHtml = inspector.innerHTML || ctx.document.getElementById('inspector-body').innerHTML;
+      if (!inspHtml || (mod.id !== 'cmos-nand' && !crumbSel.textContent)) {
+        errors.push('Normal canvas click did not populate inspector / crumb metadata');
+      }
+
+      // Case 2: Child-mesh hit walks parent chain to userData.layerId
+      const childProbe = new ctx.THREE.Mesh(new ctx.THREE.BufferGeometry(), activeTarget.material.clone());
+      activeTarget.add(childProbe);
+      if (typeof ctx.clearSelection === 'function') ctx.clearSelection();
+      simulateCanvasClick(childProbe, 1, 1);
+      activeTarget.remove(childProbe);
+      if (getSelectedStateId() !== activeTarget.userData.layerId) {
+        errors.push(`Child mesh canvas click failed parent-walk to "${activeTarget.userData.layerId}"`);
+      }
+
+      // Case 3: Exploded view (EXPLODE Y > 0%) click selects exact layer
+      if (typeof ctx.applyExplode === 'function') {
+        if (typeof ctx.clearSelection === 'function') ctx.clearSelection();
+        ctx.applyExplode(0.6);
+        simulateCanvasClick(deplTarget, 1, 2);
+        if (getSelectedStateId() !== deplTarget.userData.layerId) {
+          errors.push(`Exploded (60%) canvas click on "${deplTarget.userData.layerId}" failed (got "${getSelectedStateId()}")`);
+        }
+        ctx.applyExplode(0);
+      }
+
+      // Case 4: Collapsed sidebar click opens floating #popover
+      if (typeof ctx.clearSelection === 'function') ctx.clearSelection();
+      workbench.classList.add('collapsed');
+      popover.classList.remove('visible');
+      popover.classList.add('hidden');
+      simulateCanvasClick(activeTarget, 1, 1);
+      if (getSelectedStateId() !== activeTarget.userData.layerId) {
+        errors.push(`Collapsed-sidebar click on "${activeTarget.userData.layerId}" did not select layer`);
+      }
+      if (!popover.classList.contains('visible') || popover.classList.contains('hidden')) {
+        errors.push('Collapsed-sidebar click failed to show floating #popover (.visible without .hidden)');
+      }
+
+      // Case 5: Drag >= 6px must NOT trigger selection
+      if (typeof ctx.clearSelection === 'function') ctx.clearSelection();
+      simulateCanvasClick(activeTarget, 12, 8);
+      if (getSelectedStateId() !== null) {
+        errors.push(`Pointer drag (14.4px) wrongly triggered selection="${getSelectedStateId()}"`);
+      }
+      workbench.classList.remove('collapsed');
+      if (typeof ctx.clearSelection === 'function') ctx.clearSelection();
+    }
+  }
+
+  // 2C. Bug 2 & 3 CMOS Sculpted Depletion Geometry + Implant Color Parity Check
+  if (mod.id === 'cmos-inverter' || mod.id === 'cmos-nand') {
+    const deplMeshes = SiliconLayerHighlight.collectLayerMeshes(root, 'depletion', virtualMap);
+    const expectedDeplCount = mod.id === 'cmos-inverter' ? 6 : 10;
+    if (deplMeshes.length !== expectedDeplCount) {
+      errors.push(`${mod.id} expected ${expectedDeplCount} depletion meshes, found ${deplMeshes.length}`);
+    }
+    const sculptedShells = deplMeshes.filter((m) => (m.geometry?.attributes?.position?.count || 0) > 200);
+    const expectedShells = mod.id === 'cmos-inverter' ? 4 : 6;
+    if (sculptedShells.length !== expectedShells) {
+      errors.push(`${mod.id} expected ${expectedShells} sculpted S/D depletion shells (>200 verts), found ${sculptedShells.length}`);
+    }
+    for (const sh of sculptedShells) {
+      const hasEdgeLoop = Array.isArray(sh.children) && sh.children.some((c: any) => c && c.isLine && !c.isLineSegments);
+      if (!hasEdgeLoop) {
+        errors.push(`${mod.id} sculpted depletion shell missing perimeter LineLoop contour`);
+      }
+    }
+
+    // Check dark & light theme canonical MATERIAL_PROPERTIES parity
+    const checkThemeParity = (theme: 'dark' | 'light') => {
+      if (typeof ctx.applyTheme === 'function') {
+        ctx.applyTheme(theme);
+      } else if (typeof ctx.updateMaterialsTheme === 'function') {
+        ctx.document.documentElement.setAttribute('data-theme', theme);
+        ctx.updateMaterialsTheme();
+      }
+      // Exercise bias transitions so logic tint never washes out P+ / N+ implants
+      if (mod.id === 'cmos-inverter' && typeof ctx.setVinState === 'function') {
+        ctx.setVinState(0);
+        ctx.setVinState(1);
+        ctx.setVinState('off');
+      } else if (mod.id === 'cmos-nand' && typeof ctx.setInputs === 'function') {
+        ctx.setInputs(0, 0);
+        ctx.setInputs(1, 1);
+        ctx.setInputs('off', 'off');
+      }
+
+      const props = paletteMod.getMaterialProperties(theme);
+      const expectMeshProp = (layerId: string, prop: any, checkEmissiveZero = true) => {
+        const ms = SiliconLayerHighlight.collectLayerMeshes(root, layerId, virtualMap);
+        if (!ms.length) {
+          errors.push(`${mod.id} missing mesh "${layerId}" for parity check`);
+          return;
+        }
+        const mat = ms[0].material;
+        const expectedHex = parseInt(prop.color.replace('#', ''), 16);
+        if (mat.color.getHex() !== expectedHex) {
+          errors.push(`${mod.id} [${theme}] ${layerId} color #${mat.color.getHex().toString(16)} !== canonical #${expectedHex.toString(16)}`);
+        }
+        if (Math.abs(mat.roughness - prop.roughness) > 1e-4) {
+          errors.push(`${mod.id} [${theme}] ${layerId} roughness ${mat.roughness} !== ${prop.roughness}`);
+        }
+        if (Math.abs(mat.metalness - prop.metalness) > 1e-4) {
+          errors.push(`${mod.id} [${theme}] ${layerId} metalness ${mat.metalness} !== ${prop.metalness}`);
+        }
+        if (Math.abs(mat.opacity - prop.opacity) > 1e-4) {
+          errors.push(`${mod.id} [${theme}] ${layerId} opacity ${mat.opacity} !== ${prop.opacity}`);
+        }
+        if (checkEmissiveZero && (mat.emissive.getHex() !== 0 || mat.emissiveIntensity !== 0)) {
+          errors.push(`${mod.id} [${theme}] ${layerId} has washout emissive 0x${mat.emissive.getHex().toString(16)} (${mat.emissiveIntensity})`);
+        }
+      };
+
+      expectMeshProp('psub', props.substrate);
+      expectMeshProp('nwell', props.nWell);
+      expectMeshProp('pwell', props.pWell);
+      expectMeshProp(mod.id === 'cmos-inverter' ? 'pmosSrc' : 'pmosASrc', props.pPlusImplant);
+      expectMeshProp(mod.id === 'cmos-inverter' ? 'nmosSrc' : 'nmosASrc', props.nPlusImplant);
+      expectMeshProp(mod.id === 'cmos-inverter' ? 'pmosSrcSde' : 'pmosASrcSde', props.pSDE);
+      expectMeshProp(mod.id === 'cmos-inverter' ? 'nmosSrcSde' : 'nmosASrcSde', props.nSDE);
+
+      const dp = deplMeshes[0].material;
+      if (dp.color.getHex() !== props.depletion.colorHex || dp.emissive.getHex() !== props.depletion.emissiveHex || Math.abs(dp.opacity - props.depletion.opacity) > 1e-4) {
+        errors.push(`${mod.id} [${theme}] depletion material diverges from canonical MATERIAL_PROPERTIES.depletion`);
+      }
+    };
+    checkThemeParity('dark');
+    checkThemeParity('light');
+    if (typeof ctx.applyTheme === 'function') ctx.applyTheme('dark');
   }
 
   // 3. Process Tour Step Integrity & Cutoff/Carrier Suppression

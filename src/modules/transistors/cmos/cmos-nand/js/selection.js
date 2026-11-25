@@ -131,8 +131,12 @@ function syncTreeAndSchematicSelection() {
 }
 
 function clearSelection() {
-  for (var i = 0; i < selectedMeshes.length; i++) {
-    setMeshHighlight(selectedMeshes[i], false);
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof cellGroup !== 'undefined') {
+    SiliconLayerHighlight.clearHighlight(cellGroup);
+  } else {
+    for (var i = 0; i < selectedMeshes.length; i++) {
+      setMeshHighlight(selectedMeshes[i], false);
+    }
   }
   selectedId = null;
   selectedMeshes = [];
@@ -143,12 +147,15 @@ function clearSelection() {
 
   updateInspector();
   var wb = document.getElementById('left-workbench');
+  var pop = document.getElementById('popover');
+  if (pop) {
+    pop.classList.remove('visible');
+    pop.classList.add('hidden');
+  }
   if (wb && !wb.classList.contains('collapsed')) {
     if (typeof window.switchWorkbenchTab === 'function') {
       window.switchWorkbenchTab('inspect');
     }
-    var pop = document.getElementById('popover');
-    if (pop) pop.classList.add('hidden');
   } else {
     updatePopoverContent();
   }
@@ -162,8 +169,12 @@ function clearSelection() {
 function selectById(id) {
   if (!id || !INFO[id]) return;
 
-  for (var i = 0; i < selectedMeshes.length; i++) {
-    setMeshHighlight(selectedMeshes[i], false);
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof cellGroup !== 'undefined') {
+    SiliconLayerHighlight.clearHighlight(cellGroup);
+  } else {
+    for (var i = 0; i < selectedMeshes.length; i++) {
+      setMeshHighlight(selectedMeshes[i], false);
+    }
   }
 
   selectedId = id;
@@ -174,22 +185,30 @@ function selectById(id) {
   }
 
   for (var j = 0; j < selectedMeshes.length; j++) {
-    setMeshHighlight(selectedMeshes[j], true);
+    if (typeof SiliconLayerHighlight !== 'undefined' && typeof cellGroup !== 'undefined') {
+      SiliconLayerHighlight.apply(selectedMeshes[j], true, getHighlightHex(), cellGroup);
+    } else {
+      setMeshHighlight(selectedMeshes[j], true);
+    }
   }
 
   updateInspector();
 
   var wb = document.getElementById('left-workbench');
+  var pop = document.getElementById('popover');
   if (wb && !wb.classList.contains('collapsed')) {
     if (typeof window.switchWorkbenchTab === 'function') {
       window.switchWorkbenchTab('inspect');
     }
     var wbBody = document.getElementById('wb-body') || document.querySelector('.wb-body');
     if (wbBody) wbBody.scrollTop = 0;
-    var pop = document.getElementById('popover');
-    if (pop) pop.classList.add('hidden');
+    if (pop) {
+      pop.classList.remove('visible');
+      pop.classList.add('hidden');
+    }
   } else {
     updatePopoverContent();
+    updatePopoverPosition();
   }
 
   syncTreeAndSchematicSelection();
@@ -198,6 +217,7 @@ function selectById(id) {
     updateVoiceContext();
   }
 }
+window.selectById = selectById;
 
 function updatePopoverPosition() {
   var pop = document.getElementById('popover');
@@ -208,8 +228,13 @@ function updatePopoverPosition() {
   var wb = document.getElementById('left-workbench');
   var isWbOpen = wb && !wb.classList.contains('collapsed');
   if (!selectedId || !selectedMeshes.length || isSchematic || isTour || isWbOpen) {
+    pop.classList.remove('visible');
     pop.classList.add('hidden');
     return;
+  }
+
+  if (typeof scene !== 'undefined' && typeof scene.updateMatrixWorld === 'function') {
+    scene.updateMatrixWorld(true);
   }
 
   _centroidBox.makeEmpty();
@@ -222,6 +247,7 @@ function updatePopoverPosition() {
     }
   }
   if (!count || _centroidBox.isEmpty()) {
+    pop.classList.remove('visible');
     pop.classList.add('hidden');
     return;
   }
@@ -230,6 +256,7 @@ function updatePopoverPosition() {
   _tempVec.project(camera);
 
   if (_tempVec.z > 1 || _tempVec.z < -1) {
+    pop.classList.remove('visible');
     pop.classList.add('hidden');
     return;
   }
@@ -238,6 +265,7 @@ function updatePopoverPosition() {
   var sy = (-_tempVec.y * 0.5 + 0.5) * H();
 
   if (sx < -40 || sx > W() + 40 || sy < -40 || sy > H() + 40) {
+    pop.classList.remove('visible');
     pop.classList.add('hidden');
     return;
   }
@@ -247,47 +275,70 @@ function updatePopoverPosition() {
   pop.style.top = sy.toFixed(1) + 'px';
   pop.classList.toggle('flip-below', sy < 145);
   pop.classList.remove('hidden');
+  pop.classList.add('visible');
 }
+window.updatePopoverPosition = updatePopoverPosition;
 
 if (renderer && renderer.domElement) {
+  var isDragNand = false;
+  var DRAG_THRESH_NAND = 5;
+
   renderer.domElement.addEventListener('pointerdown', function (e) {
     if (e.button !== 0) return;
     pointerDownPos = { x: e.clientX, y: e.clientY };
+    isDragNand = false;
   });
 
-  renderer.domElement.addEventListener('pointerup', function (e) {
-    if (e.button !== 0 || !pointerDownPos) return;
-    var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-    pointerDownPos = null;
-    if (dist > 6) return;
+  window.addEventListener('pointerdown', function (e) {
+    if (e.target !== renderer.domElement) {
+      pointerDownPos = null;
+      isDragNand = false;
+    }
+  });
+
+  window.addEventListener('pointermove', function (e) {
+    if (!pointerDownPos) return;
+    if (Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y) > DRAG_THRESH_NAND) {
+      isDragNand = true;
+    }
+  });
+
+  renderer.domElement.addEventListener('click', function (e) {
     if (typeof isTourRunning !== 'undefined' && isTourRunning) return;
+    if (isDragNand) {
+      pointerDownPos = null;
+      isDragNand = false;
+      return;
+    }
+    if (pointerDownPos) {
+      var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+      if (dist > DRAG_THRESH_NAND) {
+        pointerDownPos = null;
+        return;
+      }
+    }
+    pointerDownPos = null;
+    isDragNand = false;
 
     var rect = renderer.domElement.getBoundingClientRect();
     var ndc = new THREE.Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
       -((e.clientY - rect.top) / rect.height) * 2 + 1
     );
+    if (typeof scene !== 'undefined' && typeof scene.updateMatrixWorld === 'function') {
+      scene.updateMatrixWorld(true);
+    }
     raycaster.setFromCamera(ndc, camera);
 
     var rootObj = typeof cellGroup !== 'undefined' ? cellGroup : scene;
-    var hits = (typeof SiliconLayerHighlight !== 'undefined')
-      ? SiliconLayerHighlight.raycastLayer(raycaster, rootObj, {
-          filter: function (h) {
-            return !(h.object.userData && h.object.userData.decorative);
-          }
-        })
-      : raycaster.intersectObjects(allMeshes, true).filter(function (h) {
-          return h.object.visible && !(h.object.userData && (h.object.userData.decorative || h.object.userData._isHighlightPart));
-        });
-
-    if (hits.length > 0) {
-      var m = hits[0].object;
-      while (m && (!m.userData || (!m.userData.layerId && !m.userData.id)) && m.parent && m.parent !== rootObj) {
-        m = m.parent;
-      }
-      var hitId = m && m.userData ? (m.userData.layerId || m.userData.id) : null;
-      if (hitId) {
-        selectById(hitId);
+    if (typeof SiliconLayerHighlight !== 'undefined' && rootObj) {
+      var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, rootObj, {
+        filter: function (h) {
+          return !(h.object.userData && h.object.userData.decorative);
+        }
+      });
+      if (hitRes && hitRes.layerId) {
+        selectById(hitRes.layerId);
         return;
       }
     }

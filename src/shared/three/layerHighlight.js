@@ -33,7 +33,8 @@
   function getMeshLayerId(obj) {
     var cur = obj;
     while (cur) {
-      if (cur.userData && (cur.userData._isHighlightPart || cur.userData.decorative || cur.userData.isLabel)) return null;
+      if (cur.userData && (cur.userData._isHighlightPart || cur.userData.decorative || cur.userData.isLabel || cur.userData.isFlowHelper)) return null;
+      if (cur.name === 'flowGroup' || cur.name === 'markerGroup') return null;
       if (cur.userData && typeof cur.userData.layerId === 'string' && cur.userData.layerId) {
         return cur.userData.layerId;
       }
@@ -59,7 +60,8 @@
     if (!rootObj || typeof rootObj.traverse !== 'function') return out;
     rootObj.traverse(function (obj) {
       if (!obj || (!obj.isMesh && !obj.isSprite)) return;
-      if (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative || obj.userData.isLabel)) return;
+      if (obj.isLine || obj.isLineSegments || obj.isPoints) return;
+      if (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative || obj.userData.isLabel || obj.userData.isFlowHelper)) return;
       var lid = getMeshLayerId(obj);
       if (!lid) return;
       if (!obj.userData) obj.userData = {};
@@ -94,23 +96,31 @@
     return matched;
   }
 
-  function raycastLayer(raycaster, rootObj, options) {
-    if (!raycaster || !rootObj) return null;
+  function raycastLayers(raycaster, rootObj, options) {
+    if (!raycaster || !rootObj) return [];
     var opts = options || {};
     var minOpacity = opts.minOpacity !== undefined ? opts.minOpacity : 0.01;
     var minScale = opts.minScale !== undefined ? opts.minScale : 0.001;
     var candidates = discoverClickableMeshes(rootObj);
-    if (!candidates.length) return null;
+    if (!candidates.length) return [];
 
-    if (typeof rootObj.updateMatrixWorld === 'function') {
+    // Update world matrices up to top-level Scene so exploded layers raycast accurately
+    var top = rootObj;
+    while (top.parent) top = top.parent;
+    if (typeof top.updateMatrixWorld === 'function') {
+      top.updateMatrixWorld(true);
+    } else if (typeof rootObj.updateMatrixWorld === 'function') {
       rootObj.updateMatrixWorld(true);
     }
 
-    var rawHits = raycaster.intersectObjects(candidates, false);
+    var rawHits = raycaster.intersectObjects(candidates, true) || [];
+    rawHits.sort(function (a, b) { return (a.distance || 0) - (b.distance || 0); });
+
+    var results = [];
     for (var i = 0; i < rawHits.length; i++) {
       var h = rawHits[i];
       var obj = h.object;
-      if (!obj || (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative))) continue;
+      if (!obj || (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative || obj.userData.isLabel || obj.userData.isFlowHelper))) continue;
       if (obj.isLine || obj.isLineSegments || obj.isPoints) continue;
       if (!isObjectVisibleInHierarchy(obj)) continue;
       if (obj.scale && (obj.scale.x <= minScale || obj.scale.y <= minScale || obj.scale.z <= minScale)) continue;
@@ -118,11 +128,27 @@
         continue;
       }
       var lid = getMeshLayerId(obj);
-      if (lid) {
-        return { layerId: lid, object: obj, hit: h };
+      if (!lid) continue;
+      if (typeof opts.filter === 'function' && !opts.filter(h, lid)) continue;
+      results.push({ layerId: lid, object: obj, hit: h, distance: h.distance || 0 });
+    }
+    return results;
+  }
+
+  function raycastLayer(raycaster, rootObj, options) {
+    var hits = raycastLayers(raycaster, rootObj, options);
+    if (!hits.length) return null;
+
+    if (hits[0].object && hits[0].object.userData && hits[0].object.userData.isChannelShell) {
+      for (var k = 1; k < hits.length; k++) {
+        if ((hits[k].distance - hits[0].distance) > 0.6) break;
+        var innerLid = hits[k].layerId;
+        if (innerLid === 'depletion' || (innerLid === 'channel' && !(hits[k].object.userData && hits[k].object.userData.isChannelShell))) {
+          return { layerId: hits[k].layerId, object: hits[k].object, hit: hits[k].hit };
+        }
       }
     }
-    return null;
+    return { layerId: hits[0].layerId, object: hits[0].object, hit: hits[0].hit };
   }
 
   function materialIsSharedOutsideSelection(mesh, rootObj, targetLayerIds) {
@@ -382,6 +408,7 @@
     isObjectVisibleInHierarchy: isObjectVisibleInHierarchy,
     discoverClickableMeshes: discoverClickableMeshes,
     collectLayerMeshes: collectLayerMeshes,
+    raycastLayers: raycastLayers,
     raycastLayer: raycastLayer,
     apply: applyHighlight,
     selectLayer: selectLayer,

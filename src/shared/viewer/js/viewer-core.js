@@ -60,9 +60,36 @@
     }
   };
 
+  var SHARED_PROPERTIES = {
+    dark: {
+      substrate:    { color: '#1E3A5F', roughness: 0.85, metalness: 0.05, opacity: 1.0, emissive: 0x000000, emissiveIntensity: 0 },
+      nWell:        { color: '#166534', roughness: 0.60, metalness: 0.15, opacity: 0.85, outlineColor: '#5fd9c4', emissive: 0x000000, emissiveIntensity: 0 },
+      pWell:        { color: '#1D4ED8', roughness: 0.60, metalness: 0.15, opacity: 0.80, outlineColor: '#5a7799', emissive: 0x000000, emissiveIntensity: 0 },
+      nPlusImplant: { color: '#22C55E', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#4ade80', emissive: 0x000000, emissiveIntensity: 0 },
+      pPlusImplant: { color: '#3B82F6', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#60a5fa', emissive: 0x000000, emissiveIntensity: 0 },
+      nSDE:         { color: '#4ADE80', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#86efac', emissive: 0x000000, emissiveIntensity: 0 },
+      pSDE:         { color: '#60A5FA', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#93c5fd', emissive: 0x000000, emissiveIntensity: 0 },
+      depletion:    { colorHex: 0x94a3b8, emissiveHex: 0x475569, emissiveIntensity: 0.14, opacity: 0.38, roughness: 0.55, metalness: 0.08, edgeOpacity: 0.55 }
+    },
+    light: {
+      substrate:    { color: '#7BA7E1', roughness: 0.85, metalness: 0.05, opacity: 1.0, emissive: 0x000000, emissiveIntensity: 0 },
+      nWell:        { color: '#4ADE80', roughness: 0.75, metalness: 0.15, opacity: 0.85, outlineColor: '#5fd9c4', emissive: 0x000000, emissiveIntensity: 0 },
+      pWell:        { color: '#4A86E8', roughness: 0.75, metalness: 0.15, opacity: 0.80, outlineColor: '#5a7799', emissive: 0x000000, emissiveIntensity: 0 },
+      nPlusImplant: { color: '#16A34A', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#22c55e', emissive: 0x000000, emissiveIntensity: 0 },
+      pPlusImplant: { color: '#2563EB', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#3b82f6', emissive: 0x000000, emissiveIntensity: 0 },
+      nSDE:         { color: '#22C55E', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#4ade80', emissive: 0x000000, emissiveIntensity: 0 },
+      pSDE:         { color: '#3B82F6', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#60a5fa', emissive: 0x000000, emissiveIntensity: 0 },
+      depletion:    { colorHex: 0x64748b, emissiveHex: 0x334155, emissiveIntensity: 0.14, opacity: 0.38, roughness: 0.55, metalness: 0.08, edgeOpacity: 0.55 }
+    }
+  };
+
   function getMatPal(theme) {
     var t = (theme === 'light') ? 'light' : 'dark';
     return SHARED_PALETTE[t];
+  }
+  function getMatProps(theme) {
+    var t = (theme === 'light') ? 'light' : 'dark';
+    return SHARED_PROPERTIES[t];
   }
 
   if (typeof root.MATERIAL_PALETTE === 'undefined') {
@@ -71,6 +98,12 @@
   if (typeof root.getMaterialPalette === 'undefined') {
     root.getMaterialPalette = getMatPal;
   }
+  if (typeof root.MATERIAL_PROPERTIES === 'undefined') {
+    root.MATERIAL_PROPERTIES = SHARED_PROPERTIES;
+  }
+  if (typeof root.getMaterialProperties === 'undefined') {
+    root.getMaterialProperties = getMatProps;
+  }
 
   // Dynamic import of ES module src/shared/materialPalette.js
   try {
@@ -78,6 +111,10 @@
       if (mod && mod.getMaterialPalette) {
         root.MATERIAL_PALETTE = mod.MATERIAL_PALETTE;
         root.getMaterialPalette = mod.getMaterialPalette;
+      }
+      if (mod && mod.getMaterialProperties) {
+        root.MATERIAL_PROPERTIES = mod.MATERIAL_PROPERTIES;
+        root.getMaterialProperties = mod.getMaterialProperties;
       }
     }).catch(function () {});
   } catch (_) {}

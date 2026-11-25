@@ -10,7 +10,9 @@ var selectedMeshes = [];
 var HIGHLIGHT_COLOR = new THREE.Color(cssVar('--highlight')); // bright magenta — kept far from the well's teal-green and every layer color so selection is unambiguous
 
 function clearSelection(){
-  if (typeof SiliconSelectionHighlight !== 'undefined') {
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    SiliconLayerHighlight.clearHighlight(scene);
+  } else if (typeof SiliconSelectionHighlight !== 'undefined') {
     selectedMeshes.forEach(function(m){
       SiliconSelectionHighlight.apply(m, false);
     });
@@ -27,7 +29,9 @@ function clearSelection(){
 function highlightMeshes(meshes){
   clearSelection();
   meshes.forEach(function(m){
-    if (typeof SiliconSelectionHighlight !== 'undefined') {
+    if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+      SiliconLayerHighlight.apply(m, true, HIGHLIGHT_COLOR, scene);
+    } else if (typeof SiliconSelectionHighlight !== 'undefined') {
       SiliconSelectionHighlight.apply(m, true, HIGHLIGHT_COLOR);
     }
     selectedMeshes.push(m);
@@ -59,6 +63,7 @@ var popoverWorldPos = new THREE.Vector3();
 function showPopoverFor(meshes, id, info){
   popoverMeshes = meshes;
   document.getElementById('popover-content').innerHTML = buildInfoHtml(id, info);
+  popoverEl.classList.remove('hidden');
   popoverEl.classList.add('visible');
   updatePopoverPosition();
 }
@@ -69,10 +74,22 @@ function hidePopover(){
 function updatePopoverPosition(){
   if (!popoverMeshes.length) return;
   scene.updateMatrixWorld(true);
-  popoverWorldPos.set(0,0,0);
-  var tmp = new THREE.Vector3();
-  popoverMeshes.forEach(function(m){ m.getWorldPosition(tmp); popoverWorldPos.add(tmp); });
-  popoverWorldPos.multiplyScalar(1/popoverMeshes.length);
+  var box = new THREE.Box3();
+  var count = 0;
+  popoverMeshes.forEach(function(m){
+    if (m && m.visible !== false) {
+      box.expandByObject(m);
+      count++;
+    }
+  });
+  if (count && !box.isEmpty()) {
+    box.getCenter(popoverWorldPos);
+  } else {
+    popoverWorldPos.set(0,0,0);
+    var tmp = new THREE.Vector3();
+    popoverMeshes.forEach(function(m){ m.getWorldPosition(tmp); popoverWorldPos.add(tmp); });
+    popoverWorldPos.multiplyScalar(1/popoverMeshes.length);
+  }
 
   var proj = popoverWorldPos.clone().project(activeCamera);
   if (proj.z > 1){ popoverEl.classList.remove('visible'); return; } // behind camera
@@ -95,6 +112,7 @@ function updatePopoverPosition(){
   popoverEl.style.top = y + 'px';
   popoverEl.classList.add('visible');
 }
+window.updatePopoverPosition = updatePopoverPosition;
 var popCloseBtn = document.getElementById('pop-close');
 if (popCloseBtn) {
   popCloseBtn.addEventListener('click', function(e){
@@ -112,8 +130,8 @@ if (popCloseBtn) {
 function selectById(id){
   var meshes = meshesForId(id);
   if (!meshes.length) return;
-  lastSelectedId = id;
   highlightMeshes(meshes);
+  lastSelectedId = id;
   var info = idToInfo(id);
   showInspector(id, info);
   var wb = document.getElementById('left-workbench');
@@ -129,12 +147,17 @@ function selectById(id){
   }
   document.getElementById('crumb-sel').textContent = '— ' + (info ? info.title : id);
   document.querySelectorAll('#tree .node').forEach(function(n){
-    if (n.dataset.id === id) n.classList.add('selected');
+    var isAct = n.dataset.id === id;
+    n.classList.toggle('selected', isAct);
+    if (isAct && typeof n.scrollIntoView === 'function') {
+      try { n.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
   });
   if (typeof window.updateVoiceAssistantContext === 'function'){
     window.updateVoiceAssistantContext(id, info);
   }
 }
+window.selectById = selectById;
 
 // raycaster click — hitting the model selects + anchors the popover;
 // clicking empty background dismisses it.
@@ -143,20 +166,27 @@ var raycaster = new THREE.Raycaster();
 var pointer = new THREE.Vector2();
 
 var pointerDownCanvas = false;
-var pointerDownPos = { x: 0, y: 0 };
+var pointerDownPos = null;
 var isDragCanvas = false;
-var DRAG_DISTANCE_THRESHOLD = 6; // px
+var DRAG_DISTANCE_THRESHOLD = 5; // px
 
 renderer.domElement.addEventListener('pointerdown', function(e){
   if (e.button !== 0) return;
   pointerDownCanvas = true;
-  pointerDownPos.x = e.clientX;
-  pointerDownPos.y = e.clientY;
+  pointerDownPos = { x: e.clientX, y: e.clientY };
   isDragCanvas = false;
 });
 
+window.addEventListener('pointerdown', function(e){
+  if (e.target !== renderer.domElement) {
+    pointerDownCanvas = false;
+    pointerDownPos = null;
+    isDragCanvas = false;
+  }
+});
+
 window.addEventListener('pointermove', function(e){
-  if (!pointerDownCanvas) return;
+  if (!pointerDownCanvas || !pointerDownPos) return;
   var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
   if (dist > DRAG_DISTANCE_THRESHOLD){
     isDragCanvas = true;
@@ -164,56 +194,47 @@ window.addEventListener('pointermove', function(e){
 });
 
 window.addEventListener('pointerup', function(e){
-  if (pointerDownCanvas){
+  if (pointerDownCanvas && pointerDownPos){
     var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
     if (dist > DRAG_DISTANCE_THRESHOLD){
       isDragCanvas = true;
     }
   }
-  setTimeout(function(){
-    pointerDownCanvas = false;
-    isDragCanvas = false;
-  }, 40);
 });
 
 renderer.domElement.addEventListener('click', function(e){
-  // Reject false clicks: dragged orbits, or mouse released after clicking elsewhere
-  if (!pointerDownCanvas || isDragCanvas){
+  if (isDragCanvas){
+    pointerDownCanvas = false;
+    pointerDownPos = null;
+    isDragCanvas = false;
     return;
   }
-  var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-  if (dist > DRAG_DISTANCE_THRESHOLD){
-    return;
+  if (pointerDownPos) {
+    var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+    if (dist > DRAG_DISTANCE_THRESHOLD){
+      pointerDownCanvas = false;
+      pointerDownPos = null;
+      return;
+    }
   }
+  pointerDownCanvas = false;
+  pointerDownPos = null;
+  isDragCanvas = false;
 
   var rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
   scene.updateMatrixWorld(true);
   raycaster.setFromCamera(pointer, activeCamera);
-  var hits = (typeof SiliconLayerHighlight !== 'undefined')
-    ? SiliconLayerHighlight.raycastLayer(raycaster, scene)
-    : raycaster.intersectObjects(selectable, true).filter(function(h){
-        if (h.object.userData && h.object.userData._isHighlightPart) return false;
-        if (h.object.isLine || h.object.isLineSegments || h.object.isPoints) return false;
-        var cur = h.object;
-        while (cur) {
-          if (cur.visible === false) return false;
-          cur = cur.parent;
-        }
-        return true;
-      });
-  if (hits.length){
-    var m = hits[0].object;
-    while (m && (!m.userData || (!m.userData.layerId && !m.userData.id)) && m.parent && m.parent !== scene) {
-      m = m.parent;
-    }
-    var hitId = m && m.userData ? (m.userData.layerId || m.userData.id) : null;
-    if (hitId) {
-      selectById(hitId);
+
+  if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
+    var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, scene);
+    if (hitRes && hitRes.layerId) {
+      selectById(hitRes.layerId);
       return;
     }
   }
+
   clearSelection();
   hidePopover();
   document.getElementById('inspector').innerHTML = '<div class="empty">Select a layer, region, or tree node to inspect its function, electrical role, and physical relationships.</div>';

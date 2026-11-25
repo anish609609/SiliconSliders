@@ -11,9 +11,9 @@ var lastSelectedId = null;
 var selectedMeshes = [];
 
 var pointerDownCanvas = false;
-var pointerDownPos = { x: 0, y: 0 };
+var pointerDownPos = null;
 var isDragCanvas = false;
-var DRAG_DISTANCE_THRESHOLD = 6; // px
+var DRAG_DISTANCE_THRESHOLD = 5; // px
 
 var popoverEl = document.getElementById('popover');
 var popoverContentEl = document.getElementById('popover-content');
@@ -84,13 +84,20 @@ function initSelection() {
     renderer.domElement.addEventListener('pointerdown', function (e) {
       if (e.button !== 0) return;
       pointerDownCanvas = true;
-      pointerDownPos.x = e.clientX;
-      pointerDownPos.y = e.clientY;
+      pointerDownPos = { x: e.clientX, y: e.clientY };
       isDragCanvas = false;
     });
 
+    window.addEventListener('pointerdown', function (e) {
+      if (e.target !== renderer.domElement) {
+        pointerDownCanvas = false;
+        pointerDownPos = null;
+        isDragCanvas = false;
+      }
+    });
+
     window.addEventListener('pointermove', function (e) {
-      if (!pointerDownCanvas) return;
+      if (!pointerDownCanvas || !pointerDownPos) return;
       var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
       if (dist > DRAG_DISTANCE_THRESHOLD) {
         isDragCanvas = true;
@@ -98,16 +105,12 @@ function initSelection() {
     });
 
     window.addEventListener('pointerup', function (e) {
-      if (pointerDownCanvas) {
+      if (pointerDownCanvas && pointerDownPos) {
         var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
         if (dist > DRAG_DISTANCE_THRESHOLD) {
           isDragCanvas = true;
         }
       }
-      setTimeout(function () {
-        pointerDownCanvas = false;
-        isDragCanvas = false;
-      }, 40);
     });
 
     renderer.domElement.addEventListener('click', onCanvasClick);
@@ -131,15 +134,37 @@ function isObjectVisibleInHierarchy(obj) {
 }
 
 function onCanvasClick(e) {
-  if (currentViewMode !== 'layout') return;
-  if (e.target !== renderer.domElement) return;
-  if (!pointerDownCanvas || isDragCanvas) return;
-  var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-  if (dist > DRAG_DISTANCE_THRESHOLD) return;
+  if (typeof currentViewMode !== 'undefined' && currentViewMode !== 'layout') return;
+  if (e.target && e.target !== renderer.domElement) return;
+  if (isDragCanvas) {
+    isDragCanvas = false;
+    pointerDownCanvas = false;
+    pointerDownPos = null;
+    return;
+  }
+  if (pointerDownPos) {
+    var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+    if (dist > DRAG_DISTANCE_THRESHOLD) {
+      pointerDownCanvas = false;
+      pointerDownPos = null;
+      return;
+    }
+  }
+  pointerDownCanvas = false;
+  pointerDownPos = null;
+  isDragCanvas = false;
 
   var rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+  if (typeof scene !== 'undefined' && typeof scene.updateMatrixWorld === 'function') {
+    scene.updateMatrixWorld(true);
+  }
+  var cam = (typeof activeCamera !== 'undefined' && activeCamera) ? activeCamera : camera;
+  if (cam) {
+    raycaster.setFromCamera(mouse, cam);
+  }
 
   if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
     var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, scene);
@@ -151,6 +176,8 @@ function onCanvasClick(e) {
 
   clearSelection();
 }
+window.selectComponentById = selectComponentById;
+window.selectById = function (id) { selectComponentById(id); };
 
 function selectComponentById(id, clientX, clientY) {
   var info = idToInfo(id);
@@ -230,8 +257,12 @@ function updateInspector(info) {
 function highlightTreeNode(id) {
   var treeNodes = document.querySelectorAll('.tree-node');
   treeNodes.forEach(function (n) {
-    n.classList.toggle('active', n.dataset.id === id);
-    n.classList.toggle('selected', n.dataset.id === id);
+    var isAct = n.dataset.id === id;
+    n.classList.toggle('active', isAct);
+    n.classList.toggle('selected', isAct);
+    if (isAct && typeof n.scrollIntoView === 'function') {
+      try { n.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
   });
 }
 

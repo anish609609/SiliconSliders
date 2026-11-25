@@ -72,6 +72,29 @@ export const MATERIAL_PALETTE = {
   }
 };
 
+export const MATERIAL_PROPERTIES = {
+  dark: {
+    substrate:    { color: '#1E3A5F', roughness: 0.85, metalness: 0.05, opacity: 1.0, emissive: 0x000000, emissiveIntensity: 0 },
+    nWell:        { color: '#166534', roughness: 0.60, metalness: 0.15, opacity: 0.85, outlineColor: '#5fd9c4', emissive: 0x000000, emissiveIntensity: 0 },
+    pWell:        { color: '#1D4ED8', roughness: 0.60, metalness: 0.15, opacity: 0.80, outlineColor: '#5a7799', emissive: 0x000000, emissiveIntensity: 0 },
+    nPlusImplant: { color: '#22C55E', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#4ade80', emissive: 0x000000, emissiveIntensity: 0 },
+    pPlusImplant: { color: '#3B82F6', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#60a5fa', emissive: 0x000000, emissiveIntensity: 0 },
+    nSDE:         { color: '#4ADE80', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#86efac', emissive: 0x000000, emissiveIntensity: 0 },
+    pSDE:         { color: '#60A5FA', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#93c5fd', emissive: 0x000000, emissiveIntensity: 0 },
+    depletion:    { colorHex: 0x94a3b8, emissiveHex: 0x475569, emissiveIntensity: 0.14, opacity: 0.38, roughness: 0.55, metalness: 0.08, edgeOpacity: 0.55 }
+  },
+  light: {
+    substrate:    { color: '#7BA7E1', roughness: 0.85, metalness: 0.05, opacity: 1.0, emissive: 0x000000, emissiveIntensity: 0 },
+    nWell:        { color: '#4ADE80', roughness: 0.75, metalness: 0.15, opacity: 0.85, outlineColor: '#5fd9c4', emissive: 0x000000, emissiveIntensity: 0 },
+    pWell:        { color: '#4A86E8', roughness: 0.75, metalness: 0.15, opacity: 0.80, outlineColor: '#5a7799', emissive: 0x000000, emissiveIntensity: 0 },
+    nPlusImplant: { color: '#16A34A', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#22c55e', emissive: 0x000000, emissiveIntensity: 0 },
+    pPlusImplant: { color: '#2563EB', roughness: 0.50, metalness: 0.15, opacity: 0.88, outlineColor: '#3b82f6', emissive: 0x000000, emissiveIntensity: 0 },
+    nSDE:         { color: '#22C55E', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#4ade80', emissive: 0x000000, emissiveIntensity: 0 },
+    pSDE:         { color: '#3B82F6', roughness: 0.50, metalness: 0.15, opacity: 0.72, outlineColor: '#60a5fa', emissive: 0x000000, emissiveIntensity: 0 },
+    depletion:    { colorHex: 0x64748b, emissiveHex: 0x334155, emissiveIntensity: 0.14, opacity: 0.38, roughness: 0.55, metalness: 0.08, edgeOpacity: 0.55 }
+  }
+};
+
 /**
  * Returns the active theme palette object.
  * @param {string} theme - 'dark' or 'light' (defaults to 'dark')
@@ -82,13 +105,22 @@ export function getMaterialPalette(theme) {
   return MATERIAL_PALETTE[t];
 }
 
+export function getMaterialProperties(theme) {
+  var t = (theme === 'light') ? 'light' : 'dark';
+  return MATERIAL_PROPERTIES[t];
+}
+
 // Global browser registration for non-module scripts
 if (typeof globalThis !== 'undefined') {
   globalThis.MATERIAL_PALETTE = MATERIAL_PALETTE;
   globalThis.getMaterialPalette = getMaterialPalette;
+  globalThis.MATERIAL_PROPERTIES = MATERIAL_PROPERTIES;
+  globalThis.getMaterialProperties = getMaterialProperties;
 } else if (typeof window !== 'undefined') {
   window.MATERIAL_PALETTE = MATERIAL_PALETTE;
   window.getMaterialPalette = getMaterialPalette;
+  window.MATERIAL_PROPERTIES = MATERIAL_PROPERTIES;
+  window.getMaterialProperties = getMaterialProperties;
 }
 
 export default getMaterialPalette;

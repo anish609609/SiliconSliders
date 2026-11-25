@@ -83,6 +83,7 @@ var popoverWorldPos = new THREE.Vector3();
 function showPopoverFor(meshes, id, info){
   popoverMeshes = meshes;
   document.getElementById('popover-content').innerHTML = buildInfoHtml(id, info);
+  popoverEl.classList.remove('hidden');
   popoverEl.classList.add('visible');
   updatePopoverPosition();
 }
@@ -93,10 +94,22 @@ function hidePopover(){
 function updatePopoverPosition(){
   if (!popoverMeshes.length) return;
   scene.updateMatrixWorld(true);
-  popoverWorldPos.set(0,0,0);
-  var tmp = new THREE.Vector3();
-  popoverMeshes.forEach(function(m){ m.getWorldPosition(tmp); popoverWorldPos.add(tmp); });
-  popoverWorldPos.multiplyScalar(1/popoverMeshes.length);
+  var box = new THREE.Box3();
+  var count = 0;
+  popoverMeshes.forEach(function(m){
+    if (m && m.visible !== false) {
+      box.expandByObject(m);
+      count++;
+    }
+  });
+  if (count && !box.isEmpty()) {
+    box.getCenter(popoverWorldPos);
+  } else {
+    popoverWorldPos.set(0,0,0);
+    var tmp = new THREE.Vector3();
+    popoverMeshes.forEach(function(m){ m.getWorldPosition(tmp); popoverWorldPos.add(tmp); });
+    popoverWorldPos.multiplyScalar(1/popoverMeshes.length);
+  }
 
   var proj = popoverWorldPos.clone().project(activeCamera);
   if (proj.z > 1){ popoverEl.classList.remove('visible'); return; } // behind camera
@@ -119,6 +132,7 @@ function updatePopoverPosition(){
   popoverEl.style.top = y + 'px';
   popoverEl.classList.add('visible');
 }
+window.updatePopoverPosition = updatePopoverPosition;
 var popCloseBtn = document.getElementById('pop-close');
 if (popCloseBtn) {
   popCloseBtn.addEventListener('click', function(e){
@@ -143,8 +157,11 @@ function selectById(id){
 
   document.getElementById('crumb-sel').textContent = '— ' + (info ? info.title : id);
   document.querySelectorAll('#tree .node').forEach(function(n){
-    if (n.dataset.id === id) n.classList.add('selected');
-    else n.classList.remove('selected');
+    var isAct = n.dataset.id === id;
+    n.classList.toggle('selected', isAct);
+    if (isAct && typeof n.scrollIntoView === 'function') {
+      try { n.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+    }
   });
 
   var wb = document.getElementById('left-workbench');
@@ -169,6 +186,7 @@ function selectById(id){
     window.updateVoiceAssistantContext(id, info);
   }
 }
+window.selectById = selectById;
 
 // raycaster click — hitting the model selects + anchors the popover;
 // clicking empty background dismisses it.
@@ -177,20 +195,27 @@ var raycaster = new THREE.Raycaster();
 var pointer = new THREE.Vector2();
 
 var pointerDownCanvas = false;
-var pointerDownPos = { x: 0, y: 0 };
+var pointerDownPos = null;
 var isDragCanvas = false;
-var DRAG_DISTANCE_THRESHOLD = 6; // px
+var DRAG_DISTANCE_THRESHOLD = 5; // px
 
 renderer.domElement.addEventListener('pointerdown', function(e){
   if (e.button !== 0) return;
   pointerDownCanvas = true;
-  pointerDownPos.x = e.clientX;
-  pointerDownPos.y = e.clientY;
+  pointerDownPos = { x: e.clientX, y: e.clientY };
   isDragCanvas = false;
 });
 
+window.addEventListener('pointerdown', function(e){
+  if (e.target !== renderer.domElement) {
+    pointerDownCanvas = false;
+    pointerDownPos = null;
+    isDragCanvas = false;
+  }
+});
+
 window.addEventListener('pointermove', function(e){
-  if (!pointerDownCanvas) return;
+  if (!pointerDownCanvas || !pointerDownPos) return;
   var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
   if (dist > DRAG_DISTANCE_THRESHOLD){
     isDragCanvas = true;
@@ -198,34 +223,48 @@ window.addEventListener('pointermove', function(e){
 });
 
 window.addEventListener('pointerup', function(e){
-  if (pointerDownCanvas){
+  if (pointerDownCanvas && pointerDownPos){
     var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
     if (dist > DRAG_DISTANCE_THRESHOLD){
       isDragCanvas = true;
     }
   }
-  setTimeout(function(){
-    pointerDownCanvas = false;
-    isDragCanvas = false;
-  }, 40);
 });
 
 renderer.domElement.addEventListener('click', function(e){
-  // Reject false clicks: dragged orbits, or mouse released after clicking elsewhere
-  if (!pointerDownCanvas || isDragCanvas){
+  if (isDragCanvas){
+    pointerDownCanvas = false;
+    pointerDownPos = null;
+    isDragCanvas = false;
     return;
   }
-  var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
-  if (dist > DRAG_DISTANCE_THRESHOLD){
-    return;
+  if (pointerDownPos) {
+    var dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
+    if (dist > DRAG_DISTANCE_THRESHOLD){
+      pointerDownCanvas = false;
+      pointerDownPos = null;
+      return;
+    }
   }
+  pointerDownCanvas = false;
+  pointerDownPos = null;
+  isDragCanvas = false;
 
   var rect = renderer.domElement.getBoundingClientRect();
   pointer.x = ((e.clientX-rect.left)/rect.width)*2-1;
   pointer.y = -((e.clientY-rect.top)/rect.height)*2+1;
 
+  scene.updateMatrixWorld(true);
+  raycaster.setFromCamera(pointer, activeCamera);
+
   if (typeof SiliconLayerHighlight !== 'undefined' && typeof scene !== 'undefined') {
-    var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, scene);
+    var hitRes = SiliconLayerHighlight.raycastLayer(raycaster, scene, {
+      filter: function(h, lid) {
+        if (lid === 'depletion' && (!h.object.visible || (h.object.scale && h.object.scale.x <= 0.001))) return false;
+        if (lid === 'channel' && h.object.userData && !h.object.userData.isChannelShell && !h.object.visible) return false;
+        return true;
+      }
+    });
     if (hitRes && hitRes.layerId) {
       selectById(hitRes.layerId);
       return;

@@ -25,7 +25,7 @@
 
 ## Key Symbols
 
-- **Geometry & Channels:** `Y`, `LAYER_ORDER`, `allMeshes`, `meshById`, `meshesById`, `buildNand2Cell`, `addNandDeplBox`, `updateNandDepletion`, `updateNandChannels`, `updateNandChannelThemes`, `updateMaterialsTheme`, `toggleLabels`.
+- **Geometry & Channels:** `Y`, `LAYER_ORDER`, `allMeshes`, `meshById`, `meshesById`, `resolveNandCanonProp`, `buildNand2Cell`, `buildNandWellShellPerimeter`, `createNandWellShellGeometry`, `updateNandWellShell`, `updateNandDepletion`, `updateNandChannels`, `updateNandChannelThemes`, `updateMaterialsTheme`, `toggleLabels`.
 - **Physics & State:** `calcNandVout`, `computeTransistorRegions`, `computeNand2State`, `getCircuitStateSnapshot`, `applyLogicTint`, `setInputs`, `initLogicStateControls`.
 - **VTC Graph & Modal:** `drawTransferGraph`, `drawTransferOnCanvas`, `setupCanvasDrag`, `openModal`, `closeModal`.
 - **Carrier Flow:** `buildFlowPools`, `rebuildFlowCurves`, `updateFlowMarkers`, `setFlowMode`, `branchMarkersA`, `branchMarkersB`, `updateFlowTheme`.

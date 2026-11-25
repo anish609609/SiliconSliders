@@ -32,9 +32,26 @@ var activeClipPlanes = typeof THREE !== 'undefined' ? [
    PROCEDURAL GRADIENT & BRUSHED METAL TEXTURES
    ============================================================ */
 
+function resolveNandCanonProp(colorVarOrHex, isLightTheme) {
+  var isL = isLightTheme !== undefined ? isLightTheme : (document.documentElement.getAttribute('data-theme') === 'light');
+  var fn = (typeof getMaterialProperties === 'function') ? getMaterialProperties : window.getMaterialProperties;
+  var props = fn ? fn(isL ? 'light' : 'dark') : null;
+  if (props && colorVarOrHex) {
+    if (colorVarOrHex === '--c-substrate') return props.substrate;
+    if (colorVarOrHex === '--c-well') return props.nWell;
+    if (colorVarOrHex === '--c-pwell') return props.pWell;
+    if (colorVarOrHex === '--c-active-p') return props.pPlusImplant;
+    if (colorVarOrHex === '--c-active-n') return props.nPlusImplant;
+    if (colorVarOrHex === '--c-sde-p') return props.pSDE;
+    if (colorVarOrHex === '--c-sde-n') return props.nSDE;
+  }
+  return null;
+}
+
 function gaussianDepthTexture(colorVarOrHex, peakV, sigmaV, opts) {
   opts = opts || {};
-  var rawColor = colorVarOrHex.indexOf('--') === 0 ? cssVar(colorVarOrHex) : colorVarOrHex;
+  var canonProp = resolveNandCanonProp(colorVarOrHex);
+  var rawColor = canonProp ? canonProp.color : (colorVarOrHex.indexOf('--') === 0 ? cssVar(colorVarOrHex) : colorVarOrHex);
   var key = [rawColor, peakV, sigmaV, opts.isoLines || 5].join('|');
   if (gaussTexCache[key]) return gaussTexCache[key];
 
@@ -331,8 +348,11 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
   var isoLines = opts.isoLines !== undefined ? opts.isoLines : 5;
   var straggle = opts.straggle !== undefined ? opts.straggle : 0.16;
   var cornerR = opts.cornerR !== undefined ? opts.cornerR : Math.min(w, d) * 0.22;
+  var canonProp = resolveNandCanonProp(colorVar);
 
-  var baseColor = new THREE.Color(cssVar(colorVar));
+  var rawHex = canonProp ? canonProp.color : cssVar(colorVar);
+  var baseColor = new THREE.Color(rawHex);
+  var outlineHex = opts.outlineColor || (canonProp && canonProp.outlineColor) || null;
   var tex = gaussianDepthTexture(colorVar, peakV, sigmaV, { isoLines: isoLines });
 
   var outerGeo = createGaussianTubGeometry(w, h, d, {
@@ -345,12 +365,12 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
   var outerMat = new THREE.MeshStandardMaterial({
     color: baseColor.clone(),
     map: tex,
-    roughness: 0.50,
-    metalness: 0.15,
+    roughness: opts.roughness !== undefined ? opts.roughness : (canonProp && canonProp.roughness !== undefined ? canonProp.roughness : 0.50),
+    metalness: opts.metalness !== undefined ? opts.metalness : (canonProp && canonProp.metalness !== undefined ? canonProp.metalness : 0.15),
     emissive: 0x000000,
     emissiveIntensity: 0,
     transparent: true,
-    opacity: opts.opacity !== undefined ? opts.opacity : 0.88,
+    opacity: opts.opacity !== undefined ? opts.opacity : (canonProp && canonProp.opacity !== undefined ? canonProp.opacity : 0.88),
     side: THREE.DoubleSide,
     depthWrite: false,
     polygonOffset: true,
@@ -369,8 +389,8 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
 
   /* 3 depth iso-concentration LineLoop rings at eta = [0.25, 0.50, 0.75] */
   var contourEtas = [0.25, 0.50, 0.75];
-  var depthColor = opts.outlineColor
-    ? new THREE.Color(opts.outlineColor)
+  var depthColor = outlineHex
+    ? new THREE.Color(outlineHex)
     : baseColor.clone().offsetHSL(0, 0.1, 0.2);
 
   for (var idx = 0; idx < contourEtas.length; idx++) {
@@ -384,13 +404,14 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
       0.70 - idx * 0.15
     );
     depthLoop.userData.isAutoOutline = !opts.outlineColor;
+    depthLoop.userData.hasFixedOutline = Boolean(opts.outlineColor);
     depthLoop.userData.isDepthRing = true;
     mesh.add(depthLoop);
   }
 
   /* 1 top wafer-surface perimeter LineLoop at y = h * 0.5 + 0.005 */
-  var topColor = opts.outlineColor
-    ? new THREE.Color(opts.outlineColor)
+  var topColor = outlineHex
+    ? new THREE.Color(outlineHex)
     : baseColor.clone();
   var topLoop = createTubContourLoop(
     w, h, d,
@@ -402,6 +423,7 @@ function gaussianDopingMesh(w, h, d, colorVar, opts) {
     0.85
   );
   topLoop.userData.isAutoOutline = !opts.outlineColor;
+  topLoop.userData.hasFixedOutline = Boolean(opts.outlineColor);
   topLoop.userData.isDepthRing = false;
   mesh.add(topLoop);
 
@@ -595,6 +617,8 @@ function updateMaterialsTheme() {
   if (typeof THREE === 'undefined') return;
   var isLightTheme = document.documentElement.getAttribute('data-theme') === 'light';
   var pal = (typeof getMaterialPalette === 'function') ? getMaterialPalette(isLightTheme ? 'light' : 'dark') : (window.getMaterialPalette ? window.getMaterialPalette(isLightTheme ? 'light' : 'dark') : null);
+  var propsFn = (typeof getMaterialProperties === 'function') ? getMaterialProperties : window.getMaterialProperties;
+  var props = propsFn ? propsFn(isLightTheme ? 'light' : 'dark') : null;
 
   for (var i = 0; i < allMeshes.length; i++) {
     var m = allMeshes[i];
@@ -602,18 +626,25 @@ function updateMaterialsTheme() {
     var colorVar = m.userData.colorVar;
     if (!colorVar || !m.material) continue;
 
-    var nextColorStr = cssVar(colorVar);
-    if (colorVar === '--c-substrate' && pal && pal.pSubstrate) nextColorStr = pal.pSubstrate;
-    else if (colorVar === '--c-well' && pal && pal.nWell) nextColorStr = pal.nWell;
-    else if (colorVar === '--c-pwell' && pal && pal.pWell) nextColorStr = pal.pWell;
-    else if (colorVar === '--c-active-p' && pal && pal.pPlusDiffusion) nextColorStr = pal.pPlusDiffusion;
-    else if (colorVar === '--c-active-n' && pal && pal.nPlusDiffusion) nextColorStr = pal.nPlusDiffusion;
-    else if (colorVar === '--c-sde-p' && pal && pal.pSDE) nextColorStr = pal.pSDE;
-    else if (colorVar === '--c-sde-n' && pal && pal.nSDE) nextColorStr = pal.nSDE;
+    var canonProp = resolveNandCanonProp(colorVar, isLightTheme);
+    var nextColorStr = canonProp ? canonProp.color : cssVar(colorVar);
+    if (!canonProp && pal) {
+      if (colorVar === '--c-substrate' && pal.pSubstrate) nextColorStr = pal.pSubstrate;
+      else if (colorVar === '--c-well' && pal.nWell) nextColorStr = pal.nWell;
+      else if (colorVar === '--c-pwell' && pal.pWell) nextColorStr = pal.pWell;
+      else if (colorVar === '--c-active-p' && pal.pPlusDiffusion) nextColorStr = pal.pPlusDiffusion;
+      else if (colorVar === '--c-active-n' && pal.nPlusDiffusion) nextColorStr = pal.nPlusDiffusion;
+      else if (colorVar === '--c-sde-p' && pal.pSDE) nextColorStr = pal.pSDE;
+      else if (colorVar === '--c-sde-n' && pal.nSDE) nextColorStr = pal.nSDE;
+    }
 
     var nextColor = new THREE.Color(nextColorStr);
     if (m.material.color) {
       m.material.color.copy(nextColor);
+    }
+    if (canonProp) {
+      if (canonProp.roughness !== undefined) m.material.roughness = canonProp.roughness;
+      if (canonProp.metalness !== undefined) m.material.metalness = canonProp.metalness;
     }
     if (colorVar === '--c-substrate') {
       m.material.roughness = 0.85;
@@ -621,7 +652,7 @@ function updateMaterialsTheme() {
       if (m.material.emissive) m.material.emissive.set(0x000000);
       m.material.emissiveIntensity = 0;
     } else if (colorVar === '--c-well' || colorVar === '--c-pwell') {
-      m.material.roughness = isLightTheme ? 0.75 : 0.50;
+      m.material.roughness = isLightTheme ? 0.75 : 0.60;
       if (m.material.emissive) m.material.emissive.set(0x000000);
       m.material.emissiveIntensity = 0;
     }
@@ -640,10 +671,13 @@ function updateMaterialsTheme() {
     }
 
     if (m.children && m.children.length) {
+      var canonOut = (canonProp && canonProp.outlineColor) ? new THREE.Color(canonProp.outlineColor) : null;
       for (var c = 0; c < m.children.length; c++) {
         var child = m.children[c];
-        if (child.isLineLoop && child.userData && child.userData.isAutoOutline && child.material && child.material.color) {
-          if (child.userData.isDepthRing) {
+        if (child.isLineLoop && child.userData && child.userData.isAutoOutline && !child.userData.hasFixedOutline && child.material && child.material.color) {
+          if (canonOut) {
+            child.material.color.copy(canonOut);
+          } else if (child.userData.isDepthRing) {
             child.material.color.copy(nextColor.clone().offsetHSL(0, 0.1, 0.2));
           } else {
             child.material.color.copy(nextColor);
@@ -656,11 +690,37 @@ function updateMaterialsTheme() {
   if (typeof silMatNand !== 'undefined' && silMatNand && silMatNand.color) {
     silMatNand.color.setHex(isLightTheme ? 0x647082 : 0x6e7887);
   }
+  var dp = (props && props.depletion) ? props.depletion : {
+    colorHex: isLightTheme ? 0x64748b : 0x94a3b8,
+    emissiveHex: isLightTheme ? 0x334155 : 0x475569,
+    emissiveIntensity: 0.14,
+    opacity: 0.38,
+    roughness: 0.55,
+    metalness: 0.08,
+    edgeOpacity: 0.55
+  };
   if (typeof window.nandDeplMat !== 'undefined' && window.nandDeplMat) {
-    window.nandDeplMat.color.setHex(isLightTheme ? 0x64748b : 0x94a3b8);
-    window.nandDeplMat.emissive.setHex(isLightTheme ? 0x334155 : 0x475569);
-    window.nandDeplMat.emissiveIntensity = 0.14;
-    window.nandDeplMat.opacity = 0.38;
+    window.nandDeplMat.color.setHex(dp.colorHex);
+    window.nandDeplMat.emissive.setHex(dp.emissiveHex);
+    window.nandDeplMat.emissiveIntensity = dp.emissiveIntensity;
+    window.nandDeplMat.opacity = dp.opacity;
+    window.nandDeplMat.roughness = dp.roughness;
+    window.nandDeplMat.metalness = dp.metalness;
+  }
+  if (typeof window.nandDeplEdgeMat !== 'undefined' && window.nandDeplEdgeMat) {
+    window.nandDeplEdgeMat.color.setHex(dp.colorHex);
+    window.nandDeplEdgeMat.opacity = dp.edgeOpacity;
+  }
+  for (var di = 0; di < allMeshes.length; di++) {
+    var dm = allMeshes[di];
+    if (dm && dm.userData && dm.userData.layerId === 'depletion' && dm.material) {
+      dm.material.color.setHex(dp.colorHex);
+      if (dm.material.emissive) dm.material.emissive.setHex(dp.emissiveHex);
+      dm.material.emissiveIntensity = dp.emissiveIntensity;
+      dm.material.opacity = dp.opacity;
+      dm.userData.baseEmissive = dp.emissiveHex;
+      dm.userData.baseEmissiveIntensity = dp.emissiveIntensity;
+    }
   }
 
   refreshAllLabelSprites();
@@ -717,9 +777,10 @@ function buildNand2Cell() {
   var metalMidY = (Y.metalBot + Y.metalTop) / 2;
 
   /* 1. P-Substrate (Sharp BoxGeometry, NO outline edges) */
+  var canonSub = resolveNandCanonProp('--c-substrate');
   var subGeo = new THREE.BoxGeometry(24, Y.subTop - Y.subBot, 25, 1, 1, 1);
   var subMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(cssVar('--c-substrate')),
+    color: new THREE.Color(canonSub ? canonSub.color : cssVar('--c-substrate')),
     roughness: 0.85,
     metalness: 0.05,
     emissive: 0x000000,
@@ -750,7 +811,6 @@ function buildNand2Cell() {
     sigmaV: 0.28,
     straggle: 0.08,
     cornerR: 0.35,
-    opacity: 0.85,
     renderOrder: 2
   });
   nwell.position.set(wellX, wellMidY, PMOS_ZC);
@@ -761,8 +821,6 @@ function buildNand2Cell() {
     sigmaV: 0.28,
     straggle: 0.08,
     cornerR: 0.35,
-    opacity: 0.80,
-    outlineColor: '#5a7799',
     renderOrder: 2
   });
   pwell.position.set(wellX, wellMidY, NMOS_ZC);
@@ -802,8 +860,6 @@ function buildNand2Cell() {
     sigmaV: 0.22,
     straggle: 0.16,
     cornerR: 0.5,
-    opacity: 0.88,
-    outlineColor: '#60a5fa',
     renderOrder: 3
   };
 
@@ -825,8 +881,6 @@ function buildNand2Cell() {
     sigmaV: 0.22,
     straggle: 0.16,
     cornerR: 0.5,
-    opacity: 0.88,
-    outlineColor: '#22c55e',
     renderOrder: 3
   };
 
@@ -852,8 +906,6 @@ function buildNand2Cell() {
     sigmaV: 0.28,
     straggle: 0.12,
     cornerR: 0.25,
-    opacity: 0.72,
-    outlineColor: '#93c5fd',
     renderOrder: 4
   };
   var nSdeOpts = {
@@ -861,8 +913,6 @@ function buildNand2Cell() {
     sigmaV: 0.28,
     straggle: 0.12,
     cornerR: 0.25,
-    opacity: 0.72,
-    outlineColor: '#4ade80',
     renderOrder: 4
   };
 
@@ -884,17 +934,28 @@ function buildNand2Cell() {
     registerMesh(sdeMesh, sp.id, 'sde', { explodeLayer: 'active' });
   }
 
-  /* Dynamic Space-Charge Depletion Regions (6 S/D & bridge shells + 4 sub-gate pockets) */
+  /* Dynamic Sculpted Wrap-Around Space-Charge Depletion Regions (6 S/D+bridge shells + 4 curved sub-gate cradles) */
   var isInitLightDepl = document.documentElement.getAttribute('data-theme') === 'light';
-  var nandDeplMat = new THREE.MeshStandardMaterial({
-    color: isInitLightDepl ? 0x64748b : 0x94a3b8,
-    emissive: isInitLightDepl ? 0x334155 : 0x475569,
+  var propsInitDepl = (typeof getMaterialProperties === 'function') ? getMaterialProperties(isInitLightDepl ? 'light' : 'dark') : (window.getMaterialProperties ? window.getMaterialProperties(isInitLightDepl ? 'light' : 'dark') : null);
+  var dpInit = (propsInitDepl && propsInitDepl.depletion) ? propsInitDepl.depletion : {
+    colorHex: isInitLightDepl ? 0x64748b : 0x94a3b8,
+    emissiveHex: isInitLightDepl ? 0x334155 : 0x475569,
     emissiveIntensity: 0.14,
-    transparent: true,
     opacity: 0.38,
-    depthWrite: false,
     roughness: 0.55,
     metalness: 0.08,
+    edgeOpacity: 0.55
+  };
+
+  var nandDeplMat = new THREE.MeshStandardMaterial({
+    color: dpInit.colorHex,
+    emissive: dpInit.emissiveHex,
+    emissiveIntensity: dpInit.emissiveIntensity,
+    transparent: true,
+    opacity: dpInit.opacity,
+    depthWrite: false,
+    roughness: dpInit.roughness,
+    metalness: dpInit.metalness,
     polygonOffset: true,
     polygonOffsetFactor: -0.5,
     polygonOffsetUnits: -0.5,
@@ -903,36 +964,315 @@ function buildNand2Cell() {
   });
   window.nandDeplMat = nandDeplMat;
 
-  function addNandDeplBox(w, h, d, x, y, z) {
-    var geo = new THREE.BoxGeometry(w, h, d);
+  var nandDeplEdgeMat = new THREE.LineBasicMaterial({
+    color: dpInit.colorHex,
+    transparent: true,
+    opacity: dpInit.edgeOpacity,
+    depthWrite: false,
+    clippingPlanes: activeClipPlanes
+  });
+  window.nandDeplEdgeMat = nandDeplEdgeMat;
+
+  var NAND_DEPL_ETA = [0.0, 0.15, 0.30, 0.45, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.92, 0.97, 1.0];
+
+  function nandDeplSmoothstep(a, b, x) {
+    var t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  }
+
+  function buildNandWellShellPerimeter(cx, hx, hz, cr) {
+    var pts = [];
+    var sx = Math.max(0, hx - cr);
+    var sz = Math.max(0, hz - cr);
+    var spineHalfZ = Math.max(0, hz - hx);
+
+    function addPt(lx, lz) {
+      var zSpine = Math.max(-spineHalfZ, Math.min(spineHalfZ, lz));
+      var dx = lx;
+      var dz = lz - zSpine;
+      var len = Math.hypot(dx, dz) || 1;
+      pts.push({
+        cx: cx,
+        lx: lx,
+        lz: lz,
+        zSpine: zSpine,
+        nxh: dx / len,
+        nzh: dz / len
+      });
+    }
+
+    var nX = 28, nZ = 20, nC = 6, i, t, ang;
+    for (i = 0; i < nX; i++) { t = i / nX; addPt(-sx + t * (2 * sx), hz); }
+    for (i = 0; i < nC; i++) { ang = (Math.PI / 2) * (1 - i / nC); addPt(sx + cr * Math.cos(ang), sz + cr * Math.sin(ang)); }
+    for (i = 0; i < nZ; i++) { t = i / nZ; addPt(hx, sz - t * (2 * sz)); }
+    for (i = 0; i < nC; i++) { ang = -(Math.PI / 2) * (i / nC); addPt(sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang)); }
+    for (i = 0; i < nX; i++) { t = i / nX; addPt(sx - t * (2 * sx), -hz); }
+    for (i = 0; i < nC; i++) { ang = -Math.PI / 2 - (Math.PI / 2) * (i / nC); addPt(-sx + cr * Math.cos(ang), -sz + cr * Math.sin(ang)); }
+    for (i = 0; i < nZ; i++) { t = i / nZ; addPt(-hx, -sz + t * (2 * sz)); }
+    for (i = 0; i < nC; i++) { ang = Math.PI - (Math.PI / 2) * (i / nC); addPt(-sx + cr * Math.cos(ang), sz + cr * Math.sin(ang)); }
+    return pts;
+  }
+
+  function createNandWellShellGeometry(perim) {
+    var nP = perim.length;
+    var nR = NAND_DEPL_ETA.length;
+    var outerCount = nR * nP;
+    var totalVerts = outerCount * 2 + nP * 2;
+    var positions = new Float32Array(totalVerts * 3);
+    var indices = [];
+
+    var i, j, nextJ, r0, r1, a, b, c, d;
+    for (i = 0; i < nR - 1; i++) {
+      r0 = i * nP;
+      r1 = (i + 1) * nP;
+      for (j = 0; j < nP; j++) {
+        nextJ = (j + 1) % nP;
+        a = r0 + j; b = r1 + j; c = r1 + nextJ; d = r0 + nextJ;
+        indices.push(a, b, d);
+        indices.push(b, c, d);
+      }
+    }
+    for (i = 0; i < nR - 1; i++) {
+      r0 = outerCount + i * nP;
+      r1 = outerCount + (i + 1) * nP;
+      for (j = 0; j < nP; j++) {
+        nextJ = (j + 1) % nP;
+        a = r0 + j; b = r1 + j; c = r1 + nextJ; d = r0 + nextJ;
+        indices.push(a, d, b);
+        indices.push(b, d, c);
+      }
+    }
+    var topInnerStart = outerCount * 2;
+    var topOuterStart = topInnerStart + nP;
+    for (j = 0; j < nP; j++) {
+      nextJ = (j + 1) % nP;
+      var v0 = topInnerStart + j, v1 = topInnerStart + nextJ;
+      var v2 = topOuterStart + nextJ, v3 = topOuterStart + j;
+      indices.push(v0, v3, v1);
+      indices.push(v1, v3, v2);
+    }
+
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geo.setIndex(indices);
+    return geo;
+  }
+
+  function makeNandShellMesh(cx, zc, perim, kind) {
+    var geo = createNandWellShellGeometry(perim);
     var m = new THREE.Mesh(geo, nandDeplMat.clone());
-    m.position.set(x, y, z);
+    m.position.set(cx, Y.actTop, zc);
     m.renderOrder = 2;
     m.userData.baseEmissive = nandDeplMat.emissive.getHex();
     m.userData.baseEmissiveIntensity = nandDeplMat.emissiveIntensity;
-    var edge = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geo, 24),
-      new THREE.LineBasicMaterial({ color: isInitLightDepl ? 0x64748b : 0x94a3b8, transparent: true, opacity: 0.45, depthWrite: false, clippingPlanes: activeClipPlanes })
-    );
-    edge.raycast = function () {};
-    m.add(edge);
+    m.userData.isSculptedDepletion = true;
+
+    var edgeGeo = new THREE.BufferGeometry();
+    edgeGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(perim.length * 3), 3));
+    var edgeLoop = new THREE.LineLoop(edgeGeo, nandDeplEdgeMat);
+    edgeLoop.raycast = function () {};
+    m.add(edgeLoop);
+
+    registerMesh(m, 'depletion', 'depletion');
+    return { mesh: m, geo: geo, edgeGeo: edgeGeo, perim: perim, kind: kind };
+  }
+
+  function evalNandChanThickness(worldX, ch) {
+    if (!ch || !ch.hasChannel || Math.abs(worldX - ch.gateX) > 1.001) return 0;
+    var localX = worldX - ch.gateX;
+    var s = (ch.drainDir === 1) ? ((localX + 1.0) / 2.0) : ((1.0 - localX) / 2.0);
+    if (ch.isSat) {
+      var pinchFrac = Math.max(0.001, (2.0 - ch.dL) / 2.0);
+      if (s >= pinchFrac) return 0;
+      var sSat = Math.max(0, Math.min(1, s / pinchFrac));
+      return ch.maxH * Math.max(0, 1.0 - sSat);
+    }
+    return ch.maxH * Math.max(0, 1.0 - s * ch.ratio);
+  }
+
+  function updateNandWellShell(entry, wDep, revBulb, chA, chB) {
+    var geo = entry.geo;
+    var edgeGeo = entry.edgeGeo;
+    var perim = entry.perim;
+    var kind = entry.kind; // 'left' | 'mid' | 'right'
+    var posAttr = geo.attributes.position;
+    var pos = posAttr.array;
+    var edgeAttr = edgeGeo.attributes.position;
+    var edgeArr = edgeAttr.array;
+
+    var nP = perim.length;
+    var nR = NAND_DEPL_ETA.length;
+    var outerCount = nR * nP;
+    var topInnerStart = outerCount * 2;
+    var topOuterStart = topInnerStart + nP;
+    var minLocalY = (Y.wellBot + 0.03) - Y.actTop; // -0.82
+
+    for (var i = 0; i < nR; i++) {
+      var eta = NAND_DEPL_ETA[i];
+      var tDepth, tHoriz, outHWeight, outVWeight;
+
+      if (eta <= 0.45) {
+        var p1 = eta / 0.45;
+        tDepth = 0.85 * p1;
+        tHoriz = 1.0;
+        outHWeight = 1.0;
+        outVWeight = 0.0;
+      } else if (eta <= 0.65) {
+        var p2 = (eta - 0.45) / 0.20;
+        var ang = p2 * (Math.PI / 2);
+        tDepth = 0.85 + 0.15 * Math.sin(ang);
+        tHoriz = 0.85 + 0.15 * Math.cos(ang);
+        outHWeight = Math.cos(ang);
+        outVWeight = Math.sin(ang);
+      } else {
+        var p3 = (eta - 0.65) / 0.35;
+        tDepth = 1.0;
+        tHoriz = 0.85 * (1.0 - p3);
+        outHWeight = 0.0;
+        outVWeight = 1.0;
+      }
+
+      for (var j = 0; j < nP; j++) {
+        var pt = perim[j];
+        var inX = pt.lx * tHoriz;
+        var inZ = pt.zSpine + (pt.lz - pt.zSpine) * tHoriz;
+        var worldX = pt.cx + inX;
+
+        var tWell;
+        if (kind === 'left') {
+          tWell = nandDeplSmoothstep(-3.82, -4.08, worldX);
+        } else if (kind === 'right') {
+          tWell = nandDeplSmoothstep(3.82, 4.08, worldX);
+        } else {
+          tWell = 1.0 - nandDeplSmoothstep(1.85, 2.12, Math.abs(worldX));
+        }
+        var depth = sdeH + (actH - sdeH) * tWell;
+        var inY = 0.002 - depth * tDepth;
+
+        var localW = wDep;
+        if (revBulb > 0.001) {
+          if (kind === 'right') {
+            var rBulb = 0.72 + 0.28 * nandDeplSmoothstep(3.80, 5.50, worldX);
+            localW = wDep + revBulb * rBulb;
+          } else if (kind === 'mid') {
+            var mBulb = 0.75 + 0.25 * (1.0 - nandDeplSmoothstep(1.40, 2.35, Math.abs(worldX)));
+            localW = wDep + revBulb * mBulb;
+          }
+        }
+
+        var outX = inX + pt.nxh * localW * outHWeight;
+        var outZ = inZ + pt.nzh * localW * outHWeight;
+        var outY = Math.max(minLocalY, inY - localW * outVWeight);
+
+        if (Math.abs(inZ) <= (ACTIVE_W * 0.5 + 0.02)) {
+          var cTIn = Math.max(evalNandChanThickness(worldX, chA), evalNandChanThickness(worldX, chB));
+          if (cTIn > 0.002) inY = Math.min(inY, -0.05 - cTIn * 0.5 - 0.004);
+          var worldOutX = pt.cx + outX;
+          var cTOut = Math.max(evalNandChanThickness(worldOutX, chA), evalNandChanThickness(worldOutX, chB));
+          if (cTOut > 0.002) outY = Math.min(outY, -0.05 - cTOut * 0.5 - 0.004);
+        }
+
+        var oIdx = (i * nP + j) * 3;
+        pos[oIdx] = outX; pos[oIdx + 1] = outY; pos[oIdx + 2] = outZ;
+
+        var iIdx = (outerCount + i * nP + j) * 3;
+        pos[iIdx] = inX; pos[iIdx + 1] = inY; pos[iIdx + 2] = inZ;
+
+        if (i === 0) {
+          var tiIdx = (topInnerStart + j) * 3;
+          pos[tiIdx] = inX; pos[tiIdx + 1] = inY; pos[tiIdx + 2] = inZ;
+
+          var toIdx = (topOuterStart + j) * 3;
+          pos[toIdx] = outX; pos[toIdx + 1] = outY; pos[toIdx + 2] = outZ;
+
+          var eIdx = j * 3;
+          edgeArr[eIdx] = outX; edgeArr[eIdx + 1] = outY + 0.0008; edgeArr[eIdx + 2] = outZ;
+        }
+      }
+    }
+
+    posAttr.needsUpdate = true;
+    geo.computeVertexNormals();
+    edgeAttr.needsUpdate = true;
+  }
+
+  // Left [-7.0, -3.65] -> cx=-5.325, hx=1.675 ; Mid [-2.35, +2.35] -> cx=0, hx=2.35 ; Right [+3.65, +7.0] -> cx=+5.325, hx=1.675
+  var nandLeftPerim  = buildNandWellShellPerimeter(-5.325, 1.675, ACTIVE_W * 0.5, 0.35);
+  var nandMidPerim   = buildNandWellShellPerimeter( 0.000, 2.350, ACTIVE_W * 0.5, 0.35);
+  var nandRightPerim = buildNandWellShellPerimeter( 5.325, 1.675, ACTIVE_W * 0.5, 0.35);
+
+  var mp1SrcDeplEntry  = makeNandShellMesh(-5.325, PMOS_ZC, nandLeftPerim,  'left');
+  var pmosDrnDeplEntry = makeNandShellMesh( 0.000, PMOS_ZC, nandMidPerim,   'mid');
+  var mp2SrcDeplEntry  = makeNandShellMesh( 5.325, PMOS_ZC, nandRightPerim, 'right');
+  var mn1SrcDeplEntry  = makeNandShellMesh(-5.325, NMOS_ZC, nandLeftPerim,  'left');
+  var nmosMidDeplEntry = makeNandShellMesh( 0.000, NMOS_ZC, nandMidPerim,   'mid');
+  var mn2DrnDeplEntry  = makeNandShellMesh( 5.325, NMOS_ZC, nandRightPerim, 'right');
+
+  var mp1SrcDepl  = mp1SrcDeplEntry.mesh;
+  var pmosDrnDepl = pmosDrnDeplEntry.mesh;
+  var mp2SrcDepl  = mp2SrcDeplEntry.mesh;
+  var mn1SrcDepl  = mn1SrcDeplEntry.mesh;
+  var nmosMidDepl = nmosMidDeplEntry.mesh;
+  var mn2DrnDepl  = mn2DrnDeplEntry.mesh;
+
+  function makeNandGateDeplMesh(gateX, zc) {
+    var gGeo = new THREE.BoxGeometry(1.0, 1.0, ACTIVE_W - 0.14, 24, 1, 2);
+    var pos = gGeo.attributes.position;
+    var initX = new Float32Array(pos.count);
+    var initSignY = new Int8Array(pos.count);
+    for (var k = 0; k < pos.count; k++) {
+      initX[k] = pos.getX(k);
+      initSignY[k] = pos.getY(k) >= 0 ? 1 : -1;
+    }
+    gGeo.userData.initialX = initX;
+    gGeo.userData.initialSignY = initSignY;
+
+    var m = new THREE.Mesh(gGeo, nandDeplMat.clone());
+    m.position.set(gateX, Y.actTop, zc);
+    m.renderOrder = 2;
+    m.visible = false;
+    m.userData.baseEmissive = nandDeplMat.emissive.getHex();
+    m.userData.baseEmissiveIntensity = nandDeplMat.emissiveIntensity;
+    m.userData.isSculptedDepletion = true;
     return registerMesh(m, 'depletion', 'depletion');
   }
 
-  var sdDeplH = actH + 0.14;
-  var sdDeplMidY = (Y.actTop - 0.004) - sdDeplH / 2;
-  var mp1SrcDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, LEFT_X, sdDeplMidY, PMOS_ZC);
-  var pmosDrnDepl = addNandDeplBox(4.45, sdDeplH, ACTIVE_W + 0.48, MID_X, sdDeplMidY, PMOS_ZC);
-  var mp2SrcDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, RIGHT_X, sdDeplMidY, PMOS_ZC);
-  var mn1SrcDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, LEFT_X, sdDeplMidY, NMOS_ZC);
-  var nmosMidDepl = addNandDeplBox(4.45, sdDeplH, ACTIVE_W + 0.48, MID_X, sdDeplMidY, NMOS_ZC);
-  var mn2DrnDepl = addNandDeplBox(3.45, sdDeplH, ACTIVE_W + 0.48, RIGHT_X, sdDeplMidY, NMOS_ZC);
+  var mp1GateDepl = makeNandGateDeplMesh(GATE_A_X, PMOS_ZC);
+  var mp2GateDepl = makeNandGateDeplMesh(GATE_B_X, PMOS_ZC);
+  var mn1GateDepl = makeNandGateDeplMesh(GATE_A_X, NMOS_ZC);
+  var mn2GateDepl = makeNandGateDeplMesh(GATE_B_X, NMOS_ZC);
 
-  var gateDeplH = 0.24;
-  var mp1GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_A_X, Y.actTop - 0.24, PMOS_ZC);
-  var mp2GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_B_X, Y.actTop - 0.24, PMOS_ZC);
-  var mn1GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_A_X, Y.actTop - 0.24, NMOS_ZC);
-  var mn2GateDepl = addNandDeplBox(2.0, gateDeplH, ACTIVE_W - 0.14, GATE_B_X, Y.actTop - 0.24, NMOS_ZC);
+  function updateNandGateCradle(mesh, gateX, gateDrive, vRev, drainDir, wLeftEdge, wRightEdge, chSpec) {
+    if (!mesh) return;
+    if (gateDrive <= 0.001) {
+      mesh.visible = false;
+      return;
+    }
+    mesh.visible = true;
+    var subFrac = Math.min(1.0, Math.max(0, gateDrive / 0.40));
+    var xLeftLocal = -0.65 + wLeftEdge * 0.85;
+    var xRightLocal = Math.max(xLeftLocal + 0.12, 0.65 - wRightEdge * 0.85);
+    var gGeo = mesh.geometry;
+    var pos = gGeo.attributes.position;
+    var initX = gGeo.userData.initialX;
+    var initSignY = gGeo.userData.initialSignY;
+
+    for (var g = 0; g < pos.count; g++) {
+      var gs = initX[g] + 0.5;
+      var gx = xLeftLocal + gs * (xRightLocal - xLeftLocal);
+      var worldX = gateX + gx;
+      var cT = evalNandChanThickness(worldX, chSpec);
+      var topY = (cT > 0.002) ? (-0.05 - cT * 0.5 - 0.004) : -0.004;
+      var drainFrac = (drainDir === 1) ? gs : (1.0 - gs);
+      var drainBias = nandDeplSmoothstep(0.15, 1.0, drainFrac);
+      var pocketDepth = 0.24 * subFrac + 0.16 * vRev * drainBias;
+      var botY = Math.max(-0.78, Math.min(topY - 0.01, -0.004 - pocketDepth));
+      pos.setX(g, gx);
+      pos.setY(g, initSignY[g] > 0 ? topY : botY);
+    }
+    pos.needsUpdate = true;
+    gGeo.computeVertexNormals();
+  }
 
   window.updateNandDepletion = function(st) {
     var frozen = !st || st.frozen || st.a === 'off' || st.b === 'off';
@@ -940,32 +1280,49 @@ function buildNand2Cell() {
     var vb = frozen ? 0.50 : Number(st.b);
     var vout = frozen ? 0.50 : Number(st.vout);
     var regs = (st && st.regions) ? st.regions : {};
-    var vx = (typeof regs.vx === 'number') ? regs.vx : (frozen ? 0.25 : 0.0);
+    var vx = (typeof regs.vx === 'number') ? regs.vx : (frozen ? 0.0 : (va <= 0.40 ? 0 : 0.5 * vout));
+    var maxH = 0.12;
 
-    var pmosDrnRev = frozen ? 0.15 : Math.max(0, 1.00 - vout);
-    var nmosMidRev = frozen ? 0.15 : Math.max(0, vx);
-    var nmosDrnRev = frozen ? 0.15 : Math.max(0, vout);
-
-    mp1SrcDepl.scale.set(1.0, 1.0, 1.0);
-    mp2SrcDepl.scale.set(1.0, 1.0, 1.0);
-    pmosDrnDepl.scale.set(1.0 + 0.16 * pmosDrnRev, 1.0 + 0.30 * pmosDrnRev, 1.0 + 0.08 * pmosDrnRev);
-    mn1SrcDepl.scale.set(1.0, 1.0, 1.0);
-    nmosMidDepl.scale.set(1.0 + 0.16 * nmosMidRev, 1.0 + 0.28 * nmosMidRev, 1.0 + 0.08 * nmosMidRev);
-    mn2DrnDepl.scale.set(1.0 + 0.20 * nmosDrnRev, 1.0 + 0.32 * nmosDrnRev, 1.0 + 0.08 * nmosDrnRev);
-
-    var updateGateDepl = function(mesh, on, reg) {
-      var depthScale = frozen ? 0.45 : (reg === 'CUTOFF' ? 0.35 : (on ? 0.95 : 0.65));
-      mesh.visible = true;
-      mesh.scale.set(1.0, depthScale, 1.0);
-      var targetY = (Y.actTop - 0.13) - (gateDeplH * depthScale) / 2;
-      mesh.position.y = targetY;
-      if (mesh.userData.restPos) mesh.userData.restPos.y = targetY;
+    var makeChSpec = function(gateX, vov, vd, regName, drainDir) {
+      var hasChan = !frozen && vov > 0.001 && regName !== 'CUTOFF' && regName !== 'SUBTHRESHOLD';
+      var isSat = hasChan && (regName === 'SATURATION') && (vd >= vov);
+      return {
+        gateX: gateX,
+        hasChannel: hasChan,
+        maxH: maxH,
+        isSat: isSat,
+        dL: isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vd - vov))) : 0.0,
+        ratio: (vov > 0.0001) ? Math.min(1.0, Math.max(0, vd / vov)) : 1.0,
+        drainDir: drainDir
+      };
     };
-    updateGateDepl(mp1GateDepl, !frozen && va < 0.60, regs.mp1);
-    updateGateDepl(mp2GateDepl, !frozen && vb < 0.60, regs.mp2);
-    updateGateDepl(mn1GateDepl, !frozen && va > 0.40, regs.mn1);
-    updateGateDepl(mn2GateDepl, !frozen && vb > (vx + 0.40), regs.mn2);
+
+    var chMP1 = makeChSpec(GATE_A_X, Math.max(0, (1.00 - va) - 0.40), Math.max(0, 1.00 - vout), regs.mp1, 1);
+    var chMP2 = makeChSpec(GATE_B_X, Math.max(0, (1.00 - vb) - 0.40), Math.max(0, 1.00 - vout), regs.mp2, -1);
+    var chMN1 = makeChSpec(GATE_A_X, Math.max(0, va - 0.40), Math.max(0, vx), regs.mn1, 1);
+    var chMN2 = makeChSpec(GATE_B_X, Math.max(0, (vb - vx) - 0.40), Math.max(0, vout - vx), regs.mn2, 1);
+
+    var wBase = 0.14;
+    var pmosDrnBulb = frozen ? 0.0 : 0.16 * Math.sqrt(Math.max(0, 1.00 - vout));
+    var nmosMidBulb = frozen ? 0.0 : 0.14 * Math.sqrt(Math.max(0, vx));
+    var nmosDrnBulb = frozen ? 0.0 : 0.18 * Math.sqrt(Math.max(0, vout - vx));
+
+    updateNandWellShell(mp1SrcDeplEntry,  wBase, 0.0,         chMP1, null);
+    updateNandWellShell(pmosDrnDeplEntry, wBase, pmosDrnBulb, chMP1, chMP2);
+    updateNandWellShell(mp2SrcDeplEntry,  wBase, 0.0,         chMP2, null);
+
+    updateNandWellShell(mn1SrcDeplEntry,  wBase, 0.0,         chMN1, null);
+    updateNandWellShell(nmosMidDeplEntry, wBase, nmosMidBulb, chMN1, chMN2);
+    updateNandWellShell(mn2DrnDeplEntry,  wBase, nmosDrnBulb, chMN2, null);
+
+    updateNandGateCradle(mp1GateDepl, GATE_A_X, frozen ? 0 : Math.max(0, 1.00 - va), Math.sqrt(Math.max(0, 1.00 - vout)), 1, wBase, wBase + pmosDrnBulb * 0.75, chMP1);
+    updateNandGateCradle(mp2GateDepl, GATE_B_X, frozen ? 0 : Math.max(0, 1.00 - vb), Math.sqrt(Math.max(0, 1.00 - vout)), -1, wBase + pmosDrnBulb * 0.75, wBase, chMP2);
+    updateNandGateCradle(mn1GateDepl, GATE_A_X, frozen ? 0 : Math.max(0, va), Math.sqrt(Math.max(0, vx)), 1, wBase, wBase + nmosMidBulb * 0.75, chMN1);
+    updateNandGateCradle(mn2GateDepl, GATE_B_X, frozen ? 0 : Math.max(0, vb - vx), Math.sqrt(Math.max(0, vout - vx)), 1, wBase + nmosMidBulb * 0.75, wBase + nmosDrnBulb * 0.75, chMN2);
   };
+
+  // Initial equilibrium sculpted shells
+  window.updateNandDepletion({ a: 'off', b: 'off', frozen: true, vout: 0.50, regions: {} });
 
   /* Gate Channel Inversion Layers under Gate A & Gate B */
   var isInitLight = document.documentElement.getAttribute('data-theme') === 'light';

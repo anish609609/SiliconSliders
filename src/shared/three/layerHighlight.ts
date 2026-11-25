@@ -24,6 +24,14 @@ export interface RaycastLayerOptions {
   skipInvisibleOpacity?: boolean;
   minOpacity?: number;
   minScale?: number;
+  filter?: (hit: any) => boolean;
+}
+
+export interface RaycastLayerHit {
+  layerId: string;
+  object: any;
+  hit: any;
+  distance: number;
 }
 
 const DEFAULT_HIGHLIGHT_HEX = 0xff2fb0;
@@ -53,7 +61,8 @@ export function resolveHighlightColor(colorOverride?: string | number | any): an
 export function getMeshLayerId(obj: any): string | null {
   let cur = obj;
   while (cur) {
-    if (cur.userData && (cur.userData._isHighlightPart || cur.userData.decorative || cur.userData.isLabel)) return null;
+    if (cur.userData && (cur.userData._isHighlightPart || cur.userData.decorative || cur.userData.isLabel || cur.userData.isFlowHelper)) return null;
+    if (cur.name === 'flowGroup' || cur.name === 'markerGroup') return null;
     if (cur.userData && typeof cur.userData.layerId === 'string' && cur.userData.layerId) {
       return cur.userData.layerId;
     }
@@ -83,7 +92,8 @@ export function discoverClickableMeshes(root: any): any[] {
   if (!root || typeof root.traverse !== 'function') return out;
   root.traverse((obj: any) => {
     if (!obj || (!obj.isMesh && !obj.isSprite)) return;
-    if (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative || obj.userData.isLabel)) return;
+    if (obj.isLine || obj.isLineSegments || obj.isPoints) return;
+    if (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative || obj.userData.isLabel || obj.userData.isFlowHelper)) return;
     const lid = getMeshLayerId(obj);
     if (!lid) return;
     if (!obj.userData) obj.userData = {};
@@ -126,29 +136,38 @@ export function collectLayerMeshes(
 }
 
 /**
- * Raycasts against all auto-discovered `userData.layerId` meshes under `root`.
+ * Raycasts against all auto-discovered `userData.layerId` meshes under `root`,
+ * updating world matrices (for EXPLODE offsets) and returning sorted hits.
  */
-export function raycastLayer(
+export function raycastLayers(
   raycaster: any,
   root: any,
   options?: RaycastLayerOptions
-): { layerId: string; object: any; hit: any } | null {
-  if (!raycaster || !root) return null;
+): RaycastLayerHit[] {
+  if (!raycaster || !root) return [];
   const opts = options || {};
   const minOpacity = opts.minOpacity !== undefined ? opts.minOpacity : 0.01;
   const minScale = opts.minScale !== undefined ? opts.minScale : 0.001;
   const candidates = discoverClickableMeshes(root);
-  if (!candidates.length) return null;
+  if (!candidates.length) return [];
 
-  if (typeof root.updateMatrixWorld === 'function') {
+  // Ensure world matrices reflect any parent/group EXPLODE translations before intersecting
+  let top = root;
+  while (top.parent) top = top.parent;
+  if (typeof top.updateMatrixWorld === 'function') {
+    top.updateMatrixWorld(true);
+  } else if (typeof root.updateMatrixWorld === 'function') {
     root.updateMatrixWorld(true);
   }
 
-  const rawHits = raycaster.intersectObjects(candidates, false);
+  const rawHits = raycaster.intersectObjects(candidates, true) || [];
+  rawHits.sort((a: any, b: any) => (a.distance || 0) - (b.distance || 0));
+
+  const results: RaycastLayerHit[] = [];
   for (let i = 0; i < rawHits.length; i++) {
     const h = rawHits[i];
     const obj = h.object;
-    if (!obj || (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative))) continue;
+    if (!obj || (obj.userData && (obj.userData._isHighlightPart || obj.userData.decorative || obj.userData.isLabel || obj.userData.isFlowHelper))) continue;
     if (obj.isLine || obj.isLineSegments || obj.isPoints) continue;
     if (!isObjectVisibleInHierarchy(obj)) continue;
     if (obj.scale && (obj.scale.x <= minScale || obj.scale.y <= minScale || obj.scale.z <= minScale)) continue;
@@ -156,11 +175,35 @@ export function raycastLayer(
       continue;
     }
     const lid = getMeshLayerId(obj);
-    if (lid) {
-      return { layerId: lid, object: obj, hit: h };
+    if (!lid) continue;
+    if (typeof opts.filter === 'function' && !opts.filter(h, lid)) continue;
+    results.push({ layerId: lid, object: obj, hit: h, distance: h.distance || 0 });
+  }
+  return results;
+}
+
+/**
+ * Returns the primary raycast hit for `root`, preferring inner depletion/channel
+ * when clicking through a transparent `isChannelShell`.
+ */
+export function raycastLayer(
+  raycaster: any,
+  root: any,
+  options?: RaycastLayerOptions
+): { layerId: string; object: any; hit: any } | null {
+  const hits = raycastLayers(raycaster, root, options);
+  if (!hits.length) return null;
+
+  if (hits[0].object && hits[0].object.userData && hits[0].object.userData.isChannelShell) {
+    for (let k = 1; k < hits.length; k++) {
+      if ((hits[k].distance - hits[0].distance) > 0.6) break;
+      const innerLid = hits[k].layerId;
+      if (innerLid === 'depletion' || (innerLid === 'channel' && !(hits[k].object.userData && hits[k].object.userData.isChannelShell))) {
+        return { layerId: hits[k].layerId, object: hits[k].object, hit: hits[k].hit };
+      }
     }
   }
-  return null;
+  return { layerId: hits[0].layerId, object: hits[0].object, hit: hits[0].hit };
 }
 
 function materialIsSharedOutsideSelection(mesh: any, root: any, targetLayerIds: Set<string>): boolean {
@@ -439,6 +482,7 @@ export const SiliconLayerHighlight = {
   isObjectVisibleInHierarchy,
   discoverClickableMeshes,
   collectLayerMeshes,
+  raycastLayers,
   raycastLayer,
   apply: applyHighlight,
   selectLayer,
