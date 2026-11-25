@@ -83,6 +83,12 @@ function idToInfo(id) {
 
 function meshesForId(id) {
   if (VIRTUAL[id]) return VIRTUAL[id].meshes.map(findMesh).filter(Boolean);
+  if (id === 'channel' || id === 'depletion') {
+    var list = selectable.filter(function(item) {
+      return item && item.userData && item.userData.id === id;
+    });
+    if (list.length) return list;
+  }
   var m = findMesh(id);
   return m ? [m] : [];
 }
@@ -125,7 +131,7 @@ var layerMeta = [
   { key: 'substrate', name: 'SUBSTRATE (P-BULK)', color: 'var(--c-substrate)' },
   { key: 'well',      name: 'N-WELL TUB', color: 'var(--c-well)' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (P+)', color: 'var(--c-active-p)' },
-  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL', color: 'var(--c-sde-p)' },
+  { key: 'dchannel',  name: 'IMPLANTED P-CHANNEL (DEPLETION)', color: 'var(--c-sde-p)' },
   { key: 'sde',       name: 'EXTENSIONS (P-SDE / LDD)', color: 'var(--c-sde-p)' },
   { key: 'oxide',     name: 'GATE OXIDE (SiO2)', color: 'var(--c-oxide)' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)' },

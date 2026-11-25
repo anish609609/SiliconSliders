@@ -253,7 +253,7 @@ renderer.domElement.addEventListener('click', function(e){
     if (h.object.userData && h.object.userData.id === 'depletion') {
       if (!h.object.visible || h.object.scale.x <= 0.001) return false;
     }
-    if (h.object.userData && h.object.userData.id === 'channel') {
+    if (h.object.userData && h.object.userData.id === 'channel' && !h.object.userData.isChannelShell) {
       if (!h.object.visible) return false;
     }
     return true;
@@ -263,7 +263,17 @@ renderer.domElement.addEventListener('click', function(e){
 
   if (hits.length){
     var targetId = null;
-    for (var i = 0; i < hits.length; i++) {
+    if (hits[0].object && hits[0].object.userData && hits[0].object.userData.isChannelShell) {
+      for (var k = 1; k < hits.length; k++) {
+        if ((hits[k].distance - hits[0].distance) > 0.6) break;
+        var innerUid = hits[k].object && hits[k].object.userData ? hits[k].object.userData.id : null;
+        if (innerUid === 'depletion' || (innerUid === 'channel' && !hits[k].object.userData.isChannelShell)) {
+          targetId = innerUid;
+          break;
+        }
+      }
+    }
+    for (var i = 0; i < hits.length && !targetId; i++) {
       var cur = hits[i].object;
       while (cur && !targetId) {
         if (cur.userData && cur.userData.id) {

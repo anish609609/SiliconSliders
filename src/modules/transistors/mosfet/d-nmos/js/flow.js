@@ -116,16 +116,16 @@ function rebuildFlowCurves(optIds, optRegion, optDeltaL) {
       // Electron drift: Source (N+) -> Inversion Channel -> Drain (N+)
       pts.push(new THREE.Vector3(-4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(-1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.84 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.84 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
     } else {
       // Conventional current ID: Drain (+VDS) -> Channel -> Source (GND)
       pts.push(new THREE.Vector3(4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.84 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.84 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(-1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(-4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
     }

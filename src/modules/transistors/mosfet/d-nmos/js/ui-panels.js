@@ -78,6 +78,12 @@ function idToInfo(id) {
 
 function meshesForId(id) {
   if (VIRTUAL[id]) return VIRTUAL[id].meshes.map(findMesh).filter(Boolean);
+  if (id === 'channel' || id === 'depletion') {
+    var list = selectable.filter(function(item) {
+      return item && item.userData && item.userData.id === id;
+    });
+    if (list.length) return list;
+  }
   var m = findMesh(id);
   return m ? [m] : [];
 }
