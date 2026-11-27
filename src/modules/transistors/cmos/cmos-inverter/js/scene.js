@@ -18,8 +18,8 @@ var camPersp = new THREE.PerspectiveCamera(42, W()/H(), 0.1, 1000);
 var TOP_VIEW_POS = new THREE.Vector3(0.8, 52, 0.05); // straight overhead, captures full 100% exploded stack
 var INITIAL_POS = new THREE.Vector3(21.5, 20.0, 27.0);  // 3/4 isometric hero view on initial load and reset
 var INITIAL_TARGET = new THREE.Vector3(0.4, 2.8, 0.0);
-var TOUR_CLOSEUP_POS = [5.0, 6.2, 15.4];
-var TOUR_CLOSEUP_TARGET = [0.4, 2.2, 0.0];
+var TOUR_CLOSEUP_POS = [5.8, 13.2, 20.5];
+var TOUR_CLOSEUP_TARGET = [-1.6, 3.2, 0.0];
 camPersp.position.copy(INITIAL_POS);
 
 var renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });

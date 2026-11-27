@@ -217,8 +217,8 @@
     }
     var tgt = toVec3(root.INITIAL_TARGET) || { x: 0.4, y: 2.8, z: 0 };
     return {
-      pos: [tgt.x + 3.4, tgt.y + 2.4, 13.5],
-      target: [tgt.x, Math.max(0.5, tgt.y - 0.6), tgt.z]
+      pos: [tgt.x + 6.2, tgt.y + 7.6, 17.5],
+      target: [tgt.x - 1.6, tgt.y + 0.8, tgt.z]
     };
   }
 
@@ -242,7 +242,7 @@
     {
       id: 'bias-sliders',
       title: '2. Bias Sliders & Live Curve',
-      description: 'Drag the voltage, doping, or input sliders—or scrub directly on the characteristic curve—while watching the intact junction react in real time.',
+      description: 'Drag the voltage, doping, or input sliders—or scrub directly on the characteristic curve—while watching the channel and depletion regions react in real time.',
       targets: [
         ['#left-workbench .wb-header', '.wb-tabs'],
         ['#wb-physics-section', '#wb-pane-controls .wb-bias-controls']
@@ -254,7 +254,7 @@
         if (body) body.scrollTop = 0;
       },
       onEnter: function () {
-        animateExplodeY(0, 520);
+        animateExplodeY(14, 520);
         var closeCam = getCloseupCamera();
         animateCameraTo(closeCam.pos, closeCam.target, 720);
       }

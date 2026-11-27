@@ -19,7 +19,7 @@
 - `js/ui-panels.js` -> Unified layer list (`buildLayersList`, `getLayerDescription`), Architecture Tree (`buildArchitectureTree`), and tabs (`switchWorkbenchTab`).
 - `js/dimensions.js` -> λ process-node dimension table renderer (`initDimensions`).
 - `js/view-mode.js` -> Switches 3D Layout, 2D Junction, and Schematic views (`setViewMode`, `setSubView`, `initViewMode`).
-- `js/scene.js` -> Three.js renderer, camera, lights, grid, and resize/theme handlers (`applySceneTheme`, `resize`).
+- `js/scene.js` -> Three.js renderer, camera presets (`INITIAL_POS`, `TOUR_CLOSEUP_POS`, `TOUR_CLOSEUP_TARGET`), lights, grid, and resize/theme handlers (`applySceneTheme`, `resize`).
 - `js/render-loop.js` -> Main `requestAnimationFrame` loop (`animate`) driving controls, flow particles, and build drop animations.
 - `js/theme.js` -> Theme key persistence (`setAllThemeKeys`, `getStoredTheme`, `initTheme`, `applyTheme`).
 - `js/main.js` -> Workbench drag-resize (`initWorkbenchResize`, `toggleWorkbench`), camera hint, and `resetAll`.

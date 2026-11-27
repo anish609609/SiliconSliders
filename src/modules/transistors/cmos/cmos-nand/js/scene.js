@@ -13,8 +13,8 @@ function H() {
 var TOP_VIEW_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 58, 0.05) : null;
 var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(23.5, 21.8, 29.8) : null;
 var INITIAL_TARGET = typeof THREE !== 'undefined' ? new THREE.Vector3(0.4, 2.8, 0.0) : null;
-var TOUR_CLOSEUP_POS = [6.0, 6.8, 17.6];
-var TOUR_CLOSEUP_TARGET = [0.4, 2.3, 0.0];
+var TOUR_CLOSEUP_POS = [6.8, 14.7, 23.6];
+var TOUR_CLOSEUP_TARGET = [-1.6, 3.3, 0.0];
 
 var scene = null;
 var camera = null;

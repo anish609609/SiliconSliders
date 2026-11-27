@@ -8,7 +8,7 @@
 - `css/design-tokens.css` -> Global EDA CSS variables, typography (`IBM Plex Mono`, `Inter`), and glassmorphic surface tokens.
 - `css/guided-tour.css` -> 4-panel dim backdrop, non-blocking spotlight cutout, tab-pulse animation, glassmorphic popover, and topbar `? Tour` button styles.
 - `css/home.css` -> Landing page layout, module card grid, and responsive telemetry strip styles.
-- `js/guided-tour.js` -> `SiliconGuidedTour` zero-build 6-step interactive spotlight onboarding engine with multi-target union spotlighting, auto-tab switching, and `localStorage` persistence (`siliconsliders_cad_tour_seen`).
+- `js/guided-tour.js` -> `SiliconGuidedTour` zero-build 6-step interactive spotlight onboarding engine with multi-target union spotlighting, auto-tab switching, Step 2 (`14%` explode + zoomed-out junction camera) / Step 3 (`38%` explode + hero camera) transitions, Peek Mode, and `localStorage` persistence (`siliconsliders_cad_tour_seen`).
 - `js/home.js` -> Homepage theme persistence (`siliconsliders-theme` + time-of-day fallback) and cross-tab `pageshow`/`storage` sync.
 - `three/layerHighlight.ts` -> Unified TS layer discovery (`userData.layerId`), raycasting, opaque/low-opacity highlighting, and exact material restoration (`SiliconLayerHighlight`).
 - `three/layerHighlight.js` -> Zero-bundler browser global companion (`window.SiliconLayerHighlight`) mirroring `layerHighlight.ts`.

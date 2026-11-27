@@ -16,7 +16,7 @@
 - `js/ui-panels.js` -> `TREE`, `VIRTUAL` (`pmosA`, `pmosB`, `nmosA`, `nmosB`, `pmos`, `nmos`), `layerVisibility`, `applyLayerVisibility`, and `buildUiPanels`.
 - `js/dimensions.js` -> Mead–Conway λ rules (`LAMBDA_PRESETS`, `DIM_RULES`, `DIM_MAP`, `renderDimensionsPanel`).
 - `js/view-mode.js` -> Layout vs. Schematic switching and SVG highlighting (`setViewMode`, `updateSchematicVisuals`, `initViewMode`).
-- `js/scene.js` -> Three.js renderer, camera, lights, grid, and resize/theme handlers (`applySceneTheme`, `rebuildGrid`, `resize`).
+- `js/scene.js` -> Three.js renderer, camera presets (`INITIAL_POS`, `TOUR_CLOSEUP_POS`, `TOUR_CLOSEUP_TARGET`), lights, grid, and resize/theme handlers (`applySceneTheme`, `rebuildGrid`, `resize`).
 - `js/render-loop.js` -> Main render tick (`renderTick`), active-pulse loop (`updateActivePulse`), and `layerColorOf`.
 - `js/theme.js` -> Theme key sync (`applyTheme`, `toggleTheme`, `THEME_COLOR_FALLBACKS`, `setAllThemeKeys`).
 - `js/main.js` -> Workbench drag-resize (`initWorkbenchResize`, `toggleWorkbench`), camera hint, `initMainUi`, and `resetAll`.

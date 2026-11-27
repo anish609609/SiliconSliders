@@ -14,8 +14,8 @@ var H = function(){ return host.clientHeight || window.innerHeight; };
 var camPersp = new THREE.PerspectiveCamera(40, W()/H(), 0.1, 1000);
 var INITIAL_POS = new THREE.Vector3(17.5, 16.0, 22.5);
 var INITIAL_TARGET = new THREE.Vector3(0.0, 1.0, 0.0);
-var TOUR_CLOSEUP_POS = [0.5, 4.4, 15.8];
-var TOUR_CLOSEUP_TARGET = [0.0, 0.3, 0.0];
+var TOUR_CLOSEUP_POS = [5.0, 10.2, 20.8];
+var TOUR_CLOSEUP_TARGET = [-1.8, 1.4, 0.0];
 camPersp.position.copy(INITIAL_POS);
 
 var renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false, powerPreference: 'high-performance' });
