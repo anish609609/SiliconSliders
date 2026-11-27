@@ -77,6 +77,14 @@
         applyTheme(next, true);
       });
     }
+
+    // Fallback clean routes (e.g. /lvdt) to relative paths when opened via file://
+    if (window.location && window.location.protocol === 'file:') {
+      document.querySelectorAll('a[data-file-href]').forEach(function (link) {
+        var fallback = link.getAttribute('data-file-href');
+        if (fallback) link.setAttribute('href', fallback);
+      });
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);

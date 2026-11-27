@@ -11,20 +11,20 @@ Instead of studying static 2D cross-sections or isolated SPICE netlists, student
 
 ---
 
-## 🏛️ Platform Architecture: The Three Core Pillars
+## 🏛️ Platform Architecture: The Four Core Pillars
 
-Silicon Sliders is organized around three foundational pillars of microelectronics:
+Silicon Sliders is organized around four foundational pillars of microelectronics and instrumentation:
 
 ```
-                                  SILICON SLIDERS
-                                         │
-        ┌────────────────────────────────┼────────────────────────────────┐
-        ▼                                ▼                                ▼
-  1. TRANSISTORS                   2. PROCESSES                      3. MEMS
-  & BASE CIRCUITS                  ENGINEERING                       SENSORS
-  • CMOS Inverter (Live)           • Deal-Grove Oxidation (Live)    • Micro-Cantilever (Spec)
-  • CMOS NAND2 (Live)              • Plasma / RIE Etching (Planned) • Comb-Drive Accelerometer
-  • FinFET & GAAFET (Planned)      • PVD & ALD Deposition (Planned) • Micro-Gyroscopes (Planned)
+                                           SILICON SLIDERS
+                                                  │
+        ┌─────────────────────────┬───────────────┴───────────────┬─────────────────────────┐
+        ▼                         ▼                               ▼                         ▼
+  1. TRANSISTORS            2. PROCESSES                    3. MEMS                   4. TRANSDUCERS
+  & BASE CIRCUITS           ENGINEERING                     SENSORS                   & INSTRUMENTATION
+  • CMOS Inverter (Live)    • Deal-Grove Oxidation (Live)   • Micro-Cantilever (Spec) • LVDT 3D Cutaway (Live)
+  • CMOS NAND2 (Live)       • Plasma / RIE Etching (Planned)• Comb-Drive Accelerometer• RVDT & Strain Gauge (Plan)
+  • FinFET & GAAFET (Plan)  • PVD & ALD Deposition (Planned)• Micro-Gyroscopes (Plan) • Proximity Sensors (Plan)
 ```
 
 1. **Exploring Transistor Structures & Base Circuits (`src/modules/transistors/`)**
@@ -42,6 +42,10 @@ Silicon Sliders is organized around three foundational pillars of microelectroni
 3. **MEMS Sensors (`src/modules/mems/`)**
    - Interactive 3D visualizations of micro-electromechanical systems.
    - Modules such as the **Micro-Cantilever Beam Resonator**, dynamically linking mechanical geometry (length, width, thickness, proof-mass) to stiffness, deflection, and resonant frequency ($f_0$).
+
+4. **Transducers & Instrumentation (`src/modules/transducers/`)**
+   - Interactive 3D cutaway sensors aligned with the **EE6403 Transducers** syllabus using the 3-Stage Process Engineering Lab layout (**Theory | Sliders | Industry**).
+   - Starts with the **LVDT (Linear Variable Differential Transformer)** featuring animated magnetic flux, real-time AC oscilloscope & transfer-curve plots, quadrature residual null, synchronous demodulation, and Mini Lab Challenges.
 
 ---
 
@@ -101,6 +105,15 @@ SiliconSliders/
 │           └── cantilever-beam/         # Micro-Cantilever Beam Resonator
 │               └── README.md            # Beam mechanics, spring constants & f₀ derivations
 │
+│       └── transducers/                 # Pillar 4: Transducers & Instrumentation
+│           ├── README.md                # Pillar 4 Guide & EE6403 Transduction Scope
+│           └── lvdt/                    # 3D Cutaway LVDT Simulator
+│               ├── index.html           # 3-Stage Interface (Theory, Sliders, Industry)
+│               ├── README.md            # Governing equations & tour overview
+│               ├── MAP.md               # File & symbol navigation map
+│               ├── css/style.css        # Glassmorphic HUD & 3-stage layout
+│               └── js/*.js              # Physics, Three.js scene, 2D plots & challenges
+│
 ├── cmos_inverter_CAD/                   # Backward-compatibility alias
 └── CMOS_NAND/                           # Backward-compatibility alias
 ```
@@ -132,6 +145,7 @@ Quick URLs:
 - **CMOS Inverter:** `http://localhost:3000/inverter`
 - **CMOS NAND2:** `http://localhost:3000/nand`
 - **Thermal Oxidation:** `http://localhost:3000/oxidation`
+- **LVDT Transducer:** `http://localhost:3000/lvdt`
 
 ---
 
@@ -162,6 +176,11 @@ The Silicon Sliders architecture is engineered to make adding new devices, proce
 1. Create a directory: `src/modules/mems/<sensor-name>/`
 2. Define the mechanical governing equations (stiffness tensor, resonant mode shapes, damping coefficient, capacitive sensitivity).
 3. Provide interactive sliders for structural geometry and material constants (polysilicon, silicon nitride, quartz).
+
+### 4. Adding a New Transducer Module
+1. Create a directory: `src/modules/transducers/<transducer-name>/`
+2. Implement the 3-Stage Lab Layout (`Theory | Sliders | Industry`) with a procedural Three.js cutaway CAD viewport, `physics.js` analytical model, real-time 2D `<canvas>` oscilloscope/transfer plots, and interactive Mini Lab Challenges.
+3. Add a `MAP.md` and `README.md`, then register clean routes in `dev-server.js`, `vercel.json`, and `index.html`.
 
 ---
 

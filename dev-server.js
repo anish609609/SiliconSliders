@@ -200,6 +200,9 @@ const server = http.createServer(async (req, res) => {
   } else if (pathname === '/diode' || pathname === '/diode/' || pathname === '/pn-diode' || pathname === '/pn-diode/') {
     res.writeHead(302, { Location: '/src/modules/diodes/pn-diode/index.html' });
     return res.end();
+  } else if (pathname === '/lvdt' || pathname === '/lvdt/') {
+    res.writeHead(302, { Location: '/src/modules/transducers/lvdt/index.html' });
+    return res.end();
   }
 
   // Sanitize path to prevent directory traversal
@@ -244,5 +247,6 @@ server.listen(PORT, () => {
   console.log(`  CMOS Inverter:    http://localhost:${PORT}/inverter`);
   console.log(`  CMOS NAND2:       http://localhost:${PORT}/nand`);
   console.log(`  Thermal Oxidation http://localhost:${PORT}/oxidation`);
+  console.log(`  LVDT Transducer:  http://localhost:${PORT}/lvdt`);
   console.log('======================================================\n');
 });

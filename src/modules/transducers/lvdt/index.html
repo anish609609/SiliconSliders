@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>LVDT Transducer 3D Simulator — SiliconSliders</title>
+
+  <!-- Instant Theme Initialization (mirrors SiliconSliders time-of-day + storage sync) -->
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('siliconsliders-theme') ||
+                localStorage.getItem('silicon_sliders_theme') ||
+                localStorage.getItem('cmos_viewer_theme') ||
+                localStorage.getItem('cmos_nand_viewer_theme');
+        if (t !== 'light' && t !== 'dark') {
+          var hr = new Date().getHours();
+          t = (hr >= 6 && hr < 18) ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (_) {}
+    })();
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="../../../shared/css/design-tokens.css" />
+  <link rel="stylesheet" href="css/style.css" />
+
+  <!-- Three.js r128 + OrbitControls (Zero-Build CDN globals) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body class="lvdt-shell">
+
+  <!-- TOP 3-STAGE NAVIGATION BAR (Theory | Sliders | Industry) -->
+  <header class="lvdt-header">
+    <div class="header-left">
+      <a href="../../../../index.html" class="back-btn" title="Return to SiliconSliders Hub">← Silicon Sliders</a>
+      <div class="header-divider" aria-hidden="true"></div>
+      <div class="module-title-wrap">
+        <span class="module-title">LVDT Transducer</span>
+      </div>
+    </div>
+
+    <nav class="stage-tabs" id="tab-bar" aria-label="3-Stage Learning Workspace">
+      <button type="button" class="stage-tab-btn" data-tab="theory">Theory</button>
+      <button type="button" class="stage-tab-btn active" data-tab="sliders">Sliders</button>
+      <button type="button" class="stage-tab-btn" data-tab="industry">Industry</button>
+    </nav>
+
+    <div class="header-right">
+      <span id="zone-badge" class="zone-badge zone-null">NULL BALANCE</span>
+      <button type="button" id="btn-tour" class="hdr-btn hdr-btn-tour" title="Start 5-step Guided 3D Tour">▶ Guided Tour</button>
+      <button type="button" id="btn-reset" class="hdr-btn" title="Reset Parameters &amp; Camera">Reset</button>
+      <button type="button" id="btn-theme-toggle" class="hdr-btn theme-btn" aria-label="Toggle Light / Dark Mode" title="Toggle Light / Dark Mode">
+        <svg id="theme-icon-sun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg id="theme-icon-moon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- STAGE 2: SLIDERS (DEFAULT / HERO VIEW) -->
+  <section id="view-sliders" class="tab-view active">
+    <div class="sliders-stage">
+
+      <!-- Full-Viewport 3D Canvas -->
+      <div id="viewport-wrap" class="viewport-wrap">
+        <div id="canvas-host" class="canvas-host"></div>
+
+        <!-- Floating Part Callout on 3D Mesh Click/Highlight -->
+        <div id="part-callout" class="part-callout" role="status">
+          <div class="callout-top">
+            <span id="callout-tag" class="callout-tag">COMPONENT</span>
+            <button type="button" id="callout-close" class="mini-action-btn" aria-label="Clear selection">✕</button>
+          </div>
+          <div id="callout-name" class="callout-name">Part Name</div>
+          <p id="callout-desc" class="callout-desc"></p>
+        </div>
+
+        <!-- Guided Step-by-Step Tour Banner -->
+        <div id="tour-banner" class="tour-banner">
+          <div class="tour-top">
+            <span id="tour-step-badge" class="tour-badge">STEP 1 / 5</span>
+            <button type="button" id="tour-exit" class="mini-action-btn">Exit Tour</button>
+          </div>
+          <div id="tour-title" class="tour-title">Tour Step Title</div>
+          <p id="tour-subtitle" class="tour-sub"></p>
+          <div class="tour-actions">
+            <button type="button" id="tour-prev" class="mini-action-btn">← Prev</button>
+            <button type="button" id="tour-next" class="mini-action-btn">Next →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsed Drawer Re-open Buttons -->
+      <button type="button" id="drawer-toggle-left" class="drawer-toggle-btn toggle-left" style="display:none;">☰ Controls</button>
+      <button type="button" id="drawer-toggle-right" class="drawer-toggle-btn toggle-right" style="display:none;">📊 Plots &amp; Telemetry</button>
+
+      <!-- LEFT FLOATING GLASSMORPHIC DRAWER: Controls & Layer Inspector -->
+      <aside id="hud-left" class="hud-drawer hud-left" aria-label="LVDT Controls">
+        <div class="hud-section-head">
+          <span class="hud-title">Transducer Controls</span>
+          <button type="button" id="collapse-left" class="hud-collapse-icon" title="Collapse Controls Drawer">Hide</button>
+        </div>
+
+        <!-- Core Displacement x -->
+        <div class="param-card" style="--param-accent: var(--accent-cyan);">
+          <div class="param-row">
+            <span class="param-label-wrap">
+              <span class="param-label">Core Displacement (<i>x</i>)</span>
+              <button type="button" class="info-icon-btn" data-slider-info="x" title="Core Displacement info" aria-label="Core Displacement info">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="7" y1="6.2" x2="7" y2="11"/><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"/></svg>
+              </button>
+            </span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <button type="button" id="btn-null-zero" class="mini-action-btn" title="Snap to Null (0.00 mm)">Null</button>
+              <span id="val-x" class="param-val">0.00 mm</span>
+            </div>
+          </div>
+          <input id="slider-x" type="range" min="-10" max="10" step="0.05" value="0" class="lvdt-slider" />
+          <div class="param-ticks">
+            <span>−10 mm</span>
+            <span>−5</span>
+            <span>0</span>
+            <span>+5</span>
+            <span>+10 mm</span>
+          </div>
+        </div>
+
+        <!-- Excitation Amplitude Vp -->
+        <div class="param-card" style="--param-accent: var(--accent-gold);">
+          <div class="param-row">
+            <span class="param-label-wrap">
+              <span class="param-label">Excitation Amp (<i>V</i><sub>p</sub>)</span>
+              <button type="button" class="info-icon-btn" data-slider-info="vp" title="Excitation Amplitude info" aria-label="Excitation Amplitude info">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="7" y1="6.2" x2="7" y2="11"/><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"/></svg>
+              </button>
+            </span>
+            <span id="val-vp" class="param-val">5.0 Vrms</span>
+          </div>
+          <input id="slider-vp" type="range" min="1" max="10" step="0.1" value="5" class="lvdt-slider" />
+          <div class="param-ticks">
+            <span>1 Vrms</span>
+            <span>5 Vrms</span>
+            <span>10 Vrms</span>
+          </div>
+        </div>
+
+        <!-- Excitation Frequency f -->
+        <div class="param-card" style="--param-accent: var(--accent-emerald);">
+          <div class="param-row">
+            <span class="param-label-wrap">
+              <span class="param-label">Carrier Freq (<i>f</i>)</span>
+              <button type="button" class="info-icon-btn" data-slider-info="freq" title="Carrier Frequency info" aria-label="Carrier Frequency info">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="7" y1="6.2" x2="7" y2="11"/><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"/></svg>
+              </button>
+            </span>
+            <span id="val-freq" class="param-val">2500 Hz</span>
+          </div>
+          <input id="slider-freq" type="range" min="50" max="10000" step="50" value="2500" class="lvdt-slider" />
+          <div class="param-ticks">
+            <span>50 Hz</span>
+            <span>2.5 kHz</span>
+            <span>10 kHz</span>
+          </div>
+        </div>
+
+        <!-- Exploded View -->
+        <div class="param-card" style="--param-accent: var(--accent-purple);">
+          <div class="param-row">
+            <span class="param-label-wrap">
+              <span class="param-label">Exploded CAD View</span>
+              <button type="button" class="info-icon-btn" data-slider-info="explode" title="Exploded CAD View info" aria-label="Exploded CAD View info">
+                <svg width="10" height="10" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="7" y1="6.2" x2="7" y2="11"/><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"/></svg>
+              </button>
+            </span>
+            <span id="val-explode" class="param-val">0%</span>
+          </div>
+          <input id="slider-explode" type="range" min="0" max="100" step="1" value="0" class="lvdt-slider" />
+        </div>
+
+        <!-- Housing View Toggle (Cutaway vs Enclosed) -->
+        <div class="param-card">
+          <div class="param-row">
+            <span class="param-label">Housing View</span>
+          </div>
+          <div class="seg-pair" id="seg-housing-view">
+            <button type="button" class="seg-opt active" data-housing="cutaway">Cutaway</button>
+            <button type="button" class="seg-opt" data-housing="enclosed">Enclosed</button>
+          </div>
+        </div>
+
+        <!-- Signal Conditioning & Model Toggles -->
+        <div class="param-card">
+          <div class="param-row">
+            <span class="param-label">Demodulator Mode</span>
+          </div>
+          <div class="seg-pair" id="seg-demod">
+            <button type="button" class="seg-opt active" data-demod="raw">Raw AC</button>
+            <button type="button" class="seg-opt" data-demod="demod">Signed DC</button>
+          </div>
+          <div class="toggle-row">
+            <label class="switch-pill">
+              <input type="checkbox" id="toggle-null" />
+              <span>Residual Null (Quadrature)</span>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label class="switch-pill">
+              <input type="checkbox" id="toggle-flux" checked />
+              <span>Animated Magnetic Flux</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Layer Highlight Selector with Eye (visibility) & Info (i) buttons -->
+        <div class="param-card">
+          <div class="param-row">
+            <span class="param-label">3D CAD Layer Highlight</span>
+            <button type="button" id="btn-clear-layer" class="mini-action-btn">Clear</button>
+          </div>
+          <div class="layer-list" id="layer-btn-grid">
+            <div class="layer-row" data-layer="housing">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#94a3b8;"></span>Housing</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Housing visibility" aria-label="Toggle Housing visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Housing details" aria-label="Housing details"></button>
+            </div>
+            <div class="layer-row" data-layer="bobbin">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#c89d66;"></span>Bobbin</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Bobbin visibility" aria-label="Toggle Bobbin visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Bobbin details" aria-label="Bobbin details"></button>
+            </div>
+            <div class="layer-row" data-layer="primary">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#f59e0b;"></span>Primary (P)</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Primary Coil visibility" aria-label="Toggle Primary Coil visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Primary Coil details" aria-label="Primary Coil details"></button>
+            </div>
+            <div class="layer-row" data-layer="secondary1">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#38bdf8;"></span>Sec. S₁</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Secondary S1 visibility" aria-label="Toggle Secondary S1 visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Secondary S1 details" aria-label="Secondary S1 details"></button>
+            </div>
+            <div class="layer-row" data-layer="secondary2">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#10b981;"></span>Sec. S₂</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Secondary S2 visibility" aria-label="Toggle Secondary S2 visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Secondary S2 details" aria-label="Secondary S2 details"></button>
+            </div>
+            <div class="layer-row" data-layer="core">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#cbd5e1;"></span>Ni-Fe Core</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Ni-Fe Core visibility" aria-label="Toggle Ni-Fe Core visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Ni-Fe Core details" aria-label="Ni-Fe Core details"></button>
+            </div>
+            <div class="layer-row" data-layer="pushrod">
+              <button type="button" class="layer-select-btn" data-action="select"><span class="layer-dot" style="background:#e2e8f0;"></span>Push-Rod</button>
+              <button type="button" class="layer-icon-btn" data-action="visibility" title="Toggle Push-Rod visibility" aria-label="Toggle Push-Rod visibility"></button>
+              <button type="button" class="layer-icon-btn" data-action="info" title="Push-Rod details" aria-label="Push-Rod details"></button>
+            </div>
+          </div>
+        </div>
+
+        <button type="button" id="btn-start-tour-left" class="hdr-btn hdr-btn-tour" style="justify-content:center;">▶ Launch Guided 3D Tour</button>
+      </aside>
+
+      <!-- RIGHT FLOATING GLASSMORPHIC DRAWER: Enlarged Live Telemetry & 2D Plots -->
+      <aside id="hud-right" class="hud-drawer hud-right" aria-label="LVDT Telemetry and Plots">
+        <div class="hud-section-head">
+          <span class="hud-title">Live Telemetry &amp; Plots</span>
+          <button type="button" id="collapse-right" class="hud-collapse-icon" title="Collapse Plots Drawer">Hide</button>
+        </div>
+
+        <!-- Live Instrumentation KPIs -->
+        <div class="kpi-grid">
+          <div class="kpi-cell">
+            <span class="kpi-lbl"><i>V</i><sub>S1</sub> (Left)</span>
+            <span id="kpi-vs1" class="kpi-num" style="color:var(--accent-cyan);">2.50 V</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-lbl"><i>V</i><sub>S2</sub> (Right)</span>
+            <span id="kpi-vs2" class="kpi-num" style="color:var(--accent-emerald);">2.50 V</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-lbl"><i>V</i><sub>out</sub></span>
+            <span id="kpi-vout" class="kpi-num" style="color:var(--accent-gold);">0.00 V</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-lbl">Phase (&phi;)</span>
+            <span id="kpi-phase" class="kpi-num">0.0&deg;</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-lbl">Sensitivity</span>
+            <span id="kpi-sens" class="kpi-num">100.0</span>
+          </div>
+          <div class="kpi-cell">
+            <span class="kpi-lbl">Lin. Error</span>
+            <span id="kpi-lin" class="kpi-num">0.00%</span>
+          </div>
+        </div>
+
+        <!-- Enlarged 2D Oscilloscope -->
+        <div class="plot-card">
+          <div class="plot-head">
+            <span>AC OSCILLOSCOPE</span>
+            <span class="plot-sub"><i>V</i><sub>in</sub>(<i>t</i>) vs <i>V</i><sub>out</sub>(<i>t</i>)</span>
+          </div>
+          <div class="plot-canvas-box">
+            <canvas id="canvas-osc"></canvas>
+          </div>
+        </div>
+
+        <!-- Enlarged 2D Transfer Curve -->
+        <div class="plot-card">
+          <div class="plot-head">
+            <span>TRANSFER CURVE</span>
+            <span class="plot-sub"><i>V</i><sub>out</sub> vs <i>x</i> (&plusmn;5 mm Linear)</span>
+          </div>
+          <div class="plot-canvas-box">
+            <canvas id="canvas-transfer"></canvas>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </section>
+
+  <!-- STAGE 1: THEORY TAB -->
+  <section id="view-theory" class="tab-view">
+    <div class="stage-container">
+
+      <div class="stage-hero-card">
+        <div class="stage-card-head" style="margin-bottom:8px;">
+          <h2 class="stage-card-title">LVDT Theory &amp; Mutual Inductance Physics</h2>
+          <span class="stage-pill">PASSIVE INDUCTIVE TRANSDUCER</span>
+        </div>
+        <p style="font-size:13px;">
+          The <strong>Linear Variable Differential Transformer (LVDT)</strong> converts rectilinear mechanical displacement <i>x</i> into a proportional, phase-sensitive AC electrical output via differential mutual inductance across three coaxial windings and a movable ferromagnetic Ni-Fe core.
+        </p>
+        <div class="jump-row">
+          <a href="#th-origin" class="jump-link">0. Origin Story</a>
+          <a href="#th-op" class="jump-link">1. Series-Opposition</a>
+          <a href="#th-regimes" class="jump-link">2. 3 Core Regimes &amp; Phase Flip</a>
+          <a href="#th-null" class="jump-link">3. Residual Null &amp; Demodulation</a>
+          <a href="#th-specs" class="jump-link">4. Performance Specs</a>
+        </div>
+      </div>
+
+      <!-- 0. Origin Story -->
+      <article id="th-origin" class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">0. The Origin Story: From Patent 2,196,809 to Precision Aerospace</h3>
+          <span class="stage-pill">1936 &ndash; 1946 &middot; ORIGIN</span>
+        </div>
+        <p style="font-size:13px;">
+          Before World War II, precision displacement measurement relied heavily on sliding-wiper potentiometers and fragile optical gauges. Mechanical friction, contact bounce, and wiper wear made them fail rapidly inside aircraft engines, hydraulic actuators, and high-vibration industrial machinery.
+        </p>
+        <div class="card-grid-3" style="margin-top:12px;">
+          <div class="sub-tile">
+            <h4 style="color:var(--accent-cyan);">1. The 1936 Invention (George B. Hoadley)</h4>
+            <p>In 1936, electrical engineer <strong>George B. Hoadley</strong> conceived and patented the differential transformer displacement transducer (US Patent 2,196,809), demonstrating that opposing secondary windings around a movable ferromagnetic core yield a linear, phase-reversing AC output.</p>
+          </div>
+          <div class="sub-tile">
+            <h4 style="color:var(--accent-gold);">2. Aerospace Commercialization (Herman Schaevitz)</h4>
+            <p>During the 1940s, <strong>Herman Schaevitz</strong> refined the geometry, magnetic shielding, and winding symmetry to create the ruggedized modern LVDT (founding Schaevitz Engineering in 1946) for wartime flight-test instrumentation and servo actuators.</p>
+          </div>
+          <div class="sub-tile">
+            <h4 style="color:var(--accent-purple);">3. Contactless Longevity</h4>
+            <p>Because the Ni-Fe core floats inside the insulating bobbin without rubbing against any electrical contacts, the LVDT delivered virtually infinite mechanical life, sub-micron resolution, and full galvanic isolation&mdash;becoming the gold standard from Apollo valves to modern CNC metrology.</p>
+          </div>
+        </div>
+        <div class="origin-callout">
+          <strong>Why It Matters:</strong> By uniting differential magnetic coupling with friction-free motion, Hoadley and Schaevitz solved the classic trade-off between mechanical durability and micron-level measurement precision.
+        </div>
+      </article>
+
+      <article id="th-op" class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">1. Series-Opposition Differential Mutual Inductance</h3>
+          <span class="stage-pill"><i>V</i><sub>out</sub> = <i>V</i><sub>S1</sub> &minus; <i>V</i><sub>S2</sub></span>
+        </div>
+        <p style="font-size:13px;">
+          When the center Primary Coil (<i>P</i>) is excited by a sinusoidal carrier <i>v</i><sub>in</sub>(<i>t</i>) = &radic;2&thinsp;<i>V</i><sub>p</sub>&thinsp;sin(2&pi;<i>ft</i>), alternating magnetic flux links two identical, symmetrically placed Secondary Coils (<i>S</i><sub>1</sub> and <i>S</i><sub>2</sub>). Because <i>S</i><sub>1</sub> and <i>S</i><sub>2</sub> are wired in <strong>series opposition</strong>, their induced EMFs subtract:
+        </p>
+        <div class="eq-box">
+          <i>V</i><sub>out</sub>(<i>x</i>) = <i>V</i><sub>S1</sub>(<i>x</i>) &minus; <i>V</i><sub>S2</sub>(<i>x</i>) = (<i>M</i><sub>1</sub>(<i>x</i>) &minus; <i>M</i><sub>2</sub>(<i>x</i>)) &middot; &omega; &middot; <i>I</i><sub>p</sub> &approx; &minus;<i>S</i> &middot; <i>V</i><sub>p</sub> &middot; <i>x</i><sub>eff</sub>(<i>x</i>)
+        </div>
+        <p style="font-size:12.5px;color:var(--text-muted);">
+          Within the rated &plusmn;5.0&thinsp;mm linear stroke, differential mutual inductance (<i>M</i><sub>1</sub> &minus; <i>M</i><sub>2</sub>) varies linearly with core displacement <i>x</i>. Beyond &plusmn;5.0&thinsp;mm, magnetic flux fringing at the bobbin ends causes smooth tanh saturation roll-off.
+        </p>
+      </article>
+
+      <article id="th-regimes" class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">2. The Three Core-Position Regimes</h3>
+          <span class="stage-pill">0&deg; &harr; 180&deg; PHASE FLIP</span>
+        </div>
+        <div class="card-grid-3">
+          <div class="sub-tile">
+            <h4 style="color:var(--accent-cyan);">Left of Null (<i>x</i> &lt; 0)</h4>
+            <p>Core couples more flux into <i>S</i><sub>1</sub> (<i>M</i><sub>1</sub> &gt; <i>M</i><sub>2</sub>), so <i>V</i><sub>S1</sub> &gt; <i>V</i><sub>S2</sub>. Output amplitude grows linearly with |<i>x</i>| and remains <strong>in-phase (&phi; = 0&deg;)</strong> with primary excitation <i>V</i><sub>in</sub>.</p>
+          </div>
+          <div class="sub-tile">
+            <h4 style="color:var(--accent-gold);">Magnetic Null (<i>x</i> = 0)</h4>
+            <p>Core sits symmetrically between <i>S</i><sub>1</sub> and <i>S</i><sub>2</sub> (<i>M</i><sub>1</sub> = <i>M</i><sub>2</sub>). Equal and opposite secondary EMFs cancel cleanly: <i>V</i><sub>out</sub> = <i>V</i><sub>S1</sub> &minus; <i>V</i><sub>S2</sub> &approx; 0&thinsp;V.</p>
+          </div>
+          <div class="sub-tile">
+            <h4 style="color:var(--accent-emerald);">Right of Null (<i>x</i> &gt; 0)</h4>
+            <p>Core couples more flux into <i>S</i><sub>2</sub> (<i>M</i><sub>2</sub> &gt; <i>M</i><sub>1</sub>), so <i>V</i><sub>S2</sub> &gt; <i>V</i><sub>S1</sub>. Output polarity reverses sign, creating an instantaneous <strong>180&deg; phase flip</strong> relative to <i>V</i><sub>in</sub>.</p>
+          </div>
+        </div>
+      </article>
+
+      <article id="th-null" class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">3. Residual Null Voltage &amp; Phase-Sensitive Demodulation</h3>
+          <span class="stage-pill">QUADRATURE &amp; SYNC RECTIFIER</span>
+        </div>
+        <p style="font-size:13px;">
+          In practical transducers, inter-winding stray capacitance and odd-harmonic magnetic non-linearity prevent exact zero output at <i>x</i> = 0, leaving a small <strong>quadrature residual null voltage</strong> (90&deg; out of phase with <i>V</i><sub>in</sub>, typically &lt; 1%&thinsp;FS). Because raw RMS voltmeters lose displacement sign across null (yielding a V-shaped curve), a <strong>Phase-Sensitive Demodulator (PSD)</strong> multiplies <i>v</i><sub>out</sub>(<i>t</i>) by a phase-aligned carrier reference and low-pass filters the product to output signed DC voltage proportional to <i>x</i>.
+        </p>
+      </article>
+
+      <article id="th-specs" class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">4. Key Performance Parameters</h3>
+          <span class="stage-pill">BENCHMARK METRICS</span>
+        </div>
+        <table class="spec-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Simulator Nominal</th>
+              <th>Physical Significance</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Linear Stroke Range</strong></td>
+              <td><code>&plusmn;5.00 mm</code></td>
+              <td>Displacement window where non-linearity remains within &plusmn;0.5%&thinsp;FS</td>
+            </tr>
+            <tr>
+              <td><strong>Sensitivity (<i>S</i>)</strong></td>
+              <td><code>100.0 mV/V/mm</code></td>
+              <td>Ratiometric slope <i>V</i><sub>out</sub>&thinsp;/&thinsp;(<i>V</i><sub>p</sub> &middot; <i>x</i>) independent of excitation drift</td>
+            </tr>
+            <tr>
+              <td><strong>Linearity Error</strong></td>
+              <td><code>&lt; 0.38% FS</code> (in band)</td>
+              <td>Exceeds 1.00%&thinsp;FS past &approx; &plusmn;5.77&thinsp;mm due to fringe flux roll-off</td>
+            </tr>
+            <tr>
+              <td><strong>Residual Null</strong></td>
+              <td><code>0.8% FS</code> (40&thinsp;mV at 5&thinsp;V)</td>
+              <td>Quadrature (90&deg;) minimum at magnetic center <i>x</i> = 0</td>
+            </tr>
+            <tr>
+              <td><strong>Carrier Frequency</strong></td>
+              <td><code>50 Hz &ndash; 10 kHz</code></td>
+              <td>Must exceed 10&times; mechanical bandwidth to prevent aliasing</td>
+            </tr>
+          </tbody>
+        </table>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- STAGE 3: INDUSTRY TAB -->
+  <section id="view-industry" class="tab-view">
+    <div class="stage-container">
+
+      <div class="stage-hero-card">
+        <div class="stage-card-head" style="margin-bottom:8px;">
+          <h2 class="stage-card-title">Industrial Signal Conditioning &amp; Field Packaging</h2>
+          <span class="stage-pill">SIGNAL CONDITIONING &amp; INSTRUMENTATION</span>
+        </div>
+        <p style="font-size:13px;">
+          Translating raw LVDT millivolt AC signals into noise-immune industrial outputs (4&ndash;20&thinsp;mA, &plusmn;10&thinsp;V<sub>DC</sub>) requires monolithic synchronous demodulators, phase-lag compensation, and hermetically sealed magnetic shielding.
+        </p>
+      </div>
+
+      <div class="card-grid-2">
+        <article class="stage-card">
+          <div class="stage-card-head">
+            <h3 class="stage-card-title">AD698 / AD598 Synchronous Demodulators</h3>
+            <span class="stage-pill">PHASE-SENSITIVE</span>
+          </div>
+          <p style="font-size:12.5px;">
+            Industry-standard ICs such as the <strong>Analog Devices AD698</strong> integrate a low-distortion sine-wave oscillator (20&thinsp;Hz&ndash;20&thinsp;kHz) and two synchronous demodulators. By computing the ratiometric quotient (<i>V</i><sub>A</sub> &minus; <i>V</i><sub>B</sub>)&thinsp;/&thinsp;(<i>V</i><sub>A</sub> + <i>V</i><sub>B</sub>) or <i>V</i><sub>out</sub>&thinsp;/&thinsp;<i>V</i><sub>in</sub>, they reject cable resistance drift, temperature variations, and primary amplitude fluctuations, outputting a bipolar DC signal that tracks both magnitude and direction.
+          </p>
+        </article>
+
+        <article class="stage-card">
+          <div class="stage-card-head">
+            <h3 class="stage-card-title">Lead / Lag Phase Compensation</h3>
+            <span class="stage-pill">PHASE COMPENSATION</span>
+          </div>
+          <p style="font-size:12.5px;">
+            Primary winding resistance (<i>R</i><sub>p</sub>) and inductance (<i>L</i><sub>p</sub>) introduce a carrier phase shift that varies with excitation frequency and cable capacitance. An RC lead-lag network aligns the demodulator reference clock exactly with the secondary output phasor, maximizing synchronous gain (cos&thinsp;&Delta;&phi; &rarr; 1) and rejecting 90&deg; quadrature residual null voltage.
+          </p>
+        </article>
+      </div>
+
+      <article class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">IP67 / IP68 Hermetic Packaging &amp; Harsh-Environment Design</h3>
+          <span class="stage-pill">316L SS &amp; MU-METAL</span>
+        </div>
+        <p style="font-size:12.5px;">
+          Because the Ni-Fe core never physically contacts the bobbin walls, LVDTs exhibit virtually <strong>infinite mechanical life</strong> and sub-micron resolution. Industrial units laser-weld the coils inside <strong>316L stainless steel</strong> or Inconel housings (IP67/IP68), pot windings in high-thermal-conductivity epoxy or ceramic (&minus;55&thinsp;&deg;C to +220&thinsp;&deg;C), and line the bore with <strong>mu-metal</strong> to block nearby 50/60&thinsp;Hz power-line EMI.
+        </p>
+      </article>
+
+      <article class="stage-card">
+        <div class="stage-card-head">
+          <h3 class="stage-card-title">Real-World Applications &mdash; Load Operating Presets</h3>
+          <span class="stage-pill">CLICK TO SIMULATE</span>
+        </div>
+        <div class="card-grid-3">
+          <div class="sub-tile">
+            <h4>Aerospace Flight-Control Actuators</h4>
+            <p>Dual-redundant 400&thinsp;Hz&ndash;3&thinsp;kHz LVDTs inside electro-hydraulic servo valves provide closed-loop aileron and rudder feedback under extreme vibration.</p>
+            <button type="button" class="run-preset-btn" data-preset="aerospace">Run in Sliders →</button>
+          </div>
+          <div class="sub-tile">
+            <h4>Steam &amp; Gas Turbine Valve Control</h4>
+            <p>High-temperature hermetically welded LVDTs monitor main governor steam-valve strokes near +200&thinsp;&deg;C using ratiometric AD698 demodulation.</p>
+            <button type="button" class="run-preset-btn" data-preset="turbine">Run in Sliders →</button>
+          </div>
+          <div class="sub-tile">
+            <h4>Precision CMM &amp; Gauge Metrology</h4>
+            <p>Spring-return gauge heads driven at 5&thinsp;kHz&ndash;10&thinsp;kHz measure sub-micron flatness and shaft runout inside the high-linearity null band.</p>
+            <button type="button" class="run-preset-btn" data-preset="metrology">Run in Sliders →</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Interactive Lab Challenges (Relocated to bottom of Industry Tab) -->
+      <article class="stage-card" id="interactive-challenges-card">
+        <div class="stage-card-head">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h3 class="stage-card-title">Interactive Lab Challenges</h3>
+            <span id="challenge-progress" class="challenge-progress-pill">0 / 3 DONE</span>
+          </div>
+          <button type="button" id="btn-go-sliders-challenge" class="run-preset-btn" style="margin-top:0;">Adjust in Sliders →</button>
+        </div>
+        <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px;">
+          Complete each calibration task in the <strong>Sliders</strong> tab. Progress updates live against the real-time LVDT physics state.
+        </p>
+        <div id="challenge-list" class="challenges-grid"></div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- UNIFIED INFO POPOVER MODAL (Slider Info & CAD Component Info) -->
+  <div id="info-popover-backdrop" class="info-popover-backdrop" role="dialog" aria-modal="true" aria-labelledby="info-popover-title">
+    <div id="info-popover-card" class="info-popover-card">
+      <div class="info-popover-head">
+        <div>
+          <span id="info-popover-badge" class="info-popover-badge">PARAMETER INFO</span>
+          <h3 id="info-popover-title" class="info-popover-title">Title</h3>
+        </div>
+        <button type="button" id="info-popover-close" class="mini-action-btn" aria-label="Close popover">✕</button>
+      </div>
+      <div id="info-popover-body" class="info-popover-body"></div>
+    </div>
+  </div>
+
+  <!-- Shared Engines & LVDT Module Scripts (file:// + HTTP compatible) -->
+  <script src="../../../shared/viewer/js/viewer-theme.js"></script>
+  <script src="../../../shared/three/layerHighlight.js"></script>
+  <script src="js/physics.js"></script>
+  <script src="js/scene.js"></script>
+  <script src="js/plots.js"></script>
+  <script src="js/challenges.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

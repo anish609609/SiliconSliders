@@ -94,6 +94,16 @@
       "source": "/pn-diode/",
       "destination": "/src/modules/diodes/pn-diode/index.html",
       "permanent": false
+    },
+    {
+      "source": "/lvdt",
+      "destination": "/src/modules/transducers/lvdt/index.html",
+      "permanent": false
+    },
+    {
+      "source": "/lvdt/",
+      "destination": "/src/modules/transducers/lvdt/index.html",
+      "permanent": false
     }
   ]
 }

@@ -19,6 +19,7 @@ SiliconSliders/
         ├── diodes/pn-diode/    # MAP.md — 3D PN Junction Diode + 2D junction & I-V/E(x)
         ├── processes/oxidation/# MAP.md — Deal-Grove Thermal Oxidation (React 18 + Canvas)
         ├── mems/cantilever-beam/ # Spec README only (no JS implementation yet)
+        ├── transducers/lvdt/   # MAP.md — 3D Cutaway LVDT Simulator (Three.js + 2D Plots)
         └── transistors/
             ├── mosfet/
             │   ├── nmos/       # MAP.md — Enhancement-mode NMOS (VTH = +0.40V)
