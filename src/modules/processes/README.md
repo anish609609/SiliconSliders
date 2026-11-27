@@ -80,7 +80,7 @@ window.SILICON_TOUR_CONFIG = {
   storageKey: 'siliconsliders_process_tour_seen',
   readySelector: '#btn-guided-tour',
   peekContainerSelector: '#process-controls-aside, [data-tour-peek-zone]',
-  onStop: function () {},
+  onStop: function () { switchTab('sliders'); },
   steps: [
     {
       id: 'process-theory',

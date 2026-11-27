@@ -55,9 +55,11 @@
 
 <div id="app">
 
-  <div id="topbar">
-    <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
-    <div class="brand"><span class="dot"></span><b class="brand-title-full">INVERTER·VIEWER</b><b class="brand-title-compact">INVERTER</b></div>
+  <div id="topbar" class="topbar-cmos">
+    <div class="cmos-hdr-left">
+      <a href="../../../../../index.html" class="tbtn nav-back-link" title="Return to Silicon Sliders"><span class="back-arrow">←</span><span class="back-text"> Silicon Sliders</span></a>
+      <div class="brand"><span class="dot"></span><b class="brand-title-full">INVERTER·VIEWER</b><b class="brand-title-compact">INVERTER·VIEWER</b></div>
+    </div>
 
     <div class="topbar-mode-row">
       <div class="seg" id="mode-seg">
@@ -68,56 +70,62 @@
 
       <div class="topbar-divider" aria-hidden="true"></div>
 
-      <div class="in-toggle">
-        IN =
-        <div class="seg" id="in-seg">
-          <button data-in="0">0</button>
-          <button data-in="1">1</button>
-          <button data-in="off" class="active">OFF</button>
+      <div class="cmos-controls-strip">
+        <div class="in-toggle">
+          IN =
+          <div class="seg" id="in-seg">
+            <button data-in="0">0</button>
+            <button data-in="1">1</button>
+            <button data-in="off" class="active">OFF</button>
+          </div>
         </div>
-      </div>
 
-      <div class="seg" id="flow-seg" title="Direction convention for the animated flow markers on whichever transistor is ON">
-        <button data-flow="current" class="active">CURRENT</button>
-        <button data-flow="electron">CARRIERS</button>
+        <div class="seg" id="flow-seg" title="Direction convention for the animated flow markers on whichever transistor is ON">
+          <button data-flow="current" class="active">CURRENT</button>
+          <button data-flow="electron">CARRIERS</button>
+        </div>
       </div>
     </div>
 
     <div class="spacer"></div>
 
     <div class="right-cluster">
-      <button class="tbtn icon-btn" id="btn-theme-toggle" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
-        <svg id="theme-icon-sun" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="5"></circle>
-          <line x1="12" y1="1" x2="12" y2="3"></line>
-          <line x1="12" y1="21" x2="12" y2="23"></line>
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-          <line x1="1" y1="12" x2="3" y2="12"></line>
-          <line x1="21" y1="12" x2="23" y2="12"></line>
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-        </svg>
-        <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
-      <button class="tbtn icon-btn" id="va-launcher-btn" title="AI Voice Tutor (Sarvam Voice)" aria-label="Open AI Voice Tutor">
-        <svg class="va-topbar-mic-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-          <line x1="12" y1="19" x2="12" y2="23"></line>
-          <line x1="8" y1="23" x2="16" y2="23"></line>
-        </svg>
-      </button>
-      <button class="tbtn tbtn-guided-tour" id="btn-guided-tour" title="Interactive UI Guided Tour" aria-label="Start Interactive UI Guided Tour">
-        <span class="tour-q-icon" aria-hidden="true">?</span><span class="tour-btn-text">&nbsp;Tour</span>
-      </button>
-      <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence" aria-label="Run 3D Fabrication Steps">
-        <span class="play-icon">▶</span>
-        <span class="play-label">FAB</span><span class="play-extra">&nbsp;STEPS</span>
-      </button>
-      <button class="tbtn" id="btn-reset-cam">RESET</button>
+      <div class="cmos-icon-actions">
+        <button class="tbtn icon-btn" id="btn-theme-toggle" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
+          <svg id="theme-icon-sun" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg id="theme-icon-moon" class="theme-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+        <button class="tbtn icon-btn" id="va-launcher-btn" title="AI Voice Tutor (Sarvam Voice)" aria-label="Open AI Voice Tutor">
+          <svg class="va-topbar-mic-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="23"></line>
+            <line x1="8" y1="23" x2="16" y2="23"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="cmos-actions-strip">
+        <button class="tbtn tbtn-guided-tour" id="btn-guided-tour" title="Interactive UI Guided Tour" aria-label="Start Interactive UI Guided Tour">
+          <span class="tour-q-icon" aria-hidden="true">?</span><span class="tour-btn-text">&nbsp;Tour</span>
+        </button>
+        <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence" aria-label="Run 3D Fabrication Steps">
+          <span class="play-icon">▶</span>
+          <span class="play-label">FAB</span><span class="play-extra">&nbsp;STEPS</span>
+        </button>
+        <button class="tbtn" id="btn-reset-cam">RESET</button>
+      </div>
     </div>
   </div>
 

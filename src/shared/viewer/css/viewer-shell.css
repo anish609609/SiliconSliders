@@ -182,6 +182,18 @@ input[type="range"] {
   gap: 12px;
   flex-shrink: 0;
 }
+.cmos-hdr-left,
+.cmos-controls-strip,
+.cmos-icon-actions,
+.cmos-actions-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cmos-controls-strip {
+  gap: 12px;
+}
 .topbar-divider {
   width: 1px;
   height: 22px;
@@ -411,6 +423,199 @@ input[type="range"] {
   }
   #docked-panel .dp-body.collapsed {
     display: none !important;
+  }
+
+  /* 5. Structured CMOS Logic Family Mobile Topbar (Inverter, NAND2, NOR) */
+  #topbar.topbar-cmos {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: auto !important;
+    min-height: auto !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  #topbar.topbar-cmos .cmos-hdr-left {
+    order: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+  }
+  #topbar.topbar-cmos .nav-back-link {
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 8px !important;
+    margin-right: 0 !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    flex-shrink: 0 !important;
+  }
+  #topbar.topbar-cmos .nav-back-link .back-text {
+    display: inline !important;
+  }
+  #topbar.topbar-cmos .brand {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    margin-right: 0 !important;
+    min-width: 0 !important;
+    flex: 0 1 auto !important;
+  }
+  #topbar.topbar-cmos .brand .dot {
+    display: inline-block !important;
+    flex-shrink: 0 !important;
+  }
+  #topbar.topbar-cmos .brand .brand-title-full {
+    display: none !important;
+  }
+  #topbar.topbar-cmos .brand .brand-title-compact {
+    display: inline-block !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #topbar.topbar-cmos .spacer {
+    display: none !important;
+  }
+  #topbar.topbar-cmos .right-cluster {
+    display: contents !important;
+  }
+  #topbar.topbar-cmos .cmos-icon-actions {
+    order: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+  }
+  #topbar.topbar-cmos .cmos-icon-actions .tbtn.icon-btn {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+  }
+  #topbar.topbar-cmos .topbar-mode-row {
+    order: 3 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 6px !important;
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  #topbar.topbar-cmos .topbar-divider {
+    display: none !important;
+  }
+  #topbar.topbar-cmos #mode-seg {
+    width: 100% !important;
+    display: flex !important;
+    box-sizing: border-box !important;
+  }
+  #topbar.topbar-cmos #mode-seg button {
+    flex: 1 1 0 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 6px !important;
+    font-size: 10px !important;
+    line-height: 34px !important;
+  }
+  #topbar.topbar-cmos .cmos-controls-strip {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+    padding: 5px 6px !important;
+    background: var(--v-bg-input) !important;
+    border: 1px solid var(--v-border) !important;
+    border-radius: 7px !important;
+    box-sizing: border-box !important;
+  }
+  #topbar.topbar-cmos .cmos-controls-strip .in-toggle {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 5px !important;
+    flex: 1 1 116px !important;
+    padding: 2px 3px 2px 7px !important;
+    background: var(--v-bg-panel-solid) !important;
+    border: 1px solid var(--v-border) !important;
+    border-radius: 5px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: var(--v-text-secondary) !important;
+    box-sizing: border-box !important;
+  }
+  #topbar.topbar-cmos .cmos-controls-strip .in-toggle .seg {
+    flex: 0 0 auto !important;
+    border-radius: 4px !important;
+  }
+  #topbar.topbar-cmos .cmos-controls-strip .in-toggle .seg button {
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    line-height: 28px !important;
+    flex: 0 0 auto !important;
+  }
+  #topbar.topbar-cmos .cmos-controls-strip #flow-seg,
+  #topbar.topbar-cmos .cmos-controls-strip #flow-mode-group {
+    flex: 1 1 148px !important;
+    display: flex !important;
+    border-radius: 5px !important;
+  }
+  #topbar.topbar-cmos .cmos-controls-strip #flow-seg button,
+  #topbar.topbar-cmos .cmos-controls-strip #flow-mode-group button {
+    flex: 1 1 0 !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    line-height: 32px !important;
+  }
+  #topbar.topbar-cmos .cmos-actions-strip {
+    order: 4 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    box-sizing: border-box !important;
+  }
+  #topbar.topbar-cmos .cmos-actions-strip .tbtn {
+    flex: 1 1 0 !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+    justify-content: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+  }
+  #topbar.topbar-cmos .cmos-actions-strip .tbtn-guided-tour .tour-btn-text,
+  #topbar.topbar-cmos .cmos-actions-strip #btn-build-anim .play-extra {
+    display: inline !important;
+  }
+  @media (max-width: 374px) {
+    #topbar.topbar-cmos .nav-back-link .back-text {
+      display: none !important;
+    }
+    #topbar.topbar-cmos .cmos-actions-strip #btn-build-anim .play-extra {
+      display: none !important;
+    }
   }
 }
 

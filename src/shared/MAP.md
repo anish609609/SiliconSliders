@@ -12,7 +12,7 @@
 - `js/home.js` -> Homepage theme persistence (`siliconsliders-theme` + time-of-day fallback) and cross-tab `pageshow`/`storage` sync.
 - `three/layerHighlight.ts` -> Unified TS layer discovery (`userData.layerId`), raycasting, opaque/low-opacity highlighting, and exact material restoration (`SiliconLayerHighlight`).
 - `three/layerHighlight.js` -> Zero-bundler browser global companion (`window.SiliconLayerHighlight`) mirroring `layerHighlight.ts`.
-- `viewer/css/viewer-shell.css` -> Shared CAD topbar, drawer, workbench, popover, modal, and mobile `< 768px` tour/scale-note HUD rules.
+- `viewer/css/viewer-shell.css` -> Shared CAD topbar (including `#topbar.topbar-cmos` multi-row mobile layout), drawer, workbench, popover, modal, and mobile `< 768px` tour/scale-note HUD rules.
 - `viewer/css/theory.css` -> Shared theory overlay typography, equation blocks, and card formatting.
 - `viewer/js/viewer-core.js` -> `SiliconViewer` orchestrator, `SiliconSelectionHighlight` (delegating to `SiliconLayerHighlight`), and `SiliconAutoRotate` 3-state control.
 - `viewer/js/viewer-panels.js` -> Shared `ViewerPanels` builders for λ design-rule tables, layer checkboxes, legend badges, and accordions.

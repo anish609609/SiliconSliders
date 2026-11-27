@@ -33,16 +33,63 @@
     return rect.width > 0 && rect.height > 0;
   }
 
-  function ensureLayoutMode() {
-    var layoutBtn = queryFirst([
-      '#mode-seg button[data-mode="layout"]',
-      '#btn-view-layout'
-    ]);
-    if (layoutBtn && !layoutBtn.classList.contains('active')) {
-      layoutBtn.click();
-    } else if (typeof root.setViewMode === 'function') {
-      try { root.setViewMode('layout'); } catch (_) {}
+  function activateViewMode(mode) {
+    if (!mode) return;
+    if (mode === 'layout' || mode === 'sliders') {
+      var slidersBtn = queryFirst([
+        '#mode-seg button[data-mode="layout"]',
+        '#btn-view-layout',
+        '#ox-tab-sliders',
+        '#tab-sliders',
+        '[data-tab="sliders"]'
+      ]);
+      if (slidersBtn && !slidersBtn.classList.contains('active')) {
+        slidersBtn.click();
+      } else if (typeof root.setViewMode === 'function') {
+        try { root.setViewMode('layout'); } catch (_) {}
+      }
+      return;
     }
+
+    var modeBtn = queryFirst([
+      '#mode-seg button[data-mode="' + mode + '"]',
+      '#btn-view-' + mode,
+      '#ox-tab-' + mode,
+      '#tab-' + mode,
+      '[data-tab="' + mode + '"]'
+    ]);
+    if (modeBtn && !modeBtn.classList.contains('active')) {
+      modeBtn.click();
+    } else if (typeof root.setViewMode === 'function') {
+      try { root.setViewMode(mode); } catch (_) {}
+    }
+  }
+
+  function autoActivateStepViewTab(step) {
+    if (!step) return;
+    var candidates = [];
+    if (Array.isArray(step.selectors)) candidates = candidates.concat(step.selectors);
+    else if (step.selectors) candidates.push(step.selectors);
+    if (Array.isArray(step.targets)) {
+      for (var i = 0; i < step.targets.length; i++) {
+        if (Array.isArray(step.targets[i])) candidates = candidates.concat(step.targets[i]);
+        else if (step.targets[i]) candidates.push(step.targets[i]);
+      }
+    }
+    for (var j = 0; j < candidates.length; j++) {
+      var el = queryFirst(candidates[j]);
+      if (!el) continue;
+      var mode = (el.dataset && (el.dataset.mode || el.dataset.tab)) ||
+                 (el.getAttribute && (el.getAttribute('data-mode') || el.getAttribute('data-tab')));
+      if (mode && !el.classList.contains('active')) {
+        el.click();
+        return;
+      }
+    }
+  }
+
+  function ensureLayoutMode() {
+    activateViewMode('layout');
   }
 
   function ensureSidebarExpanded() {
@@ -235,8 +282,9 @@
       title: '1. Start with Device Theory',
       description: 'Open THEORY anytime to review semiconductor physics, energy band diagrams, and governing equations before adjusting bias.',
       selectors: ['#mode-seg button[data-mode="theory"]', '#btn-view-theory'],
+      pulseSelector: '#mode-seg button[data-mode="theory"]',
       beforeEnter: function () {
-        ensureLayoutMode();
+        activateViewMode('theory');
       }
     },
     {
@@ -321,13 +369,9 @@
       title: '6. Circuit Schematic View',
       description: 'Switch to SCHEMATIC anytime to compare the 3D physical silicon layout with its circuit-level symbol and live node voltages.',
       selectors: ['#mode-seg button[data-mode="schematic"]', '#btn-view-schematic'],
+      pulseSelector: '#mode-seg button[data-mode="schematic"]',
       beforeEnter: function () {
-        activateWorkbenchTab('controls');
-        var body = document.getElementById('wb-body');
-        if (body) body.scrollTop = 0;
-      },
-      onEnter: function () {
-        returnToHeroCamera();
+        activateViewMode('schematic');
       }
     }
   ];
@@ -651,38 +695,7 @@
     popoverEl.style.top = Math.round(py) + 'px';
   }
 
-  function renderStep() {
-    if (!isTourRunning || !activeSteps.length) return;
-    var step = activeSteps[currentIdx];
-    if (!step) return;
-
-    clearPeekTimer();
-    setPeekClass(false);
-
-    if (typeof step.beforeEnter === 'function') {
-      try { step.beforeEnter(); } catch (_) {}
-    }
-
-    var targets = resolveTargetElements(step);
-    var union = computeUnionRect(targets);
-    if (!union) {
-      // Deferred retry once on next frame for async UI libraries (e.g. React tab state updates)
-      requestAnimationFrame(function () {
-        if (!isTourRunning || activeSteps[currentIdx] !== step) return;
-        var delayedTargets = resolveTargetElements(step);
-        var delayedUnion = computeUnionRect(delayedTargets);
-        if (delayedUnion) {
-          positionSpotlightAndPopover(delayedUnion);
-        } else if (currentIdx < activeSteps.length - 1) {
-          currentIdx += 1;
-          renderStep();
-        } else {
-          stop(true);
-        }
-      });
-      return;
-    }
-
+  function applyStepUiAndPosition(step, union) {
     var stepLabel = document.getElementById('ss-tour-step');
     var titleEl = document.getElementById('ss-tour-title');
     var descEl = document.getElementById('ss-tour-desc');
@@ -719,12 +732,49 @@
       } catch (_) {}
     }
 
+    positionSpotlightAndPopover(union);
     requestAnimationFrame(function () {
       if (!isTourRunning) return;
       var freshTargets = resolveTargetElements(step);
       var freshUnion = computeUnionRect(freshTargets);
       if (freshUnion) positionSpotlightAndPopover(freshUnion);
     });
+  }
+
+  function renderStep() {
+    if (!isTourRunning || !activeSteps.length) return;
+    var step = activeSteps[currentIdx];
+    if (!step) return;
+
+    clearPeekTimer();
+    setPeekClass(false);
+
+    if (typeof step.beforeEnter === 'function') {
+      try { step.beforeEnter(); } catch (_) {}
+    }
+    autoActivateStepViewTab(step);
+
+    var targets = resolveTargetElements(step);
+    var union = computeUnionRect(targets);
+    if (!union) {
+      // Deferred retry once on next frame for async UI libraries (e.g. React tab state updates)
+      requestAnimationFrame(function () {
+        if (!isTourRunning || activeSteps[currentIdx] !== step) return;
+        var delayedTargets = resolveTargetElements(step);
+        var delayedUnion = computeUnionRect(delayedTargets);
+        if (delayedUnion) {
+          applyStepUiAndPosition(step, delayedUnion);
+        } else if (currentIdx < activeSteps.length - 1) {
+          currentIdx += 1;
+          renderStep();
+        } else {
+          stop(true);
+        }
+      });
+      return;
+    }
+
+    applyStepUiAndPosition(step, union);
   }
 
   function onReposition() {
@@ -802,6 +852,8 @@
       activateWorkbenchTab('controls');
       var body = document.getElementById('wb-body');
       if (body) body.scrollTop = 0;
+    } else {
+      activateViewMode('layout');
     }
 
     returnToHeroCamera();

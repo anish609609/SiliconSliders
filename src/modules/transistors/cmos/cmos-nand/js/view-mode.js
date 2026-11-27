@@ -38,6 +38,10 @@ function setViewMode(mode) {
   var inToggles = document.querySelectorAll('.in-toggle');
   inToggles.forEach(function(el){ el.style.display = isTheory ? 'none' : ''; });
 
+  document.querySelectorAll('.cmos-controls-strip').forEach(function(el){
+    el.style.display = isTheory ? 'none' : '';
+  });
+
   var flowModeGroup = document.getElementById('flow-mode-group');
   if (flowModeGroup) flowModeGroup.style.display = isLayout ? '' : 'none';
 

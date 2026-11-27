@@ -552,7 +552,9 @@
         storageKey: 'siliconsliders_process_tour_seen',
         readySelector: '#btn-guided-tour',
         peekContainerSelector: '#ox-chamber-controls, #ox-playback-bar, #wafer-cross-section, [data-tour-peek-zone]',
-        onStop: function () {},
+        onStop: function () {
+          if (switchTabRef.current) switchTabRef.current('sliders');
+        },
         steps: [
           {
             id: 'process-theory',
