@@ -1,6 +1,6 @@
 # Pillar 4: Transducers & Electromechanical Sensors
 
-Welcome to the **Transducers** pillar of **Silicon Sliders**, aligned with the **EE6403 Transducers & Instrumentation** curriculum.
+Welcome to the **Transducers** pillar of **Silicon Sliders**, covering electromechanical sensors and signal conditioning.
 
 While semiconductor devices and MEMS operate at the micrometer-to-nanometer scale, precision industrial, aerospace, and process-control instrumentation relies on macroscopic electromechanical transducers that convert physical measurands (linear displacement, angular position, force, pressure, temperature) into conditioned electrical signals. This pillar pairs interactive 3D cutaway CAD models with real-time analytical physics, virtual oscilloscopes, and signal-conditioning theory.
 
@@ -17,7 +17,7 @@ While semiconductor devices and MEMS operate at the micrometer-to-nanometer scal
 
 ---
 
-## 📐 Core Transduction Metrics (EE6403 Scope)
+## 📐 Core Transduction Metrics
 
 Every transducer module in this pillar emphasizes four universal instrumentation metrics:
 

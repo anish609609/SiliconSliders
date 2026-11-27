@@ -1,6 +1,6 @@
 # LVDT — Linear Variable Differential Transformer Simulator
 
-An interactive 3D cutaway simulator for the **Linear Variable Differential Transformer (LVDT)** aligned with the **EE6403 Transducers** syllabus, using the 3-Stage Process Engineering Lab layout (**Theory | Sliders | Industry**).
+An interactive 3D cutaway simulator for the **Linear Variable Differential Transformer (LVDT)**, using the 3-Stage Process Engineering Lab layout (**Theory | Sliders | Industry**).
 
 ---
 

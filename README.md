@@ -44,7 +44,7 @@ Silicon Sliders is organized around four foundational pillars of microelectronic
    - Modules such as the **Micro-Cantilever Beam Resonator**, dynamically linking mechanical geometry (length, width, thickness, proof-mass) to stiffness, deflection, and resonant frequency ($f_0$).
 
 4. **Transducers & Instrumentation (`src/modules/transducers/`)**
-   - Interactive 3D cutaway sensors aligned with the **EE6403 Transducers** syllabus using the 3-Stage Process Engineering Lab layout (**Theory | Sliders | Industry**).
+   - Interactive 3D cutaway electromechanical sensors using the 3-Stage Process Engineering Lab layout (**Theory | Sliders | Industry**).
    - Starts with the **LVDT (Linear Variable Differential Transformer)** featuring animated magnetic flux, real-time AC oscilloscope & transfer-curve plots, quadrature residual null, synchronous demodulation, and Mini Lab Challenges.
 
 ---
@@ -106,7 +106,7 @@ SiliconSliders/
 │               └── README.md            # Beam mechanics, spring constants & f₀ derivations
 │
 │       └── transducers/                 # Pillar 4: Transducers & Instrumentation
-│           ├── README.md                # Pillar 4 Guide & EE6403 Transduction Scope
+│           ├── README.md                # Pillar 4 Guide & Transduction Scope
 │           └── lvdt/                    # 3D Cutaway LVDT Simulator
 │               ├── index.html           # 3-Stage Interface (Theory, Sliders, Industry)
 │               ├── README.md            # Governing equations & tour overview
