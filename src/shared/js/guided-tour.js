@@ -1,6 +1,13 @@
 /**
  * guided-tour.js - Shared Interactive UI Onboarding Tour for Solid-State CAD Modules
  * Zero-build IIFE global exposing window.SiliconGuidedTour (100% file:// compatible).
+ *
+ * Features:
+ *  - 4-panel dim backdrop around the spotlight cutout so controls inside the
+ *    spotlight remain 100% interactive (clickable & draggable in real time).
+ *  - Multi-element union bounding-box spotlighting (includes Controls|Layers|Inspect
+ *    tab bar alongside active sidebar panels, plus brief active-tab pulse).
+ *  - Auto-switches tabs/accordions and persists first-visit completion in localStorage.
  */
 (function (root) {
   'use strict';
@@ -81,8 +88,12 @@
     {
       id: 'bias-sliders',
       title: '2. Bias Sliders & Live Curve',
-      description: 'Drag the voltage, doping, or input sliders—or scrub directly on the characteristic curve—to update the 3D device and operating regime in real time.',
-      selectors: ['#wb-physics-section', '#wb-pane-controls .wb-bias-controls'],
+      description: 'Drag the voltage, doping, or input sliders—or scrub directly on the characteristic curve—to update the 3D device in real time.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#wb-physics-section', '#wb-pane-controls .wb-bias-controls']
+      ],
+      pulseSelector: '#wb-tab-controls',
       beforeEnter: function () {
         activateWorkbenchTab('controls');
         var body = document.getElementById('wb-body');
@@ -109,8 +120,12 @@
     {
       id: 'layers',
       title: '4. Toggle & Isolate 3D Layers',
-      description: 'Switch to Layers to turn individual substrate, oxide, gate, contact, or metal layers on and off to reveal buried structures.',
-      selectors: ['#layers-body', '#wb-pane-layers'],
+      description: 'Use the Layers tab to turn individual substrate, oxide, gate, contact, or metal layers on and off to reveal buried structures.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#layers-body', '#wb-pane-layers']
+      ],
+      pulseSelector: '#wb-tab-layers',
       beforeEnter: function () {
         activateWorkbenchTab('layers');
         var body = document.getElementById('wb-body');
@@ -120,8 +135,12 @@
     {
       id: 'inspect',
       title: '5. Inspect Materials & Structure',
-      description: 'Use Inspect to view doping concentrations, materials, dimensions, and the full Architecture Tree of every 3D component.',
-      selectors: ['#wb-pane-inspect', '#inspector-body'],
+      description: 'Switch to Inspect to view doping concentrations, materials, dimensions, and the full Architecture Tree of every 3D component.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#wb-pane-inspect', '#inspector-body']
+      ],
+      pulseSelector: '#wb-tab-inspect',
       beforeEnter: function () {
         activateWorkbenchTab('inspect');
         var body = document.getElementById('wb-body');
@@ -145,10 +164,60 @@
   var activeSteps = [];
   var currentIdx = 0;
   var isTourRunning = false;
-  var overlayEl = null;
+  var dimTopEl = null;
+  var dimBottomEl = null;
+  var dimLeftEl = null;
+  var dimRightEl = null;
   var spotlightEl = null;
   var popoverEl = null;
   var rafId = null;
+  var pulsedEl = null;
+  var pulseTimer = null;
+
+  function resolveTargetElements(step) {
+    var out = [];
+    if (Array.isArray(step.targets) && step.targets.length) {
+      for (var i = 0; i < step.targets.length; i++) {
+        var el = queryFirst(step.targets[i]);
+        if (el && isElementVisible(el) && out.indexOf(el) === -1) {
+          out.push(el);
+        }
+      }
+    } else if (step.selectors) {
+      var single = queryFirst(step.selectors);
+      if (single && isElementVisible(single)) out.push(single);
+    }
+    return out;
+  }
+
+  function hasAnyConfiguredTarget(step) {
+    if (Array.isArray(step.targets) && step.targets.length) {
+      for (var i = 0; i < step.targets.length; i++) {
+        if (queryFirst(step.targets[i])) return true;
+      }
+      return false;
+    }
+    return Boolean(queryFirst(step.selectors));
+  }
+
+  function computeUnionRect(elements) {
+    var minL = Infinity;
+    var minT = Infinity;
+    var maxR = -Infinity;
+    var maxB = -Infinity;
+
+    for (var i = 0; i < elements.length; i++) {
+      var r = elements[i].getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) continue;
+      if (r.left < minL) minL = r.left;
+      if (r.top < minT) minT = r.top;
+      if (r.right > maxR) maxR = r.right;
+      if (r.bottom > maxB) maxB = r.bottom;
+    }
+
+    if (!Number.isFinite(minL)) return null;
+    return { left: minL, top: minT, right: maxR, bottom: maxB };
+  }
 
   function resolveActiveSteps() {
     var cfg = root.SILICON_TOUR_CONFIG || {};
@@ -158,27 +227,38 @@
 
     for (var i = 0; i < rawSteps.length; i++) {
       var s = rawSteps[i];
-      var sels = selectorMap[s.id] || s.selectors;
-      var target = queryFirst(sels);
-      if (target) {
-        resolved.push({
-          id: s.id,
-          title: s.title,
-          description: s.description,
-          selectors: sels,
-          beforeEnter: s.beforeEnter
-        });
+      var mapped = selectorMap[s.id];
+      var stepClone = {
+        id: s.id,
+        title: s.title,
+        description: s.description,
+        selectors: mapped && !Array.isArray(s.targets) ? mapped : s.selectors,
+        targets: Array.isArray(mapped) && Array.isArray(s.targets) ? mapped : s.targets,
+        pulseSelector: s.pulseSelector,
+        beforeEnter: s.beforeEnter
+      };
+      if (hasAnyConfiguredTarget(stepClone)) {
+        resolved.push(stepClone);
       }
     }
     return resolved;
   }
 
-  function createDomIfNeeded() {
-    if (overlayEl) return;
+  function createDimPanel(id) {
+    var div = document.createElement('div');
+    div.id = id;
+    div.className = 'ss-tour-dim-panel';
+    document.body.appendChild(div);
+    return div;
+  }
 
-    overlayEl = document.createElement('div');
-    overlayEl.id = 'ss-tour-overlay';
-    overlayEl.className = 'ss-tour-overlay';
+  function createDomIfNeeded() {
+    if (spotlightEl) return;
+
+    dimTopEl = createDimPanel('ss-tour-dim-top');
+    dimBottomEl = createDimPanel('ss-tour-dim-bottom');
+    dimLeftEl = createDimPanel('ss-tour-dim-left');
+    dimRightEl = createDimPanel('ss-tour-dim-right');
 
     spotlightEl = document.createElement('div');
     spotlightEl.id = 'ss-tour-spotlight';
@@ -206,7 +286,6 @@
         '</div>' +
       '</div>';
 
-    document.body.appendChild(overlayEl);
     document.body.appendChild(spotlightEl);
     document.body.appendChild(popoverEl);
 
@@ -217,20 +296,75 @@
     document.getElementById('ss-tour-next').addEventListener('click', next);
   }
 
-  function positionSpotlightAndPopover(targetEl) {
-    if (!spotlightEl || !popoverEl || !targetEl) return;
-    var raw = targetEl.getBoundingClientRect();
+  function clearTabPulse() {
+    if (pulseTimer) {
+      clearTimeout(pulseTimer);
+      pulseTimer = null;
+    }
+    if (pulsedEl) {
+      pulsedEl.classList.remove('ss-tour-tab-pulse');
+      pulsedEl = null;
+    }
+  }
+
+  function applyTabPulse(pulseSelector) {
+    clearTabPulse();
+    if (!pulseSelector) return;
+    var el = queryFirst(pulseSelector);
+    if (!el) return;
+    // Reflow to restart animation reliably when revisiting steps
+    void el.offsetWidth;
+    el.classList.add('ss-tour-tab-pulse');
+    pulsedEl = el;
+    pulseTimer = setTimeout(clearTabPulse, 1900);
+  }
+
+  function setDimVisibility(show) {
+    var disp = show ? 'block' : 'none';
+    [dimTopEl, dimBottomEl, dimLeftEl, dimRightEl, spotlightEl, popoverEl].forEach(function (el) {
+      if (el) el.style.display = disp;
+    });
+  }
+
+  function positionSpotlightAndPopover(rawRect) {
+    if (!spotlightEl || !popoverEl || !rawRect) return;
     var vw = window.innerWidth;
     var vh = window.innerHeight;
     var pad = 6;
 
-    // Clamp spotlight inside visible viewport so tall panels stay clean
-    var left = Math.max(4, raw.left - pad);
-    var top = Math.max(4, raw.top - pad);
-    var right = Math.min(vw - 4, raw.right + pad);
-    var bottom = Math.min(vh - 4, raw.bottom + pad);
+    // Clamp cutout inside visible viewport so tall panels stay clean & interactive
+    var left = Math.max(4, Math.round(rawRect.left - pad));
+    var top = Math.max(4, Math.round(rawRect.top - pad));
+    var right = Math.min(vw - 4, Math.round(rawRect.right + pad));
+    var bottom = Math.min(vh - 4, Math.round(rawRect.bottom + pad));
     var width = Math.max(24, right - left);
     var height = Math.max(24, bottom - top);
+
+    // Position 4 dim panels around the cutout
+    if (dimTopEl) {
+      dimTopEl.style.top = '0px';
+      dimTopEl.style.left = '0px';
+      dimTopEl.style.width = vw + 'px';
+      dimTopEl.style.height = top + 'px';
+    }
+    if (dimBottomEl) {
+      dimBottomEl.style.top = bottom + 'px';
+      dimBottomEl.style.left = '0px';
+      dimBottomEl.style.width = vw + 'px';
+      dimBottomEl.style.height = Math.max(0, vh - bottom) + 'px';
+    }
+    if (dimLeftEl) {
+      dimLeftEl.style.top = top + 'px';
+      dimLeftEl.style.left = '0px';
+      dimLeftEl.style.width = left + 'px';
+      dimLeftEl.style.height = height + 'px';
+    }
+    if (dimRightEl) {
+      dimRightEl.style.top = top + 'px';
+      dimRightEl.style.left = right + 'px';
+      dimRightEl.style.width = Math.max(0, vw - right) + 'px';
+      dimRightEl.style.height = height + 'px';
+    }
 
     spotlightEl.style.left = left + 'px';
     spotlightEl.style.top = top + 'px';
@@ -238,12 +372,11 @@
     spotlightEl.style.height = height + 'px';
 
     var popRect = popoverEl.getBoundingClientRect();
-    var pw = popRect.width || 340;
+    var pw = popRect.width || 344;
     var ph = popRect.height || 185;
     var gap = 14;
     var px, py;
 
-    // Prefer right of sidebar targets, else below, else above, else left
     if (right + gap + pw <= vw - 12) {
       px = right + gap;
       py = Math.min(Math.max(12, top), vh - ph - 12);
@@ -274,8 +407,9 @@
       try { step.beforeEnter(); } catch (_) {}
     }
 
-    var targetEl = queryFirst(step.selectors);
-    if (!targetEl || !isElementVisible(targetEl)) {
+    var targets = resolveTargetElements(step);
+    var union = computeUnionRect(targets);
+    if (!union) {
       if (currentIdx < activeSteps.length - 1) {
         currentIdx += 1;
         renderStep();
@@ -306,11 +440,13 @@
       dotsEl.innerHTML = dotsHtml;
     }
 
-    // Wait one animation frame for tab/scroll layout to settle before measuring
+    applyTabPulse(step.pulseSelector);
+
     requestAnimationFrame(function () {
       if (!isTourRunning) return;
-      var freshTarget = queryFirst(step.selectors);
-      if (freshTarget) positionSpotlightAndPopover(freshTarget);
+      var freshTargets = resolveTargetElements(step);
+      var freshUnion = computeUnionRect(freshTargets);
+      if (freshUnion) positionSpotlightAndPopover(freshUnion);
     });
   }
 
@@ -319,10 +455,9 @@
     if (rafId) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(function () {
       var step = activeSteps[currentIdx];
-      var targetEl = step && queryFirst(step.selectors);
-      if (targetEl && isElementVisible(targetEl)) {
-        positionSpotlightAndPopover(targetEl);
-      }
+      if (!step) return;
+      var freshUnion = computeUnionRect(resolveTargetElements(step));
+      if (freshUnion) positionSpotlightAndPopover(freshUnion);
     });
   }
 
@@ -331,9 +466,9 @@
     if (e.key === 'Escape') {
       e.preventDefault();
       stop(true);
-    } else if (e.key === 'ArrowRight') {
+    } else if (e.key === 'ArrowRight' && document.activeElement && document.activeElement.tagName !== 'INPUT') {
       next();
-    } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+    } else if (e.key === 'ArrowLeft' && currentIdx > 0 && document.activeElement && document.activeElement.tagName !== 'INPUT') {
       prev();
     }
   }
@@ -353,9 +488,7 @@
     if (!activeSteps.length) return;
 
     createDomIfNeeded();
-    overlayEl.style.display = 'block';
-    spotlightEl.style.display = 'block';
-    popoverEl.style.display = 'block';
+    setDimVisibility(true);
 
     isTourRunning = true;
     currentIdx = Math.max(0, Math.min(activeSteps.length - 1, startIndex || 0));
@@ -375,13 +508,11 @@
     window.removeEventListener('scroll', onReposition, true);
     window.removeEventListener('keydown', onKeyDown);
 
-    if (overlayEl) overlayEl.style.display = 'none';
-    if (spotlightEl) spotlightEl.style.display = 'none';
-    if (popoverEl) popoverEl.style.display = 'none';
+    clearTabPulse();
+    setDimVisibility(false);
 
     if (saveSeen !== false) markSeen();
 
-    // Return sidebar to default Controls tab cleanly
     activateWorkbenchTab('controls');
     var body = document.getElementById('wb-body');
     if (body) body.scrollTop = 0;

@@ -107,14 +107,14 @@ function syncTourControls() {
   if (btnAnim) {
     if (isBuildAnimating) {
       btnAnim.classList.add('active');
-      btnAnim.innerHTML = '<span class="play-icon">&#9632;</span><span class="play-label">STOP</span><span class="play-extra">&nbsp;TOUR</span>';
-      btnAnim.title = 'Stop 3D fabrication tour';
-      btnAnim.setAttribute('aria-label', 'Stop 3D Fabrication Tour');
+      btnAnim.innerHTML = '<span class="play-icon">&#9632;</span><span class="play-label">STOP</span><span class="play-extra">&nbsp;FAB</span>';
+      btnAnim.title = 'Stop 3D fabrication steps';
+      btnAnim.setAttribute('aria-label', 'Stop 3D Fabrication Steps');
     } else {
       btnAnim.classList.remove('active');
-      btnAnim.innerHTML = '<span class="play-icon">▶</span><span class="play-label">PLAY</span><span class="play-extra">&nbsp;TOUR</span>';
+      btnAnim.innerHTML = '<span class="play-icon">▶</span><span class="play-label">FAB</span><span class="play-extra">&nbsp;STEPS</span>';
       btnAnim.title = 'Watch step-by-step 3D fabrication sequence';
-      btnAnim.setAttribute('aria-label', 'Play 3D Fabrication Tour');
+      btnAnim.setAttribute('aria-label', 'Run 3D Fabrication Steps');
     }
   }
 }

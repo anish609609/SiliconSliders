@@ -186,7 +186,11 @@ function stopBuildAnimation(restoreAll) {
   if (topbarTourBtn) {
     topbarTourBtn.classList.remove('active');
     var label = topbarTourBtn.querySelector('.play-label');
-    if (label) label.textContent = 'PLAY';
+    var extra = topbarTourBtn.querySelector('.play-extra');
+    if (label) label.textContent = 'FAB';
+    if (extra) extra.innerHTML = '&nbsp;STEPS';
+    topbarTourBtn.title = 'Watch step-by-step 3D fabrication sequence with AI Voice Tutor';
+    topbarTourBtn.setAttribute('aria-label', 'Run 3D Fabrication Steps');
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');
@@ -245,7 +249,11 @@ function startBuildAnimation() {
   if (topbarTourBtn) {
     topbarTourBtn.classList.add('active');
     var label = topbarTourBtn.querySelector('.play-label');
+    var extra = topbarTourBtn.querySelector('.play-extra');
     if (label) label.textContent = 'PAUSE';
+    if (extra) extra.innerHTML = '&nbsp;FAB';
+    topbarTourBtn.title = 'Pause 3D fabrication steps';
+    topbarTourBtn.setAttribute('aria-label', 'Pause 3D Fabrication Steps');
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');

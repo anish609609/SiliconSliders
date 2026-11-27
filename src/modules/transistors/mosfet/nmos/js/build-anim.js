@@ -97,10 +97,10 @@ function syncTourControls() {
     var label = topbarTourBtn.querySelector('.play-label');
     var extra = topbarTourBtn.querySelector('.play-extra');
     if (icon) icon.textContent = isTourActive ? '■' : '▶';
-    if (label) label.textContent = isTourActive ? 'STOP' : 'PLAY';
-    if (extra) extra.innerHTML = '&nbsp;TOUR';
-    topbarTourBtn.setAttribute('aria-label', isTourActive ? 'Stop 3D Fabrication Tour' : 'Play 3D Fabrication Tour');
-    topbarTourBtn.title = isTourActive ? 'Stop tour and restore complete transistor' : 'Watch step-by-step 3D fabrication sequence';
+    if (label) label.textContent = isTourActive ? 'STOP' : 'FAB';
+    if (extra) extra.innerHTML = isTourActive ? '&nbsp;FAB' : '&nbsp;STEPS';
+    topbarTourBtn.setAttribute('aria-label', isTourActive ? 'Stop 3D Fabrication Steps' : 'Run 3D Fabrication Steps');
+    topbarTourBtn.title = isTourActive ? 'Stop fabrication sequence and restore complete transistor' : 'Watch step-by-step 3D fabrication sequence';
   }
 
   var pauseBtn = document.getElementById('tb-btn-pause');

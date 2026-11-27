@@ -6,9 +6,9 @@
 
 - `materialPalette.js` -> Single source of truth for dark/light doping, dielectric, metal, carrier colors, and canonical material finishes (`MATERIAL_PALETTE`, `MATERIAL_PROPERTIES`).
 - `css/design-tokens.css` -> Global EDA CSS variables, typography (`IBM Plex Mono`, `Inter`), and glassmorphic surface tokens.
-- `css/guided-tour.css` -> Spotlight cutout, glassmorphic popover, and topbar `? Tour` button styles for CAD onboarding.
+- `css/guided-tour.css` -> 4-panel dim backdrop, non-blocking spotlight cutout, tab-pulse animation, glassmorphic popover, and topbar `? Tour` button styles.
 - `css/home.css` -> Landing page layout, module card grid, and responsive telemetry strip styles.
-- `js/guided-tour.js` -> `SiliconGuidedTour` zero-build 6-step spotlight onboarding engine with auto-tab switching and `localStorage` persistence (`siliconsliders_cad_tour_seen`).
+- `js/guided-tour.js` -> `SiliconGuidedTour` zero-build 6-step interactive spotlight onboarding engine with multi-target union spotlighting, auto-tab switching, and `localStorage` persistence (`siliconsliders_cad_tour_seen`).
 - `js/home.js` -> Homepage theme persistence (`siliconsliders-theme` + time-of-day fallback) and cross-tab `pageshow`/`storage` sync.
 - `three/layerHighlight.ts` -> Unified TS layer discovery (`userData.layerId`), raycasting, opaque/low-opacity highlighting, and exact material restoration (`SiliconLayerHighlight`).
 - `three/layerHighlight.js` -> Zero-bundler browser global companion (`window.SiliconLayerHighlight`) mirroring `layerHighlight.ts`.

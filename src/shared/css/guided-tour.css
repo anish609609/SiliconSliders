@@ -1,6 +1,8 @@
 /**
  * guided-tour.css - Reusable Interactive Spotlight Guided Tour Styles
  * Zero-build, design-tokens.css integrated, Light/Dark theme aware.
+ * Uses a 4-panel dim backdrop around the spotlight cutout so elements inside
+ * the spotlight remain 100% interactive (clickable & draggable).
  */
 
 /* Top-right Navbar "? Tour" Button */
@@ -42,36 +44,60 @@
   line-height: 1;
 }
 
-/* Backdrop & Spotlight Cutout */
-.ss-tour-overlay {
+/* 4-Panel Dim Backdrop (leaves spotlight cutout completely interactive) */
+.ss-tour-dim-panel {
   position: fixed;
-  inset: 0;
   z-index: 9500;
-  background: transparent;
+  background: rgba(3, 7, 18, 0.70);
   pointer-events: auto;
+  transition:
+    top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+[data-theme="light"] .ss-tour-dim-panel {
+  background: rgba(15, 23, 42, 0.48);
+}
+
+/* Non-blocking Spotlight Ring around Cutout */
 .ss-tour-spotlight {
   position: fixed;
   z-index: 9501;
   border-radius: 10px;
   pointer-events: none;
-  box-shadow:
-    0 0 0 9999px rgba(3, 7, 18, 0.72),
-    0 0 0 2px var(--accent-cyan, #38bdf8),
-    0 0 24px rgba(56, 189, 248, 0.45);
+  border: 2px solid var(--accent-cyan, #38bdf8);
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.45);
   transition:
-    top 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    left 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    width 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    height 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 [data-theme="light"] .ss-tour-spotlight {
-  box-shadow:
-    0 0 0 9999px rgba(15, 23, 42, 0.52),
-    0 0 0 2px var(--accent-cyan, #0284c7),
-    0 0 20px rgba(2, 132, 199, 0.35);
+  border-color: var(--accent-cyan, #0284c7);
+  box-shadow: 0 0 18px rgba(2, 132, 199, 0.35);
+}
+
+/* Active Tab Emphasis Pulse during Controls / Layers / Inspect steps */
+@keyframes ssTourTabPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.72);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(56, 189, 248, 0.28);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0);
+  }
+}
+
+.ss-tour-tab-pulse {
+  position: relative;
+  z-index: 2;
+  animation: ssTourTabPulse 0.9s ease-out 2;
 }
 
 /* Glassmorphic Floating Popover Card */
@@ -89,8 +115,8 @@
   color: var(--text-body, #cbd5e1);
   font-family: var(--font-sans, 'Inter', sans-serif);
   transition:
-    top 0.24s cubic-bezier(0.22, 1, 0.36, 1),
-    left 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 [data-theme="light"] .ss-tour-popover {
