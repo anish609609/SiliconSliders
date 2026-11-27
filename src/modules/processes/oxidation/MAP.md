@@ -1,28 +1,32 @@
 # Thermal Oxidation Simulator Navigation Map (`src/modules/processes/oxidation/`)
 
-**Purpose:** 3-tab Deal-Grove Thermal Oxidation lab (Theory, Interactive Sliders, Industry Tooling) with Massoud thin-oxide kinetics, CSTR gas switching, wafer cross-section, and time-aligned charts.
+**Purpose:** 3-tab Deal-Grove Thermal Oxidation lab (Theory, Interactive Sliders, Industry Tooling) with a dual-mode `3D Chamber ↔ 2D Cross-Section` viewport, Massoud thin-oxide kinetics, CSTR gas switching, shared `600–1200 °C` thermal colormap, and time-aligned charts.
 
 ## Files
 
-- `index.html` -> Tailwind CDN + React 18 + ReactDOM 18 + `@babel/standalone` bootstrap loading `shared/css/guided-tour.css`, `shared/js/guided-tour.js`, `physics.js`, `canvas-wafer.js`, `charts.js`, and `js/app.js` (`type="text/babel"`).
+- `index.html` -> Tailwind CDN + React 18 + ReactDOM 18 + `@babel/standalone` + Three.js r128 + OrbitControls bootstrap loading `shared/css/guided-tour.css`, `shared/js/guided-tour.js`, `thermal-color.js`, `physics.js`, `chamber-3d.js`, `canvas-wafer.js`, `charts.js`, and `js/app.js` (`type="text/babel"`).
 - `css/style.css` -> Dark/light glassmorphic panels, semantic tour/theme tokens, custom range slider tracks, and split-screen chamber layout.
+- `js/thermal-color.js` -> `OxidationThermal` shared colormap (`600–1200 °C`: `temperatureToRgb`, `temperatureToHex`, `temperatureToCss`, `getGradientCss`, `heatFraction`) used by 3D coils, 2D substrate, and `TemperatureColorBar`.
 - `js/physics.js` -> `OxidationPhysics` solving 300-step Deal-Grove + Massoud thin-oxide trajectories, CSTR `C_ox`/`C_n2` flushing, cumulative thermal budget, and wafer slip risk.
-- `js/canvas-wafer.js` -> `WaferCanvasRenderer` animating N2 elastic bounces, Fickian oxidant diffusion, 44% Si consumption / 56% upward SiO2 expansion, interface sparks, and 1x–50x zoom.
+- `js/chamber-3d.js` -> `ThermalChamber3D` procedural Three.js furnace (translucent quartz tube, inlet/exhaust end-caps, 3-zone `T(t)` coils, quartz boat + 8 wafers, 4 continuum gas streamlines for `N2`/`Dry O2`/`Wet H2O`/`ISSG`, `OrbitControls`, and `Raycaster` wafer click-to-zoom transition).
+- `js/canvas-wafer.js` -> `WaferCanvasRenderer` rendering ambient `activeGas` tint, continuum laminar drift lines, Deal-Grove 1D oxidant concentration profile `C(x)` across `SiO2`, recipe-scaled Y-axis growth (`56%` Up / `44%` Down), and 1x–50x zoom.
 - `js/charts.js` -> `OxidationCharts` rendering synchronized top (`x_ox(t)` & `T(t)`) and bottom (`N2` & oxidant MFC) DPR canvases with hover/click seek.
-- `js/app.js` -> `SimulatorApp` React component managing presets (`PRESETS`), slider info popovers (`SLIDER_INFOS`), `THEORY_SECTION_MAP` deep-links, Fab Challenges, playback loop, and 4-step `SILICON_TOUR_CONFIG` onboarding (`#btn-guided-tour`, `siliconsliders_process_tour_seen`).
+- `js/app.js` -> `SimulatorApp` & `TemperatureColorBar` React components managing presets (`PRESETS`), dual-mode viewport toggle (`3D Chamber` | `2D Cross-Section`), `[⤢]` expansion (`Esc` exit), slider info popovers (`SLIDER_INFOS`), `THEORY_SECTION_MAP` deep-links, Fab Challenges, playback loop, and 4-step `SILICON_TOUR_CONFIG` onboarding (`#btn-guided-tour`, `siliconsliders_process_tour_seen`).
 - `js/oxidation.js` -> Legacy standalone Deal-Grove canvas prototype (not loaded by `index.html`).
 - `README.md` -> Module documentation covering Deal-Grove derivations, rate constants, and 3-stage layout.
 
 ## Key Symbols
 
+- **Thermal Colormap (`thermal-color.js`):** `OxidationThermal.T_MIN` (`600`), `OxidationThermal.T_MAX` (`1200`), `OxidationThermal.temperatureToRgb`, `OxidationThermal.temperatureToHex`, `OxidationThermal.temperatureToCss`, `OxidationThermal.getGradientCss`, `OxidationThermal.heatFraction`.
 - **Physics Constants & Trajectory (`physics.js`):** `OxidationPhysics.kB`, `OxidationPhysics.T_IDLE`, `OxidationPhysics.solveOxidationTrajectory`.
 - **Physics Helpers (`physics.js`):** `OxidationPhysics.interpolateState`, `OxidationPhysics.getChemConfig` (`'dry'`, `'wet'`, `'issg'`).
-- **Wafer Canvas (`canvas-wafer.js`):** `WaferCanvasRenderer`, `initEvents`, `initParticles`, `getWaferColor`, `getVisualHeight`, `render`.
+- **3D Furnace (`chamber-3d.js`):** `ThermalChamber3D`, `init`, `buildFurnace`, `update`, `pickWaferAt`, `zoomToWafer`, `resetCamera`, `applyTheme`, `resize`, `dispose`.
+- **Wafer Canvas (`canvas-wafer.js`):** `WaferCanvasRenderer`, `initEvents`, `getWaferColor`, `getAutoScalePxPerNm`, `getVisualHeight`, `render`.
 - **Wafer Zoom Controls (`canvas-wafer.js`):** `setZoomLevel`, `zoomIn`, `zoomOut`, `resetZoom` (wheel and preset steps `1x` to `50x`).
 - **Dual Charts (`charts.js`):** `OxidationCharts`, `initEvents`, `render`, `renderCurrent`, `drawChartGridAndStages`.
 - **Chart Sub-Renderers & Seek (`charts.js`):** `renderTopChart`, `renderBottomChart`, `setHoverTime`, `clearHover`.
-- **React Workspace (`app.js`):** `SimulatorApp` (tabs `'theory'`, `'sliders'`, `'industry'`), `PRESETS` (`gate`, `field`, `issg`, `rto`).
-- **Workspace Handlers (`app.js`):** `handleApplyPreset`, `handleTogglePlay`, `handleSeek`, `handleZoomIn`, `handleZoomOut`, `handleResetZoom`, `toggleTheme`.
+- **React Workspace (`app.js`):** `SimulatorApp` (tabs `'theory'`, `'sliders'`, `'industry'`; `chamberMode` `'3d'` | `'2d'`), `TemperatureColorBar`, `PRESETS` (`gate`, `field`, `issg`, `rto`).
+- **Workspace Handlers (`app.js`):** `handleApplyPreset`, `handleTogglePlay`, `handleSeek`, `handleBackTo3D`, `handleToggleExpand`, `handleZoomIn`, `handleZoomOut`, `handleResetZoom`, `toggleTheme`.
 - **Theory & Challenge Navigation (`app.js`):** `handleRunInSliders`, `handleDiveDeep`, `SLIDER_INFOS`, `THEORY_SECTION_MAP`, `InfoGlyph`.
 - **Parameter Formatters (`app.js`):** `pressureToSliderVal`, `sliderValToPressure`, `formatPressure`, `LOG_MIN`, `LOG_MAX`.
 - **Playback & Shortcuts (`app.js`):** `loop` (`requestAnimationFrame` time advance), `handleKeyDown`, `onStorage` (cross-tab theme listener).

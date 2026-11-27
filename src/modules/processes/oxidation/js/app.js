@@ -251,6 +251,39 @@
     );
   }
 
+  // Vertical 10px TemperatureColorBar (600 °C – 1200 °C) shared across 3D & 2D viewports
+  function TemperatureColorBar(props) {
+    var T = (props && typeof props.T === 'number') ? props.T : 600;
+    var frac = (typeof window !== 'undefined' && window.OxidationThermal && window.OxidationThermal.heatFraction)
+      ? window.OxidationThermal.heatFraction(T)
+      : Math.max(0, Math.min(1, (T - 600) / 600));
+    var gradCss = (typeof window !== 'undefined' && window.OxidationThermal && window.OxidationThermal.getGradientCss)
+      ? window.OxidationThermal.getGradientCss()
+      : 'linear-gradient(to top, rgb(35,45,62) 0%, rgb(135,32,32) 25%, rgb(220,85,22) 50%, rgb(248,162,14) 75%, rgb(255,242,145) 100%)';
+
+    return (
+      <div
+        className="pointer-events-none absolute right-2 top-3 bottom-3 z-20 flex items-stretch gap-1.5 select-none"
+        aria-label="Thermal Colorbar 600 to 1200 degrees Celsius"
+      >
+        <div className="flex flex-col justify-between items-end text-[9px] font-mono font-semibold text-slate-600 dark:text-slate-300 leading-none py-0.5 drop-shadow-sm">
+          <span>1200°C</span>
+          <span>900°C</span>
+          <span>600°C</span>
+        </div>
+        <div
+          className="relative w-[10px] rounded-full border border-slate-400/60 dark:border-slate-600/80 shadow-inner"
+          style={{ background: gradCss }}
+        >
+          <div
+            className="absolute -left-1 -right-1 h-[2.5px] rounded-full bg-white ring-1 ring-slate-900/75 shadow-[0_0_6px_rgba(255,255,255,0.95)] transition-[bottom] duration-75"
+            style={{ bottom: 'calc(' + (frac * 100).toFixed(1) + '% - 1px)' }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   function SimulatorApp() {
     // 0. Top 3-Tab Workspace Navigation ('sliders' | 'theory' | 'industry')
     var [activeTab, setActiveTab] = useState('sliders');
@@ -328,8 +361,11 @@
     var [activePreset, setActivePreset] = useState('gate');
     var [hoverTime, setHoverTime] = useState(null);           // Synchronized chart inspection
 
-    // Wafer Zoom Level State (synced with WaferCanvasRenderer)
+    // Wafer Zoom & Dual-Mode Viewport State ('3d' | '2d', expand toggle, hover prompt)
     var [zoomLevel, setZoomLevel] = useState(1.0);
+    var [chamberMode, setChamberMode] = useState('3d');
+    var [isViewportExpanded, setIsViewportExpanded] = useState(false);
+    var [waferHovered, setWaferHovered] = useState(false);
 
     // Mobile Telemetry Ribbon Trigger State
     var [showStickyRibbon, setShowStickyRibbon] = useState(false);
@@ -339,6 +375,8 @@
 
     // 3. Canvas & Section References
     var waferSectionRef = useRef(null);
+    var chamber3DHostRef = useRef(null);
+    var chamber3DRef = useRef(null);
     var waferCanvasRef = useRef(null);
     var chartTopRef = useRef(null);
     var chartBottomRef = useRef(null);
@@ -515,7 +553,36 @@
       });
     }, [trajectory]);
 
-    // Synchronize Canvas Resolution on Resize (Logical High-DPI Dimensions)
+    var activeGas = useMemo(function () {
+      if (!currentState || (currentState.C_ox || 0) < 0.08) return 'n2';
+      return chemistry || 'dry';
+    }, [currentState, chemistry]);
+
+    var activeGasLabel = activeGas === 'n2'
+      ? 'N₂ Purge'
+      : (activeGas === 'wet' ? 'Wet H₂O' : (activeGas === 'issg' ? 'ISSG Radical' : 'Dry O₂'));
+
+    var handleBackTo3D = useCallback(function () {
+      setChamberMode('3d');
+      setTimeout(function () {
+        if (chamber3DRef.current) {
+          chamber3DRef.current.resize();
+          chamber3DRef.current.resetCamera(true);
+        }
+      }, 20);
+    }, []);
+
+    var handleToggleExpand = useCallback(function () {
+      setIsViewportExpanded(function (prev) {
+        var next = !prev;
+        if (next && rightColumnRef.current) {
+          rightColumnRef.current.scrollTop = 0;
+        }
+        return next;
+      });
+    }, []);
+
+    // Synchronize Canvas Resolution on Resize (Logical High-DPI Dimensions + 3D Renderer)
     var resizeCanvases = useCallback(function () {
       var dpr = window.devicePixelRatio || 1;
       [waferCanvasRef.current, chartTopRef.current, chartBottomRef.current].forEach(function (c) {
@@ -531,6 +598,9 @@
           c.dpr = dpr;
         }
       });
+      if (chamber3DRef.current && chamber3DRef.current.resize) {
+        chamber3DRef.current.resize();
+      }
     }, []);
 
     // Tab Switching with canvas redraw preservation
@@ -690,6 +760,16 @@
 
     // Initialize Renderers on Mount
     useEffect(function () {
+      if (chamber3DHostRef.current && !chamber3DRef.current && typeof ThermalChamber3D === 'function') {
+        chamber3DRef.current = new ThermalChamber3D(chamber3DHostRef.current, {
+          onHoverWafer: function (isHover) {
+            setWaferHovered(Boolean(isHover));
+          },
+          onZoomTransition: function () {
+            setChamberMode('2d');
+          }
+        });
+      }
       if (waferCanvasRef.current && !waferRendererRef.current) {
         waferRendererRef.current = new WaferCanvasRenderer(waferCanvasRef.current, {
           onZoomChange: function (lvl) {
@@ -709,14 +789,16 @@
       }
     }, [handleSeek]);
 
-    // Synchronize Canvas Resolution on Resize
+    // Synchronize Canvas Resolution on Resize / Expand / Mode Switch
     useEffect(function () {
       resizeCanvases();
+      var timer = setTimeout(resizeCanvases, 30);
       window.addEventListener('resize', resizeCanvases);
       return function () {
+        clearTimeout(timer);
         window.removeEventListener('resize', resizeCanvases);
       };
-    }, [resizeCanvases]);
+    }, [resizeCanvases, isViewportExpanded, chamberMode, activeTab]);
 
     // Mobile IntersectionObserver for Sticky Telemetry Ribbon
     useEffect(function () {
@@ -734,7 +816,7 @@
       };
     }, [activeTab]);
 
-    // Continuous Render Loop (Fluid gas particles + playback)
+    // Continuous Render Loop (3D Furnace + 2D Cross-Section + Dual Charts + Playback)
     useEffect(function () {
       function loop(timestamp) {
         if (lastTickRef.current === null) {
@@ -742,6 +824,7 @@
         }
         var dtRealMs = timestamp - lastTickRef.current;
         lastTickRef.current = timestamp;
+        var dtSec = Math.min(0.05, Math.max(0.001, dtRealMs / 1000.0));
 
         if (isPlaying && trajectory && trajectory.t_total > 0) {
           var dtSimMin = (dtRealMs / 1000.0) * (playbackSpeed / 6.0);
@@ -758,9 +841,15 @@
           });
         }
 
-        // Render Wafer Cross-Section Canvas
-        if (waferRendererRef.current && currentState) {
-          waferRendererRef.current.render(currentState, chemConfig, orientation, pressure, theme);
+        // Update 3D Chamber (when visible or running wafer click-to-zoom tween)
+        if (chamber3DRef.current && currentState && (chamberMode === '3d' || chamber3DRef.current.activeTween)) {
+          chamber3DRef.current.update(currentState, chemistry, activeGas, isPlaying, theme, dtSec);
+        }
+
+        // Render 2D Wafer Cross-Section Canvas with dynamic target auto-scaling & C(x) profile
+        if (waferRendererRef.current && currentState && chamberMode === '2d') {
+          var targetXox = (trajectory && trajectory.final) ? trajectory.final.x_ox : 10.0;
+          waferRendererRef.current.render(currentState, chemConfig, orientation, pressure, theme, targetXox, activeGas);
         }
 
         // Render Dual Stacked Charts
@@ -775,9 +864,9 @@
       return function () {
         if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       };
-    }, [isPlaying, trajectory, currentState, playbackSpeed, chemConfig, orientation, hoverTime, theme]);
+    }, [isPlaying, trajectory, currentState, playbackSpeed, chemConfig, chemistry, activeGas, chamberMode, orientation, hoverTime, theme]);
 
-    // Keyboard Shortcuts (Space to play/pause, Esc to close modal)
+    // Keyboard Shortcuts (Space to play/pause, Esc to close modal or exit expanded viewport)
     useEffect(function () {
       function handleKeyDown(e) {
         if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
@@ -786,6 +875,7 @@
         }
         if (e.code === 'Escape') {
           setActiveInfoId(null);
+          setIsViewportExpanded(false);
         }
       }
       window.addEventListener('keydown', handleKeyDown);
@@ -1348,10 +1438,10 @@
 
             </aside>
 
-            {/* RIGHT COLUMN: Playback Bar, 5-Card KPI Strip, Wafer Cross-Section, Charts (Flex-1, Independently Scrollable) */}
+            {/* RIGHT COLUMN: Playback Bar, 5-Card KPI Strip, Dual-Mode Chamber Viewport, Charts (Flex-1, Independently Scrollable) */}
             <main
               ref={rightColumnRef}
-              className="flex-1 lg:h-full lg:overflow-y-auto p-3 sm:p-4 flex flex-col gap-3 order-1 lg:order-2"
+              className={'flex-1 lg:h-full p-3 sm:p-4 flex flex-col gap-3 order-1 lg:order-2 relative ' + (isViewportExpanded ? 'lg:overflow-hidden' : 'lg:overflow-y-auto')}
             >
               
               {/* 1. PLAYBACK BAR (Pinned at top of Right Column inside Sliders tab) */}
@@ -1450,12 +1540,12 @@
               {/* 2. COMPACT 5-CARD KPI STRIP (Single 5-Column Horizontal Row on Desktop >= 1024px) */}
               <div
                 ref={kpiContainerRef}
-                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5"
+                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2"
               >
 
                 {/* KPI 1: Oxide Thickness */}
-                <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <div className="min-w-0 bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
+                  <div className="flex items-center justify-between gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
                     <span className="truncate">OXIDE (X_OX)</span>
                     <button
                       type="button"
@@ -1466,23 +1556,23 @@
                       <InfoGlyph className="w-2 h-2" />
                     </button>
                   </div>
-                  <div className="my-0.5 flex items-baseline">
+                  <div className="my-0.5 flex items-baseline min-w-0">
                     <span className="text-lg font-bold font-mono text-sky-600 dark:text-cyan-400">
                       {currentState ? currentState.x_ox.toFixed(2) : '1.00'}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">nm</span>
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1 shrink-0">nm</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                    <span>Target: <b className="text-slate-700 dark:text-slate-300">{trajectory.final.x_ox.toFixed(2)}nm</b></span>
-                    <span className="text-sky-600 dark:text-cyan-400/80 truncate text-[9px]">
+                  <div className="flex items-center justify-between gap-1 text-[9.5px] font-mono text-slate-500 dark:text-slate-400 min-w-0">
+                    <span className="truncate">Tgt: <b className="text-slate-700 dark:text-slate-300">{trajectory.final.x_ox.toFixed(2)}nm</b></span>
+                    <span className="shrink-0 px-1.5 py-0.2 rounded border border-sky-200 dark:border-cyan-500/30 bg-sky-50/70 dark:bg-cyan-500/10 text-sky-700 dark:text-cyan-300 text-[9px] font-semibold">
                       {growthRateInfo.regimeType === 'idle' ? 'Standby' : (growthRateInfo.regimeType === 'linear' ? 'Linear' : (growthRateInfo.regimeType === 'parabolic' ? 'Parabolic' : 'Massoud'))}
                     </span>
                   </div>
                 </div>
 
                 {/* KPI 2: Consumed Silicon */}
-                <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <div className="min-w-0 bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
+                  <div className="flex items-center justify-between gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
                     <span className="truncate">CONSUMED SI</span>
                     <button
                       type="button"
@@ -1493,21 +1583,21 @@
                       <InfoGlyph className="w-2 h-2" />
                     </button>
                   </div>
-                  <div className="my-0.5 flex items-baseline">
+                  <div className="my-0.5 flex items-baseline min-w-0">
                     <span className="text-lg font-bold font-mono text-amber-600 dark:text-amber-400">
                       {currentState ? currentState.x_si.toFixed(2) : '0.44'}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">nm (44%)</span>
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1 truncate">nm (44%)</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                    <span>Target: <b className="text-slate-700 dark:text-slate-300">{trajectory.final.x_si.toFixed(2)}nm</b></span>
-                    <span className="text-amber-600 dark:text-amber-400/80 text-[9px]">+{(currentState ? currentState.x_up : 0.56).toFixed(2)}nm</span>
+                  <div className="flex items-center justify-between gap-1 text-[9.5px] font-mono text-slate-500 dark:text-slate-400 min-w-0">
+                    <span className="truncate">Tgt: <b className="text-slate-700 dark:text-slate-300">{trajectory.final.x_si.toFixed(2)}nm</b></span>
+                    <span className="shrink-0 text-amber-600 dark:text-amber-400/80 text-[9px] font-semibold">+{(currentState ? currentState.x_up : 0.56).toFixed(2)}nm</span>
                   </div>
                 </div>
 
-                {/* KPI 3: Instantaneous Growth Rate dx/dt (Compact 1-Col on Desktop matching other 4 cards) */}
-                <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-2 sm:col-span-1 lg:col-span-1">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                {/* KPI 3: Instantaneous Growth Rate dx/dt */}
+                <div className="min-w-0 bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-2 sm:col-span-1 lg:col-span-1">
+                  <div className="flex items-center justify-between gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
                     <span className="truncate">GROWTH RATE (DX/DT)</span>
                     <button
                       type="button"
@@ -1518,21 +1608,16 @@
                       <InfoGlyph className="w-2 h-2" />
                     </button>
                   </div>
-                  <div className="my-0.5 flex items-baseline justify-between">
-                    <div className="flex items-baseline">
-                      <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100">
-                        {growthRateInfo.rateStr}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">nm/m</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                      {growthRateInfo.ratePerHourStr} nm/h
+                  <div className="my-0.5 flex items-baseline gap-1 min-w-0">
+                    <span className="text-lg font-bold font-mono text-slate-900 dark:text-slate-100 shrink-0">
+                      {growthRateInfo.rateStr}
                     </span>
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 shrink-0">nm/m</span>
                   </div>
-                  <div className="flex flex-col gap-0.5 font-mono">
-                    <div className="truncate">
+                  <div className="flex flex-col gap-0.5 font-mono min-w-0">
+                    <div className="flex items-center">
                       <span
-                        className={'px-1.5 py-0.2 rounded text-[9px] font-semibold inline-block border leading-tight truncate ' + growthRateInfo.badgeClass}
+                        className={'px-1.5 py-0.2 rounded text-[9px] font-semibold inline-block border leading-tight truncate max-w-full ' + growthRateInfo.badgeClass}
                       >
                         {growthRateInfo.regimeLabel}
                       </span>
@@ -1544,8 +1629,8 @@
                 </div>
 
                 {/* KPI 4: Thermal Budget Index */}
-                <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <div className="min-w-0 bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
+                  <div className="flex items-center justify-between gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
                     <span className="truncate">THERMAL BUDGET</span>
                     <button
                       type="button"
@@ -1556,21 +1641,21 @@
                       <InfoGlyph className="w-2 h-2" />
                     </button>
                   </div>
-                  <div className="my-0.5 flex items-baseline">
+                  <div className="my-0.5 flex items-baseline min-w-0">
                     <span className="text-lg font-bold font-mono text-purple-600 dark:text-purple-400">
                       {currentState ? currentState.tb.toFixed(2) : '0.00'}
                     </span>
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1">idx</span>
+                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 ml-1 shrink-0">idx</span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                    <span>Total: <b className="text-slate-700 dark:text-slate-300">{(trajectory.final.tb || trajectory.final.thermal_budget || 0).toFixed(2)}</b></span>
-                    <span className="text-purple-600 dark:text-purple-400/80 text-[9px]">Dopant Smear</span>
+                  <div className="flex items-center justify-between gap-1 text-[9.5px] font-mono text-slate-500 dark:text-slate-400 min-w-0">
+                    <span className="truncate">Tot: <b className="text-slate-700 dark:text-slate-300">{(trajectory.final.tb || trajectory.final.thermal_budget || 0).toFixed(2)}</b></span>
+                    <span className="shrink-0 text-purple-600 dark:text-purple-400/80 text-[9px]">Smear</span>
                   </div>
                 </div>
 
                 {/* KPI 5: Wafer Slip Risk */}
-                <div className="bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
+                <div className="min-w-0 bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 py-2 flex flex-col justify-between shadow-sm dark:shadow-md transition-colors duration-150 col-span-1">
+                  <div className="flex items-center justify-between gap-1 text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-tight">
                     <span className="truncate">WAFER SLIP</span>
                     <button
                       type="button"
@@ -1586,92 +1671,181 @@
                       {trajectory.final.slipRisk}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                    <span>Ramp: <b className="text-slate-700 dark:text-slate-300">{rampRate} °C/m</b></span>
-                    <span className="text-[9px] text-slate-400">{rampRate <= 12 || chemistry === 'issg' ? 'Safe' : (rampRate <= 25 ? 'Elevated' : 'High Risk')}</span>
+                  <div className="flex items-center justify-between gap-1 text-[9.5px] font-mono text-slate-500 dark:text-slate-400 min-w-0">
+                    <span className="truncate">Ramp: <b className="text-slate-700 dark:text-slate-300">{rampRate}°C/m</b></span>
+                    <span className="shrink-0 text-[9px] text-slate-400">{rampRate <= 12 || chemistry === 'issg' ? 'Safe' : (rampRate <= 25 ? 'Elev.' : 'High')}</span>
                   </div>
                 </div>
 
               </div>
 
-              {/* 3. WAFER CROSS-SECTION & REACTION FRONT CANVAS */}
+              {/* 3. DUAL-MODE VIEWPORT (3D CHAMBER <-> 2D CROSS-SECTION & REACTION FRONT) */}
               <div
                 ref={waferSectionRef}
                 id="wafer-cross-section"
                 data-tour-peek-zone="1"
-                className="flex flex-col bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-md transition-colors duration-150 scroll-mt-20"
+                className={
+                  'flex flex-col bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-md transition-all duration-150 scroll-mt-20 ' +
+                  (isViewportExpanded ? 'fixed inset-3 lg:inset-auto lg:absolute lg:top-3 lg:right-3 lg:bottom-3 lg:left-3 z-40 shadow-2xl' : '')
+                }
               >
-                <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-mono">
-                  <div className="flex items-center justify-between sm:justify-start gap-2">
+                <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <span className="font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wide">
-                      Wafer Cross-Section &amp; Reaction Front
+                      {chamberMode === '3d' ? '3D Thermal Chamber' : '2D Wafer Cross-Section'}
                     </span>
-                  </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-3 text-[11px] text-slate-500 dark:text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                      <span>Volumetric:</span>
-                      <span className="text-sky-600 dark:text-cyan-400 font-semibold">56% Up</span>
-                      <span>/</span>
-                      <span className="text-amber-600 dark:text-amber-400 font-semibold">44% Down</span>
-                    </div>
 
-                    {/* Interactive Zoom Controls */}
-                    <div className="flex items-center bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-slate-700/80 rounded-md shadow-sm overflow-hidden text-xs font-mono select-none">
+                    {/* [3D Chamber | 2D Cross-Section] Segmented Pill */}
+                    <div className="inline-flex items-center p-0.5 rounded-md bg-slate-200/80 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-[10.5px]">
                       <button
                         type="button"
-                        onClick={handleZoomOut}
-                        title="Zoom Out (−)"
-                        className="w-5 h-5 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition font-bold text-xs"
-                        aria-label="Zoom out"
+                        onClick={function () { setChamberMode('3d'); }}
+                        className={
+                          'px-2 py-0.5 rounded transition-all ' +
+                          (chamberMode === '3d'
+                            ? 'bg-sky-600 dark:bg-cyan-500 text-white dark:text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200')
+                        }
                       >
-                        −
+                        3D Chamber
                       </button>
                       <button
                         type="button"
-                        onClick={handleResetZoom}
-                        title="Click to reset zoom to 100%"
-                        className="px-1.5 h-5 flex items-center justify-center text-[10px] font-bold border-x border-slate-200 dark:border-slate-700 text-sky-600 dark:text-cyan-400 bg-slate-50 dark:bg-slate-900/60 hover:text-sky-700 dark:hover:text-cyan-300 transition"
+                        onClick={function () { setChamberMode('2d'); }}
+                        className={
+                          'px-2 py-0.5 rounded transition-all ' +
+                          (chamberMode === '2d'
+                            ? 'bg-sky-600 dark:bg-cyan-500 text-white dark:text-slate-950 font-bold shadow-sm'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200')
+                        }
                       >
-                        {Math.round(zoomLevel * 100)}%
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleZoomIn}
-                        title="Zoom In (+)"
-                        className="w-5 h-5 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:bg-slate-200 dark:active:bg-slate-700 transition font-bold text-xs"
-                        aria-label="Zoom in"
-                      >
-                        +
+                        2D Cross-Section
                       </button>
                     </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 text-[11px] text-slate-500 dark:text-slate-400 ml-auto">
+                    {chamberMode === '2d' ? (
+                      <div className="flex items-center gap-2.5">
+                        <div className="hidden sm:flex items-center gap-1.5">
+                          <span>Volumetric:</span>
+                          <span className="text-sky-600 dark:text-cyan-400 font-semibold">56% Up</span>
+                          <span>/</span>
+                          <span className="text-amber-600 dark:text-amber-400 font-semibold">44% Down</span>
+                        </div>
+                        <div className="flex items-center bg-white dark:bg-[#0f172a] border border-slate-300 dark:border-slate-700/80 rounded-md shadow-sm overflow-hidden text-xs font-mono select-none">
+                          <button
+                            type="button"
+                            onClick={handleZoomOut}
+                            title="Zoom Out (−)"
+                            className="w-5 h-5 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-bold text-xs"
+                            aria-label="Zoom out"
+                          >
+                            −
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleResetZoom}
+                            title="Click to reset zoom to 100%"
+                            className="px-1.5 h-5 flex items-center justify-center text-[10px] font-bold border-x border-slate-200 dark:border-slate-700 text-sky-600 dark:text-cyan-400 bg-slate-50 dark:bg-slate-900/60 hover:text-sky-700 dark:hover:text-cyan-300 transition"
+                          >
+                            {Math.round(zoomLevel * 100)}%
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleZoomIn}
+                            title="Zoom In (+)"
+                            className="w-5 h-5 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition font-bold text-xs"
+                            aria-label="Zoom in"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-[10.5px]">
+                        <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 font-semibold" style={{ color: activeGas === 'n2' ? undefined : chemConfig.color }}>
+                          {activeGasLabel}
+                        </span>
+                        <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                          {currentState ? Math.round(currentState.T) : 600}°C
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Expand / Collapse Right-Pane Button [⤢] */}
+                    <button
+                      type="button"
+                      onClick={handleToggleExpand}
+                      title={isViewportExpanded ? 'Collapse Viewport (Esc)' : 'Expand Viewport across right pane'}
+                      aria-label={isViewportExpanded ? 'Collapse viewport' : 'Expand viewport'}
+                      className={
+                        'w-6 h-6 flex items-center justify-center rounded border text-xs font-bold transition-colors ' +
+                        (isViewportExpanded
+                          ? 'border-sky-500 bg-sky-500 text-white dark:bg-cyan-500 dark:text-slate-950'
+                          : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-sky-400 dark:hover:border-cyan-400')
+                      }
+                    >
+                      {isViewportExpanded ? '✕' : '⤢'}
+                    </button>
                   </div>
                 </div>
 
-                {/* Wafer Canvas */}
-                <div className="relative flex-1 h-[225px] min-h-[220px] bg-slate-100 dark:bg-[#0a0e17] overflow-hidden cursor-crosshair">
-                  <canvas
-                    ref={waferCanvasRef}
-                    className="w-full h-full block"
-                    style={{ height: '225px' }}
-                  />
+                {/* Dual-Mode Viewport Stage (~320px default, flex-1 when expanded) */}
+                <div className={'relative bg-slate-100 dark:bg-[#0a0e17] overflow-hidden ' + (isViewportExpanded ? 'flex-1 min-h-[340px]' : 'h-[320px] min-h-[300px]')}>
+
+                  {/* Layer A: 3D Thermal Furnace */}
+                  <div
+                    className={'absolute inset-0 transition-opacity duration-200 ' + (chamberMode === '3d' ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0')}
+                  >
+                    <div ref={chamber3DHostRef} className="w-full h-full" />
+                    <div className="pointer-events-none absolute left-3 bottom-2.5 z-20 flex items-center gap-2">
+                      <span className={'px-2.5 py-1 rounded-full text-[10.5px] font-mono border backdrop-blur-sm transition-colors ' + (waferHovered ? 'bg-sky-500/90 text-white border-sky-300 font-bold shadow' : 'bg-white/80 dark:bg-slate-900/80 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700')}>
+                        Click wafer to inspect reaction front
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Layer B: 2D Cross-Section Canvas */}
+                  <div
+                    className={'absolute inset-0 transition-opacity duration-200 cursor-crosshair ' + (chamberMode === '2d' ? 'opacity-100 z-10' : 'opacity-0 pointer-events-none z-0')}
+                  >
+                    <canvas
+                      ref={waferCanvasRef}
+                      className="w-full h-full block"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleBackTo3D}
+                      className="absolute top-2.5 left-14 z-20 px-2.5 py-1 rounded-full text-[10.5px] font-mono font-semibold bg-white/90 dark:bg-slate-900/90 text-sky-700 dark:text-cyan-300 border border-sky-400/60 dark:border-cyan-500/50 hover:bg-sky-50 dark:hover:bg-slate-800 shadow-sm backdrop-blur-sm transition-colors flex items-center gap-1"
+                    >
+                      <span>← Back to 3D Chamber</span>
+                    </button>
+                  </div>
+
+                  {/* Shared Right-Edge 10px Temperature Color Bar (Always Visible in 3D & 2D) */}
+                  <TemperatureColorBar T={currentState ? currentState.T : 600} />
+
                 </div>
 
                 {/* Canvas Footer Legend with Initial Clean State Toggle */}
                 <div className="px-3.5 py-2 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 gap-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded-full bg-slate-400 dark:bg-[#94a3b8] inline-block" />
-                      <span className="text-slate-700 dark:text-slate-300">N₂ Inert</span>
+                      <span className="text-slate-700 dark:text-slate-300">N₂ Purge</span>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span
                         className="w-2.5 h-2.5 rounded-full inline-block transition-colors"
                         style={{
-                          backgroundColor: chemConfig.color,
+                          backgroundColor: chemistry === 'wet' ? '#3b82f6' : chemConfig.color,
                           boxShadow: '0 0 6px ' + chemConfig.glow
                         }}
                       />
-                      <span style={{ color: chemConfig.color }}>{chemConfig.label}</span>
+                      <span style={{ color: chemistry === 'wet' ? '#3b82f6' : chemConfig.color }}>
+                        {chemConfig.label} {chamberMode === '2d' ? 'C(x)' : 'Stream'}
+                      </span>
                     </span>
                     <span className="flex items-center gap-1.5">
                       <span className="w-2.5 h-2.5 rounded bg-sky-500/80 border border-sky-400/60 inline-block" />
