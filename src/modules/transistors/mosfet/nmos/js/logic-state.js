@@ -315,7 +315,7 @@ function applyLogicState() {
 // ---------------------------------------------------------------------------
 // LIVE IDS vs VDS CHARACTERISTIC GRAPH RENDERER
 // ---------------------------------------------------------------------------
-var IV_GRAPH_PAD = { L: 36, R: 30, T: 16, B: 24 };
+var IV_GRAPH_PAD = { L: 48, R: 38, T: 22, B: 24 };
 
 function computeNiceYScale(peakIds) {
   var target = Math.max(0.05, peakIds * 1.15);
@@ -364,10 +364,10 @@ function renderSingleGraph(canvas, activeVgs, activeVds, activeIds, activeRegion
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, W, H);
 
-  var padL = isModal ? 44 : IV_GRAPH_PAD.L;
-  var padR = isModal ? 36 : IV_GRAPH_PAD.R;
-  var padT = isModal ? 18 : IV_GRAPH_PAD.T;
-  var padB = isModal ? 26 : IV_GRAPH_PAD.B;
+  var padL = isModal ? 56 : IV_GRAPH_PAD.L;
+  var padR = isModal ? 46 : IV_GRAPH_PAD.R;
+  var padT = isModal ? 24 : IV_GRAPH_PAD.T;
+  var padB = isModal ? 28 : IV_GRAPH_PAD.B;
   var plotW = W - padL - padR;
   var plotH = H - padT - padB;
 
@@ -421,11 +421,11 @@ function renderSingleGraph(canvas, activeVgs, activeVds, activeIds, activeRegion
     ctx.moveTo(padL, y);
     ctx.lineTo(padL + plotW, y);
     ctx.stroke();
-    ctx.fillText(iTick.toFixed(yDecimals), padL - 5, y + 3.5);
+    ctx.fillText(iTick.toFixed(yDecimals), padL - 6, y + 3.5);
   }
 
   ctx.save();
-  ctx.translate(isModal ? 12 : 9, padT + plotH / 2);
+  ctx.translate(isModal ? 13 : 11, padT + plotH / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
   ctx.font = axisFont;
@@ -559,18 +559,25 @@ function renderSingleGraph(canvas, activeVgs, activeVds, activeIds, activeRegion
 
   ctx.restore(); // end plot clip
 
-  // Family Curve Right-Edge Labels (outside clip)
-  var minSpacing = isModal ? 17 : 15;
+  // Family Curve Right-Edge Column Header & Labels (outside clip)
+  var labelX = toX(vdsMax) + 5;
+  ctx.fillStyle = activeCurveColor;
+  ctx.font = (isModal ? '700 9.5px' : '700 8.5px') + ' "IBM Plex Mono", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('V_GS', labelX, padT - 6);
+
+  var minSpacing = isModal ? 16 : 13;
   var lastY = toY(0) + 3;
+  var minTopY = padT + 9;
   for (var k = 0; k < labelPositions.length; k++) {
     var lp = labelPositions[k];
     if (lp.endI > idsMax * 0.98) continue;
-    var finalY = Math.max(padT + 8, Math.min(lp.rawY, lastY - (k > 0 ? minSpacing : 0)));
+    var finalY = Math.max(minTopY, Math.min(lp.rawY, lastY - (k > 0 ? minSpacing : 0)));
     lastY = finalY;
     ctx.fillStyle = textColor;
     ctx.font = (isModal ? '9.5px' : '8.5px') + ' "IBM Plex Mono", monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(lp.vgs.toFixed(1) + 'V', toX(vdsMax) + 3, finalY);
+    ctx.fillText(lp.vgs.toFixed(1) + 'V', labelX, finalY);
   }
 
   ctx.restore();
@@ -732,8 +739,8 @@ function initLogicStateControls() {
       var clientX = e.touches ? e.touches[0].clientX : e.clientX;
       var canvasX = (clientX - rect.left) * scaleX;
 
-      var padL = (isModal ? 44 : IV_GRAPH_PAD.L) * (scaleX || 1);
-      var padR = (isModal ? 36 : IV_GRAPH_PAD.R) * (scaleX || 1);
+      var padL = (isModal ? 56 : IV_GRAPH_PAD.L) * (scaleX || 1);
+      var padR = (isModal ? 46 : IV_GRAPH_PAD.R) * (scaleX || 1);
       var plotW = c.width - padL - padR;
 
       var clickX = canvasX - padL;
@@ -811,6 +818,58 @@ function initLogicStateControls() {
       closeIvModal();
     }
   });
+
+  // Register shared Chamber-style parameter info modal entries for all 5 sliders
+  var modalHelper = (typeof window.SiliconParamInfoModal !== 'undefined') ? window.SiliconParamInfoModal : window.SiliconInfoPopover;
+  if (modalHelper) {
+    modalHelper.register({
+      vgs: {
+        title: 'Gate-to-Source Bias (V<sub>GS</sub>)',
+        param: 'Electrostatic Gate Control Voltage: 0.00 V to 1.80 V',
+        formula: 'V<sub>OV</sub> = V<sub>GS</sub> − V<sub>TH</sub>   |   Q<sub>inv</sub> ∝ C<sub>ox</sub> · V<sub>OV</sub>',
+        increase: 'Deepens the inversion channel; jumps to a higher I-V curve with larger <code>I<sub>DS</sub></code> and higher <code>V<sub>Dsat</sub></code>.',
+        decrease: 'Weakens the channel; below <code>V<sub>TH</sub></code>, the inversion layer vanishes (Cutoff, <code>I<sub>DS</sub> ≈ 0</code>) and bulk holes return toward the oxide.',
+        tradeoff: 'Higher <code>V<sub>GS</sub></code> boosts switching speed and drive current <code>I<sub>on</sub></code>, but raises dynamic switching power (<code>P ∝ C·V<sub>DD</sub>²</code>) and vertical gate oxide field stress.',
+        theorySection: 'nmos-inversion'
+      },
+      vds: {
+        title: 'Drain-to-Source Bias (V<sub>DS</sub>)',
+        param: 'Lateral Channel Acceleration Bias: 0.00 V to 1.80 V',
+        formula: 'Linear (V<sub>DS</sub> &lt; V<sub>Dsat</sub>)  →  Saturation (V<sub>DS</sub> ≥ V<sub>Dsat</sub>)',
+        increase: 'Moves the operating point right along the active curve. Past <code>V<sub>Dsat</sub></code>, pinch-off (<code>ΔL</code>) grows and DIBL slightly lowers <code>V<sub>TH</sub></code> in short channels.',
+        decrease: 'Reduces lateral electric field; returns the device to the Linear (Triode) region.',
+        tradeoff: 'High <code>V<sub>DS</sub></code> maximizes saturation sweep velocity, but aggravates DIBL leakage, hot-carrier injection near the drain, and finite output resistance <code>r<sub>o</sub></code>.',
+        theorySection: 'nmos-pinchoff'
+      },
+      geomL: {
+        title: 'Channel Length (L)',
+        param: 'Physical Metallurgical Gate Length: 20 nm to 200 nm',
+        formula: 'I<sub>DS</sub> ∝ 1/L   |   λ ∝ 1/L   |   ΔV<sub>TH,SCE</sub> ∝ exp(−L / L<sub>c</sub>)',
+        increase: 'Lowers <code>I<sub>DS</sub></code> and flattens saturation curves (higher <code>r<sub>o</sub></code>). Short-channel effects (DIBL, <code>V<sub>TH</sub></code> roll-off) fade out.',
+        decrease: 'Boosts drive current <code>I<sub>DS</sub></code>, tilts saturation curves upward, lowers <code>V<sub>TH</sub></code> (roll-off), and triggers velocity saturation.',
+        tradeoff: 'Scaling <code>L</code> shrinks transistor footprint and boosts cutoff frequency <code>f<sub>T</sub></code>, at the cost of stronger DIBL, <code>V<sub>TH</sub></code> variability, and higher off-state leakage.',
+        theorySection: 'nmos-secondorder'
+      },
+      geomW: {
+        title: 'Channel Width (W)',
+        param: 'Active Transverse Gate Width: 40 nm to 400 nm',
+        formula: 'I<sub>DS</sub> ∝ W   |   k<sub>n</sub> = μ<sub>n</sub> · C<sub>ox</sub> · (W / L)',
+        increase: 'Widens the conductive path in 3D; scales the entire I-V family upward proportionally without changing <code>V<sub>TH</sub></code> or curve shape.',
+        decrease: 'Narrows the channel, scaling <code>I<sub>DS</sub></code> down proportionally.',
+        tradeoff: 'Wider devices drive heavier capacitive loads faster, but linearly increase layout footprint and gate input capacitance (<code>C<sub>g</sub> = C<sub>ox</sub>·W·L</code>).',
+        theorySection: 'nmos-equations'
+      },
+      geomTox: {
+        title: 'Gate Oxide Thickness (t<sub>ox</sub>)',
+        param: 'Effective Equivalent Oxide Thickness (EOT): 1.2 nm to 10.0 nm',
+        formula: 'C<sub>ox</sub> = ε<sub>ox</sub> / t<sub>ox</sub>   |   I<sub>DS</sub> ∝ C<sub>ox</sub>   |   V<sub>TH0</sub> ∝ t<sub>ox</sub>',
+        increase: 'Weakens gate capacitive control; lowers <code>I<sub>DS</sub></code> across all curves and slightly raises <code>V<sub>TH</sub></code>.',
+        decrease: 'Strengthens gate control; boosts <code>I<sub>DS</sub></code> and lowers <code>V<sub>TH</sub></code>.',
+        tradeoff: 'Scaling SiO₂ below ~1.5 nm triggers exponential quantum-mechanical direct-tunneling gate leakage—motivating High-k HfO₂ stacks with thinner EOT.',
+        theorySection: 'nmos-inversion'
+      }
+    });
+  }
 }
 
 if (document.readyState === 'loading') {

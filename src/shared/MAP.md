@@ -9,6 +9,8 @@
 - `css/guided-tour.css` -> 4-panel dim backdrop, non-blocking spotlight cutout, tab-pulse animation, parameter-correspondence table styles (`.ss-tour-corr-list`), glassmorphic popover, and topbar `? Tour` button styles.
 - `css/home.css` -> Landing page layout, module card grid, and responsive telemetry strip styles.
 - `js/guided-tour.js` -> `SiliconGuidedTour` zero-build interactive spotlight onboarding engine (6-step CAD default + `SILICON_TOUR_CONFIG` override with `descriptionHtml`, `peekContainerSelector`, `readySelector`, `onStop`, async React frame retry, and `localStorage` persistence).
+- `js/param-info-modal.js` -> `SiliconParamInfoModal` shared Chamber-style `(i)` info glyph and frosted-blur modal dialog with `Dive Deep into Theory` deep-linking (`css/param-info-modal.css`).
+- `css/param-info-modal.css` -> Shared `.param-info-btn`, `.ss-param-modal-*`, and `.section-highlight-pulse` styles matching the Process Engineering Lab.
 - `js/home.js` -> Homepage theme persistence (`siliconsliders-theme` + time-of-day fallback) and cross-tab `pageshow`/`storage` sync.
 - `three/layerHighlight.ts` -> Unified TS layer discovery (`userData.layerId`), raycasting, opaque/low-opacity highlighting, and exact material restoration (`SiliconLayerHighlight`).
 - `three/layerHighlight.js` -> Zero-bundler browser global companion (`window.SiliconLayerHighlight`) mirroring `layerHighlight.ts`.
@@ -26,6 +28,7 @@
 - **Viewer Theme (`viewer-theme.js`):** `ViewerTheme.init`, `ViewerTheme.getTheme`, `ViewerTheme.setTheme`, `ViewerTheme.toggleTheme`, `ViewerTheme.onThemeChange`.
 - **Homepage Theme (`home.js`):** `applyPlatformTheme`, `getPlatformTheme` (syncs `pageshow` and cross-tab `storage` events).
 - **Guided Tour (`guided-tour.js`):** `SiliconGuidedTour.start`, `SiliconGuidedTour.stop`, `SiliconGuidedTour.next`, `SiliconGuidedTour.prev`, `SiliconGuidedTour.goTo`, `SiliconGuidedTour.refresh`, `SiliconGuidedTour.animateCameraTo`, `SiliconGuidedTour.animateExplodeY`, `SiliconGuidedTour.isActive`, `SiliconGuidedTour.isPeeking`, `SiliconGuidedTour.resetSeen`, `SiliconGuidedTour.DEFAULT_STEPS`.
+- **Param Info Modal (`param-info-modal.js`):** `SiliconParamInfoModal.register`, `SiliconParamInfoModal.attachAll`, `SiliconParamInfoModal.open`, `SiliconParamInfoModal.close`, `INFO_SVG`.
 - **Layer Highlight (`three/layerHighlight.ts` / `.js`):** `discoverClickableMeshes`, `collectLayerMeshes`, `raycastLayer`, `raycastLayers`, `selectLayer`, `clearHighlight`, `applyHighlight`, `updateHighlightColor`, `SiliconLayerHighlight`.
 - **Viewer Core (`viewer-core.js`):** `SiliconViewer.init` (binds `#left-toggle`, `#right-toggle`, theme, topbar, and panels).
 - **Selection Highlight (`viewer-core.js`):** `SiliconSelectionHighlight.apply`, `SiliconSelectionHighlight.updateColor` (forwards to `SiliconLayerHighlight`).

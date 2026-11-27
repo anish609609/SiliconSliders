@@ -217,10 +217,14 @@ function resetAll() {
     switchWorkbenchTab('controls');
   }
 
-  // Reset 3D Floating Labels toggle
+  // Reset 3D Floating Labels & Substrate Holes toggles
   var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
   if (toggleLabelsChk) toggleLabelsChk.checked = true;
   if (typeof window.toggleLabels === 'function') window.toggleLabels(true);
+
+  var toggleHolesChk = document.getElementById('toggle-holes');
+  if (toggleHolesChk) toggleHolesChk.checked = true;
+  if (typeof window.toggleSubstrateHoles === 'function') window.toggleSubstrateHoles(true);
 
   // Sliders mode: workbench is expanded by default at max desktop width
   expandWorkbench();

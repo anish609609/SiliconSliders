@@ -2699,6 +2699,31 @@
   }
 
   /* -------------------------------------------------------------------------
+     Parameter Slider Label & Semantic Accent Colors for Shared Info Modal
+     ------------------------------------------------------------------------- */
+  .dp-lbl-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+  .param-theme-vgs,
+  .param-theme-vds,
+  .param-theme-l,
+  .param-theme-w,
+  .param-theme-tox {
+    --param-color: var(--accent, #5fd9c4);
+  }
+
+  :root[data-theme="light"] .param-theme-vgs,
+  :root[data-theme="light"] .param-theme-vds,
+  :root[data-theme="light"] .param-theme-l,
+  :root[data-theme="light"] .param-theme-w,
+  :root[data-theme="light"] .param-theme-tox {
+    --param-color: var(--accent, #0d9488);
+  }
+
+  /* -------------------------------------------------------------------------
      Expandable IDS-VDS Graph Modal
      ------------------------------------------------------------------------- */
   .iv-modal-backdrop {

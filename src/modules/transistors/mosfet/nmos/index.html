@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
 <link rel="stylesheet" href="../../../../shared/css/guided-tour.css">
+<link rel="stylesheet" href="../../../../shared/css/param-info-modal.css">
 <script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
@@ -147,17 +148,27 @@
 
             <!-- Voltage Bias Sliders (VGS & VDS) -->
             <div class="wb-bias-controls">
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-vgs">
                 <div class="dp-slider-lbl">
-                  <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
+                  <span class="dp-lbl-group">
+                    <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="vgs" aria-label="About VGS (Gate Bias)" aria-expanded="false" title="Gate bias info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="vgs-val">1.00V</span>
                 </div>
                 <input type="range" id="vgs-slider" min="0" max="1.8" step="0.05" value="1.00" title="Gate-to-Source Voltage VGS">
               </div>
 
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-vds">
                 <div class="dp-slider-lbl">
-                  <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
+                  <span class="dp-lbl-group">
+                    <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="vds" aria-label="About VDS (Drain Bias)" aria-expanded="false" title="Drain bias info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="vds-val">0.80V</span>
                 </div>
                 <input type="range" id="vds-slider" min="0" max="1.8" step="0.05" value="0.80" title="Drain-to-Source Voltage VDS">
@@ -255,25 +266,40 @@
                 <button type="button" class="geom-preset-btn" data-geom-preset="highdrive" title="L = 28 nm, W = 360 nm, tox = 1.4 nm">High-Drive</button>
               </div>
 
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-l">
                 <div class="dp-slider-lbl">
-                  <label for="geom-l-slider">Channel Length (L)</label>
+                  <span class="dp-lbl-group">
+                    <label for="geom-l-slider">Channel Length (L)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomL" aria-label="About Channel Length (L)" aria-expanded="false" title="Channel Length info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="geom-l-val">28 nm</span>
                 </div>
                 <input type="range" id="geom-l-slider" min="20" max="200" step="2" value="28" title="Physical Gate / Channel Length L (nm)">
               </div>
 
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-w">
                 <div class="dp-slider-lbl">
-                  <label for="geom-w-slider">Channel Width (W)</label>
+                  <span class="dp-lbl-group">
+                    <label for="geom-w-slider">Channel Width (W)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomW" aria-label="About Channel Width (W)" aria-expanded="false" title="Channel Width info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="geom-w-val">120 nm</span>
                 </div>
                 <input type="range" id="geom-w-slider" min="40" max="400" step="10" value="120" title="Active Channel Width W (nm)">
               </div>
 
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-tox">
                 <div class="dp-slider-lbl">
-                  <label for="geom-tox-slider">Gate Oxide Thickness (t<sub>ox</sub>)</label>
+                  <span class="dp-lbl-group">
+                    <label for="geom-tox-slider">Gate Oxide Thickness (t<sub>ox</sub>)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomTox" aria-label="About Gate Oxide Thickness (tox)" aria-expanded="false" title="Gate Oxide Thickness info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="geom-tox-val">2.0 nm</span>
                 </div>
                 <input type="range" id="geom-tox-slider" min="1.2" max="10.0" step="0.2" value="2.0" title="Effective Gate Oxide Thickness tox (nm)">
@@ -319,6 +345,14 @@
                 <label class="dp-checkbox-label">
                   <input type="checkbox" id="toggle-labels" checked>
                   <span>Show 3D Floating Labels</span>
+                </label>
+              </div>
+
+              <!-- Substrate Holes Checkbox -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="toggle-holes" checked>
+                  <span>Show Substrate Holes</span>
                 </label>
               </div>
             </div>
@@ -1025,6 +1059,7 @@
 <script src="js/dimensions.js"></script>
 <script src="js/view-mode.js"></script>
 <script src="js/flow.js"></script>
+<script src="../../../../shared/js/param-info-modal.js"></script>
 <script src="js/logic-state.js"></script>
 <script src="js/build-anim.js"></script>
 <script src="js/render-loop.js"></script>

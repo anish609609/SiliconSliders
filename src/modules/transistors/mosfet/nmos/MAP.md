@@ -4,12 +4,12 @@
 
 ## Files
 
-- `index.html` -> Viewport, VGS/VDS controls, Device Geometry scaling controls & presets, Lock Y-Axis I-V graph & expandable modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
-- `css/style.css` -> Module-specific theme colors (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), Device Geometry preset pills, I-V header/lock toggle, HUD, and modal styles.
+- `index.html` -> Viewport, VGS/VDS controls, Device Geometry scaling controls & presets, Lock Y-Axis I-V graph & expandable modal (`#iv-modal-backdrop`), View Controls (`#toggle-labels`, `#toggle-holes`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), shared Chamber-style parameter info modal (`shared/js/param-info-modal.js`), and script stack.
+- `css/style.css` -> Module-specific theme colors (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), Device Geometry preset pills, uniform accent slider info buttons, I-V header/lock toggle, HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
-- `js/geometry.js` -> 3D substrate, N+ S/D Gaussian tubs, N-SDE/LDD extensions, dynamic inversion channel + depletion shells, HKMG gate stack, Si3N4 spacers, NiSi salicide, W contacts, Metal-1, and `updateDeviceGeometry3D(L, W, tox)` scaling engine.
-- `js/logic-state.js` -> Geometry-aware NMOS physics (`getMosfetPhysicsState`, `setMosfetGeometry`), 3-region IDS(VGS, VDS, L, W, tox) solver with SCE (VTH roll-off, DIBL, velocity saturation, `lambda ∝ 1/L`), channel/depletion modulation, and IDS-VDS inline/modal canvas renderer with `toggleLockYAxis`.
-- `js/flow.js` -> Particle flow markers (`createFlowCurve`, `rebuildFlowCurves`, `updateFlowMarkers`) coupled to `getMosfetPhysicsState` and current/electron mode.
+- `js/geometry.js` -> 3D substrate, N+ S/D Gaussian tubs, N-SDE/LDD extensions, dynamic inversion channel + depletion shells, HKMG gate stack, Si3N4 spacers, NiSi salicide, W contacts, Metal-1, `updateDeviceGeometry3D(L, W, tox)` scaling engine, and `updateSubGateCarriers` (full-substrate `InstancedMesh` majority-carrier holes with thermal jitter, N+/tap exclusion, `VGS` gate depletion repulsion, and `VDS` drain depletion repulsion + `toggleSubstrateHoles`).
+- `js/logic-state.js` -> Geometry-aware NMOS physics (`getMosfetPhysicsState`, `setMosfetGeometry`), 3-region IDS(VGS, VDS, L, W, tox) solver with SCE (VTH roll-off, DIBL, velocity saturation, `lambda ∝ 1/L`), channel/depletion modulation, IDS-VDS inline/modal canvas renderer (`toggleLockYAxis`), and `SiliconParamInfoModal` registration.
+- `js/flow.js` -> Single unified `InstancedMesh` channel carrier & conventional current pool (`createFlowCurve`, `rebuildFlowCurves`, `updateFlowMarkers`) parented to `groups['active']`: hides in Cutoff, jitters in place with compact beads at zero bias (`VGS >= VTH, VDS = 0`), and transitions into width-scaled elongated streaks with pinch-off acceleration at active bias.
 - `js/build-anim.js` -> Offline 8-step `FAB_STEPS` drop-down tour (`applyFabStep`, `updateBuildAnimation`, `startBuildAnimation`).
 - `js/controls-explode-scrub.js` -> Layer Y-explode (`applyExplode`) and X/Y/Z clipping-plane scrub (`wireScrub`, `resetScrub`).
 - `js/selection.js` -> 6px drag-threshold raycasting using `SiliconSelectionHighlight`, synced with Architecture Tree, Inspector, and popover.
@@ -25,9 +25,10 @@
 
 ## Key Symbols
 
-- **Geometry & Materials:** `Y`, `LAYER_ORDER`, `gaussianDopingMesh`, `createWellShellGeometry`, `updateHalfWellShell`, `getChannelThicknessAtX`, `updateChannelGeometry`, `getDeviceGeomState`, `updateDeviceGeometry3D`, `buildSilicidePadMesh`, `updateMaterialsTheme`, `toggleLabels`.
+- **Geometry & Materials:** `Y`, `LAYER_ORDER`, `gaussianDopingMesh`, `createWellShellGeometry`, `updateHalfWellShell`, `getChannelThicknessAtX`, `updateChannelGeometry`, `constrainHoleOutsideWell`, `updateSubGateCarriers`, `toggleSubstrateHoles`, `getDeviceGeomState`, `updateDeviceGeometry3D`, `buildSilicidePadMesh`, `updateMaterialsTheme`, `toggleLabels`.
 - **Physics Engine:** `getMosfetPhysicsState` (returns `vgs`, `vds`, `vth`, `vov`, `vdsSat`, `ids`, `region`, `deltaL`, `leff`, `L`, `W`, `tox`, `wlRatio`), `setMosfetGeometry`, `GEOM_PRESETS`, `applyLogicState`, `initLogicStateControls`.
 - **I-V Graph & Modal:** `drawIdsVdsGraph`, `renderSingleGraph`, `toggleLockYAxis`, `openIvModal`, `closeIvModal`, `IV_GRAPH_PAD`.
+- **Parameter Modal:** `SiliconParamInfoModal` (`src/shared/js/param-info-modal.js`, `register`, `attachAll`, `open`, `close`).
 - **Flow & Tour:** `createFlowCurve`, `rebuildFlowCurves`, `stepFlowMarkers`, `updateFlowMarkers`, `FAB_STEPS`, `dropOffsets`, `applyFabStep`, `startBuildAnimation`, `pauseBuildAnimation`, `stopBuildAnimation`.
 - **Selection & Tree:** `selectById`, `clearSelection`, `highlightMeshes`, `meshesForId` (`SiliconLayerHighlight`), `TREE`, `VIRTUAL`, `layerMeta`, `nonToggleableKeys`.
 - **Rules / Invariants:** Run `startBuildAnimation` forces Cutoff (`currentVgs = 0.0`, suppresses carriers) and restores `_savedTourBias` on stop; `reg` sets `userData.layerId` for auto-discovery.
