@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
 <link rel="stylesheet" href="../../../../shared/css/guided-tour.css">
+<link rel="stylesheet" href="../../../../shared/css/param-info-modal.css">
 <script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
@@ -147,33 +148,55 @@
 
             <!-- Voltage Bias Sliders (VSG & VSD) -->
             <div class="wb-bias-controls dp-bias-controls">
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-vsg">
                 <div class="dp-slider-lbl">
-                  <label for="vsg-slider">V<sub>SG</sub> (Source-to-Gate Bias)</label>
+                  <span class="dp-lbl-group">
+                    <label for="vsg-slider">V<sub>SG</sub> (|V<sub>GS</sub>| Gate Bias)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="vsg" aria-label="About VSG (Gate Bias)" aria-expanded="false" title="Gate bias info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="vsg-val">1.00V</span>
                 </div>
-                <input type="range" id="vsg-slider" min="0" max="1.8" step="0.05" value="1.00" title="Source-to-Gate Voltage VSG (or |VGS|)">
+                <input type="range" id="vsg-slider" min="0" max="1.8" step="0.05" value="1.00" title="Source-to-Gate Voltage VSG (|VGS|)">
               </div>
 
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-vsd">
                 <div class="dp-slider-lbl">
-                  <label for="vsd-slider">V<sub>SD</sub> (Source-to-Drain Bias)</label>
+                  <span class="dp-lbl-group">
+                    <label for="vsd-slider">V<sub>SD</sub> (|V<sub>DS</sub>| Drain Bias)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="vsd" aria-label="About VSD (Drain Bias)" aria-expanded="false" title="Drain bias info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="vsd-val">0.80V</span>
                 </div>
-                <input type="range" id="vsd-slider" min="0" max="1.8" step="0.05" value="0.80" title="Source-to-Drain Voltage VSD (or |VDS|)">
+                <input type="range" id="vsd-slider" min="0" max="1.8" step="0.05" value="0.80" title="Source-to-Drain Voltage VSD (|VDS|)">
               </div>
             </div>
 
             <!-- Live ISD vs VSD Graph -->
             <div class="iv-canvas-wrap">
-              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand graph" aria-label="Expand graph">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <polyline points="9 21 3 21 3 15"></polyline>
-                  <line x1="21" y1="3" x2="14" y2="10"></line>
-                  <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-              </button>
+              <div class="iv-graph-header">
+                <span class="iv-graph-title">I<sub>SD</sub> – V<sub>SD</sub> CURVE</span>
+                <div class="iv-header-actions">
+                  <button type="button" class="iv-lock-btn" id="iv-lock-y-btn" title="Lock Y-axis scale to compare curve scaling across geometry changes" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span>Lock Y-Axis</span>
+                  </button>
+                  <button type="button" class="iv-expand-btn" id="iv-expand-btn" title="Expand graph" aria-label="Expand graph">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <polyline points="9 21 3 21 3 15"></polyline>
+                      <line x1="21" y1="3" x2="14" y2="10"></line>
+                      <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
               <canvas id="iv-canvas" width="310" height="225"></canvas>
               <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>SD</sub>, I<sub>SD</sub>)</div>
             </div>
@@ -190,30 +213,96 @@
                   <span class="iv-v" id="iv-vsd-readout">0.80 V</span>
                 </div>
                 <div class="iv-item">
-                  <span class="iv-k">|V<sub>TH,p</sub>|</span>
-                  <span class="iv-v">0.40 V</span>
+                  <span class="iv-k">V<sub>TH,p</sub></span>
+                  <span class="iv-v" id="iv-vth-readout">-0.33 V</span>
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">V<sub>OV</sub></span>
-                  <span class="iv-v" id="iv-vov-readout">0.60 V</span>
+                  <span class="iv-v" id="iv-vov-readout">0.67 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">W / L</span>
+                  <span class="iv-v" id="iv-wl-readout">4.29</span>
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">I<sub>SD</sub></span>
-                  <span class="iv-v" id="iv-isd-readout">0.14 mA</span>
+                  <span class="iv-v" id="iv-isd-readout">0.041 mA</span>
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">L<sub>eff</sub></span>
-                  <span class="iv-v" id="iv-leff-readout">26.8 nm</span>
+                  <span class="iv-v" id="iv-leff-readout">23.5 nm</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>SD,sat</sub></span>
+                  <span class="iv-v" id="iv-vsdsat-readout">0.12 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">&Delta;L</span>
+                  <span class="iv-v" id="iv-dl-readout">4.5 nm</span>
                 </div>
               </div>
               <div class="iv-state-line">
                 <span class="iv-k">STATE:</span>
-                <span class="iv-v-state" id="iv-state-desc">Pinch-off at drain · High-field hole drift</span>
+                <span class="iv-v-state" id="iv-state-desc">DIBL + Velocity Saturation</span>
               </div>
             </div>
 
             <div style="display:none;" id="state-badge">
               <span id="badge-vgs"></span><span id="badge-state"></span><span id="badge-chan"></span><span id="badge-ids"></span><span id="region-badge"></span>
+            </div>
+          </div>
+
+          <!-- Device Geometry (Collapsible accordion section below Operating Region / I-V Graph / Telemetry and above View Controls) -->
+          <div class="wb-accordion-section" id="wb-geometry-section">
+            <div class="wb-accordion-head" data-target="device-geometry-body">
+              <span class="wb-accordion-title">DEVICE GEOMETRY</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="device-geometry-body">
+              <div class="geom-presets" id="geom-preset-group" role="group" aria-label="Device Geometry Presets">
+                <button type="button" class="geom-preset-btn active" data-geom-preset="short28" title="L = 28 nm, W = 120 nm, tox = 2.0 nm">28nm Short-Ch</button>
+                <button type="button" class="geom-preset-btn" data-geom-preset="long180" title="L = 180 nm, W = 180 nm, tox = 4.0 nm">180nm Long-Ch</button>
+                <button type="button" class="geom-preset-btn" data-geom-preset="highdrive" title="L = 28 nm, W = 360 nm, tox = 1.4 nm">High-Drive</button>
+              </div>
+
+              <div class="dp-slider-row param-theme-l">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-l-slider">Channel Length (L)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomL" aria-label="About Channel Length (L)" aria-expanded="false" title="Channel Length info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-l-val">28 nm</span>
+                </div>
+                <input type="range" id="geom-l-slider" min="20" max="200" step="2" value="28" title="Physical Gate / Channel Length L (nm)">
+              </div>
+
+              <div class="dp-slider-row param-theme-w">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-w-slider">Channel Width (W)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomW" aria-label="About Channel Width (W)" aria-expanded="false" title="Channel Width info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-w-val">120 nm</span>
+                </div>
+                <input type="range" id="geom-w-slider" min="40" max="400" step="10" value="120" title="Active Channel Width W (nm)">
+              </div>
+
+              <div class="dp-slider-row param-theme-tox">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-tox-slider">Gate Oxide Thickness (t<sub>ox</sub>)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomTox" aria-label="About Gate Oxide Thickness (tox)" aria-expanded="false" title="Gate Oxide Thickness info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-tox-val">2.0 nm</span>
+                </div>
+                <input type="range" id="geom-tox-slider" min="1.2" max="10.0" step="0.2" value="2.0" title="Effective Gate Oxide Thickness tox (nm)">
+              </div>
             </div>
           </div>
 
@@ -255,6 +344,14 @@
                 <label class="dp-checkbox-label">
                   <input type="checkbox" id="toggle-labels" checked>
                   <span>Show 3D Floating Labels</span>
+                </label>
+              </div>
+
+              <!-- Bulk Carriers Checkbox -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="toggle-holes">
+                  <span>Show Bulk Carriers</span>
                 </label>
               </div>
             </div>
@@ -488,7 +585,7 @@
               </div>
               <div class="theory-subcard">
                 <span class="theory-subcard-title">2. Hole Drift Conduction</span>
-                <p class="theory-subcard-desc">Conduction is carried by positively charged holes (h+). Due to higher effective mass in the valence band, hole mobility (<code>μ<sub>p</sub> ≈ 220 cm²/(V·s)</code>) is roughly 2.5× lower than electron mobility.</p>
+                <p class="theory-subcard-desc">Conduction is carried by positively charged holes (h+). Lower effective hole mobility (<code>μ<sub>p</sub> ≈ 0.45 μ<sub>n</sub></code>) yields proportionally lower drive current than E-NMOS at identical <code>W/L</code>.</p>
               </div>
               <div class="theory-subcard">
                 <span class="theory-subcard-title">3. Channel Width Sizing (Wp ≈ 2Wn)</span>
@@ -503,60 +600,54 @@
           <!-- Section 2: Inversion & Threshold Voltage -->
           <article id="pmos-inversion" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">2. Surface Inversion &amp; Negative Threshold Voltage (VTH &lt; 0)</h3>
-              <span class="theory-card-tag">VTH,p = -0.80V, |VTH,p| = +0.80V</span>
+              <h3 class="theory-card-title">2. Surface Inversion &amp; Dynamic Negative Threshold Voltage (VTH &lt; 0)</h3>
+              <span class="theory-card-tag">Long-Ch VTH0,p ≈ -0.45 V (SCE shifts |VTH| lower)</span>
             </div>
             <p class="theory-p">
-              To induce a conductive channel in PMOS, a negative voltage must be applied to the gate with respect to the source and N-well. In circuit design, it is standard practice to express voltages using positive source-referenced notations:
+              To induce a conductive hole channel in PMOS, a negative voltage must be applied to the gate with respect to the source and N-well (equivalently <code>V<sub>SG</sub> = -V<sub>GS</sub> &gt; |V<sub>TH,p</sub>|</code>):
             </p>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">V<sub>SG</sub> = V<sub>S</sub> - V<sub>G</sub> = -V<sub>GS</sub> &nbsp;&gt;&nbsp; |V<sub>TH,p</sub>| &nbsp;≈&nbsp; +0.80 V</div>
-              <div class="theory-formula-sub">Negative threshold: V<sub>TH,p</sub> ≈ -0.80 V &nbsp;·&nbsp; Effective Overdrive: V<sub>OV</sub> = V<sub>SG</sub> - |V<sub>TH,p</sub>| = |V<sub>GS</sub>| - |V<sub>TH,p</sub>|</div>
+              <div class="theory-formula-main">V<sub>TH,p</sub> = −max(0.10, |V<sub>TH0,p</sub>(t<sub>ox</sub>)| − ΔV<sub>TH,SCE</sub>(L) − η(L)·V<sub>SD</sub>)</div>
+              <div class="theory-formula-sub">Long-Channel V<sub>TH0,p</sub> ≈ −0.45 V at t<sub>ox</sub> = 2.0 nm &nbsp;·&nbsp; Overdrive: V<sub>OV</sub> = V<sub>SG</sub> − |V<sub>TH,p</sub>|</div>
             </div>
             <p class="theory-p">
-              <b>Physical Inversion Process:</b> When <code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code> (or <code>V<sub>GS</sub> &lt; V<sub>TH,p</sub></code>), the negative gate potential bends energy bands upward, repelling majority electrons from the N-well surface and creating an initial depletion layer. Once the surface potential reaches strong inversion (<code>ψ<sub>s</sub> = -2φ<sub>Fn</sub></code>), minority holes from the P+ source and drain are attracted to the interface, forming a continuous conductive P-type inversion layer.
+              <b>Physical Inversion &amp; Oxide Scaling:</b> Thinner gate oxide <code>t<sub>ox</sub></code> raises oxide capacitance <code>C<sub>ox</sub> = 3.9ε<sub>0</sub> / t<sub>ox</sub></code>, strengthening gate control over the N-well surface. Below <code>L ≈ 50 nm</code>, short-channel charge sharing and DIBL reduce <code>|V<sub>TH,p</sub>|</code> dynamically.
             </p>
           </article>
 
           <!-- Section 3: Explicit Pinch-Off Mechanism -->
           <article id="pmos-pinchoff" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">3. The Pinch-Off Mechanism in P-Channel Transistors</h3>
-              <span class="theory-card-tag">VSD,sat = VSG - |VTH,p|, VDG = |VTH,p|</span>
+              <h3 class="theory-card-title">3. Pinch-Off &amp; Velocity Saturation in P-Channel Transistors</h3>
+              <span class="theory-card-tag">VSD,sat = VOV·(EsatL) / (VOV + EsatL)</span>
             </div>
             <p class="theory-p">
-              In PMOS operation, the Source is typically held at positive supply <code>V<sub>DD</sub></code> while the Drain is at a lower voltage (<code>V<sub>SD</sub> = V<sub>S</sub> - V<sub>D</sub> ≥ 0</code>). Along the channel from Source (y=0, V=0 relative to source) to Drain (y=L, V=V<sub>SD</sub>), the local source-to-channel potential increases, which reduces the local gate oxide potential.
+              In PMOS operation, Source is held at positive potential while Drain is pulled lower (<code>V<sub>SD</sub> = -V<sub>DS</sub> ≥ 0</code>). In short channels, lateral fields saturate hole drift velocity early, clamping <code>V<sub>SD,sat</sub></code> well below <code>V<sub>OV</sub></code>:
             </p>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">Pinch-Off Boundary Condition: V<sub>SD</sub> = V<sub>SD,sat</sub> = V<sub>SG</sub> - |V<sub>TH,p</sub>| &nbsp;⟺&nbsp; V<sub>DG</sub> = |V<sub>TH,p</sub>|</div>
-              <div class="theory-formula-sub">In standard VGS/VDS coordinates: |V<sub>DS</sub>| = |V<sub>DS,sat</sub>| = |V<sub>GS</sub> - V<sub>TH,p</sub>| &nbsp;⟺&nbsp; V<sub>GD</sub> = V<sub>TH,p</sub></div>
+              <div class="theory-formula-main">V<sub>SD,sat</sub> = V<sub>OV</sub> · (E<sub>sat</sub>L) / (V<sub>OV</sub> + E<sub>sat</sub>L) &nbsp;|&nbsp; ΔL(V<sub>SD</sub> &gt; V<sub>SD,sat</sub>) grows toward Source</div>
+              <div class="theory-formula-sub">Long-channel limit (E<sub>sat</sub>L ≫ V<sub>OV</sub>): V<sub>SD,sat</sub> → V<sub>OV</sub> &nbsp;·&nbsp; Short-channel limit: current scales more linearly with V<sub>OV</sub></div>
             </div>
-            <p class="theory-p">
-              <b>Why and How Pinch-Off Occurs:</b>
-            </p>
             <div class="theory-grid-2">
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Linear Regime (VSD &lt; VSD,sat)</span>
-                <p class="theory-subcard-desc">The hole inversion layer extends continuously from Source to Drain. The channel depth is deepest at the Source and tapers toward the Drain as local overdrive shrinks.</p>
+                <p class="theory-subcard-desc">The hole inversion layer extends continuously from Source to Drain, tapering from Source toward Drain as local gate overdrive decreases.</p>
               </div>
               <div class="theory-subcard">
-                <span class="theory-subcard-title">Beyond Pinch-Off (VSD ≥ VSD,sat)</span>
-                <p class="theory-subcard-desc">The hole inversion layer thickness drops to zero at the Drain edge. The pinch-off boundary shifts slightly toward the source, creating a high-field space charge region <code>ΔL</code>.</p>
+                <span class="theory-subcard-title">Saturation Beyond Pinch-Off (VSD ≥ VSD,sat)</span>
+                <p class="theory-subcard-desc">Hole channel thickness drops to zero at <code>L<sub>eff</sub> = L − ΔL</code>; high-field transport sweeps holes rapidly across <code>ΔL</code> into the P+ Drain.</p>
               </div>
             </div>
-            <p class="theory-p">
-              <b>Hole Transport Beyond Pinch-Off:</b> When holes drifting down the channel reach the pinch-off point, they encounter an intense lateral electric field directed from Source to Drain. This field sweeps the holes across the depletion region into the Drain at saturation velocity. The hole current <code>I<sub>SD</sub></code> reaches saturation and remains nearly constant regardless of further increase in <code>V<sub>SD</sub></code>.
-            </p>
           </article>
 
           <!-- Section 4: Operating Regions & Equations -->
           <article id="pmos-equations" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">4. Operating Regions &amp; Complete Governing Formulations</h3>
-              <span class="theory-card-tag">kp = 0.32 mA/V², λ = 0.08 V⁻¹</span>
+              <h3 class="theory-card-title">4. Geometry-Scaled Governing Formulations</h3>
+              <span class="theory-card-tag">kp = μp·Cox·(W/L), λ ∝ 1/L</span>
             </div>
             <p class="theory-p">
-              Define the PMOS process transconductance parameter as <code>k<sub>p</sub> = μ<sub>p</sub> · C<sub>ox</sub> · (W<sub>p</sub> / L)</code> (nominal model value: <code>k<sub>p</sub> = 0.32 mA/V²</code>). The operating regions are mathematically partitioned as follows:
+              Define the PMOS transconductance parameter as <code>k<sub>p</sub> = μ<sub>p</sub> · C<sub>ox</sub> · (W / L)</code> with <code>μ<sub>p</sub> ≈ 0.45 μ<sub>n</sub></code> and <code>C<sub>ox</sub> = 3.9ε<sub>0</sub> / t<sub>ox</sub></code>. Scaling <code>L</code>, <code>W</code>, and <code>t<sub>ox</sub></code> in <b>Device Geometry</b> updates every parameter dynamically:
             </p>
             <div class="theory-table-wrap">
               <table class="theory-table">
@@ -572,71 +663,65 @@
                   <tr>
                     <td><b>Cutoff</b></td>
                     <td><code>V<sub>SG</sub> ≤ |V<sub>TH,p</sub>|</code><br><span style="font-size:10px; color:var(--v-text-tertiary);">(V<sub>GS</sub> ≥ V<sub>TH,p</sub>)</span></td>
-                    <td><code>I<sub>SD</sub> = 0</code> &nbsp;(Ideal drift)<br><span style="font-size:10px; color:var(--v-text-tertiary);">Subthreshold leakage only</span></td>
+                    <td><code>I<sub>SD</sub> = 0</code> &nbsp;(Ideal drift)<br><span style="font-size:10px; color:var(--v-text-tertiary);">Subthreshold: I<sub>sub</sub> ∝ exp[q(V<sub>SG</sub>-|V<sub>TH,p</sub>|)/nkT]</span></td>
                     <td>No channel; P+/N-well barrier blocks holes</td>
                   </tr>
                   <tr>
                     <td><b>Linear (Triode)</b></td>
-                    <td><code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code><br><code>V<sub>SD</sub> &lt; V<sub>SG</sub> - |V<sub>TH,p</sub>|</code></td>
-                    <td><code>I<sub>SD</sub> = k<sub>p</sub> · [(V<sub>SG</sub> - |V<sub>TH,p</sub>|)·V<sub>SD</sub> - ½·V<sub>SD</sub>²]</code></td>
+                    <td><code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code><br><code>V<sub>SD</sub> &lt; V<sub>SD,sat</sub></code></td>
+                    <td><code>I<sub>SD</sub> = [k<sub>p</sub> / (1 + V<sub>SD</sub>/(E<sub>sat</sub>L))] · [V<sub>OV</sub>·V<sub>SD</sub> - ½·V<sub>SD</sub>²]</code></td>
                     <td>Continuous resistive inverted P-channel</td>
                   </tr>
                   <tr>
                     <td><b>Saturation</b></td>
-                    <td><code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code><br><code>V<sub>SD</sub> ≥ V<sub>SG</sub> - |V<sub>TH,p</sub>|</code></td>
-                    <td><code>I<sub>SD</sub> = ½·k<sub>p</sub>·(V<sub>SG</sub> - |V<sub>TH,p</sub>|)² · (1 + λ·V<sub>SD</sub>)</code></td>
-                    <td>Pinched off at drain; velocity-saturated hole sweep</td>
+                    <td><code>V<sub>SG</sub> &gt; |V<sub>TH,p</sub>|</code><br><code>V<sub>SD</sub> ≥ V<sub>SD,sat</sub></code></td>
+                    <td><code>I<sub>SD</sub> = ½·k<sub>p</sub>·V<sub>OV</sub>·V<sub>SD,sat</sub> · [1 + λ·(V<sub>SD</sub> - V<sub>SD,sat</sub>)]</code></td>
+                    <td>Pinched off / velocity-saturated; CLM slope λ ∝ 1/L</td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">Small-Signal Transconductance: g<sub>m</sub> = ∂I<sub>SD</sub>/∂V<sub>SG</sub> = k<sub>p</sub> · (V<sub>SG</sub> - |V<sub>TH,p</sub>|) = √(2 · k<sub>p</sub> · I<sub>SD</sub>)</div>
-              <div class="theory-formula-sub">Output Resistance: r<sub>o</sub> = ∂V<sub>SD</sub>/∂I<sub>SD</sub> ≈ 1 / (λ · I<sub>SD,sat</sub>) &nbsp;·&nbsp; Intrinsic Gain: A<sub>v0</sub> = g<sub>m</sub> · r<sub>o</sub> = 2 / [λ · (V<sub>SG</sub> - |V<sub>TH,p</sub>|)]</div>
+              <div class="theory-formula-main">Output Resistance: r<sub>o</sub> ≈ 1 / (λ · I<sub>SD,sat</sub>) &nbsp;|&nbsp; Effective Length: L<sub>eff</sub> = max(0.2L, L − ΔL)</div>
+              <div class="theory-formula-sub">At matched geometry (W, L, t<sub>ox</sub>), E-PMOS delivers ~45% of E-NMOS drive current due to μ<sub>p</sub> ≈ 0.45 μ<sub>n</sub>.</div>
             </div>
           </article>
 
           <!-- Section 5: Sync with Live Graph -->
           <article id="pmos-graphs" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Graph Panel</h3>
+              <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Geometry Panel</h3>
               <span class="theory-card-tag">ISD vs. VSD Family of Curves</span>
             </div>
             <p class="theory-p">
-              The live <b>PHYSICS &amp; GRAPH</b> panel in this PMOS module continuously plots <code>I<sub>SD</sub></code> versus <code>V<sub>SD</sub></code> (or <code>|I<sub>D</sub>|</code> vs. <code>|V<sub>DS</sub>|</code>):
+              The live <b>OPERATING REGION</b> &amp; <b>DEVICE GEOMETRY</b> panels compute and plot <code>I<sub>SD</sub></code> versus <code>V<sub>SD</sub></code> in real time:
             </p>
             <div class="theory-grid-2">
               <div class="theory-subcard">
-                <span class="theory-subcard-title">Quadratic Saturation Locus</span>
-                <p class="theory-subcard-desc">The dashed golden parabola denotes <code>I<sub>SD,sat</sub> = ½ k<sub>p</sub> V<sub>SD</sub>²</code>, tracing the transition from triode to saturation across all gate voltages <code>V<sub>SG</sub></code>.</p>
+                <span class="theory-subcard-title">Velocity-Saturated Pinch-Off Locus</span>
+                <p class="theory-subcard-desc">The dashed golden curve traces the exact <code>(V<sub>SD,sat</sub>, I<sub>SD,sat</sub>)</code> boundary—shifting leftward in short-channel nodes (<code>28 nm</code>) and broadening parabolically in long channels (<code>180 nm</code>).</p>
               </div>
               <div class="theory-subcard">
-                <span class="theory-subcard-title">Finite Output Conductance (λ)</span>
-                <p class="theory-subcard-desc">In saturation, curves slope upward due to channel-length modulation parameter <code>λ = 0.08 V⁻¹</code>, reflecting the shortening of <code>L<sub>eff</sub> = L - ΔL</code> under higher <code>V<sub>SD</sub></code>.</p>
+                <span class="theory-subcard-title">Lock Y-Axis Scaling Comparison</span>
+                <p class="theory-subcard-desc">Use <b>Lock Y-Axis</b> in the graph header to freeze the current scale while varying <code>L</code>, <code>W</code>, and <code>t<sub>ox</sub></code> or switching between <code>28nm Short-Ch</code>, <code>180nm Long-Ch</code>, and <code>High-Drive</code>.</p>
               </div>
             </div>
-            <p class="theory-p">
-              <b>Live Telemetry Sync:</b> Operating readouts for <code>V<sub>GS</sub></code> (or <code>V<sub>SG</sub></code>), <code>V<sub>SD</sub></code>, <code>V<sub>TH,p</sub> = -0.80V</code>, <code>V<sub>OV</sub> = V<sub>SG</sub> - |V<sub>TH,p</sub>|</code>, and <code>I<sub>SD</sub></code> accurately reflect the real-time bias point. Clicking or dragging the canvas cursor repositions the operating bias and animates 3D hole carriers proportionally.
-            </p>
           </article>
 
           <!-- Section 6: Second-Order Effects & Body Bias -->
           <article id="pmos-secondorder" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">6. Second-Order Effects, Body Bias &amp; Latchup Prevention</h3>
-              <span class="theory-card-tag">Body Effect, Substrate Sensitivity, Latchup</span>
+              <h3 class="theory-card-title">6. Short-Channel Effects, Body Bias &amp; Latchup Prevention</h3>
+              <span class="theory-card-tag">|VTH| Roll-off, DIBL, Body Effect, Latchup</span>
             </div>
             <div class="theory-grid-2">
               <div class="theory-subcard">
-                <span class="theory-subcard-title">PMOS Body Effect</span>
-                <p class="theory-subcard-desc">If the N-well body is biased higher than the Source (<code>V<sub>BS</sub> = V<sub>Well</sub> - V<sub>S</sub> &gt; 0</code>), the threshold magnitude increases:</p>
-                <div style="font-family:'IBM Plex Mono',monospace; font-size:10.5px; margin-top:4px; color:var(--v-accent-cyan);">
-                  |V<sub>TH,p</sub>| = |V<sub>TH0,p</sub>| + γ<sub>p</sub> · [√(2φ<sub>Fn</sub> + V<sub>BS</sub>) - √(2φ<sub>Fn</sub>)]
-                </div>
+                <span class="theory-subcard-title">|V<sub>TH,p</sub>| Roll-off &amp; DIBL</span>
+                <p class="theory-subcard-desc">Below <code>50 nm</code>, P+ source/drain charge sharing (<code>exp(-L / L<sub>c</sub>)</code>) and drain field penetration (<code>η(L)·V<sub>SD</sub></code>) reduce <code>|V<sub>TH,p</sub>|</code> dynamically, while <code>λ ∝ 1/L</code> increases saturation slope.</p>
               </div>
               <div class="theory-subcard">
-                <span class="theory-subcard-title">CMOS Latchup Prevention</span>
-                <p class="theory-subcard-desc">Parasitic bipolar transistors (vertical PNP and lateral NPN) form a silicon-controlled rectifier (SCR). Frequent N+ well taps to VDD and P+ substrate taps to GND clamp substrate resistance, suppressing latchup.</p>
+                <span class="theory-subcard-title">PMOS Body Effect &amp; Latchup Prevention</span>
+                <p class="theory-subcard-desc">N-well taps tied cleanly to V<sub>DD</sub> suppress latchup SCR paths and stabilize <code>|V<sub>TH,p</sub>|</code> against reverse well-to-source bias <code>V<sub>BS</sub></code>.</p>
               </div>
             </div>
           </article>
@@ -684,7 +769,7 @@
         <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
           <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
           <div class="scale-note-popover-body">
-            Vertical dimensions are exaggerated for visualization; this is a conceptual PMOS layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are not design-rule compliant — topology and functional relationships are physically meaningful.
+            Vertical dimensions and geometry scaling (L: 20–200 nm, W: 40–400 nm, t<sub>ox</sub>: 1.2–10.0 nm) use a visually legible non-linear mapping rather than 1:1 physical proportions. This is an interactive conceptual PMOS sandbox, not a design-rule-checked PDK layout; topology, scaling trends, and short-channel physics are physically meaningful.
           </div>
         </div>
       </div>
@@ -788,7 +873,16 @@
         <div class="iv-modal-title" id="iv-modal-title">
           <span>I<sub>SD</sub> – V<sub>SD</sub> Output Characteristics (P-Channel MOSFET)</span>
         </div>
-        <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">&times;</button>
+        <div class="iv-modal-actions">
+          <button type="button" class="iv-lock-btn" id="iv-modal-lock-y-btn" title="Lock Y-axis scale to compare curve scaling across geometry changes" aria-pressed="false">
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span>Lock Y-Axis</span>
+          </button>
+          <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">&times;</button>
+        </div>
       </div>
       <div class="iv-modal-body">
         <div class="iv-modal-canvas-wrap">
@@ -799,7 +893,10 @@
           <div class="iv-modal-readouts">
             <span class="iv-m-item">V<sub>SG</sub> = <b id="iv-m-vsg">1.00 V</b></span>
             <span class="iv-m-item">V<sub>SD</sub> = <b id="iv-m-vsd">0.80 V</b></span>
-            <span class="iv-m-item">I<sub>SD</sub> = <b id="iv-m-isd">0.14 mA</b></span>
+            <span class="iv-m-item">V<sub>TH,p</sub> = <b id="iv-m-vth">-0.33 V</b></span>
+            <span class="iv-m-item">W/L = <b id="iv-m-wl">4.29</b></span>
+            <span class="iv-m-item">I<sub>SD</sub> = <b id="iv-m-isd">0.041 mA</b></span>
+            <span class="iv-m-item">L<sub>eff</sub> = <b id="iv-m-leff">23.5 nm</b></span>
             <span class="iv-m-item">REGION: <b id="iv-m-region">SATURATION</b></span>
           </div>
         </div>
@@ -896,6 +993,7 @@
 <script src="js/dimensions.js"></script>
 <script src="js/view-mode.js"></script>
 <script src="js/flow.js"></script>
+<script src="../../../../shared/js/param-info-modal.js"></script>
 <script src="js/logic-state.js"></script>
 <script src="js/build-anim.js"></script>
 <script src="js/render-loop.js"></script>

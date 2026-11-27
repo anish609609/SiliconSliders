@@ -774,6 +774,10 @@ function updateMaterialsTheme() {
     window.updateNandChannelThemes(isLightTheme ? 'light' : 'dark');
   }
 
+  if (typeof window.updateBulkCarriersTheme === 'function') {
+    window.updateBulkCarriersTheme(isLightTheme ? 'light' : 'dark');
+  }
+
   if (typeof renderer !== 'undefined' && renderer && typeof scene !== 'undefined' && scene && typeof activeCamera !== 'undefined' && activeCamera) {
     renderer.render(scene, activeCamera);
   }
@@ -949,21 +953,23 @@ function buildNand2Cell() {
   };
 
   var sdeSpecs = [
-    { id: 'pmosASrcSde', x: -3.925, z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
-    { id: 'pmosADrnSde', x: -2.075, z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
-    { id: 'pmosBDrnSde', x: 2.075,  z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
-    { id: 'pmosBSrcSde', x: 3.925,  z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
-    { id: 'nmosASrcSde', x: -3.925, z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts },
-    { id: 'nmosADrnSde', x: -2.075, z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts },
-    { id: 'nmosBSrcSde', x: 2.075,  z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts },
-    { id: 'nmosBDrnSde', x: 3.925,  z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts }
+    { id: 'pmosASrcSde', isPmos: true,  gate: 'A', side: -1, x: -3.925, z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
+    { id: 'pmosADrnSde', isPmos: true,  gate: 'A', side:  1, x: -2.075, z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
+    { id: 'pmosBDrnSde', isPmos: true,  gate: 'B', side: -1, x: 2.075,  z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
+    { id: 'pmosBSrcSde', isPmos: true,  gate: 'B', side:  1, x: 3.925,  z: PMOS_ZC, colorVar: '--c-sde-p', opts: pSdeOpts },
+    { id: 'nmosASrcSde', isPmos: false, gate: 'A', side: -1, x: -3.925, z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts },
+    { id: 'nmosADrnSde', isPmos: false, gate: 'A', side:  1, x: -2.075, z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts },
+    { id: 'nmosBSrcSde', isPmos: false, gate: 'B', side: -1, x: 2.075,  z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts },
+    { id: 'nmosBDrnSde', isPmos: false, gate: 'B', side:  1, x: 3.925,  z: NMOS_ZC, colorVar: '--c-sde-n', opts: nSdeOpts }
   ];
 
+  var sdeRefs = [];
   for (var si = 0; si < sdeSpecs.length; si++) {
     var sp = sdeSpecs[si];
     var sdeMesh = gaussianDopingMesh(sdeW, sdeH, ACTIVE_W - 0.1, sp.colorVar, sp.opts);
     sdeMesh.position.set(sp.x, sdeMidY, sp.z);
     registerMesh(sdeMesh, sp.id, 'sde', { explodeLayer: 'active' });
+    sdeRefs.push({ mesh: sdeMesh, spec: sp });
   }
 
   /* Dynamic Sculpted Wrap-Around Space-Charge Depletion Regions (6 S/D+bridge shells + 4 curved sub-gate cradles) */
@@ -1090,7 +1096,7 @@ function buildNand2Cell() {
     return geo;
   }
 
-  function makeNandShellMesh(cx, zc, perim, kind) {
+  function makeNandShellMesh(cx, zc, perim, kind, isPmos) {
     var geo = createNandWellShellGeometry(perim);
     var m = new THREE.Mesh(geo, nandDeplMat.clone());
     m.position.set(cx, Y.actTop, zc);
@@ -1106,15 +1112,17 @@ function buildNand2Cell() {
     m.add(edgeLoop);
 
     registerMesh(m, 'depletion', 'depletion');
-    return { mesh: m, geo: geo, edgeGeo: edgeGeo, perim: perim, kind: kind };
+    return { mesh: m, geo: geo, edgeGeo: edgeGeo, perim: perim, kind: kind, isPmos: Boolean(isPmos) };
   }
 
   function evalNandChanThickness(worldX, ch) {
-    if (!ch || !ch.hasChannel || Math.abs(worldX - ch.gateX) > 1.001) return 0;
+    var hL = nandGeom3D.halfL;
+    var fullL = Math.max(0.002, hL * 2.0);
+    if (!ch || !ch.hasChannel || Math.abs(worldX - ch.gateX) > (hL + 0.001)) return 0;
     var localX = worldX - ch.gateX;
-    var s = (ch.drainDir === 1) ? ((localX + 1.0) / 2.0) : ((1.0 - localX) / 2.0);
+    var s = (ch.drainDir === 1) ? ((localX + hL) / fullL) : ((hL - localX) / fullL);
     if (ch.isSat) {
-      var pinchFrac = Math.max(0.001, (2.0 - ch.dL) / 2.0);
+      var pinchFrac = Math.max(0.001, (fullL - ch.dL) / fullL);
       if (s >= pinchFrac) return 0;
       var sSat = Math.max(0, Math.min(1, s / pinchFrac));
       return ch.maxH * Math.max(0, 1.0 - sSat);
@@ -1127,6 +1135,10 @@ function buildNand2Cell() {
     var edgeGeo = entry.edgeGeo;
     var perim = entry.perim;
     var kind = entry.kind; // 'left' | 'mid' | 'right'
+    var hL = nandGeom3D.halfL;
+    var outerLeftGate = nandGeom3D.gateAX - hL;
+    var outerRightGate = nandGeom3D.gateBX + hL;
+    var rowHalfD = (entry.isPmos ? nandGeom3D.wp3d : nandGeom3D.wn3d) * 0.5;
     var posAttr = geo.attributes.position;
     var pos = posAttr.array;
     var edgeAttr = edgeGeo.attributes.position;
@@ -1172,9 +1184,9 @@ function buildNand2Cell() {
 
         var tWell;
         if (kind === 'left') {
-          tWell = nandDeplSmoothstep(-3.82, -4.08, worldX);
+          tWell = nandDeplSmoothstep(outerLeftGate + 0.18, outerLeftGate - 0.08, worldX);
         } else if (kind === 'right') {
-          tWell = nandDeplSmoothstep(3.82, 4.08, worldX);
+          tWell = nandDeplSmoothstep(outerRightGate - 0.18, outerRightGate + 0.08, worldX);
         } else {
           tWell = 1.0 - nandDeplSmoothstep(1.85, 2.12, Math.abs(worldX));
         }
@@ -1184,7 +1196,7 @@ function buildNand2Cell() {
         var localW = wDep;
         if (revBulb > 0.001) {
           if (kind === 'right') {
-            var rBulb = 0.72 + 0.28 * nandDeplSmoothstep(3.80, 5.50, worldX);
+            var rBulb = 0.72 + 0.28 * nandDeplSmoothstep(outerRightGate - 0.20, outerRightGate + 1.50, worldX);
             localW = wDep + revBulb * rBulb;
           } else if (kind === 'mid') {
             var mBulb = 0.75 + 0.25 * (1.0 - nandDeplSmoothstep(1.40, 2.35, Math.abs(worldX)));
@@ -1196,7 +1208,7 @@ function buildNand2Cell() {
         var outZ = inZ + pt.nzh * localW * outHWeight;
         var outY = Math.max(minLocalY, inY - localW * outVWeight);
 
-        if (Math.abs(inZ) <= (ACTIVE_W * 0.5 + 0.02)) {
+        if (Math.abs(inZ) <= (rowHalfD + 0.02)) {
           var cTIn = Math.max(evalNandChanThickness(worldX, chA), evalNandChanThickness(worldX, chB));
           if (cTIn > 0.002) inY = Math.min(inY, -0.05 - cTIn * 0.5 - 0.004);
           var worldOutX = pt.cx + outX;
@@ -1228,17 +1240,28 @@ function buildNand2Cell() {
     edgeAttr.needsUpdate = true;
   }
 
+  var nandGeom3D = {
+    Wp_nm: 240, Wn_nm: 240, L_nm: 28,
+    halfL: 1.0, wp3d: ACTIVE_W, wn3d: ACTIVE_W,
+    pmosZC: PMOS_ZC, nmosZC: NMOS_ZC,
+    gateAX: GATE_A_X, gateBX: GATE_B_X,
+    leftX: LEFT_X, midX: MID_X, rightX: RIGHT_X, tapX: TAP_X,
+    railZp: RAIL_Z, railZn: -RAIL_Z,
+    subHalfW: 12.0, subHalfD: 12.5
+  };
+  window.getNandGeom3DState = function() { return nandGeom3D; };
+
   // Left [-7.0, -3.65] -> cx=-5.325, hx=1.675 ; Mid [-2.35, +2.35] -> cx=0, hx=2.35 ; Right [+3.65, +7.0] -> cx=+5.325, hx=1.675
   var nandLeftPerim  = buildNandWellShellPerimeter(-5.325, 1.675, ACTIVE_W * 0.5, 0.35);
   var nandMidPerim   = buildNandWellShellPerimeter( 0.000, 2.350, ACTIVE_W * 0.5, 0.35);
   var nandRightPerim = buildNandWellShellPerimeter( 5.325, 1.675, ACTIVE_W * 0.5, 0.35);
 
-  var mp1SrcDeplEntry  = makeNandShellMesh(-5.325, PMOS_ZC, nandLeftPerim,  'left');
-  var pmosDrnDeplEntry = makeNandShellMesh( 0.000, PMOS_ZC, nandMidPerim,   'mid');
-  var mp2SrcDeplEntry  = makeNandShellMesh( 5.325, PMOS_ZC, nandRightPerim, 'right');
-  var mn1SrcDeplEntry  = makeNandShellMesh(-5.325, NMOS_ZC, nandLeftPerim,  'left');
-  var nmosMidDeplEntry = makeNandShellMesh( 0.000, NMOS_ZC, nandMidPerim,   'mid');
-  var mn2DrnDeplEntry  = makeNandShellMesh( 5.325, NMOS_ZC, nandRightPerim, 'right');
+  var mp1SrcDeplEntry  = makeNandShellMesh(-5.325, PMOS_ZC, nandLeftPerim,  'left', true);
+  var pmosDrnDeplEntry = makeNandShellMesh( 0.000, PMOS_ZC, nandMidPerim,   'mid', true);
+  var mp2SrcDeplEntry  = makeNandShellMesh( 5.325, PMOS_ZC, nandRightPerim, 'right', true);
+  var mn1SrcDeplEntry  = makeNandShellMesh(-5.325, NMOS_ZC, nandLeftPerim,  'left', false);
+  var nmosMidDeplEntry = makeNandShellMesh( 0.000, NMOS_ZC, nandMidPerim,   'mid', false);
+  var mn2DrnDeplEntry  = makeNandShellMesh( 5.325, NMOS_ZC, nandRightPerim, 'right', false);
 
   var mp1SrcDepl  = mp1SrcDeplEntry.mesh;
   var pmosDrnDepl = pmosDrnDeplEntry.mesh;
@@ -1281,9 +1304,10 @@ function buildNand2Cell() {
       return;
     }
     mesh.visible = true;
+    var hL = nandGeom3D.halfL;
     var subFrac = Math.min(1.0, Math.max(0, gateDrive / 0.40));
-    var xLeftLocal = -0.65 + wLeftEdge * 0.85;
-    var xRightLocal = Math.max(xLeftLocal + 0.12, 0.65 - wRightEdge * 0.85);
+    var xLeftLocal = -hL * 0.65 + wLeftEdge * 0.85;
+    var xRightLocal = Math.max(xLeftLocal + 0.12, hL * 0.65 - wRightEdge * 0.85);
     var gGeo = mesh.geometry;
     var pos = gGeo.attributes.position;
     var initX = gGeo.userData.initialX;
@@ -1306,13 +1330,22 @@ function buildNand2Cell() {
     gGeo.computeVertexNormals();
   }
 
+  var _lastNandSt = { a: 'off', b: 'off', frozen: true, vout: 0.50, vthN: 0.30, vthP: 0.30, regions: {} };
+
   window.updateNandDepletion = function(st) {
+    _lastNandSt = st || _lastNandSt;
+    var hL = nandGeom3D.halfL;
+    var fullL = hL * 2.0;
+    var gAX = nandGeom3D.gateAX;
+    var gBX = nandGeom3D.gateBX;
     var frozen = !st || st.frozen || st.a === 'off' || st.b === 'off';
     var va = frozen ? 0.50 : Number(st.a);
     var vb = frozen ? 0.50 : Number(st.b);
     var vout = frozen ? 0.50 : Number(st.vout);
+    var vthN = (st && typeof st.vthN === 'number') ? st.vthN : 0.30;
+    var vthP = (st && typeof st.vthP === 'number') ? st.vthP : 0.30;
     var regs = (st && st.regions) ? st.regions : {};
-    var vx = (typeof regs.vx === 'number') ? regs.vx : (frozen ? 0.0 : (va <= 0.40 ? 0 : 0.5 * vout));
+    var vx = (typeof regs.vx === 'number') ? regs.vx : (frozen ? 0.0 : (va <= vthN ? 0 : 0.5 * vout));
     var maxH = 0.12;
 
     var makeChSpec = function(gateX, vov, vd, regName, drainDir) {
@@ -1323,16 +1356,16 @@ function buildNand2Cell() {
         hasChannel: hasChan,
         maxH: maxH,
         isSat: isSat,
-        dL: isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vd - vov))) : 0.0,
+        dL: isSat ? fullL * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vd - vov))) : 0.0,
         ratio: (vov > 0.0001) ? Math.min(1.0, Math.max(0, vd / vov)) : 1.0,
         drainDir: drainDir
       };
     };
 
-    var chMP1 = makeChSpec(GATE_A_X, Math.max(0, (1.00 - va) - 0.40), Math.max(0, 1.00 - vout), regs.mp1, 1);
-    var chMP2 = makeChSpec(GATE_B_X, Math.max(0, (1.00 - vb) - 0.40), Math.max(0, 1.00 - vout), regs.mp2, -1);
-    var chMN1 = makeChSpec(GATE_A_X, Math.max(0, va - 0.40), Math.max(0, vx), regs.mn1, 1);
-    var chMN2 = makeChSpec(GATE_B_X, Math.max(0, (vb - vx) - 0.40), Math.max(0, vout - vx), regs.mn2, 1);
+    var chMP1 = makeChSpec(gAX, Math.max(0, (1.00 - va) - vthP), Math.max(0, 1.00 - vout), regs.mp1, 1);
+    var chMP2 = makeChSpec(gBX, Math.max(0, (1.00 - vb) - vthP), Math.max(0, 1.00 - vout), regs.mp2, -1);
+    var chMN1 = makeChSpec(gAX, Math.max(0, va - vthN), Math.max(0, vx), regs.mn1, 1);
+    var chMN2 = makeChSpec(gBX, Math.max(0, (vb - vx) - vthN), Math.max(0, vout - vx), regs.mn2, 1);
 
     var wBase = 0.14;
     var pmosDrnBulb = frozen ? 0.0 : 0.16 * Math.sqrt(Math.max(0, 1.00 - vout));
@@ -1347,10 +1380,10 @@ function buildNand2Cell() {
     updateNandWellShell(nmosMidDeplEntry, wBase, nmosMidBulb, chMN1, chMN2);
     updateNandWellShell(mn2DrnDeplEntry,  wBase, nmosDrnBulb, chMN2, null);
 
-    updateNandGateCradle(mp1GateDepl, GATE_A_X, frozen ? 0 : Math.max(0, 1.00 - va), Math.sqrt(Math.max(0, 1.00 - vout)), 1, wBase, wBase + pmosDrnBulb * 0.75, chMP1);
-    updateNandGateCradle(mp2GateDepl, GATE_B_X, frozen ? 0 : Math.max(0, 1.00 - vb), Math.sqrt(Math.max(0, 1.00 - vout)), -1, wBase + pmosDrnBulb * 0.75, wBase, chMP2);
-    updateNandGateCradle(mn1GateDepl, GATE_A_X, frozen ? 0 : Math.max(0, va), Math.sqrt(Math.max(0, vx)), 1, wBase, wBase + nmosMidBulb * 0.75, chMN1);
-    updateNandGateCradle(mn2GateDepl, GATE_B_X, frozen ? 0 : Math.max(0, vb - vx), Math.sqrt(Math.max(0, vout - vx)), 1, wBase + nmosMidBulb * 0.75, wBase + nmosDrnBulb * 0.75, chMN2);
+    updateNandGateCradle(mp1GateDepl, gAX, frozen ? 0 : Math.max(0, 1.00 - va), Math.sqrt(Math.max(0, 1.00 - vout)), 1, wBase, wBase + pmosDrnBulb * 0.75, chMP1);
+    updateNandGateCradle(mp2GateDepl, gBX, frozen ? 0 : Math.max(0, 1.00 - vb), Math.sqrt(Math.max(0, 1.00 - vout)), -1, wBase + pmosDrnBulb * 0.75, wBase, chMP2);
+    updateNandGateCradle(mn1GateDepl, gAX, frozen ? 0 : Math.max(0, va), Math.sqrt(Math.max(0, vx)), 1, wBase, wBase + nmosMidBulb * 0.75, chMN1);
+    updateNandGateCradle(mn2GateDepl, gBX, frozen ? 0 : Math.max(0, vb - vx), Math.sqrt(Math.max(0, vout - vx)), 1, wBase + nmosMidBulb * 0.75, wBase + nmosDrnBulb * 0.75, chMN2);
   };
 
   // Initial equilibrium sculpted shells
@@ -1428,7 +1461,7 @@ function buildNand2Cell() {
     nandPinchMeshes[ch.id] = pMesh;
   }
 
-  function updateNandChannelPhysics(chMesh, pinchMesh, gateX, vov, vd, isSat, drainDir) {
+  function updateNandChannelPhysics(chMesh, pinchMesh, gateX, vov, vd, isSat, drainDir, zcRow, wScaleZ) {
     if (!chMesh || !pinchMesh) return;
     if (vov <= 0.001) {
       chMesh.visible = false;
@@ -1436,7 +1469,18 @@ function buildNand2Cell() {
       return;
     }
 
+    var hL = nandGeom3D.halfL;
+    var fullL = hL * 2.0;
+
     chMesh.visible = true;
+    chMesh.scale.set(1, 1, wScaleZ);
+    chMesh.position.x = gateX;
+    chMesh.position.z = zcRow;
+    if (chMesh.userData && chMesh.userData.restPos) {
+      chMesh.userData.restPos.x = gateX;
+      chMesh.userData.restPos.z = zcRow;
+    }
+
     var pos = chMesh.geometry.attributes.position;
     if (!chMesh.geometry.userData.initialX) {
       var initX = new Float32Array(pos.count);
@@ -1447,7 +1491,7 @@ function buildNand2Cell() {
 
     var maxH = 0.12;
     var vDiff = Math.max(0, vd - vov);
-    var dL = isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vDiff)) : 0.0;
+    var dL = isSat ? fullL * Math.min(0.40, 0.22 * Math.sqrt(vDiff)) : 0.0;
     var ratio = (vov > 0.0001) ? Math.min(1.0, Math.max(0, vd / vov)) : 1.0;
 
     for (var i = 0; i < pos.count; i++) {
@@ -1456,10 +1500,10 @@ function buildNand2Cell() {
       var mappedX, thickness;
 
       if (!isSat) {
-        mappedX = origX;
+        mappedX = origX * hL;
         thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
       } else {
-        mappedX = (drainDir === 1) ? (-1.0 + s * (2.0 - dL)) : (1.0 - s * (2.0 - dL));
+        mappedX = (drainDir === 1) ? (-hL + s * (fullL - dL)) : (hL - s * (fullL - dL));
         thickness = maxH * Math.max(0.002, 1.0 - s);
       }
 
@@ -1472,9 +1516,14 @@ function buildNand2Cell() {
 
     if (isSat && dL > 0.0005) {
       pinchMesh.visible = true;
-      pinchMesh.scale.x = dL;
-      pinchMesh.position.x = gateX + (drainDir === 1 ? (1.0 - dL / 2) : -(1.0 - dL / 2));
-      pinchMesh.position.y = Y.actTop - 0.05;
+      pinchMesh.scale.set(dL, 1, wScaleZ);
+      var pxPos = gateX + (drainDir === 1 ? (hL - dL / 2) : -(hL - dL / 2));
+      pinchMesh.position.x = pxPos;
+      pinchMesh.position.z = zcRow;
+      if (pinchMesh.userData && pinchMesh.userData.restPos) {
+        pinchMesh.userData.restPos.x = pxPos;
+        pinchMesh.userData.restPos.z = zcRow;
+      }
     } else {
       pinchMesh.visible = false;
     }
@@ -1497,30 +1546,32 @@ function buildNand2Cell() {
     var va = Number(st.a);
     var vb = Number(st.b);
     var vout = Number(st.vout);
-    var vx = (typeof regs.vx === 'number') ? regs.vx : (va <= 0.40 ? 0 : 0.5 * vout);
+    var vthN = (typeof st.vthN === 'number') ? st.vthN : 0.30;
+    var vthP = (typeof st.vthP === 'number') ? st.vthP : 0.30;
+    var vx = (typeof regs.vx === 'number') ? regs.vx : (va <= vthN ? 0 : 0.5 * vout);
+    var gAX = nandGeom3D.gateAX, gBX = nandGeom3D.gateBX;
+    var zcP = nandGeom3D.pmosZC, zcN = nandGeom3D.nmosZC;
+    var wpScale = nandGeom3D.wp3d / ACTIVE_W;
+    var wnScale = nandGeom3D.wn3d / ACTIVE_W;
 
-    // MP1 (PMOS A): S = VDD, G = VA, D = VOUT (Drain toward right, drainDir = 1)
-    var vovP1 = Math.max(0, (1.00 - va) - 0.40);
+    var vovP1 = Math.max(0, (1.00 - va) - vthP);
     var vsdP1 = 1.00 - vout;
     var isSatP1 = (regs.mp1 === 'SATURATION') && (vsdP1 >= vovP1);
-    updateNandChannelPhysics(nandChannelMeshes['chMP1'], nandPinchMeshes['chMP1'], GATE_A_X, vovP1, vsdP1, isSatP1, 1);
+    updateNandChannelPhysics(nandChannelMeshes['chMP1'], nandPinchMeshes['chMP1'], gAX, vovP1, vsdP1, isSatP1, 1, zcP, wpScale);
 
-    // MP2 (PMOS B): S = VDD, G = VB, D = VOUT (Drain toward left, drainDir = -1)
-    var vovP2 = Math.max(0, (1.00 - vb) - 0.40);
+    var vovP2 = Math.max(0, (1.00 - vb) - vthP);
     var vsdP2 = 1.00 - vout;
     var isSatP2 = (regs.mp2 === 'SATURATION') && (vsdP2 >= vovP2);
-    updateNandChannelPhysics(nandChannelMeshes['chMP2'], nandPinchMeshes['chMP2'], GATE_B_X, vovP2, vsdP2, isSatP2, -1);
+    updateNandChannelPhysics(nandChannelMeshes['chMP2'], nandPinchMeshes['chMP2'], gBX, vovP2, vsdP2, isSatP2, -1, zcP, wpScale);
 
-    // MN1 (NMOS A): S = GND, G = VA, D = Vx (Drain toward right, drainDir = 1)
-    var vovN1 = Math.max(0, va - 0.40);
+    var vovN1 = Math.max(0, va - vthN);
     var isSatN1 = (regs.mn1 === 'SATURATION') && (vx >= vovN1);
-    updateNandChannelPhysics(nandChannelMeshes['chMN1'], nandPinchMeshes['chMN1'], GATE_A_X, vovN1, vx, isSatN1, 1);
+    updateNandChannelPhysics(nandChannelMeshes['chMN1'], nandPinchMeshes['chMN1'], gAX, vovN1, vx, isSatN1, 1, zcN, wnScale);
 
-    // MN2 (NMOS B): S = Vx, G = VB, D = VOUT (Drain toward right, drainDir = 1)
-    var vovN2 = Math.max(0, (vb - vx) - 0.40);
+    var vovN2 = Math.max(0, (vb - vx) - vthN);
     var vdsN2 = Math.max(0, vout - vx);
     var isSatN2 = (regs.mn2 === 'SATURATION') && (vdsN2 >= vovN2);
-    updateNandChannelPhysics(nandChannelMeshes['chMN2'], nandPinchMeshes['chMN2'], GATE_B_X, vovN2, vdsN2, isSatN2, 1);
+    updateNandChannelPhysics(nandChannelMeshes['chMN2'], nandPinchMeshes['chMN2'], gBX, vovN2, vdsN2, isSatN2, 1, zcN, wnScale);
   };
 
   window.updateNandChannelThemes = function(theme) {
@@ -1553,12 +1604,13 @@ function buildNand2Cell() {
   var hkMidY = (Y.highkBot + Y.highkTop) / 2;
 
   var gateSiteSpecs = [
-    { oxId: 'pmosAOxide', hkId: 'pmosAHighk', x: GATE_A_X, z: PMOS_ZC },
-    { oxId: 'pmosBOxide', hkId: 'pmosBHighk', x: GATE_B_X, z: PMOS_ZC },
-    { oxId: 'nmosAOxide', hkId: 'nmosAHighk', x: GATE_A_X, z: NMOS_ZC },
-    { oxId: 'nmosBOxide', hkId: 'nmosBHighk', x: GATE_B_X, z: NMOS_ZC }
+    { oxId: 'pmosAOxide', hkId: 'pmosAHighk', gate: 'A', isPmos: true,  x: GATE_A_X, z: PMOS_ZC },
+    { oxId: 'pmosBOxide', hkId: 'pmosBHighk', gate: 'B', isPmos: true,  x: GATE_B_X, z: PMOS_ZC },
+    { oxId: 'nmosAOxide', hkId: 'nmosAHighk', gate: 'A', isPmos: false, x: GATE_A_X, z: NMOS_ZC },
+    { oxId: 'nmosBOxide', hkId: 'nmosBHighk', gate: 'B', isPmos: false, x: GATE_B_X, z: NMOS_ZC }
   ];
 
+  var gateSiteRefs = [];
   for (var gi = 0; gi < gateSiteSpecs.length; gi++) {
     var gs = gateSiteSpecs[gi];
     var oxMesh = new THREE.Mesh(
@@ -1602,6 +1654,8 @@ function buildNand2Cell() {
     hkMesh.receiveShadow = true;
     hkMesh.userData.colorVar = '--c-highk';
     registerMesh(hkMesh, gs.hkId, 'highk');
+
+    gateSiteRefs.push({ oxMesh: oxMesh, hkMesh: hkMesh, spec: gs });
   }
 
   /* 6. Dual Continuous Vertical Polysilicon Gates (A & B) (Sharp BoxGeometry, no outline) */
@@ -1613,6 +1667,7 @@ function buildNand2Cell() {
     { id: 'polyA', x: GATE_A_X },
     { id: 'polyB', x: GATE_B_X }
   ];
+  var polyRefs = {};
   for (var pi = 0; pi < polySpecs.length; pi++) {
     var ps = polySpecs[pi];
     var polyGeo = new THREE.BoxGeometry(2.0, polyH, polyD);
@@ -1634,11 +1689,12 @@ function buildNand2Cell() {
     polyMesh.receiveShadow = true;
     polyMesh.userData.colorVar = '--c-poly';
     registerMesh(polyMesh, ps.id, 'poly');
+    polyRefs[ps.id] = polyMesh;
   }
 
-  /* 6b. Gate Sidewall Spacers (Si3N4) - 8 spacers flush with SDE/LDD outer edges (±4.20, ±1.80) */
-  var nandSpacerGap = 0.004;
-  var nandSpacerW = 0.20 - nandSpacerGap; // 0.196 (from gate ±1.004 out to SDE outer edge ±1.20)
+  /* 6b. Gate Sidewall Spacers (Si3N4) - 8 spacers flush to scaled gate faces (±(halfL + w/2 + 0.002)) */
+  var nandSpacerGap = 0.002;
+  var nandSpacerW = 0.20;
   var nandSpacerBot = Y.oxideBot + 0.002;
   var nandSpacerH = Y.polyTop - nandSpacerBot;
   var nandSpacerMidY = (Y.polyTop + nandSpacerBot) / 2;
@@ -1664,19 +1720,23 @@ function buildNand2Cell() {
     depthWrite: false
   });
   var spacerOffset = 1.0 + nandSpacerGap + nandSpacerW / 2; // 1.102 from gate center
-  var spacerXs = [
-    GATE_A_X - spacerOffset, GATE_A_X + spacerOffset,
-    GATE_B_X - spacerOffset, GATE_B_X + spacerOffset
+  var spacerConfigs = [
+    { gate: 'A', side: -1, x: GATE_A_X - spacerOffset },
+    { gate: 'A', side:  1, x: GATE_A_X + spacerOffset },
+    { gate: 'B', side: -1, x: GATE_B_X - spacerOffset },
+    { gate: 'B', side:  1, x: GATE_B_X + spacerOffset }
   ];
-  [PMOS_ZC, NMOS_ZC].forEach(function(zcRow) {
-    spacerXs.forEach(function(sx) {
+  var spacerRefs = [];
+  [PMOS_ZC, NMOS_ZC].forEach(function(zcRow, rIdx) {
+    spacerConfigs.forEach(function(cfg) {
       var sp = new THREE.Mesh(nandSpacerGeo, nandSpacerMat);
-      sp.position.set(sx, nandSpacerMidY, zcRow);
+      sp.position.set(cfg.x, nandSpacerMidY, zcRow);
       sp.renderOrder = 6;
       var el = new THREE.LineSegments(nandSpacerEdges, nandSpacerEdgeMat);
       el.raycast = function() {};
       sp.add(el);
       registerMesh(sp, 'spacer', 'spacer');
+      spacerRefs.push({ mesh: sp, isPmos: rIdx === 0, gate: cfg.gate, side: cfg.side });
     });
   });
 
@@ -1739,27 +1799,31 @@ function buildNand2Cell() {
     return registerMesh(m, 'silicide', 'silicide');
   }
 
-  var outerSilW = 6.96 - 4.206; // 2.754 (LEFT_X [-7..-4] & RIGHT_X [4..7] outside ±4.20 spacers)
+  var outerSilW = 6.96 - 4.206; // 2.754
   var outerSilCX = (6.96 + 4.206) / 2; // 5.583
-  var midSilW = 1.794 * 2; // 3.588 (MID_X [-2..2] strictly between -1.80 & +1.80 spacers)
+  var midSilW = 1.792 * 2; // 3.584 (strictly between mid spacers ±1.798)
 
-  [PMOS_ZC, NMOS_ZC].forEach(function(zcRow) {
-    addNandSilicide(createNandSalicideGeo(outerSilW, silHNand, ACTIVE_W, -1), -outerSilCX, zcRow);
-    addNandSilicide(createNandSalicideGeo(midSilW, silHNand, ACTIVE_W, 0), MID_X, zcRow);
-    addNandSilicide(createNandSalicideGeo(outerSilW, silHNand, ACTIVE_W, 1), outerSilCX, zcRow);
-    addNandSilicide(createFilletedTraceGeometry(1.12, silHNand, 1.12, 0.20, 0.006), TAP_X, zcRow);
+  var silRefs = {};
+  [PMOS_ZC, NMOS_ZC].forEach(function(zcRow, rIdx) {
+    var kRow = rIdx === 0 ? 'pmos' : 'nmos';
+    silRefs[kRow + 'Left']  = addNandSilicide(createNandSalicideGeo(outerSilW, silHNand, ACTIVE_W, -1), -outerSilCX, zcRow);
+    silRefs[kRow + 'Mid']   = addNandSilicide(createNandSalicideGeo(midSilW, silHNand, ACTIVE_W, 0), MID_X, zcRow);
+    silRefs[kRow + 'Right'] = addNandSilicide(createNandSalicideGeo(outerSilW, silHNand, ACTIVE_W, 1), outerSilCX, zcRow);
+    silRefs[kRow + 'Tap']   = addNandSilicide(createFilletedTraceGeometry(1.12, silHNand, 1.12, 0.20, 0.006), TAP_X, zcRow);
   });
 
   /* 7. 9 Tapered Tungsten Contacts (land flush atop NiSi pads) */
-  contactAt('welltapCt', TAP_X, PMOS_ZC, Y.silTop);
-  contactAt('pmosASrcCt', LEFT_X, PMOS_ZC, Y.silTop);
-  contactAt('pmosSharedDrnCt', MID_X, PMOS_ZC, Y.silTop);
-  contactAt('pmosBSrcCt', RIGHT_X, PMOS_ZC, Y.silTop);
-  contactAt('subtapCt', TAP_X, NMOS_ZC, Y.silTop);
-  contactAt('nmosASrcCt', LEFT_X, NMOS_ZC, Y.silTop);
-  contactAt('nmosBDrnCt', RIGHT_X, NMOS_ZC, Y.silTop);
-  contactAt('polyACt', GATE_A_X, 0.8, Y.polyTop);
-  contactAt('polyBCt', GATE_B_X, -0.8, Y.polyTop);
+  var ctRefs = {
+    welltap:       contactAt('welltapCt', TAP_X, PMOS_ZC, Y.silTop),
+    pmosASrc:      contactAt('pmosASrcCt', LEFT_X, PMOS_ZC, Y.silTop),
+    pmosSharedDrn: contactAt('pmosSharedDrnCt', MID_X, PMOS_ZC, Y.silTop),
+    pmosBSrc:      contactAt('pmosBSrcCt', RIGHT_X, PMOS_ZC, Y.silTop),
+    subtap:        contactAt('subtapCt', TAP_X, NMOS_ZC, Y.silTop),
+    nmosASrc:      contactAt('nmosASrcCt', LEFT_X, NMOS_ZC, Y.silTop),
+    nmosBDrn:      contactAt('nmosBDrnCt', RIGHT_X, NMOS_ZC, Y.silTop),
+    polyA:         contactAt('polyACt', GATE_A_X, 0.8, Y.polyTop),
+    polyB:         contactAt('polyBCt', GATE_B_X, -0.8, Y.polyTop)
+  };
 
   /* 8. Planar Zero-Crossing Metal-1 Interconnects */
   function addMetalTrace(id, x, z, w, d, colorVar) {
@@ -1769,6 +1833,8 @@ function buildNand2Cell() {
     m.castShadow = true;
     m.receiveShadow = true;
     m.userData.colorVar = colorVar;
+    m.userData.baseW = w;
+    m.userData.baseD = d;
     return registerMesh(m, id, 'metal');
   }
 
@@ -1800,77 +1866,546 @@ function buildNand2Cell() {
     return registerMesh(m, id, 'metal');
   }
 
-  /* VDD Rail & 3 Stubs */
-  addMetalTrace('vddRail', -0.5, RAIL_Z, 22.0, METAL_W, '--c-vdd');
-  addMetalTrace('vddStubTap', TAP_X, (PMOS_ZC + RAIL_Z) / 2, METAL_W, RAIL_Z - PMOS_ZC, '--c-vdd');
-  addMetalTrace('vddStubPmosA', LEFT_X, (PMOS_ZC + RAIL_Z) / 2, METAL_W, RAIL_Z - PMOS_ZC, '--c-vdd');
-  addMetalTrace('vddStubPmosB', RIGHT_X, (PMOS_ZC + RAIL_Z) / 2, METAL_W, RAIL_Z - PMOS_ZC, '--c-vdd');
-  addTJunction('vddRail', '-z', TAP_X, RAIL_Z, '--c-vdd');
-  addTJunction('vddRail', '-z', LEFT_X, RAIL_Z, '--c-vdd');
-  addTJunction('vddRail', '-z', RIGHT_X, RAIL_Z, '--c-vdd');
-  addViaPad('vddStubTap', TAP_X, PMOS_ZC, '--c-vdd');
-  addViaPad('vddStubPmosA', LEFT_X, PMOS_ZC, '--c-vdd');
-  addViaPad('vddStubPmosB', RIGHT_X, PMOS_ZC, '--c-vdd');
+  var metalRefs = {
+    /* VDD Rail & 3 Stubs */
+    vddRail:      addMetalTrace('vddRail', -0.5, RAIL_Z, 22.0, METAL_W, '--c-vdd'),
+    vddStubTap:   addMetalTrace('vddStubTap', TAP_X, (PMOS_ZC + RAIL_Z) / 2, METAL_W, RAIL_Z - PMOS_ZC, '--c-vdd'),
+    vddStubPmosA: addMetalTrace('vddStubPmosA', LEFT_X, (PMOS_ZC + RAIL_Z) / 2, METAL_W, RAIL_Z - PMOS_ZC, '--c-vdd'),
+    vddStubPmosB: addMetalTrace('vddStubPmosB', RIGHT_X, (PMOS_ZC + RAIL_Z) / 2, METAL_W, RAIL_Z - PMOS_ZC, '--c-vdd'),
+    jVddTap:      addTJunction('vddRail', '-z', TAP_X, RAIL_Z, '--c-vdd'),
+    jVddPmosA:    addTJunction('vddRail', '-z', LEFT_X, RAIL_Z, '--c-vdd'),
+    jVddPmosB:    addTJunction('vddRail', '-z', RIGHT_X, RAIL_Z, '--c-vdd'),
+    padVddTap:    addViaPad('vddStubTap', TAP_X, PMOS_ZC, '--c-vdd'),
+    padVddPmosA:  addViaPad('vddStubPmosA', LEFT_X, PMOS_ZC, '--c-vdd'),
+    padVddPmosB:  addViaPad('vddStubPmosB', RIGHT_X, PMOS_ZC, '--c-vdd'),
 
-  /* GND Rail & 2 Stubs */
-  addMetalTrace('gndRail', -0.5, -RAIL_Z, 22.0, METAL_W, '--c-gnd');
-  addMetalTrace('gndStubTap', TAP_X, (NMOS_ZC - RAIL_Z) / 2, METAL_W, RAIL_Z + NMOS_ZC, '--c-gnd');
-  addMetalTrace('gndStubNmosA', LEFT_X, (NMOS_ZC - RAIL_Z) / 2, METAL_W, RAIL_Z + NMOS_ZC, '--c-gnd');
-  addTJunction('gndRail', '+z', TAP_X, -RAIL_Z, '--c-gnd');
-  addTJunction('gndRail', '+z', LEFT_X, -RAIL_Z, '--c-gnd');
-  addViaPad('gndStubTap', TAP_X, NMOS_ZC, '--c-gnd');
-  addViaPad('gndStubNmosA', LEFT_X, NMOS_ZC, '--c-gnd');
+    /* GND Rail & 2 Stubs */
+    gndRail:      addMetalTrace('gndRail', -0.5, -RAIL_Z, 22.0, METAL_W, '--c-gnd'),
+    gndStubTap:   addMetalTrace('gndStubTap', TAP_X, (NMOS_ZC - RAIL_Z) / 2, METAL_W, RAIL_Z + NMOS_ZC, '--c-gnd'),
+    gndStubNmosA: addMetalTrace('gndStubNmosA', LEFT_X, (NMOS_ZC - RAIL_Z) / 2, METAL_W, RAIL_Z + NMOS_ZC, '--c-gnd'),
+    jGndTap:      addTJunction('gndRail', '+z', TAP_X, -RAIL_Z, '--c-gnd'),
+    jGndNmosA:    addTJunction('gndRail', '+z', LEFT_X, -RAIL_Z, '--c-gnd'),
+    padGndTap:    addViaPad('gndStubTap', TAP_X, NMOS_ZC, '--c-gnd'),
+    padGndNmosA:  addViaPad('gndStubNmosA', LEFT_X, NMOS_ZC, '--c-gnd'),
 
-  /* Input A & Input B */
-  addMetalTrace('inAPin', -7.25, 0.8, 8.5, METAL_W, '--c-in');
-  addViaPad('inAPin', GATE_A_X, 0.8, '--c-in');
+    /* Input A & Input B */
+    inAPin:       addMetalTrace('inAPin', -7.25, 0.8, 8.5, METAL_W, '--c-in'),
+    padInA:       addViaPad('inAPin', GATE_A_X, 0.8, '--c-in'),
+    inBPin:       addMetalTrace('inBPin', -4.25, -0.8, 14.5, METAL_W, '--c-in'),
+    padInB:       addViaPad('inBPin', GATE_B_X, -0.8, '--c-in'),
 
-  addMetalTrace('inBPin', -4.25, -0.8, 14.5, METAL_W, '--c-in');
-  addViaPad('inBPin', GATE_B_X, -0.8, '--c-in');
-
-  /* Output Net (OUT) */
-  addMetalTrace('outPmosBranch', MID_X, 2.7125, METAL_W, 4.275, '--c-out');
-  addViaPad('outPmosBranch', MID_X, PMOS_ZC, '--c-out');
-
-  addMetalTrace('outSpine', 2.6375, 0.8, 5.725, METAL_W, '--c-out');
-
-  addMetalTrace('outNmosBranch', RIGHT_X, -2.025, METAL_W, 5.65, '--c-out');
-  addViaPad('outNmosBranch', RIGHT_X, NMOS_ZC, '--c-out');
-  addTJunction('outNmosBranch', '-z', RIGHT_X, 0.8, '--c-out');
-
-  addMetalTrace('outPin', 8.0, 0.8, 5.0, METAL_W, '--c-out');
+    /* Output Net (OUT) */
+    outPmosBranch: addMetalTrace('outPmosBranch', MID_X, 2.7125, METAL_W, 4.275, '--c-out'),
+    padOutPmos:    addViaPad('outPmosBranch', MID_X, PMOS_ZC, '--c-out'),
+    outSpine:      addMetalTrace('outSpine', 2.6375, 0.8, 5.725, METAL_W, '--c-out'),
+    outNmosBranch: addMetalTrace('outNmosBranch', RIGHT_X, -2.025, METAL_W, 5.65, '--c-out'),
+    padOutNmos:    addViaPad('outNmosBranch', RIGHT_X, NMOS_ZC, '--c-out'),
+    jOutNmos:      addTJunction('outNmosBranch', '-z', RIGHT_X, 0.8, '--c-out'),
+    outPin:        addMetalTrace('outPin', 8.0, 0.8, 5.0, METAL_W, '--c-out')
+  };
 
   /* 9. 3D Floating Callouts (Perimeter bulk + staggered elevations + subtle leader lines) */
-  addLabel('VDD', -10.8, Y.metalTop + 0.70, RAIL_Z + 0.95, 'metal', '#e35d5d', { anchor: [-10.2, Y.metalTop, RAIL_Z] });
-  addLabel('GND', -10.8, Y.metalTop + 0.70, -RAIL_Z - 0.95, 'metal', '#9aa6b6', { anchor: [-10.2, Y.metalTop, -RAIL_Z] });
-  addLabel('IN A', -10.8, Y.metalTop + 0.85, 1.85, 'metal', '#e6c94a', { anchor: [-10.0, Y.metalTop, 1.55] });
-  addLabel('IN B', -10.8, Y.metalTop + 0.85, -1.85, 'metal', '#e6c94a', { anchor: [-10.0, Y.metalTop, -1.55] });
-  addLabel('OUT', 10.2, Y.metalTop + 0.85, 0.80, 'metal', '#57cf8f', { anchor: [9.8, Y.metalTop, 0.80] });
+  function updateNandLabelPlacement(lbl, x, y, z, ax, ay, az) {
+    if (!lbl) return;
+    lbl.position.set(x, y, z);
+    if (lbl.userData && lbl.userData.restPos) lbl.userData.restPos.set(x, y, z);
+    var line = lbl.userData && lbl.userData.leaderLine;
+    if (line) {
+      line.position.set(x, y, z);
+      if (line.userData && line.userData.restPos) line.userData.restPos.set(x, y, z);
+      if (line.geometry && typeof line.geometry.setFromPoints === 'function') {
+        line.geometry.setFromPoints([
+          new THREE.Vector3(0, 0, 0),
+          new THREE.Vector3(ax - x, ay - y, az - z)
+        ]);
+      }
+    }
+  }
 
-  /* Perimeter placement for bulk wells & substrate */
-  addLabel('N-WELL', 7.6, Y.wellTop + 0.90, 8.65, 'well', '#4ade80', { anchor: [7.4, Y.wellTop, 8.30] });
-  addLabel('P-WELL', 7.6, Y.wellTop + 0.90, -8.65, 'well', '#60a5fa', { anchor: [7.4, Y.wellTop, -8.30] });
-  addLabel('P-SUBSTRATE', 9.5, Y.subTop + 0.55, -11.4, 'substrate', '#9aa6b6', { anchor: [9.5, Y.subTop, -11.4] });
+  var lblRefs = {
+    vdd:   addLabel('VDD', -10.8, Y.metalTop + 0.70, RAIL_Z + 0.95, 'metal', '#e35d5d', { anchor: [-10.2, Y.metalTop, RAIL_Z] }),
+    gnd:   addLabel('GND', -10.8, Y.metalTop + 0.70, -RAIL_Z - 0.95, 'metal', '#9aa6b6', { anchor: [-10.2, Y.metalTop, -RAIL_Z] }),
+    inA:   addLabel('IN A', -10.8, Y.metalTop + 0.85, 1.85, 'metal', '#e6c94a', { anchor: [-10.0, Y.metalTop, 1.55] }),
+    inB:   addLabel('IN B', -10.8, Y.metalTop + 0.85, -1.85, 'metal', '#e6c94a', { anchor: [-10.0, Y.metalTop, -1.55] }),
+    out:   addLabel('OUT', 10.2, Y.metalTop + 0.85, 0.80, 'metal', '#57cf8f', { anchor: [9.8, Y.metalTop, 0.80] }),
 
-  addLabel('POLY A', GATE_A_X - 0.3, Y.polyTop + 1.15, -8.55, 'poly', '#d8503c', { anchor: [GATE_A_X, Y.polyTop, -7.8] });
-  addLabel('POLY B', GATE_B_X + 0.3, Y.polyTop + 1.15, -8.55, 'poly', '#d8503c', { anchor: [GATE_B_X, Y.polyTop, -7.8] });
+    nwell: addLabel('N-WELL', 7.6, Y.wellTop + 0.90, 8.65, 'well', '#4ade80', { anchor: [7.4, Y.wellTop, 8.30] }),
+    pwell: addLabel('P-WELL', 7.6, Y.wellTop + 0.90, -8.65, 'well', '#60a5fa', { anchor: [7.4, Y.wellTop, -8.30] }),
+    psub:  addLabel('P-SUBSTRATE', 9.5, Y.subTop + 0.55, -11.4, 'substrate', '#9aa6b6', { anchor: [9.5, Y.subTop, -11.4] }),
 
-  /* Staggered Tier 1 (S/D diffusions) */
-  addLabel('PMOS A (MP1)', -6.0, Y.actTop + 1.25, 5.20, 'active', '#60a5fa', { anchor: [LEFT_X, Y.actTop, PMOS_ZC] });
-  addLabel('PMOS B (MP2)',  6.0, Y.actTop + 1.25, 5.20, 'active', '#60a5fa', { anchor: [RIGHT_X, Y.actTop, PMOS_ZC] });
-  addLabel('NMOS A (MN1)', -6.0, Y.actTop + 1.25, -5.20, 'active', '#4ade80', { anchor: [LEFT_X, Y.actTop, NMOS_ZC] });
-  addLabel('NMOS B (MN2)',  6.0, Y.actTop + 1.25, -5.20, 'active', '#4ade80', { anchor: [RIGHT_X, Y.actTop, NMOS_ZC] });
+    polyA: addLabel('POLY A', GATE_A_X - 0.3, Y.polyTop + 1.15, -8.55, 'poly', '#d8503c', { anchor: [GATE_A_X, Y.polyTop, -7.8] }),
+    polyB: addLabel('POLY B', GATE_B_X + 0.3, Y.polyTop + 1.15, -8.55, 'poly', '#d8503c', { anchor: [GATE_B_X, Y.polyTop, -7.8] }),
 
-  /* Staggered Tier 2 (Central shared nodes & depletion with leader lines) */
-  addLabel('SHARED P+ DRAIN',  MID_X, Y.actTop + 2.25, 6.20, 'active', '#60a5fa', { anchor: [MID_X, Y.actTop, PMOS_ZC + 0.6] });
-  addLabel('SERIES N+ BRIDGE', MID_X, Y.actTop + 2.25, -5.00, 'active', '#4ade80', { anchor: [MID_X, Y.actTop, NMOS_ZC] });
-  addLabel('DEPLETION', 3.3, Y.actTop + 1.85, 2.30, 'depletion', '#94a3b8', { anchor: [2.1, Y.actTop - 0.05, 2.4] });
+    mp1:   addLabel('PMOS A (MP1)', -6.0, Y.actTop + 1.25, 5.20, 'active', '#60a5fa', { anchor: [LEFT_X, Y.actTop, PMOS_ZC] }),
+    mp2:   addLabel('PMOS B (MP2)',  6.0, Y.actTop + 1.25, 5.20, 'active', '#60a5fa', { anchor: [RIGHT_X, Y.actTop, PMOS_ZC] }),
+    mn1:   addLabel('NMOS A (MN1)', -6.0, Y.actTop + 1.25, -5.20, 'active', '#4ade80', { anchor: [LEFT_X, Y.actTop, NMOS_ZC] }),
+    mn2:   addLabel('NMOS B (MN2)',  6.0, Y.actTop + 1.25, -5.20, 'active', '#4ade80', { anchor: [RIGHT_X, Y.actTop, NMOS_ZC] }),
 
-  /* Staggered Tier 3 (SDE extensions & gate dielectrics) */
-  addLabel('P-SDE', -3.925, Y.actTop + 1.65, 2.15, 'sde', '#93c5fd', { explodeLayer: 'active', anchor: [-3.925, Y.actTop, 2.40] });
-  addLabel('N-SDE', -3.925, Y.actTop + 1.65, -2.15, 'sde', '#86efac', { explodeLayer: 'active', anchor: [-3.925, Y.actTop, -2.40] });
-  addLabel('SiO2 OXIDE', GATE_A_X, Y.oxideTop + 2.55, 4.00, 'oxide', '#8fc9dc', { anchor: [GATE_A_X, Y.oxideTop, 3.30] });
-  addLabel('HIGH-K (HfO2)', GATE_B_X, Y.highkTop + 2.65, 4.00, 'highk', '#c084fc', { anchor: [GATE_B_X, Y.highkTop, 3.30] });
+    shP:   addLabel('SHARED P+ DRAIN',  MID_X, Y.actTop + 2.25, 6.20, 'active', '#60a5fa', { anchor: [MID_X, Y.actTop, PMOS_ZC + 0.6] }),
+    shN:   addLabel('SERIES N+ BRIDGE', MID_X, Y.actTop + 2.25, -5.00, 'active', '#4ade80', { anchor: [MID_X, Y.actTop, NMOS_ZC] }),
+    depl:  addLabel('DEPLETION', 3.3, Y.actTop + 1.85, 2.30, 'depletion', '#94a3b8', { anchor: [2.1, Y.actTop - 0.05, 2.4] }),
+
+    psde:  addLabel('P-SDE', -3.925, Y.actTop + 1.65, 2.15, 'sde', '#93c5fd', { explodeLayer: 'active', anchor: [-3.925, Y.actTop, 2.40] }),
+    nsde:  addLabel('N-SDE', -3.925, Y.actTop + 1.65, -2.15, 'sde', '#86efac', { explodeLayer: 'active', anchor: [-3.925, Y.actTop, -2.40] }),
+    oxide: addLabel('SiO2 OXIDE', GATE_A_X, Y.oxideTop + 2.55, 4.00, 'oxide', '#8fc9dc', { anchor: [GATE_A_X, Y.oxideTop, 3.30] }),
+    highk: addLabel('HIGH-K (HfO2)', GATE_B_X, Y.highkTop + 2.65, 4.00, 'highk', '#c084fc', { anchor: [GATE_B_X, Y.highkTop, 3.30] })
+  };
+
+  function setMeshRest(m, x, y, z, sx, sy, sz) {
+    if (!m) return;
+    if (sx !== undefined) m.scale.set(sx, sy, sz);
+    m.position.set(x, y, z);
+    if (m.userData && m.userData.restPos) m.userData.restPos.set(x, y, z);
+  }
+
+  /* Dynamic 3D NAND2 Geometry Deformation (Wp, Wn, L) preserving 4.0-unit inner bridge & restPos */
+  window.updateNandGeometry3D = function(Wp_nm, Wn_nm, L_nm) {
+    var wP = typeof Wp_nm === 'number' ? Wp_nm : 240;
+    var wN = typeof Wn_nm === 'number' ? Wn_nm : 240;
+    var lN = typeof L_nm === 'number' ? L_nm : 28;
+
+    var hL = 1.0 * Math.pow(Math.max(18, lN) / 28.0, 0.50);
+    var dH = hL - 1.0;
+    var wp3d = ACTIVE_W * Math.pow(Math.max(40, wP) / 240.0, 0.48);
+    var wn3d = ACTIVE_W * Math.pow(Math.max(40, wN) / 240.0, 0.48);
+
+    // Fix inner active edges at ±1.85 to preserve 1.90 central P-substrate corridor [-0.95, +0.95]
+    var zcP = 1.85 + wp3d * 0.5;
+    var zcN = -(1.85 + wn3d * 0.5);
+
+    // Fix inner bridge [-2.0, +2.0] and shift Gate A / Gate B / outer S/D / tap outward symmetrically
+    var gAX = -(2.0 + hL);
+    var gBX = +(2.0 + hL);
+    var leftX = -(3.5 + 2.0 * hL);
+    var rightX = +(3.5 + 2.0 * hL);
+    var tapX = -(7.0 + 2.0 * hL);
+
+    var polyZ0 = zcN - wn3d * 0.5;
+    var polyZ1 = zcP + wp3d * 0.5;
+    var railZp = zcP + wp3d * 0.5 + 1.60;
+    var railZn = -(Math.abs(zcN) + wn3d * 0.5 + 1.60);
+
+    var wpScale = wp3d / ACTIVE_W;
+    var wnScale = wn3d / ACTIVE_W;
+    var lScale = hL / 1.0;
+
+    var newWellW = wellW + 4.0 * Math.max(0, dH);
+    var newWellDP = wp3d + 1.80;
+    var newWellDN = wn3d + 1.80;
+    var newSubW = Math.max(24.0, 24.0 + 4.4 * Math.max(0, dH));
+    var newSubD = Math.max(25.0, (Math.max(railZp, -railZn) + 3.0) * 2.0);
+
+    nandGeom3D.Wp_nm = wP;
+    nandGeom3D.Wn_nm = wN;
+    nandGeom3D.L_nm = lN;
+    nandGeom3D.halfL = hL;
+    nandGeom3D.wp3d = wp3d;
+    nandGeom3D.wn3d = wn3d;
+    nandGeom3D.pmosZC = zcP;
+    nandGeom3D.nmosZC = zcN;
+    nandGeom3D.gateAX = gAX;
+    nandGeom3D.gateBX = gBX;
+    nandGeom3D.leftX = leftX;
+    nandGeom3D.midX = 0.0;
+    nandGeom3D.rightX = rightX;
+    nandGeom3D.tapX = tapX;
+    nandGeom3D.railZp = railZp;
+    nandGeom3D.railZn = railZn;
+    nandGeom3D.subHalfW = newSubW * 0.5;
+    nandGeom3D.subHalfD = newSubD * 0.5;
+
+    // 1. Substrate & Twin Wells
+    setMeshRest(psub, -0.5, (Y.subBot + Y.subTop) / 2, 0, newSubW / 24.0, 1, newSubD / 25.0);
+    setMeshRest(nwell, wellX, wellMidY, zcP, newWellW / wellW, 1, newWellDP / wellD);
+    setMeshRest(pwell, wellX, wellMidY, zcN, newWellW / wellW, 1, newWellDN / wellD);
+
+    // 2. Body Taps & 6 Active Diffusions
+    setMeshRest(welltapAct, tapX, actMidY, zcP, 1, 1, 1);
+    setMeshRest(subtapAct, tapX, actMidY, zcN, 1, 1, 1);
+    setMeshRest(pmosASrc, leftX, actMidY, zcP, 1, 1, wpScale);
+    setMeshRest(pmosSharedDrn, 0.0, actMidY, zcP, 1, 1, wpScale);
+    setMeshRest(pmosBSrc, rightX, actMidY, zcP, 1, 1, wpScale);
+    setMeshRest(nmosASrc, leftX, actMidY, zcN, 1, 1, wnScale);
+    setMeshRest(nmosMidNode, 0.0, actMidY, zcN, 1, 1, wnScale);
+    setMeshRest(nmosBDrn, rightX, actMidY, zcN, 1, 1, wnScale);
+
+    // 3. 8 SDE Extensions (inner ±2.075 fixed; outer ±(2.0 + 2*hL - 0.075))
+    var outerSdeMag = 2.0 + 2.0 * hL - 0.075;
+    var sdeScaleP = (wp3d - 0.1) / (ACTIVE_W - 0.1);
+    var sdeScaleN = (wn3d - 0.1) / (ACTIVE_W - 0.1);
+    for (var si = 0; si < sdeRefs.length; si++) {
+      var sr = sdeRefs[si];
+      var gxBase = sr.spec.gate === 'A' ? gAX : gBX;
+      var sX = gxBase + sr.spec.side * (hL - 0.075);
+      var sZ = sr.spec.isPmos ? zcP : zcN;
+      setMeshRest(sr.mesh, sX, sdeMidY, sZ, 1, 1, sr.spec.isPmos ? sdeScaleP : sdeScaleN);
+    }
+
+    // 4. Dielectrics & Dual Poly Gates
+    for (var gi = 0; gi < gateSiteRefs.length; gi++) {
+      var gr = gateSiteRefs[gi];
+      var gX = gr.spec.gate === 'A' ? gAX : gBX;
+      var gZ = gr.spec.isPmos ? zcP : zcN;
+      var gScaleZ = gr.spec.isPmos ? wpScale : wnScale;
+      setMeshRest(gr.oxMesh, gX, oxMidY, gZ, lScale, 1, gScaleZ);
+      setMeshRest(gr.hkMesh, gX, hkMidY, gZ, lScale, 1, gScaleZ);
+    }
+    setMeshRest(polyRefs.polyA, gAX, polyMidY, (polyZ0 + polyZ1) / 2, lScale, 1, (polyZ1 - polyZ0) / polyD);
+    setMeshRest(polyRefs.polyB, gBX, polyMidY, (polyZ0 + polyZ1) / 2, lScale, 1, (polyZ1 - polyZ0) / polyD);
+
+    // 5. 8 Flush Sidewall Spacers (anchored dynamics: ±(hL + w/2 + 0.002))
+    var spOff = hL + nandSpacerW * 0.5 + nandSpacerGap;
+    for (var k = 0; k < spacerRefs.length; k++) {
+      var rec = spacerRefs[k];
+      var baseG = rec.gate === 'A' ? gAX : gBX;
+      setMeshRest(rec.mesh, baseG + rec.side * spOff, nandSpacerMidY, rec.isPmos ? zcP : zcN, 1, 1, rec.isPmos ? wpScale : wnScale);
+    }
+
+    // 6. Self-Aligned Silicide Pads (strictly clear of spacers)
+    var outerSilMid = 3.584 + 2.0 * hL;
+    setMeshRest(silRefs.pmosLeft,  -outerSilMid, silMidYNand, zcP, 1, 1, wpScale);
+    setMeshRest(silRefs.pmosMid,   0.0,          silMidYNand, zcP, 1, 1, wpScale);
+    setMeshRest(silRefs.pmosRight,  outerSilMid, silMidYNand, zcP, 1, 1, wpScale);
+    setMeshRest(silRefs.pmosTap,   tapX,         silMidYNand, zcP, 1, 1, 1);
+
+    setMeshRest(silRefs.nmosLeft,  -outerSilMid, silMidYNand, zcN, 1, 1, wnScale);
+    setMeshRest(silRefs.nmosMid,   0.0,          silMidYNand, zcN, 1, 1, wnScale);
+    setMeshRest(silRefs.nmosRight,  outerSilMid, silMidYNand, zcN, 1, 1, wnScale);
+    setMeshRest(silRefs.nmosTap,   tapX,         silMidYNand, zcN, 1, 1, 1);
+
+    // 7. 9 Tungsten Plug Contacts
+    setMeshRest(ctRefs.welltap,       tapX,   ctRefs.welltap.position.y,       zcP);
+    setMeshRest(ctRefs.pmosASrc,      leftX,  ctRefs.pmosASrc.position.y,      zcP);
+    setMeshRest(ctRefs.pmosSharedDrn, 0.0,    ctRefs.pmosSharedDrn.position.y, zcP);
+    setMeshRest(ctRefs.pmosBSrc,      rightX, ctRefs.pmosBSrc.position.y,      zcP);
+    setMeshRest(ctRefs.subtap,        tapX,   ctRefs.subtap.position.y,        zcN);
+    setMeshRest(ctRefs.nmosASrc,      leftX,  ctRefs.nmosASrc.position.y,      zcN);
+    setMeshRest(ctRefs.nmosBDrn,      rightX, ctRefs.nmosBDrn.position.y,      zcN);
+    setMeshRest(ctRefs.polyA,         gAX,    ctRefs.polyA.position.y,         0.8);
+    setMeshRest(ctRefs.polyB,         gBX,    ctRefs.polyB.position.y,         -0.8);
+
+    // 8. Metal-1 Rails, Stubs, Vias, T-Junctions
+    var railW = Math.max(22.0, 22.0 + 4.4 * Math.max(0, dH));
+    setMeshRest(metalRefs.vddRail,      -0.5, metalMidY, railZp, railW / 22.0, 1, 1);
+    setMeshRest(metalRefs.vddStubTap,   tapX, metalMidY, (zcP + railZp) / 2, 1, 1, Math.max(0.2, railZp - zcP) / metalRefs.vddStubTap.userData.baseD);
+    setMeshRest(metalRefs.vddStubPmosA, leftX, metalMidY, (zcP + railZp) / 2, 1, 1, Math.max(0.2, railZp - zcP) / metalRefs.vddStubPmosA.userData.baseD);
+    setMeshRest(metalRefs.vddStubPmosB, rightX, metalMidY, (zcP + railZp) / 2, 1, 1, Math.max(0.2, railZp - zcP) / metalRefs.vddStubPmosB.userData.baseD);
+    setMeshRest(metalRefs.jVddTap,      tapX, metalMidY, railZp);
+    setMeshRest(metalRefs.jVddPmosA,    leftX, metalMidY, railZp);
+    setMeshRest(metalRefs.jVddPmosB,    rightX, metalMidY, railZp);
+    setMeshRest(metalRefs.padVddTap,    tapX, metalMidY, zcP);
+    setMeshRest(metalRefs.padVddPmosA,  leftX, metalMidY, zcP);
+    setMeshRest(metalRefs.padVddPmosB,  rightX, metalMidY, zcP);
+
+    setMeshRest(metalRefs.gndRail,      -0.5, metalMidY, railZn, railW / 22.0, 1, 1);
+    setMeshRest(metalRefs.gndStubTap,   tapX, metalMidY, (zcN + railZn) / 2, 1, 1, Math.max(0.2, zcN - railZn) / metalRefs.gndStubTap.userData.baseD);
+    setMeshRest(metalRefs.gndStubNmosA, leftX, metalMidY, (zcN + railZn) / 2, 1, 1, Math.max(0.2, zcN - railZn) / metalRefs.gndStubNmosA.userData.baseD);
+    setMeshRest(metalRefs.jGndTap,      tapX, metalMidY, railZn);
+    setMeshRest(metalRefs.jGndNmosA,    leftX, metalMidY, railZn);
+    setMeshRest(metalRefs.padGndTap,    tapX, metalMidY, zcN);
+    setMeshRest(metalRefs.padGndNmosA,  leftX, metalMidY, zcN);
+
+    var inStartX = tapX - 2.5; // -11.5 at L=28
+    setMeshRest(metalRefs.inAPin, (inStartX + gAX) / 2, metalMidY, 0.8, (gAX - inStartX) / metalRefs.inAPin.userData.baseW, 1, 1);
+    setMeshRest(metalRefs.padInA, gAX, metalMidY, 0.8);
+    setMeshRest(metalRefs.inBPin, (inStartX + gBX) / 2, metalMidY, -0.8, (gBX - inStartX) / metalRefs.inBPin.userData.baseW, 1, 1);
+    setMeshRest(metalRefs.padInB, gBX, metalMidY, -0.8);
+
+    setMeshRest(metalRefs.outPmosBranch, 0.0, metalMidY, (0.575 + zcP) / 2, 1, 1, Math.max(0.4, zcP - 0.575) / metalRefs.outPmosBranch.userData.baseD);
+    setMeshRest(metalRefs.padOutPmos, 0.0, metalMidY, zcP);
+    setMeshRest(metalRefs.outSpine, (rightX - 0.225) / 2, metalMidY, 0.8, (rightX + 0.225) / metalRefs.outSpine.userData.baseW, 1, 1);
+    setMeshRest(metalRefs.outNmosBranch, rightX, metalMidY, (0.80 + zcN) / 2, 1, 1, Math.max(0.5, 0.80 - zcN) / metalRefs.outNmosBranch.userData.baseD);
+    setMeshRest(metalRefs.padOutNmos, rightX, metalMidY, zcN);
+    setMeshRest(metalRefs.jOutNmos, rightX, metalMidY, 0.8);
+    setMeshRest(metalRefs.outPin, rightX + 2.5, metalMidY, 0.8);
+
+    // 9. Depletion Shells & Gate Cradles
+    var leftDeplCX = -(3.325 + 2.0 * hL); // -5.325 at hL=1
+    var rightDeplCX = +(3.325 + 2.0 * hL);
+    mp1SrcDeplEntry.perim  = buildNandWellShellPerimeter(leftDeplCX,  1.675, wp3d * 0.5, 0.35);
+    pmosDrnDeplEntry.perim = buildNandWellShellPerimeter(0.0,         2.350, wp3d * 0.5, 0.35);
+    mp2SrcDeplEntry.perim  = buildNandWellShellPerimeter(rightDeplCX, 1.675, wp3d * 0.5, 0.35);
+    mn1SrcDeplEntry.perim  = buildNandWellShellPerimeter(leftDeplCX,  1.675, wn3d * 0.5, 0.35);
+    nmosMidDeplEntry.perim = buildNandWellShellPerimeter(0.0,         2.350, wn3d * 0.5, 0.35);
+    mn2DrnDeplEntry.perim  = buildNandWellShellPerimeter(rightDeplCX, 1.675, wn3d * 0.5, 0.35);
+
+    setMeshRest(mp1SrcDepl,  leftDeplCX,  Y.actTop, zcP);
+    setMeshRest(pmosDrnDepl, 0.0,         Y.actTop, zcP);
+    setMeshRest(mp2SrcDepl,  rightDeplCX, Y.actTop, zcP);
+    setMeshRest(mn1SrcDepl,  leftDeplCX,  Y.actTop, zcN);
+    setMeshRest(nmosMidDepl, 0.0,         Y.actTop, zcN);
+    setMeshRest(mn2DrnDepl,  rightDeplCX, Y.actTop, zcN);
+
+    var gateDeplScaleP = (wp3d - 0.14) / (ACTIVE_W - 0.14);
+    var gateDeplScaleN = (wn3d - 0.14) / (ACTIVE_W - 0.14);
+    setMeshRest(mp1GateDepl, gAX, Y.actTop, zcP, 1, 1, gateDeplScaleP);
+    setMeshRest(mp2GateDepl, gBX, Y.actTop, zcP, 1, 1, gateDeplScaleP);
+    setMeshRest(mn1GateDepl, gAX, Y.actTop, zcN, 1, 1, gateDeplScaleN);
+    setMeshRest(mn2GateDepl, gBX, Y.actTop, zcN, 1, 1, gateDeplScaleN);
+
+    // 10. 3D Floating Labels & Leader Lines
+    updateNandLabelPlacement(lblRefs.vdd, -10.8, Y.metalTop + 0.70, railZp + 0.95, -10.2, Y.metalTop, railZp);
+    updateNandLabelPlacement(lblRefs.gnd, -10.8, Y.metalTop + 0.70, railZn - 0.95, -10.2, Y.metalTop, railZn);
+    updateNandLabelPlacement(lblRefs.inA, inStartX + 0.7, Y.metalTop + 0.85, 1.85, inStartX + 1.5, Y.metalTop, 1.55);
+    updateNandLabelPlacement(lblRefs.inB, inStartX + 0.7, Y.metalTop + 0.85, -1.85, inStartX + 1.5, Y.metalTop, -1.55);
+    updateNandLabelPlacement(lblRefs.out, rightX + 4.7, Y.metalTop + 0.85, 0.80, rightX + 4.3, Y.metalTop, 0.80);
+
+    updateNandLabelPlacement(lblRefs.nwell, 7.6 + dH * 1.5, Y.wellTop + 0.90, zcP + wp3d * 0.5 + 0.80, 7.4 + dH * 1.5, Y.wellTop, zcP + wp3d * 0.5 + 0.45);
+    updateNandLabelPlacement(lblRefs.pwell, 7.6 + dH * 1.5, Y.wellTop + 0.90, zcN - wn3d * 0.5 - 0.80, 7.4 + dH * 1.5, Y.wellTop, zcN - wn3d * 0.5 - 0.45);
+    updateNandLabelPlacement(lblRefs.psub, 9.5 + dH * 1.5, Y.subTop + 0.55, -(newSubD * 0.5 - 1.1), 9.5 + dH * 1.5, Y.subTop, -(newSubD * 0.5 - 1.1));
+
+    updateNandLabelPlacement(lblRefs.polyA, gAX - 0.3, Y.polyTop + 1.15, zcN - wn3d * 0.5 - 0.70, gAX, Y.polyTop, zcN - wn3d * 0.5);
+    updateNandLabelPlacement(lblRefs.polyB, gBX + 0.3, Y.polyTop + 1.15, zcN - wn3d * 0.5 - 0.70, gBX, Y.polyTop, zcN - wn3d * 0.5);
+
+    updateNandLabelPlacement(lblRefs.mp1, leftX - 0.5, Y.actTop + 1.25, zcP + 0.35, leftX, Y.actTop, zcP);
+    updateNandLabelPlacement(lblRefs.mp2, rightX + 0.5, Y.actTop + 1.25, zcP + 0.35, rightX, Y.actTop, zcP);
+    updateNandLabelPlacement(lblRefs.mn1, leftX - 0.5, Y.actTop + 1.25, zcN - 0.35, leftX, Y.actTop, zcN);
+    updateNandLabelPlacement(lblRefs.mn2, rightX + 0.5, Y.actTop + 1.25, zcN - 0.35, rightX, Y.actTop, zcN);
+
+    updateNandLabelPlacement(lblRefs.shP, 0.0, Y.actTop + 2.25, zcP + 1.35, 0.0, Y.actTop, zcP + 0.6);
+    updateNandLabelPlacement(lblRefs.shN, 0.0, Y.actTop + 2.25, zcN - 0.15, 0.0, Y.actTop, zcN);
+    updateNandLabelPlacement(lblRefs.depl, gBX + 0.3, Y.actTop + 1.85, zcP - wp3d * 0.42, 2.1, Y.actTop - 0.05, zcP - wp3d * 0.40);
+
+    updateNandLabelPlacement(lblRefs.psde, -outerSdeMag, Y.actTop + 1.65, zcP - wp3d * 0.45, -outerSdeMag, Y.actTop, zcP - wp3d * 0.40);
+    updateNandLabelPlacement(lblRefs.nsde, -outerSdeMag, Y.actTop + 1.65, zcN + wn3d * 0.45, -outerSdeMag, Y.actTop, zcN + wn3d * 0.40);
+    updateNandLabelPlacement(lblRefs.oxide, gAX, Y.oxideTop + 2.55, zcP - wp3d * 0.14, gAX, Y.oxideTop, zcP - wp3d * 0.25);
+    updateNandLabelPlacement(lblRefs.highk, gBX, Y.highkTop + 2.65, zcP - wp3d * 0.14, gBX, Y.highkTop, zcP - wp3d * 0.25);
+
+    // Apply current Explode transform so restPos updates become visible immediately
+    if (typeof applyExplode === 'function') applyExplode();
+    if (typeof window.updateNandChannels === 'function') window.updateNandChannels(_lastNandSt);
+    if (typeof rebuildFlowCurves === 'function') rebuildFlowCurves();
+    if (typeof window.updateSubGateCarriers === 'function' && window.showSubstrateHoles) {
+      window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+    }
+  };
+
+  /* 10. Optional Bulk Carriers (Show Bulk Carriers Toggle - Default OFF) */
+  function nandHalton(idx, base) {
+    var r = 0, f = 1 / base, i = idx;
+    while (i > 0) { r += f * (i % base); i = Math.floor(i / base); f /= base; }
+    return r;
+  }
+
+  function createNandDecorativeInstanced(geom, mat, maxCount) {
+    var mesh;
+    if (typeof THREE.InstancedMesh === 'function') {
+      mesh = new THREE.InstancedMesh(geom, mat, maxCount);
+    } else {
+      mesh = new THREE.Group();
+      mesh.isInstancedMesh = true;
+      mesh.geometry = geom;
+      mesh.material = mat;
+      mesh.count = 0;
+      mesh.instanceMatrix = { needsUpdate: false };
+      mesh.setMatrixAt = function () {};
+    }
+    mesh.count = 0;
+    mesh.frustumCulled = false;
+    mesh.raycast = function () {};
+    mesh.userData.decorative = true;
+    return mesh;
+  }
+
+  var MAX_NAND_HOLES = 360;
+  var MAX_NAND_ELECS = 180;
+  var isInitCarrierLight = document.documentElement.getAttribute('data-theme') === 'light';
+
+  var nandBulkGeom = new THREE.SphereGeometry(0.052, 8, 8);
+  var nandHoleMat = new THREE.MeshBasicMaterial({
+    color: isInitCarrierLight ? 0x1D4ED8 : 0x60A5FA,
+    transparent: true,
+    opacity: isInitCarrierLight ? 0.42 : 0.46,
+    depthWrite: false
+  });
+  var nandElecMat = new THREE.MeshBasicMaterial({
+    color: isInitCarrierLight ? 0x15803D : 0x4ADE80,
+    transparent: true,
+    opacity: isInitCarrierLight ? 0.40 : 0.44,
+    depthWrite: false
+  });
+
+  var holeInstMesh = createNandDecorativeInstanced(nandBulkGeom, nandHoleMat, MAX_NAND_HOLES);
+  holeInstMesh.renderOrder = 1;
+  holeInstMesh.visible = false;
+  cellGroup.add(holeInstMesh);
+
+  var bulkElecInstMesh = createNandDecorativeInstanced(nandBulkGeom, nandElecMat, MAX_NAND_ELECS);
+  bulkElecInstMesh.renderOrder = 2;
+  bulkElecInstMesh.visible = false;
+  cellGroup.add(bulkElecInstMesh);
+
+  window.showSubstrateHoles = false;
+  var _nandCarrierDummy = new THREE.Object3D();
+  var _lastNandCarrierTick = -1;
+
+  var holeSeeds = [];
+  for (var nh = 0; nh < MAX_NAND_HOLES; nh++) {
+    holeSeeds.push({ nx: nandHalton(nh + 1, 2), ny: nandHalton(nh + 1, 3), nz: nandHalton(nh + 1, 5), phase: nh * 0.71 });
+  }
+  var elecSeeds = [];
+  for (var ne = 0; ne < MAX_NAND_ELECS; ne++) {
+    elecSeeds.push({ nx: nandHalton(ne + 23, 2), ny: nandHalton(ne + 23, 3), nz: nandHalton(ne + 23, 7), phase: ne * 0.89 });
+  }
+
+  window.updateBulkCarriersTheme = function(theme) {
+    var isL = theme === 'light';
+    if (nandHoleMat) { nandHoleMat.color.setHex(isL ? 0x1D4ED8 : 0x60A5FA); nandHoleMat.opacity = isL ? 0.42 : 0.46; }
+    if (nandElecMat) { nandElecMat.color.setHex(isL ? 0x15803D : 0x4ADE80); nandElecMat.opacity = isL ? 0.40 : 0.44; }
+  };
+
+  window.toggleSubstrateHoles = function(visible) {
+    window.showSubstrateHoles = Boolean(visible);
+    if (!window.showSubstrateHoles) {
+      holeInstMesh.visible = false; holeInstMesh.count = 0;
+      bulkElecInstMesh.visible = false; bulkElecInstMesh.count = 0;
+      if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
+      if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
+    } else if (typeof window.updateSubGateCarriers === 'function') {
+      _lastNandCarrierTick = -999;
+      window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+    }
+  };
+
+  window.updateSubGateCarriers = function(elapsedTime) {
+    var t = typeof elapsedTime === 'number' ? elapsedTime : 0;
+    if (t > 0 && Math.abs(t - _lastNandCarrierTick) < 0.008) return;
+    _lastNandCarrierTick = t;
+
+    if (!window.showSubstrateHoles) {
+      holeInstMesh.visible = false; holeInstMesh.count = 0;
+      bulkElecInstMesh.visible = false; bulkElecInstMesh.count = 0;
+      return;
+    }
+
+    var st = _lastNandSt;
+    var frozen = !st || st.frozen || st.a === 'off' || st.b === 'off';
+    var va = frozen ? 0.0 : Number(st.a);
+    var vb = frozen ? 0.0 : Number(st.b);
+    var vout = frozen ? 0.5 : Number(st.vout);
+
+    var hL = nandGeom3D.halfL;
+    var gAX = nandGeom3D.gateAX;
+    var gBX = nandGeom3D.gateBX;
+    var halfWp = nandGeom3D.wp3d * 0.5;
+    var halfWn = nandGeom3D.wn3d * 0.5;
+    var zcP = nandGeom3D.pmosZC;
+    var zcN = nandGeom3D.nmosZC;
+    var tapX = nandGeom3D.tapX;
+
+    // 1. P-Substrate & P-Well Majority Holes
+    var showSub = (typeof layerVisibility === 'undefined') ? true : (layerVisibility.substrate !== false);
+    if (showSub) {
+      holeInstMesh.visible = true;
+      if (psub.userData && psub.userData.restPos) {
+        holeInstMesh.position.set(
+          psub.position.x - psub.userData.restPos.x,
+          psub.position.y - psub.userData.restPos.y,
+          psub.position.z - psub.userData.restPos.z
+        );
+      }
+      var subHW = nandGeom3D.subHalfW - 0.35;
+      var subHD = nandGeom3D.subHalfD - 0.35;
+      var yMinS = Y.subBot + 0.18;
+      var yMaxS = Y.subTop - 0.12;
+      var gatePushA = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, va));
+      var gatePushB = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, vb));
+
+      var hOut = 0;
+      for (var i = 0; i < MAX_NAND_HOLES; i++) {
+        var hs = holeSeeds[i];
+        var jx = 0.028 * Math.sin(t * 2.1 + hs.phase);
+        var jy = 0.018 * Math.cos(t * 2.4 + hs.phase * 1.27);
+        var jz = 0.028 * Math.sin(t * 1.8 + hs.phase * 0.73);
+
+        var hx = -0.5 + (hs.nx - 0.5) * 2.0 * subHW + jx;
+        var hz = (hs.nz - 0.5) * 2.0 * subHD + jz;
+        var hy = yMinS + hs.ny * (yMaxS - yMinS) + jy;
+
+        // Exclude N-Well bulk volume (reserved for N-Well electrons)
+        if (hz > 0.85 && hz < (zcP + halfWp + 0.95) && hx > (tapX - 1.5) && hx < (nandGeom3D.rightX + 2.6) && hy > Y.wellBot - 0.15) {
+          hy = yMinS + hs.ny * Math.max(0.15, (Y.wellBot - 0.20) - yMinS) + jy * 0.5;
+        }
+
+        // Exclude NMOS N+ diffusions & gates MN1/MN2
+        if (Math.abs(hz - zcN) < (halfWn + 0.30) && hy > Y.actBot - 0.30) {
+          if (Math.abs(hx - nandGeom3D.leftX) < 1.65 || Math.abs(hx) < 2.15 || Math.abs(hx - nandGeom3D.rightX) < 1.65) {
+            hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.34) - yMinS);
+          } else if (Math.abs(hx - gAX) < hL + 0.15 && gatePushA > 0.02) {
+            hy = Math.min(hy, yMaxS - gatePushA);
+          } else if (Math.abs(hx - gBX) < hL + 0.15 && gatePushB > 0.02) {
+            hy = Math.min(hy, yMaxS - gatePushB);
+          }
+        }
+
+        if (Math.abs(hx - tapX) < 0.8 && Math.abs(hz - zcN) < 0.8 && hy > Y.actBot - 0.1) {
+          hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.20) - yMinS);
+        }
+
+        _nandCarrierDummy.position.set(hx, hy, hz);
+        _nandCarrierDummy.rotation.set(0, 0, 0);
+        _nandCarrierDummy.scale.set(1, 1, 1);
+        if (typeof _nandCarrierDummy.updateMatrix === 'function') _nandCarrierDummy.updateMatrix();
+        holeInstMesh.setMatrixAt(hOut++, _nandCarrierDummy.matrix);
+      }
+      holeInstMesh.count = hOut;
+      if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
+    } else {
+      holeInstMesh.visible = false; holeInstMesh.count = 0;
+    }
+
+    // 2. N-Well Majority Electrons (tracks nwell explode offset!)
+    var showWell = (typeof layerVisibility === 'undefined') ? true : (layerVisibility.well !== false);
+    if (showWell) {
+      bulkElecInstMesh.visible = true;
+      if (nwell.userData && nwell.userData.restPos) {
+        bulkElecInstMesh.position.set(
+          nwell.position.x - nwell.userData.restPos.x,
+          nwell.position.y - nwell.userData.restPos.y,
+          nwell.position.z - nwell.userData.restPos.z
+        );
+      }
+      var wMinX = tapX - 1.25;
+      var wMaxX = nandGeom3D.rightX + 2.35;
+      var wMinZ = 1.05;
+      var wMaxZ = zcP + halfWp + 0.75;
+      var yMinW = Y.wellBot + 0.16;
+      var yMaxW = Y.wellTop - 0.12;
+      var pPushA = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, 1.0 - va));
+      var pPushB = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, 1.0 - vb));
+
+      var eOut = 0;
+      for (var j = 0; j < MAX_NAND_ELECS; j++) {
+        var es = elecSeeds[j];
+        var ex = wMinX + es.nx * (wMaxX - wMinX) + 0.025 * Math.cos(t * 2.2 + es.phase);
+        var ez = wMinZ + es.nz * (wMaxZ - wMinZ) + 0.025 * Math.sin(t * 2.0 + es.phase * 0.81);
+        var ey = yMinW + es.ny * (yMaxW - yMinW) + 0.016 * Math.sin(t * 2.5 + es.phase * 1.13);
+
+        if (Math.abs(ez - zcP) < (halfWp + 0.30) && ey > Y.actBot - 0.30) {
+          if (Math.abs(ex - nandGeom3D.leftX) < 1.65 || Math.abs(ex) < 2.15 || Math.abs(ex - nandGeom3D.rightX) < 1.65) {
+            ey = yMinW + es.ny * Math.max(0.12, (Y.actBot - 0.32) - yMinW);
+          } else if (Math.abs(ex - gAX) < hL + 0.15 && pPushA > 0.02) {
+            ey = Math.min(ey, yMaxW - pPushA);
+          } else if (Math.abs(ex - gBX) < hL + 0.15 && pPushB > 0.02) {
+            ey = Math.min(ey, yMaxW - pPushB);
+          }
+        }
+
+        _nandCarrierDummy.position.set(ex, ey, ez);
+        _nandCarrierDummy.rotation.set(0, 0, 0);
+        _nandCarrierDummy.scale.set(1, 1, 1);
+        if (typeof _nandCarrierDummy.updateMatrix === 'function') _nandCarrierDummy.updateMatrix();
+        bulkElecInstMesh.setMatrixAt(eOut++, _nandCarrierDummy.matrix);
+      }
+      bulkElecInstMesh.count = eOut;
+      if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
+    } else {
+      bulkElecInstMesh.visible = false; bulkElecInstMesh.count = 0;
+    }
+  };
+
+  // Apply initial Balanced (2:2) dimensions (Wp=240nm, Wn=240nm, L=28nm)
+  window.updateNandGeometry3D(240, 240, 28);
 }
 
 function toggleLabels(visible) {

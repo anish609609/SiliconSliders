@@ -1,15 +1,15 @@
 # Depletion-Mode NMOS Navigation Map (`src/modules/transistors/mosfet/d-nmos/`)
 
-**Purpose:** Interactive 3D Depletion-Mode NMOS (`VTH = -0.80V`, normally ON at `VGS = 0V`) CAD viewer with implanted N-channel slab, wrap-around junction depletion, IDS-VDS graph, and 9-step tour.
+**Purpose:** Interactive 3D Depletion-Mode NMOS CAD viewer (normally ON at `VGS = 0V`) with dynamic device geometry scaling (`L`, `W`, `t_ox`), short-channel effects, implanted N-channel slab, wrap-around junction depletion, IDS-VDS graph (`Lock Y`), unified electron/current streaks, optional substrate holes, `ⓘ` info popovers, and 9-step fabrication tour.
 
 ## Files
 
-- `index.html` -> Viewport, VGS (`-1.20V` to `+1.00V`)/VDS controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
-- `css/style.css` -> D-NMOS theme tokens (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), HUD, and modal styles.
+- `index.html` -> Viewport, VGS (`-1.20V` to `+1.00V`)/VDS + `ⓘ` info popovers, `DEVICE GEOMETRY` sandbox (`L`, `W`, `t_ox` + presets), `Show Bulk Carriers` toggle, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack (including `shared/js/param-info-modal.js`).
+- `css/style.css` -> D-NMOS theme tokens (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), graph header/Lock Y, geometry preset pills, uniform teal/green `ⓘ` styles, HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
-- `js/geometry.js` -> 3D substrate, N+ S/D tubs, implanted N-channel slab (`dchannel`), N-SDE/LDD, wrap-around PN depletion envelope + upper/lower channel pinch-off meshes, HKMG, spacers, silicide, W contacts, Metal-1.
-- `js/logic-state.js` -> Continuous D-NMOS physics (`getMosfetPhysicsState`, `applyLogicState`) across Cutoff, Depletion, Zero-Bias, and Enhancement modes plus IDS-VDS inline/modal canvas renderer.
-- `js/flow.js` -> Electron/current flow markers (`createFlowCurve`, `rebuildFlowCurves`, `updateFlowMarkers`) synced to `getMosfetPhysicsState`.
+- `js/geometry.js` -> 3D substrate, N+ S/D tubs, implanted N-channel slab (`dchannel`), N-SDE/LDD, dynamic wrap-around PN depletion envelope + upper/lower channel pinch-off meshes, HKMG, flush Si3N4 spacers (`0.002` clearance), silicide, W contacts, Metal-1, `updateDeviceGeometry3D(L, W, tox)`, and optional P-substrate holes (`holeInstMesh` / `updateSubGateCarriers`, default OFF).
+- `js/logic-state.js` -> Continuous geometry-dependent D-NMOS physics (`computeDnmosPoint`, `calculateIds`, `getMosfetPhysicsState`, `setMosfetGeometry`) with `VTH` roll-off, DIBL, velocity saturation, `lambda ~ 1/L`, `SiliconParamInfoModal` registrations, and Lock-Y IDS-VDS inline/modal canvas renderer.
+- `js/flow.js` -> Unified `InstancedMesh` electron/current streaks (`createFlowCurve`, `rebuildFlowCurves`, `stepFlowMarkers`, `updateFlowMarkers`) scaling lanes with `W`, zero-bias thermal jitter, and pinch-off acceleration across `deltaL`.
 - `js/build-anim.js` -> Offline 9-step `FAB_STEPS` drop-down tour (adds Threshold/N-Channel Implant at step 2).
 - `js/controls-explode-scrub.js` -> Layer Y-explode (`applyExplode`) and X/Y/Z clipping-plane scrub (`wireScrub`, `resetScrub`).
 - `js/selection.js` -> 6px drag-threshold raycasting via `SiliconSelectionHighlight`, synced with Architecture Tree, Inspector, and popover.

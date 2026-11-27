@@ -780,21 +780,18 @@ reg(deplLowerMesh, 'depletion', 'dchannel');
 // ---------------------------------------------------------------------------
 // Hollow closed manifold shell wrapping the bottom and sidewalls of P+ Source,
 // P-SDE, Implanted P-Channel underside, P-SDE Drain, and P+ Drain inside the N-Well.
-var DEPL_PERIM = [];
-(function initWrapDepletionPerimeter() {
-  var hx = 6.318;
-  var hz = 4.618; // Wp = 9.2 -> half = 4.60 + 0.018 clearance
-  var cr = 0.50;
+function buildWrapDepletionPerimeter(hx, hz, cr) {
+  var list = [];
   var sx = hx - cr;
   var sz = hz - cr;
-  var spineHalf = hx - hz; // 1.70
+  var spineHalf = Math.max(0.01, hx - hz);
 
   function addPt(x, z) {
     var xSpine = Math.max(-spineHalf, Math.min(spineHalf, x));
     var dx = x - xSpine;
     var dz = z;
     var len = Math.hypot(dx, dz) || 1;
-    DEPL_PERIM.push({
+    list.push({
       x: x,
       z: z,
       xSpine: xSpine,
@@ -836,7 +833,10 @@ var DEPL_PERIM = [];
     ang = Math.PI - (Math.PI / 2) * (i / nC);
     addPt(-sx + cr * Math.cos(ang), sz + cr * Math.sin(ang));
   }
-})();
+  return list;
+}
+
+var DEPL_PERIM = buildWrapDepletionPerimeter(6.318, 4.618, 0.50);
 
 var DEPL_ETA = [0.0, 0.15, 0.30, 0.45, 0.51, 0.58, 0.65, 0.72, 0.79, 0.86, 0.92, 0.97, 1.0];
 
@@ -845,14 +845,15 @@ function deplSmoothstep(a, b, x) {
   return t * t * (3 - 2 * t);
 }
 
-function getIslandDepthAtX(x) {
+function getIslandDepthAtX(x, halfL) {
+  var hL = typeof halfL === 'number' ? halfL : 1.0;
   var ax = Math.abs(x);
   // yTop = 3.004 (0.001 above wellTop 3.003, 0.002 below actTop 3.006)
   var dChan = 0.364; // 3.004 - 2.640 (0.018 below slabBot 2.658)
   var dLdd = 0.513;  // 3.004 - 2.491 (0.018 below sdeBot 2.509)
   var dAct = 1.216;  // 3.004 - 1.788 (0.018 below actBot 1.806)
-  var t1 = deplSmoothstep(0.92, 1.06, ax);
-  var t2 = deplSmoothstep(1.80, 2.08, ax);
+  var t1 = deplSmoothstep(Math.max(0.10, hL - 0.08), hL + 0.06, ax);
+  var t2 = deplSmoothstep(hL + 0.80, hL + 1.08, ax);
   var d = dChan + (dLdd - dChan) * t1;
   return d + (dAct - d) * t2;
 }
@@ -932,7 +933,8 @@ var junctionDeplEdgeLoop = new THREE.LineLoop(junctionDeplEdgeGeo, junctionDeplE
 junctionDeplEdgeLoop.raycast = function() {};
 junctionDeplMesh.add(junctionDeplEdgeLoop);
 
-function updateWrapDepletionGeometry(vgs, vsd) {
+function updateWrapDepletionGeometry(vgs, vsd, halfL, vthVal) {
+  var hL = typeof halfL === 'number' ? halfL : 1.0;
   var posAttr = junctionDeplGeo.attributes.position;
   var pos = posAttr.array;
   var edgeAttr = junctionDeplEdgeGeo.attributes.position;
@@ -945,7 +947,7 @@ function updateWrapDepletionGeometry(vgs, vsd) {
   var topOuterStart = topInnerStart + nP;
 
   var yTop = Y.wellTop + 0.001; // 3.004 (0.001 above wellTop 3.003, 0.002 below actTop 3.006)
-  var vth = 0.80;
+  var vth = Math.max(0.25, typeof vthVal === 'number' ? vthVal : 0.80);
   // Opposite polarity for D-PMOS: VGS > 0 depletes holes; VGS < 0 accumulates holes while retaining bottom PN envelope
   var gateDepl = (vgs > 0) ? Math.min(1.0, Math.max(0, vgs / vth)) : 0.0;
   var vsdNorm = Math.sqrt(Math.max(0, vsd) / 1.8);
@@ -979,13 +981,11 @@ function updateWrapDepletionGeometry(vgs, vsd) {
       var pt = DEPL_PERIM[j];
       var inX = pt.xSpine + (pt.x - pt.xSpine) * tHoriz;
       var inZ = pt.z * tHoriz;
-      var depth = getIslandDepthAtX(inX);
+      var depth = getIslandDepthAtX(inX, hL);
       var inY = yTop - depth * tDepth;
 
-      // Baseline 0.20 envelope stays visible even when VGS < 0 (accumulation/enhancement);
-      // swells under gate for VGS > 0; bulges asymmetrically on Drain side for increasing VSD = |VDS|.
-      var drainWeight = deplSmoothstep(-0.80, 2.40, inX);
-      var gateBulge = 0.20 * gateDepl * (1.0 - deplSmoothstep(0.95, 1.45, Math.abs(inX)));
+      var drainWeight = deplSmoothstep(-0.80 * hL, hL + 1.40, inX);
+      var gateBulge = 0.20 * gateDepl * (1.0 - deplSmoothstep(Math.max(0.10, hL - 0.05), hL + 0.45, Math.abs(inX)));
       var drainBulge = 0.38 * vsdNorm * drainWeight;
       var wDep = 0.20 + gateBulge + drainBulge;
 
@@ -1027,7 +1027,7 @@ function updateWrapDepletionGeometry(vgs, vsd) {
   edgeAttr.needsUpdate = true;
 }
 
-updateWrapDepletionGeometry(0.0, 0.8);
+updateWrapDepletionGeometry(0.0, 0.8, 1.0, 0.80);
 
 function getCachedBoxAxes(geom) {
   var pos = geom.attributes.position;
@@ -1057,18 +1057,24 @@ function syncChannelBaseEmissive() {
 
 // Function to dynamically deform channel thickness, taper, and depletion envelope based on D-PMOS physics
 window.updateChannelGeometry = function(vgs, vsd, isd, region, deltaL) {
-  var vth = 0.80; // VTH,p = +0.80V
-  var vov = Math.max(0, vth - vgs); // Overdrive VOV = VTH,p - VGS
+  var phys = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
+  var gState = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState : null;
+  var curHalfL = gState ? gState.halfL : 1.0;
+  var curGateL = curHalfL * 2.0;
+  var vth = phys ? phys.vth : 0.80;
+  var vov = phys ? phys.vov : Math.max(0, vth - vgs);
+  var vsdSat = phys ? phys.vsdSat : vov;
+  var tox_nm = phys ? phys.tox : 2.0;
   var deplLayerOn = (window.showDepletionLayer !== false);
 
-  updateWrapDepletionGeometry(vgs, vsd);
+  updateWrapDepletionGeometry(vgs, vsd, curHalfL, vth);
 
   if (region === 'CUTOFF' || vov <= 0.001) {
     channelMesh.visible = false;
     deplUpperMesh.visible = false;
     deplLowerMesh.visible = false;
     pinchMesh.visible = deplLayerOn;
-    pinchMesh.scale.x = 2.0;
+    pinchMesh.scale.x = curGateL;
     pinchMesh.position.x = 0.0;
     pinchMesh.position.y = innerCenterY;
     pinchMat.emissiveIntensity = 0.16;
@@ -1078,30 +1084,30 @@ window.updateChannelGeometry = function(vgs, vsd, isd, region, deltaL) {
 
   channelMesh.visible = true;
 
-  // Baseline implanted P-channel thickness is 0.19 at VGS = 0V (fits inside innerH = 0.326 even at max -VGS)
-  // In Depletion Mode (0 < VGS < VTH,p), positive gate depletes holes, thinning the channel
-  // In Enhancement Mode (VGS < 0), negative gate accumulates extra holes, thickening the channel
   var baseH = 0.19;
-  var gateFactor = (vgs >= 0) ? Math.max(0.08, vov / 0.80) : (1.0 + Math.min(0.85, (-vgs / 1.0) * 0.60));
-  var maxH = Math.min(innerH, baseH * gateFactor);
+  var gateFactor = (vgs >= 0) ? Math.max(0.08, vov / Math.max(0.25, vth)) : (1.0 + Math.min(0.85, (-vgs / 1.0) * 0.60));
+  var toxFactor = Math.min(1.18, Math.pow(2.0 / Math.max(1.2, tox_nm), 0.16));
+  var maxH = Math.min(innerH, baseH * gateFactor * toxFactor);
 
-  var vsdDiff = Math.max(0, vsd - vov);
-  var isSat = (vsd >= vov) && (region === 'SATURATION');
+  var vsdDiff = Math.max(0, vsd - vsdSat);
+  var isSat = (vsd >= vsdSat) && (region === 'SATURATION');
 
-  var dL = isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vsdDiff)) : 0.0;
-  var ratio = (vov > 0.0001) ? Math.min(1.0, Math.max(0, vsd / vov)) : 1.0;
+  var dL = isSat
+    ? Math.min(curGateL * 0.65, Math.max(0, typeof deltaL === 'number' ? deltaL : curGateL * 0.22 * Math.sqrt(vsdDiff)))
+    : 0.0;
+  var ratio = (vsdSat > 0.0001) ? Math.min(1.0, Math.max(0, vsd / vsdSat)) : 1.0;
 
   var chanData = getCachedBoxAxes(chanGeom);
   for (var i = 0; i < chanData.pos.count; i++) {
     var origX = chanData.initX[i];
-    var s = (origX + 1.0) / 2.0; // Normalized position [0, 1] from Source (-1.0) to Drain (+1.0)
+    var s = (origX + 1.0) / 2.0; // Normalized position [0, 1] from Source (-curHalfL) to Drain (+curHalfL)
     var mappedX, thickness;
 
     if (!isSat) {
-      mappedX = origX;
+      mappedX = -curHalfL + s * curGateL;
       thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
     } else {
-      mappedX = -1.0 + s * (2.0 - dL);
+      mappedX = -curHalfL + s * Math.max(0.08 * curGateL, curGateL - dL);
       thickness = maxH * Math.max(0.002, 1.0 - s);
     }
 
@@ -1117,14 +1123,14 @@ window.updateChannelGeometry = function(vgs, vsd, isd, region, deltaL) {
   if (hasWedgeDepl) {
     deplUpperMesh.visible = true;
     deplLowerMesh.visible = true;
-    var endX = isSat ? Math.max(-1.0, 1.0 - dL - 0.001) : 1.0;
+    var endX = isSat ? Math.max(-curHalfL + 0.04, curGateL / 2.0 - dL - 0.001) : curHalfL;
     var upperData = getCachedBoxAxes(deplUpperGeom);
     var lowerData = getCachedBoxAxes(deplLowerGeom);
 
     for (var j = 0; j < upperData.pos.count; j++) {
       var uOrigX = upperData.initX[j];
       var us = (uOrigX + 1.0) / 2.0;
-      var uMappedX = -1.0 + us * (endX - (-1.0));
+      var uMappedX = -curHalfL + us * (endX - (-curHalfL));
       var taperFrac = isSat ? us : (us * ratio);
       var cThick = maxH * Math.max(0.002, 1.0 - taperFrac);
       var deplWeight = 1.0 - (1.0 - gateDepl) * (1.0 - taperFrac);
@@ -1153,11 +1159,10 @@ window.updateChannelGeometry = function(vgs, vsd, isd, region, deltaL) {
   var intensityNorm = Math.min(1.0, isd / 0.5);
   chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
 
-  // Full-height space-charge depletion gap mesh in Saturation when dL > 0, anchored strictly to drain edge (+1.0)
   if (deplLayerOn && isSat && dL > 0.0005) {
     pinchMesh.visible = true;
     pinchMesh.scale.x = dL;
-    pinchMesh.position.x = 1.0 - dL / 2;
+    pinchMesh.position.x = curHalfL - dL / 2;
     pinchMesh.position.y = innerCenterY;
     pinchMat.emissiveIntensity = 0.22 + 0.25 * Math.min(1.0, vsdDiff / 0.8);
   } else {
@@ -1235,15 +1240,15 @@ polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2, 1.2);
 reg(polyMesh, 'poly', 'poly');
 
 // Widened Si3N4 sidewall spacers matching full P-SDE/LDD lateral width:
-// outer edge aligns flush with LDD-to-P+ step-down coordinate (+/- 2.10),
-// with a tiny inner clearance (+/- 1.004) for zero Z-fighting against gate sidewalls or SiO2/HfO2.
-var spacerInnerGap = 0.004;
-var spacerOuterX = gateL / 2 + sdeW;
+// outer edge aligns cleanly with LDD outer boundary, inner face sits flush
+// outside gate sidewall with a tiny 0.002 clearance so there is zero clipping or Z-fighting.
+var spacerInnerGap = 0.002;
 var spacerW = sdeW - spacerInnerGap;
+var spacerOuterX = gateL / 2 + spacerInnerGap + spacerW;
 var spacerBot = Y.sdeTop + 0.002;
 var spacerH = Y.polyTop - spacerBot;
 var spacerCenterY = (Y.polyTop + spacerBot) / 2;
-var spacerCenterX = gateL / 2 + spacerInnerGap + spacerW / 2;
+var spacerCenterX = gateL / 2 + spacerW / 2 + 0.002;
 
 var spacerMat = new THREE.MeshStandardMaterial({
   color: 0x7dd3fc,   // cohesive Si3N4 dielectric tone
@@ -1701,6 +1706,11 @@ function updateMaterialsTheme() {
     silMat.color.setHex(isLight ? 0x647082 : 0x6e7887);
   }
 
+  if (typeof holeMat !== 'undefined' && holeMat && holeMat.color) {
+    holeMat.color.setHex(isLight ? 0x15803D : 0x22C55E);
+    holeMat.opacity = isLight ? 0.44 : 0.48;
+  }
+
   labelSprites.forEach(function(s) {
     if (s && s.userData && s.userData.labelText && s.userData.colorHex) {
       updateLabelSprite(s, s.userData.labelText, s.userData.colorHex, isLight);
@@ -1804,3 +1814,399 @@ var initLabelChk = document.getElementById('toggle-labels') || document.getEleme
 if (initLabelChk) {
   toggleLabels(initLabelChk.checked);
 }
+
+// ---------------------------------------------------------------------------
+// 11. INTERACTIVE DEVICE GEOMETRY SCALING (L, W, t_ox)
+// ---------------------------------------------------------------------------
+var BASE_GATE_L = 2.0;
+var BASE_ACT_D = 9.2;
+var BASE_INNER_D = innerD;
+var BASE_SLAB_W = slabW;
+var BASE_OX_H = 0.180;
+var BASE_HK_H = 0.240;
+var BASE_POLY_H = 1.030;
+var BASE_POLY_LEN = 13.4;
+var BASE_SPACER_H = spacerH;
+var BASE_CT_H = ctH;
+var BASE_GATE_W = gateW;
+var BASE_M1_H = m1H;
+
+var deviceGeomState = {
+  L_nm: 28,
+  W_nm: 120,
+  tox_nm: 2.0,
+  gateL: BASE_GATE_L,
+  halfL: BASE_GATE_L / 2,
+  actD: BASE_ACT_D,
+  oxH: BASE_OX_H,
+  srcX: srcX,
+  drnX: drnX,
+  sdeSrcX: sdeSrcX,
+  sdeDrnX: sdeDrnX,
+  gatePadZ: 6.2,
+  tapX: -6.5,
+  tapZ: 6.2
+};
+
+window.getDeviceGeomState = function() {
+  return deviceGeomState;
+};
+
+window.updateDeviceGeometry3D = function(L_nm, W_nm, tox_nm) {
+  L_nm = Math.max(20, Math.min(200, Number(L_nm) || 28));
+  W_nm = Math.max(40, Math.min(400, Number(W_nm) || 120));
+  tox_nm = Math.max(1.2, Math.min(10.0, Number(tox_nm) || 2.0));
+
+  var newGateL = BASE_GATE_L * Math.pow(L_nm / 28.0, 0.58);
+  var newHalfL = newGateL / 2.0;
+  var newActD = BASE_ACT_D * Math.pow(W_nm / 120.0, 0.50);
+  var newHalfD = newActD / 2.0;
+  var newOxH = BASE_OX_H * Math.pow(tox_nm / 2.0, 0.72);
+  var deltaOxY = newOxH - BASE_OX_H;
+
+  var scaleZ = newActD / BASE_ACT_D;
+  var newInnerD = newActD - chanEps * 2.0;
+  var scaleInnerZ = newInnerD / BASE_INNER_D;
+  var scaleGateX = newGateL / BASE_GATE_L;
+
+  // Monotonic vertical stack update (Z-fighting free)
+  Y.oxTop = Y.oxBot + newOxH;
+  Y.hkBot = Y.oxTop;
+  Y.hkTop = Y.hkBot + BASE_HK_H;
+  Y.polyBot = Y.hkTop;
+  Y.polyTop = Y.polyBot + BASE_POLY_H;
+  Y.ctTop = 5.159 + deltaOxY;
+  Y.m1Bot = Y.ctTop;
+  Y.m1Top = Y.m1Bot + BASE_M1_H;
+
+  // Symmetric lateral X positions anchored cleanly outside gate faces +/- newHalfL
+  var newSdeSrcX = -(newHalfL + sdeW / 2.0);
+  var newSdeDrnX = +(newHalfL + sdeW / 2.0);
+  var newSrcX = -(newHalfL + sdeW + actW / 2.0);
+  var newDrnX = +(newHalfL + sdeW + actW / 2.0);
+  var newSpacerCenterX = newHalfL + spacerW / 2.0 + 0.002;
+  var newSpacerOuterX = newHalfL + 0.002 + spacerW;
+  var newSilInnerEdgeX = newSpacerOuterX + 0.006;
+  var newSilOuterEdgeX = Math.abs(newSrcX) + actW / 2.0 - 0.04;
+  var newSilCenterX = (newSilOuterEdgeX + newSilInnerEdgeX) / 2.0;
+
+  // Z positions scaled cleanly with channel width W
+  var newGateW = newActD + 0.6;
+  var newGatePadZ = newHalfD + 1.6;
+  var polyBackZ = -(newHalfD + 0.9);
+  var polyFrontZ = newGatePadZ + 1.7;
+  var newPolyRunnerLen = polyFrontZ - polyBackZ;
+  var newPolyCenterZ = (polyFrontZ + polyBackZ) / 2.0;
+  var newTapX = -6.5;
+  var newTapZ = newHalfD + 1.6;
+
+  deviceGeomState.L_nm = L_nm;
+  deviceGeomState.W_nm = W_nm;
+  deviceGeomState.tox_nm = tox_nm;
+  deviceGeomState.gateL = newGateL;
+  deviceGeomState.halfL = newHalfL;
+  deviceGeomState.actD = newActD;
+  deviceGeomState.oxH = newOxH;
+  deviceGeomState.srcX = newSrcX;
+  deviceGeomState.drnX = newDrnX;
+  deviceGeomState.sdeSrcX = newSdeSrcX;
+  deviceGeomState.sdeDrnX = newSdeDrnX;
+  deviceGeomState.gatePadZ = newGatePadZ;
+  deviceGeomState.tapX = newTapX;
+  deviceGeomState.tapZ = newTapZ;
+
+  // Expand N-Well tub & P-Substrate slab smoothly so active P+ & tap stay enclosed
+  var reqWellW = Math.max(18.0, 2.0 * (Math.abs(newSrcX) + actW / 2.0 + 2.0));
+  var reqWellD = Math.max(16.0, 2.0 * (newTapZ + 2.0));
+  if (typeof wellMesh !== 'undefined' && wellMesh) {
+    wellMesh.scale.set(reqWellW / 18.0, 1.0, reqWellD / 16.0);
+  }
+  if (typeof subMesh !== 'undefined' && subMesh) {
+    var reqSubW = Math.max(24.0, reqWellW + 6.0);
+    var reqSubD = Math.max(22.0, reqWellD + 6.0);
+    subMesh.scale.set(reqSubW / 24.0, 1.0, reqSubD / 22.0);
+  }
+
+  // Active P+ S/D & P-SDE/LDD extensions
+  if (srcMesh) { srcMesh.position.x = newSrcX; srcMesh.scale.set(1, 1, scaleZ); }
+  if (drnMesh) { drnMesh.position.x = newDrnX; drnMesh.scale.set(1, 1, scaleZ); }
+  if (sdeSrcMesh) { sdeSrcMesh.position.x = newSdeSrcX; sdeSrcMesh.scale.set(1, 1, scaleZ); }
+  if (sdeDrnMesh) { sdeDrnMesh.position.x = newSdeDrnX; sdeDrnMesh.scale.set(1, 1, scaleZ); }
+
+  // Permanent implanted P-channel slab, inset channel/wedges, and wrap-around PN-junction depletion perimeter
+  if (implantedSlabMesh) {
+    var newSlabW = newGateL + slabOverlap * 2.0;
+    implantedSlabMesh.scale.set(newSlabW / BASE_SLAB_W, 1.0, scaleZ);
+  }
+  if (channelMesh) channelMesh.scale.set(1, 1, scaleInnerZ);
+  if (deplUpperMesh) deplUpperMesh.scale.set(1, 1, scaleInnerZ);
+  if (deplLowerMesh) deplLowerMesh.scale.set(1, 1, scaleInnerZ);
+  if (pinchMesh) pinchMesh.scale.z = scaleInnerZ;
+  DEPL_PERIM = buildWrapDepletionPerimeter(newHalfL + 5.318, newHalfD + 0.018, 0.50);
+
+  // Gate dielectric stack (SiO2 + HfO2) & gate electrode
+  if (oxMesh) {
+    oxMesh.position.y = (Y.oxTop + Y.oxBot) / 2.0;
+    oxMesh.scale.set(scaleGateX, newOxH / BASE_OX_H, newGateW / BASE_GATE_W);
+  }
+  if (hkMesh) {
+    hkMesh.position.y = (Y.hkTop + Y.hkBot) / 2.0;
+    hkMesh.scale.set(scaleGateX, 1.0, newGateW / BASE_GATE_W);
+  }
+  if (polyMesh) {
+    polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2.0, newPolyCenterZ);
+    polyMesh.scale.set(scaleGateX, 1.0, newPolyRunnerLen / BASE_POLY_LEN);
+  }
+
+  // Si3N4 Sidewall Spacers flush against gate outer faces (x_spacer = +/-(L_3D/2 + w_spacer/2 + 0.002))
+  var newSpacerH = Y.polyTop - spacerBot;
+  var newSpacerCenterY = (Y.polyTop + spacerBot) / 2.0;
+  if (leftSpacer) {
+    leftSpacer.position.set(-newSpacerCenterX, newSpacerCenterY, 0);
+    leftSpacer.scale.set(1, newSpacerH / BASE_SPACER_H, scaleZ);
+  }
+  if (rightSpacer) {
+    rightSpacer.position.set(newSpacerCenterX, newSpacerCenterY, 0);
+    rightSpacer.scale.set(1, newSpacerH / BASE_SPACER_H, scaleZ);
+  }
+
+  // Self-aligned Silicide (NiSi) pads & N-Well tap
+  if (srcSilMesh) { srcSilMesh.position.x = -newSilCenterX; srcSilMesh.scale.set(1, 1, scaleZ); }
+  if (drnSilMesh) { drnSilMesh.position.x = newSilCenterX; drnSilMesh.scale.set(1, 1, scaleZ); }
+  if (tapMesh) tapMesh.position.set(newTapX, (Y.actTop + Y.actBot) / 2.0, newTapZ);
+  if (tapSilMesh) tapSilMesh.position.set(newTapX, silCenterY, newTapZ);
+
+  // Tungsten Contact Vias
+  var newCtH = Y.ctTop - Y.ctBot;
+  var newCtCenterY = (Y.ctTop + Y.ctBot) / 2.0;
+  if (srcCt) { srcCt.position.set(newSrcX, newCtCenterY, 0); srcCt.scale.set(1, newCtH / BASE_CT_H, 1); }
+  if (drnCt) { drnCt.position.set(newDrnX, newCtCenterY, 0); drnCt.scale.set(1, newCtH / BASE_CT_H, 1); }
+  if (wellCt) { wellCt.position.set(newTapX, newCtCenterY, newTapZ); wellCt.scale.set(1, newCtH / BASE_CT_H, 1); }
+  if (gateCt) gateCt.position.set(0, (Y.ctTop + Y.polyTop) / 2.0, newGatePadZ);
+
+  // Metal-1 Interconnect Pads
+  var newM1Y = (Y.m1Top + Y.m1Bot) / 2.0;
+  if (srcPad) srcPad.position.set(newSrcX, newM1Y, 0);
+  if (drnPad) drnPad.position.set(newDrnX, newM1Y, 0);
+  if (gatePad) gatePad.position.set(0, newM1Y, newGatePadZ);
+  if (wellPad) wellPad.position.set(newTapX, newM1Y, newTapZ);
+
+  // 3D Floating Terminal Labels
+  if (typeof srcCallout !== 'undefined' && srcCallout) srcCallout.position.set(newSrcX, Y.m1Top, 0);
+  if (typeof drnCallout !== 'undefined' && drnCallout) drnCallout.position.set(newDrnX, Y.m1Top, 0);
+  if (typeof gateCallout !== 'undefined' && gateCallout) gateCallout.position.set(0, Y.m1Top, newGatePadZ);
+  if (typeof wellCallout !== 'undefined' && wellCallout) wellCallout.position.set(newTapX, Y.m1Top, newTapZ);
+  if (typeof deplCallout !== 'undefined' && deplCallout) {
+    deplCallout.position.set(Math.abs(newSrcX) + actW / 2.0 + 0.25, Y.wellTop + 0.001, newHalfD + 0.1);
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 12. N-WELL BULK MAJORITY-CARRIER ELECTRONS (Optional, Default OFF)
+// ---------------------------------------------------------------------------
+function haltonSeq(index, base) {
+  var result = 0;
+  var f = 1 / base;
+  var i = index;
+  while (i > 0) {
+    result += f * (i % base);
+    i = Math.floor(i / base);
+    f = f / base;
+  }
+  return result;
+}
+
+function createDecorativeInstanced(geom, mat, maxCount) {
+  var inst;
+  if (typeof THREE.InstancedMesh === 'function') {
+    inst = new THREE.InstancedMesh(geom, mat, maxCount);
+  } else {
+    inst = new THREE.Group();
+    inst.isInstancedMesh = true;
+    inst.geometry = geom;
+    inst.material = mat;
+    inst.count = 0;
+    inst.instanceMatrix = { needsUpdate: false };
+    inst.setMatrixAt = function() {};
+  }
+  inst.count = 0;
+  inst.frustumCulled = false;
+  inst.raycast = function() {};
+  inst.userData.decorative = true;
+  inst.userData.isFlowHelper = true;
+  return inst;
+}
+
+var MAX_BULK_HOLES = 460;
+
+var holeGeom = new THREE.SphereGeometry(0.052, 8, 8);
+var holeMat = new THREE.MeshBasicMaterial({
+  color: isInitLightDPMOS ? 0x15803D : 0x22C55E, // N-Well majority electrons (Green)
+  transparent: true,
+  opacity: isInitLightDPMOS ? 0.44 : 0.48,
+  depthWrite: false
+});
+var holeInstMesh = createDecorativeInstanced(holeGeom, holeMat, MAX_BULK_HOLES);
+holeInstMesh.renderOrder = 2;
+holeInstMesh.visible = false;
+groups['well'].add(holeInstMesh);
+
+window.showSubstrateHoles = false;
+window.showBulkCarriers = false;
+window.toggleSubstrateHoles = function(visible) {
+  window.showSubstrateHoles = Boolean(visible);
+  window.showBulkCarriers = window.showSubstrateHoles;
+  if (holeInstMesh) {
+    holeInstMesh.visible = window.showSubstrateHoles && Boolean(groups['well'] && groups['well'].visible !== false);
+    if (!window.showSubstrateHoles) {
+      holeInstMesh.count = 0;
+      if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+  if (window.showSubstrateHoles && typeof window.updateSubGateCarriers === 'function') {
+    _lastCarrierTick = -999;
+    window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+  }
+};
+window.toggleBulkCarriers = window.toggleSubstrateHoles;
+
+var initHoleChk = document.getElementById('toggle-holes');
+if (initHoleChk) {
+  window.showSubstrateHoles = Boolean(initHoleChk.checked);
+  window.showBulkCarriers = window.showSubstrateHoles;
+  holeInstMesh.visible = window.showSubstrateHoles;
+}
+
+var holeSeeds = [];
+for (var hi = 0; hi < MAX_BULK_HOLES; hi++) {
+  holeSeeds.push({
+    nx: haltonSeq(hi + 1, 2),
+    ny: haltonSeq(hi + 1, 3),
+    nz: haltonSeq(hi + 1, 5),
+    phase: hi * 0.73
+  });
+}
+
+var _carrierDummy = new THREE.Object3D();
+var _lastCarrierTick = -1;
+
+// Constrain N-Well majority electrons outside P+ S/D, P-SDE, implanted P-channel & junction depletion width wDep
+function constrainHoleOutsidePIsland(hx, hy, hz, halfL, halfD, wDep, yMin, nySeed, jitterY) {
+  var maxX = halfL + 5.318;
+  var maxZ = halfD + 0.018;
+
+  var cx = Math.max(-maxX, Math.min(maxX, hx));
+  var cz = Math.max(-maxZ, Math.min(maxZ, hz));
+  var dx = hx - cx;
+  var dz = hz - cz;
+
+  var yTop = Y.wellTop + 0.001;
+  var depth = getIslandDepthAtX(cx, halfL);
+  var yBot = yTop - depth;
+  var dy = hy < yBot ? (hy - yBot) : 0.0;
+
+  var dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (dist < 0.025) {
+    var floorCeil = Math.max(yMin + 0.12, yBot - wDep - 0.10);
+    hy = yMin + nySeed * Math.max(0.08, floorCeil - yMin) + jitterY * 0.6;
+  } else if (dist < wDep) {
+    var push = (wDep + 0.04) / dist;
+    hx = cx + dx * push;
+    if (hy < yBot) {
+      hy = Math.max(yMin, yBot + dy * push);
+    }
+    hz = cz + dz * push;
+  }
+  return [hx, hy, hz];
+}
+
+window.updateSubGateCarriers = function(elapsedTime) {
+  var t = typeof elapsedTime === 'number' ? elapsedTime : 0;
+  if (t > 0 && Math.abs(t - _lastCarrierTick) < 0.008) return;
+  _lastCarrierTick = t;
+
+  if (!window.showSubstrateHoles || !groups['well'] || groups['well'].visible === false) {
+    holeInstMesh.visible = false;
+    holeInstMesh.count = 0;
+    return;
+  }
+
+  var phys = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
+  var vgs = phys ? phys.vgs : 0.0;
+  var vsd = phys ? phys.vsd : 0.8;
+  var vthAbs = phys ? Math.max(0.25, Math.abs(phys.vth)) : 0.80;
+
+  var halfL = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.halfL : 1.0;
+  var curActD = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.actD : 9.2;
+  var halfD = curActD * 0.5;
+  var curTapX = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.tapX : -6.5;
+  var curTapZ = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.tapZ : (halfD + 1.6);
+
+  var wellHalfW = (typeof wellMesh !== 'undefined' && wellMesh && wellMesh.scale) ? (9.0 * wellMesh.scale.x) : 9.0;
+  var wellHalfD = (typeof wellMesh !== 'undefined' && wellMesh && wellMesh.scale) ? (8.0 * wellMesh.scale.z) : 8.0;
+
+  var areaScale = Math.min(1.0, (wellHalfW * wellHalfD) / (13.0 * 12.0));
+  var activeHoles = Math.max(280, Math.min(MAX_BULK_HOLES, Math.round(280 + 180 * areaScale)));
+
+  var gateDepl = (vgs > 0) ? Math.min(1.0, Math.max(0, vgs / vthAbs)) : 0.0;
+  var vsdNorm = Math.sqrt(Math.max(0, vsd) / 1.8);
+
+  var yMin = Y.wellBot + 0.16;
+  var yInterface = Y.wellTop - 0.08;
+
+  holeInstMesh.visible = true;
+  holeInstMesh.count = activeHoles;
+
+  for (var i = 0; i < activeHoles; i++) {
+    var hs = holeSeeds[i];
+    var jx = 0.032 * Math.sin(t * 2.1 + hs.phase);
+    var jy = 0.020 * Math.cos(t * 2.5 + hs.phase * 1.31);
+    var jz = 0.032 * Math.sin(t * 1.9 + hs.phase * 0.77);
+
+    var hx = (hs.nx - 0.5) * 2.0 * (wellHalfW - 0.55) + jx;
+    var hz = (hs.nz - 0.5) * 2.0 * (wellHalfD - 0.55) + jz;
+    var hy = yMin + hs.ny * (yInterface - yMin) + jy;
+
+    // Exclude N+ Well Tap pocket
+    if (Math.abs(hx - curTapX) < 1.32 && Math.abs(hz - curTapZ) < 1.32 && hy >= (Y.actBot - 0.18)) {
+      var tapFloor = Math.max(yMin + 0.10, Y.actBot - 0.18);
+      hy = yMin + hs.ny * (tapFloor - yMin) + jy * 0.6;
+    }
+
+    // Match wrap-around PN junction depletion width around P+ S/D, P-LDD & implanted P-channel
+    var drainWeight = deplSmoothstep(-0.80 * halfL, halfL + 1.40, hx);
+    var gateBulge = 0.22 * gateDepl * (1.0 - deplSmoothstep(Math.max(0.10, halfL - 0.05), halfL + 0.45, Math.abs(hx)));
+    var drainBulge = 0.40 * vsdNorm * drainWeight;
+    var wDep = 0.24 + gateBulge + drainBulge;
+
+    var res = constrainHoleOutsidePIsland(hx, hy, hz, halfL, halfD, wDep, yMin, hs.ny, jy);
+    hx = res[0]; hy = res[1]; hz = res[2];
+
+    // Push sub-gate N-Well majority electrons slightly deeper under depletion/drain expansion or enhancement channel widening
+    var absHx = Math.abs(hx);
+    var absHz = Math.abs(hz);
+    if ((gateDepl > 0.02 || vgs < -0.05) && absHx <= (halfL + 0.28) && absHz <= (halfD + 0.20)) {
+      var maskX = 1.0 - deplSmoothstep(halfL * 0.85, halfL + 0.28, absHx);
+      var maskZ = 1.0 - deplSmoothstep(halfD * 0.88, halfD + 0.20, absHz);
+      var extraPush = (gateDepl > 0.02) ? (0.34 * gateDepl) : (0.18 * Math.min(1.0, -vgs / 1.0));
+      var yCeil = Math.max(yMin + 0.16, yInterface - (0.58 + extraPush) * maskX * maskZ);
+      if (hy > yCeil) {
+        var frac = Math.max(0, Math.min(1, (hy - yMin) / Math.max(0.1, yInterface - yMin)));
+        hy = yMin + frac * (yCeil - yMin);
+      }
+    }
+
+    hx = Math.max(-(wellHalfW - 0.40), Math.min(wellHalfW - 0.40, hx));
+    hz = Math.max(-(wellHalfD - 0.40), Math.min(wellHalfD - 0.40, hz));
+    hy = Math.max(yMin, Math.min(yInterface, hy));
+
+    _carrierDummy.position.set(hx, hy, hz);
+    _carrierDummy.rotation.set(0, 0, 0);
+    _carrierDummy.scale.set(1, 1, 1);
+    if (typeof _carrierDummy.updateMatrix === 'function') _carrierDummy.updateMatrix();
+    holeInstMesh.setMatrixAt(i, _carrierDummy.matrix);
+  }
+
+  if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
+};
+

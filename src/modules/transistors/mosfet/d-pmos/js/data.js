@@ -76,15 +76,15 @@ var INFO = {
   channel: {
     title: 'IMPLANTED P-CHANNEL (DEPLETION MODE)',
     fn: 'Permanently implanted shallow P-type channel layer inside the N-Well beneath the gate dielectric bridging P+ Source and P+ Drain.',
-    role: 'Provides a pre-existing mobile hole conductive path at zero gate bias (VGS = 0V, Normally ON with VTH,p = +0.80V). Applying a positive gate voltage (0 < VGS < +0.80V) operates in Depletion Mode, electrostatically thinning the channel of holes until full pinch-off/cutoff at VGS ≥ +0.80V. Applying a negative gate bias (VGS < 0V) operates in Enhancement Mode, accumulating extra holes and increasing channel conductivity.',
-    conn: 'Permanently implanted conductive p-bridge between P+ Source and P+ Drain.',
-    rel: 'Doped with Acceptor impurities (e.g. Boron ion implant, Na ≈ 2×10¹⁷ cm⁻³) directly into the top surface of the N-Well before gate dielectric growth.',
+    role: 'Provides a pre-existing mobile hole conductive path at zero gate bias (VGS = 0V, Normally ON with positive VTH,p ≈ +0.80V baseline scaled dynamically by t_ox, L roll-off, and DIBL). Positive VGS (0 < VGS < VTH,p) operates in Depletion Mode until full pinch-off at VGS >= VTH,p; negative VGS (< 0V) operates in Enhancement Mode.',
+    conn: 'Permanently implanted conductive P-bridge between P+ Source and P+ Drain.',
+    rel: 'Doped with Acceptor impurities (Boron ion implant, Na ≈ 2×10¹⁷ cm⁻³) directly into the N-Well surface beneath the gate oxide.',
     doping: 'P-type shallow channel implant — Acceptor Boron (Na ≈ 2×10¹⁷ cm⁻³)'
   },
   depletion: {
     title: 'DEPLETION REGION (SPACE-CHARGE ENVELOPE)',
     fn: 'Continuous ionized space-charge region wrapping the P+ Source/Drain PN junctions, P-LDD extensions, and P-channel underside inside the N-Well, plus gate/pinch-off depletion inside the implanted channel.',
-    role: 'At VGS = 0V, VSD = 0V it forms a thin built-in junction envelope. Negative VGS (enhancement) thickens the P-channel while retaining the bottom junction envelope; positive VGS expands depletion into the channel until cutoff at VTH,p = +0.80V; increasing VSD bulges the Drain-side depletion bulb and shifts Leff toward Source.',
+    role: 'At VGS = 0V, VSD = 0V it forms a thin built-in junction envelope. Negative VGS (enhancement) thickens the P-channel while retaining the bottom junction envelope; positive VGS expands depletion into the channel until cutoff at VTH,p; increasing VSD bulges the Drain-side depletion bulb and shifts Leff = L - ΔL toward Source.',
     conn: 'Surrounds P+ Source, P-SDE, Implanted P-Channel, and P+ Drain inside the N-Well.',
     rel: 'Separates the P-type active regions from the N-Well bulk and modulates effective channel length Leff = L - ΔL.',
     doping: 'Ionized fixed dopant space-charge zone (depleted of mobile carriers)'
@@ -192,9 +192,9 @@ var INFO = {
     rel: 'Current flows from Source to Drain when channel is active.'
   },
   gateRail: {
-    title: 'GATE INPUT PAD (G / VG / VSG)',
-    fn: 'Metal-1 terminal pad supplying continuous input gate bias VSG (0.00V to 1.80V) where VG = VDD - VSG.',
-    role: 'Controls channel inversion: Cutoff when VSG < |VTH,p| (0.40V), Linear/Triode when VSD < VSG - |VTH,p|, and Saturation when VSD ≥ VSG - |VTH,p|.',
+    title: 'GATE INPUT PAD (G / VG)',
+    fn: 'Metal-1 terminal pad supplying continuous gate bias VGS (-1.00V to +1.20V) modulating the implanted P-channel.',
+    role: 'Controls dual-mode conduction: Cutoff when VGS >= VTH,p, Depletion Mode for 0 < VGS < VTH,p, Normally ON at VGS = 0V, and Enhancement accumulation for VGS < 0V.',
     conn: 'Drives gate electrode via tungsten contact plug.',
     rel: 'Purely capacitive terminal — draws near-zero DC steady-state current.'
   },

@@ -150,7 +150,7 @@ if (btnPresetSide) {
   });
 }
 
-// Label toggle checkbox
+// Label & Bulk Carrier toggle checkboxes
 var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
 if (toggleLabelsChk) {
   toggleLabelsChk.addEventListener('change', function(e) {
@@ -160,6 +160,18 @@ if (toggleLabelsChk) {
   });
   if (typeof window.toggleLabels === 'function') {
     window.toggleLabels(toggleLabelsChk.checked);
+  }
+}
+
+var toggleHolesChk = document.getElementById('toggle-holes');
+if (toggleHolesChk) {
+  toggleHolesChk.addEventListener('change', function(e) {
+    if (typeof window.toggleSubstrateHoles === 'function') {
+      window.toggleSubstrateHoles(e.target.checked);
+    }
+  });
+  if (typeof window.toggleSubstrateHoles === 'function') {
+    window.toggleSubstrateHoles(toggleHolesChk.checked);
   }
 }
 

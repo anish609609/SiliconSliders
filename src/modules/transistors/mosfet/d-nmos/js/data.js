@@ -67,15 +67,15 @@ var INFO = {
   channel: {
     title: 'IMPLANTED N-CHANNEL (DEPLETION)',
     fn: 'Permanently implanted shallow N-type donor layer (Arsenic/Phosphorus dopant, Nd ≈ 2×10¹⁷ cm⁻³) connecting Source and Drain beneath the gate dielectric.',
-    role: 'Provides built-in electron conduction at zero gate bias (VGS = 0V, Normally ON). Applying a negative gate bias (VGS < 0) depletes conduction electrons until the channel completely pinches off / quenches at threshold VTH = -0.80V (Cutoff). Applying a positive gate bias (VGS > 0) operates in Enhancement mode, attracting extra electrons and boosting current.',
-    conn: 'Permanently bridges N+ Source (S) and N+ Drain (D) across channel length L.',
-    rel: 'Modulated by gate potential: depleted for -0.80V < VGS < 0V, fully quenched in Cutoff (VGS ≤ -0.80V), and enhanced for VGS > 0V.',
+    role: 'Provides built-in electron conduction at zero gate bias (VGS = 0V, Normally ON). Negative gate bias (VGS < 0) depletes conduction electrons until complete cutoff below VTH (long-channel VTH0 ≈ -0.80V, shifted by tox & short-channel roll-off/DIBL). Positive VGS operates in Enhancement mode.',
+    conn: 'Permanently bridges N+ Source (S) and N+ Drain (D) across tunable channel length L.',
+    rel: 'Modulated dynamically by VGS, VDS, L, W, and tox.',
     doping: 'N-type implanted layer — Nd ≈ 2×10¹⁷ cm⁻³ (Arsenic/Phosphorus ion implant)'
   },
   depletion: {
     title: 'DEPLETION REGION (SPACE-CHARGE ENVELOPE)',
     fn: 'Continuous ionized space-charge region wrapping the N+ Source/Drain PN junctions, LDD extensions, and channel underside, plus the gate/pinch-off depletion zone inside the implanted N-channel.',
-    role: 'At VGS = 0V, VDS = 0V it forms a thin built-in junction envelope. Negative VGS expands depletion across the channel until full pinch-off at VTH = -0.80V; positive VDS widens the envelope asymmetrically around the Drain well and drain-side pinch-off gap ΔL.',
+    role: 'At VGS = 0V, VDS = 0V it forms a thin built-in junction envelope. Negative VGS expands depletion across the channel until full pinch-off at VGS ≤ VTH; positive VDS widens the envelope asymmetrically around the Drain well and drain-side pinch-off gap ΔL.',
     conn: 'Surrounds N+ Source, N-SDE, Implanted N-Channel, and N+ Drain inside the P-substrate.',
     rel: 'Separates the N-type active regions from the neutral P-substrate bulk and modulates effective channel length Leff = L - ΔL.',
     doping: 'Ionized fixed dopant space-charge zone (depleted of mobile carriers)'

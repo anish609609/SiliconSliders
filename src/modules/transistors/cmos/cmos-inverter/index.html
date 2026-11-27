@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
 <link rel="stylesheet" href="../../../../shared/css/guided-tour.css">
+<link rel="stylesheet" href="../../../../shared/css/param-info-modal.css">
 <script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
@@ -162,16 +163,21 @@
             </div>
             <div class="seg wb-presets" id="region-preset-seg">
               <button data-preset="0" class="dp-preset-btn" title="VIN = 0.00V (GND) -> OUT = 1.00V (VDD)">0 (GND)</button>
-              <button data-preset="vm" class="dp-preset-btn" title="VIN = 0.50V (Switching Threshold VM)">VM (0.5V)</button>
+              <button data-preset="vm" class="dp-preset-btn" title="VIN = VM (Live Switching Threshold)">V<sub>M</sub></button>
               <button data-preset="1" class="dp-preset-btn" title="VIN = 1.00V (VDD) -> OUT = 0.00V (GND)">1 (VDD)</button>
               <button data-preset="off" class="dp-preset-btn active" title="Input Disconnected (High-Z Floating)">OFF (High-Z)</button>
             </div>
 
             <!-- Voltage Input Slider (VIN) -->
             <div class="wb-bias-controls">
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-vin">
                 <div class="dp-slider-lbl">
-                  <label for="vin-slider">V<sub>IN</sub> (Input Bias)</label>
+                  <span class="dp-lbl-group">
+                    <label for="vin-slider">V<sub>IN</sub> (Input Bias)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="vin" aria-label="About VIN (Input Bias)" aria-expanded="false" title="Input Voltage info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="vin-val">OFF</span>
                 </div>
                 <input type="range" id="vin-slider" min="0" max="1.0" step="0.01" value="0.00" title="CMOS Input Voltage VIN">
@@ -180,14 +186,19 @@
 
             <!-- Live VTC & Switching Graph -->
             <div class="iv-canvas-wrap">
-              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand VTC graph" aria-label="Expand VTC graph">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <polyline points="9 21 3 21 3 15"></polyline>
-                  <line x1="21" y1="3" x2="14" y2="10"></line>
-                  <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-              </button>
+              <div class="iv-graph-header">
+                <span class="iv-graph-title">VTC &amp; SHOOT-THROUGH I<sub>DD</sub></span>
+                <div class="iv-header-actions">
+                  <button type="button" class="iv-expand-btn" id="iv-expand-btn" title="Expand VTC graph" aria-label="Expand VTC graph">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <polyline points="9 21 3 21 3 15"></polyline>
+                      <line x1="21" y1="3" x2="14" y2="10"></line>
+                      <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
               <canvas id="iv-canvas" width="310" height="225"></canvas>
               <div class="iv-canvas-hint">Drag or click on VTC curve to set V<sub>IN</sub> and modulate inverter state</div>
             </div>
@@ -205,19 +216,31 @@
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">V<sub>M</sub></span>
-                  <span class="iv-v">0.50 V</span>
+                  <span class="iv-v" id="iv-vm-readout">0.50 V</span>
                 </div>
                 <div class="iv-item">
-                  <span class="iv-k">I<sub>DD</sub></span>
-                  <span class="iv-v" id="iv-idd-readout">0.00 mA</span>
+                  <span class="iv-k">W<sub>p</sub> / W<sub>n</sub></span>
+                  <span class="iv-v" id="iv-ratio-readout">2.00</span>
                 </div>
                 <div class="iv-item">
-                  <span class="iv-k">NMOS REGION</span>
+                  <span class="iv-k">NM<sub>H</sub></span>
+                  <span class="iv-v" id="iv-nmh-readout">0.41 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">NM<sub>L</sub></span>
+                  <span class="iv-v" id="iv-nml-readout">0.41 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">NMOS</span>
                   <span class="iv-v" id="iv-nmos-reg-readout">CUTOFF</span>
                 </div>
                 <div class="iv-item">
-                  <span class="iv-k">PMOS REGION</span>
+                  <span class="iv-k">PMOS</span>
                   <span class="iv-v" id="iv-pmos-reg-readout">CUTOFF</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">I<sub>DD</sub></span>
+                  <span class="iv-v" id="iv-idd-readout">0.0 µA</span>
                 </div>
               </div>
               <div class="iv-state-line">
@@ -229,6 +252,60 @@
             <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
             <div style="display:none;" id="state-badge">
               <span id="badge-in"></span><span id="badge-pmos"></span><span id="badge-nmos"></span><span id="badge-out"></span><button id="status-toggle"></button>
+            </div>
+          </div>
+
+          <!-- Device Geometry & β-Ratio Sizing (Collapsible accordion section below VTC and above View Controls) -->
+          <div class="wb-accordion-section" id="wb-geometry-section">
+            <div class="wb-accordion-head" data-target="device-geometry-body">
+              <span class="wb-accordion-title">DEVICE GEOMETRY</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="device-geometry-body">
+              <div class="geom-presets" id="geom-preset-group" role="group" aria-label="CMOS Inverter Geometry Presets">
+                <button type="button" class="geom-preset-btn active" data-geom-preset="balanced" title="Wp = 240 nm, Wn = 120 nm, L = 28 nm (Symmetric VM ≈ VDD/2)">Balanced (2:1)</button>
+                <button type="button" class="geom-preset-btn" data-geom-preset="minarea" title="Wp = 120 nm, Wn = 120 nm, L = 28 nm (Minimum area; shifts VM left)">Min Area (1:1)</button>
+                <button type="button" class="geom-preset-btn" data-geom-preset="skewed" title="Wp = 360 nm, Wn = 120 nm, L = 28 nm (PMOS-skewed; shifts VM right)">PMOS-Skewed</button>
+              </div>
+
+              <div class="dp-slider-row param-theme-wp">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-wp-slider">PMOS Width (W<sub>p</sub>)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomWp" aria-label="About PMOS Width (Wp)" aria-expanded="false" title="PMOS Width info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-wp-val">240 nm</span>
+                </div>
+                <input type="range" id="geom-wp-slider" min="60" max="400" step="10" value="240" title="PMOS Pull-Up Channel Width Wp (nm)">
+              </div>
+
+              <div class="dp-slider-row param-theme-wn">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-wn-slider">NMOS Width (W<sub>n</sub>)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomWn" aria-label="About NMOS Width (Wn)" aria-expanded="false" title="NMOS Width info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-wn-val">120 nm</span>
+                </div>
+                <input type="range" id="geom-wn-slider" min="60" max="400" step="10" value="120" title="NMOS Pull-Down Channel Width Wn (nm)">
+              </div>
+
+              <div class="dp-slider-row param-theme-l">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-l-slider">Channel Length (L)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomL" aria-label="About Channel Length (L)" aria-expanded="false" title="Channel Length info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-l-val">28 nm</span>
+                </div>
+                <input type="range" id="geom-l-slider" min="20" max="200" step="2" value="28" title="Shared Polysilicon Gate Length L (nm)">
+              </div>
             </div>
           </div>
 
@@ -270,6 +347,13 @@
                 <label class="dp-checkbox-label">
                   <input type="checkbox" id="toggle-labels" checked>
                   <span>Show 3D Floating Labels</span>
+                </label>
+              </div>
+              <!-- Bulk Carriers Checkbox (Default OFF) -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="toggle-holes">
+                  <span>Show Bulk Carriers</span>
                 </label>
               </div>
             </div>
@@ -664,12 +748,28 @@
           <!-- Section 6: Sizing & Euler Path -->
           <article id="inv-sizing" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">6. Euler Path Layout &amp; Lambda Design Rules</h3>
-              <span class="theory-card-tag">Diffusion Sharing, Contact Spacing, SDE Overlap</span>
+              <h3 class="theory-card-title">6. Transistor β-Ratio Sizing, Short-Channel Scaling &amp; Euler Layout</h3>
+              <span class="theory-card-tag">Wp/Wn Symmetry, L Scaling &amp; Latchup Rules</span>
             </div>
             <p class="theory-p">
-              In physical VLSI layout, PMOS and NMOS active areas are aligned in parallel strips under a continuous vertical polysilicon gate wire. Placing N-well and P-substrate taps at regular pitch satisfies Mead-Conway lambda design rules and completely suppresses parasitic latchup.
+              Because electron mobility is roughly twice hole mobility (&mu;<sub>n</sub> &approx; 2.0 &mu;<sub>p</sub>), equal-width transistors (<code>W<sub>p</sub>/W<sub>n</sub> = 1:1</code>) produce an NMOS-strong inverter whose switching threshold <code>V<sub>M</sub></code> shifts below <code>V<sub>DD</sub>/2</code>. Sizing PMOS to <code>W<sub>p</sub> &approx; 2 W<sub>n</sub></code> matches pull-up and pull-down transconductances (&beta;<sub>p</sub> = &beta;<sub>n</sub>), centering <code>V<sub>M</sub> &approx; 0.50 V</code> and maximizing symmetric noise margins <code>NM<sub>H</sub> &approx; NM<sub>L</sub></code>.
             </p>
+            <div class="theory-grid-2">
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Live Switching Threshold V<sub>M</sub></span>
+                <p class="theory-subcard-desc">Adjusting <code>W<sub>p</sub></code> vs <code>W<sub>n</sub></code> dynamically shifts the VTC transition midpoint:</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-cyan);">
+                  V<sub>M</sub> = [V<sub>THn</sub> + &radic;(&beta;<sub>p</sub>/&beta;<sub>n</sub>)(V<sub>DD</sub> &minus; |V<sub>THp</sub>|)] / [1 + &radic;(&beta;<sub>p</sub>/&beta;<sub>n</sub>)]
+                </div>
+              </div>
+              <div class="theory-subcard">
+                <span class="theory-subcard-title">Channel Length L &amp; Euler Stick Cell</span>
+                <p class="theory-subcard-desc">Shorter <code>L</code> lowers <code>|V<sub>TH</sub>|</code> (SCE roll-off) and raises &lambda; &prop; 1/L, softening VTC slope; twin-well N+/P+ guard taps prevent latchup.</p>
+                <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; margin-top:4px; color:var(--v-accent-purple);">
+                  &beta; = &mu; C<sub>ox</sub> (W / L), &nbsp; |A<sub>v</sub>| &prop; 1 / &lambda; &prop; L
+                </div>
+              </div>
+            </div>
           </article>
         </div>
       </div>
@@ -714,7 +814,7 @@
         <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
           <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
           <div class="scale-note-popover-body">
-            Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are not design-rule compliant — topology and functional relationships are physically meaningful.
+            PMOS width (W<sub>p</sub>: 60–400 nm), NMOS width (W<sub>n</sub>: 60–400 nm), and shared gate length (L: 20–200 nm) scale smoothly in 3D alongside live &beta;<sub>p</sub>/&beta;<sub>n</sub> VTC physics. Vertical thicknesses remain exaggerated and sidewall spacing illustrative rather than a DRC sign-off PDK deck.
           </div>
         </div>
       </div>
@@ -834,10 +934,13 @@
           <canvas id="iv-modal-canvas" width="560" height="380"></canvas>
         </div>
         <div class="iv-modal-footer">
-          <div class="iv-modal-hint">Drag or click anywhere on the VTC curve to modulate V<sub>IN</sub> and set operating point. Fully synced with sliders &amp; 3D model.</div>
+          <div class="iv-modal-hint">Drag or click anywhere on the VTC curve to modulate V<sub>IN</sub> and set operating point. Fully synced with geometry sliders &amp; 3D model.</div>
           <div class="iv-modal-readouts">
             <span class="iv-m-item">V<sub>IN</sub> = <b id="iv-m-vin">0.00 V</b></span>
             <span class="iv-m-item">V<sub>OUT</sub> = <b id="iv-m-vout">1.00 V</b></span>
+            <span class="iv-m-item">V<sub>M</sub> = <b id="iv-m-vm">0.50 V</b></span>
+            <span class="iv-m-item">W<sub>p</sub>/W<sub>n</sub> = <b id="iv-m-ratio">2.00</b></span>
+            <span class="iv-m-item">NM<sub>H</sub>/NM<sub>L</sub> = <b id="iv-m-nm">0.41 / 0.41 V</b></span>
             <span class="iv-m-item">NMOS: <b id="iv-m-nmos-reg">CUTOFF</b></span>
             <span class="iv-m-item">PMOS: <b id="iv-m-pmos-reg">LINEAR</b></span>
           </div>
@@ -934,6 +1037,7 @@
 <script src="js/dimensions.js"></script>
 <script src="js/view-mode.js"></script>
 <script src="js/flow.js"></script>
+<script src="../../../../shared/js/param-info-modal.js"></script>
 <script src="js/logic-state.js"></script>
 <script src="js/build-anim.js"></script>
 <script src="js/render-loop.js"></script>

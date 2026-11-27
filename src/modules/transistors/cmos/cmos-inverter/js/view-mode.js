@@ -117,6 +117,20 @@ if (toggleLabelsChk) {
   }
 }
 
+// Bulk Carriers Checkbox (Default OFF)
+var toggleHolesChk = document.getElementById('toggle-holes');
+if (toggleHolesChk) {
+  toggleHolesChk.checked = false;
+  toggleHolesChk.addEventListener('change', function(e) {
+    if (typeof window.toggleSubstrateHoles === 'function') {
+      window.toggleSubstrateHoles(e.target.checked);
+    }
+  });
+  if (typeof window.toggleSubstrateHoles === 'function') {
+    window.toggleSubstrateHoles(false);
+  }
+}
+
 // Camera reset button wiring
 var btnReset = document.getElementById('btn-reset-cam');
 if (btnReset) {

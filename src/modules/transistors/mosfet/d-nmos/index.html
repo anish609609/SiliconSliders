@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
 <link rel="stylesheet" href="../../../../shared/css/guided-tour.css">
+<link rel="stylesheet" href="../../../../shared/css/param-info-modal.css">
 <script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
@@ -140,26 +141,32 @@
               <span class="wb-section-title">OPERATING REGION</span>
             </div>
             <div class="seg wb-presets dp-presets" id="region-preset-seg">
-              <button data-preset="cutoff" class="dp-preset-btn" title="VGS = -1.0V (Channel Quenched / Cutoff)">CUTOFF</button>
-              <button data-preset="depletion" class="dp-preset-btn" title="VGS = -0.4V (Depletion Mode, VGS &lt; 0)">DEPLETION</button>
-              <button data-preset="zero" class="dp-preset-btn active" title="VGS = 0.0V (Normally-ON Conduction)">ZERO BIAS</button>
-              <button data-preset="enhancement" class="dp-preset-btn" title="VGS = +0.8V (Enhancement Mode, VGS &gt; 0)">ENHANCE</button>
+              <button data-preset="cutoff" class="dp-preset-btn" title="VGS = -1.20V (Channel Pinched Off / Cutoff)">CUTOFF</button>
+              <button data-preset="depletion" class="dp-preset-btn" title="VGS = -0.40V (Depletion Mode, VGS &lt; 0)">DEPLETION</button>
+              <button data-preset="zero" class="dp-preset-btn active" title="VGS = 0.00V (Normally-ON Conduction)">ZERO BIAS</button>
+              <button data-preset="enhancement" class="dp-preset-btn" title="VGS = +0.80V (Enhancement Mode, VGS &gt; 0)">ENHANCE</button>
             </div>
 
             <!-- Voltage Bias Sliders (VGS & VDS) -->
             <div class="wb-bias-controls dp-bias-controls">
               <div class="dp-slider-row">
                 <div class="dp-slider-lbl">
-                  <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
-                  <span class="dp-slider-val" id="vgs-val">0.00V</span>
+                  <span class="dp-lbl-group">
+                    <label for="vgs-slider">V<sub>GS</sub> (Gate Bias)</label>
+                    <button type="button" class="param-info-btn param-theme-vgs" data-info-modal="vgs" aria-label="Gate-to-Source Voltage details" title="About V_GS">&#9432;</button>
+                  </span>
+                  <span class="dp-slider-val" id="vgs-val">+0.00 V</span>
                 </div>
-                <input type="range" id="vgs-slider" min="-1.20" max="1.00" step="0.05" value="0.00" title="Gate-to-Source Voltage VGS (-1.2V to +1.0V)">
+                <input type="range" id="vgs-slider" min="-1.20" max="1.00" step="0.05" value="0.00" title="Gate-to-Source Voltage VGS (-1.20V to +1.00V)">
               </div>
 
               <div class="dp-slider-row">
                 <div class="dp-slider-lbl">
-                  <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
-                  <span class="dp-slider-val" id="vds-val">0.80V</span>
+                  <span class="dp-lbl-group">
+                    <label for="vds-slider">V<sub>DS</sub> (Drain Bias)</label>
+                    <button type="button" class="param-info-btn param-theme-vds" data-info-modal="vds" aria-label="Drain-to-Source Voltage details" title="About V_DS">&#9432;</button>
+                  </span>
+                  <span class="dp-slider-val" id="vds-val">0.80 V</span>
                 </div>
                 <input type="range" id="vds-slider" min="0" max="1.8" step="0.05" value="0.80" title="Drain-to-Source Voltage VDS (0V to 1.8V)">
               </div>
@@ -167,16 +174,22 @@
 
             <!-- Live IDS vs VDS Graph -->
             <div class="iv-canvas-wrap">
-              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand graph" aria-label="Expand graph">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <polyline points="9 21 3 21 3 15"></polyline>
-                  <line x1="21" y1="3" x2="14" y2="10"></line>
-                  <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-              </button>
+              <div class="iv-graph-header">
+                <span class="iv-graph-title">I<sub>D</sub> – V<sub>DS</sub> OUTPUT CURVES</span>
+                <div class="iv-header-actions">
+                  <button type="button" class="iv-lock-btn" id="iv-lock-y" aria-pressed="false" title="Lock Y-axis maximum scale to compare scaling runs directly">Lock Y</button>
+                  <button class="iv-expand-btn" id="iv-expand-btn" title="Expand graph" aria-label="Expand graph">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <polyline points="9 21 3 21 3 15"></polyline>
+                      <line x1="21" y1="3" x2="14" y2="10"></line>
+                      <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
               <canvas id="iv-canvas" width="310" height="225"></canvas>
-              <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>DS</sub>, I<sub>DS</sub>)</div>
+              <div class="iv-canvas-hint">Drag or click on graph to set operating point (V<sub>DS</sub>, I<sub>D</sub>)</div>
             </div>
 
             <!-- Telemetry & Readouts -->
@@ -184,7 +197,7 @@
               <div class="iv-grid">
                 <div class="iv-item">
                   <span class="iv-k">V<sub>GS</sub></span>
-                  <span class="iv-v" id="iv-vgs-readout">0.00 V</span>
+                  <span class="iv-v" id="iv-vgs-readout">+0.00 V</span>
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">V<sub>DS</sub></span>
@@ -192,34 +205,89 @@
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">V<sub>TH</sub></span>
-                  <span class="iv-v">-0.80 V</span>
+                  <span class="iv-v" id="iv-vth-readout">-0.91 V</span>
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">V<sub>OV</sub></span>
-                  <span class="iv-v" id="iv-vov-readout">0.80 V</span>
+                  <span class="iv-v" id="iv-vov-readout">0.91 V</span>
                 </div>
                 <div class="iv-item">
-                  <span class="iv-k">I<sub>DS</sub></span>
-                  <span class="iv-v" id="iv-ids-readout">0.21 mA</span>
+                  <span class="iv-k">W / L</span>
+                  <span class="iv-v" id="iv-wl-readout">4.29</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">I<sub>D</sub></span>
+                  <span class="iv-v" id="iv-ids-readout">1.45 mA</span>
                 </div>
                 <div class="iv-item">
                   <span class="iv-k">L<sub>eff</sub></span>
-                  <span class="iv-v" id="iv-leff-readout">28.0 nm</span>
+                  <span class="iv-v" id="iv-leff-readout">23.5 nm</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">V<sub>Dsat</sub></span>
+                  <span class="iv-v" id="iv-vdsat-readout">0.12 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">&Delta;L</span>
+                  <span class="iv-v" id="iv-dl-readout">4.5 nm</span>
                 </div>
               </div>
               <div class="iv-state-line">
                 <span class="iv-k">STATE:</span>
-                <span class="iv-v-state" id="iv-state-desc">Zero bias (VGS = 0V) · Normally-ON conduction · Pinch-off</span>
+                <span class="iv-v-state" id="iv-state-desc">ZERO BIAS · SATURATION (Normally ON · Pinch-off)</span>
               </div>
-            </div>
-
-            <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
-            <div style="display:none;" id="state-badge">
-              <span id="badge-vgs"></span><span id="badge-state"></span><span id="badge-chan"></span><span id="badge-ids"></span><span id="region-badge"></span>
             </div>
           </div>
 
-          <!-- View Controls (Collapsible accordion section directly below Physics & Graph) -->
+          <!-- Device Geometry Scaling Sandbox (Collapsible) -->
+          <div class="wb-accordion-section" id="wb-geometry-section">
+            <div class="wb-accordion-head" data-target="device-geometry-body">
+              <span class="wb-accordion-title">DEVICE GEOMETRY</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="device-geometry-body">
+              <div class="geom-presets" id="geom-presets">
+                <button type="button" class="geom-preset-btn active" data-l="28" data-w="120" data-tox="2.0" title="Default 28nm short-channel baseline (L=28nm, W=120nm, tox=2.0nm)">28nm Short-Ch</button>
+                <button type="button" class="geom-preset-btn" data-l="180" data-w="180" data-tox="4.0" title="Long-channel planar baseline with minimal SCE (L=180nm, W=180nm, tox=4.0nm)">180nm Long-Ch</button>
+                <button type="button" class="geom-preset-btn" data-l="28" data-w="360" data-tox="1.4" title="Wide thin-oxide high-drive device (L=28nm, W=360nm, tox=1.4nm)">High-Drive</button>
+              </div>
+
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-l-slider">Channel Length (L)</label>
+                    <button type="button" class="param-info-btn param-theme-l" data-info-modal="geomL" aria-label="Channel Length details" title="About Channel Length L">&#9432;</button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-l-val">28 nm</span>
+                </div>
+                <input type="range" id="geom-l-slider" min="20" max="200" step="2" value="28" title="Channel Length L (20 nm to 200 nm)">
+              </div>
+
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-w-slider">Channel Width (W)</label>
+                    <button type="button" class="param-info-btn param-theme-w" data-info-modal="geomW" aria-label="Channel Width details" title="About Channel Width W">&#9432;</button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-w-val">120 nm</span>
+                </div>
+                <input type="range" id="geom-w-slider" min="40" max="400" step="10" value="120" title="Channel Width W (40 nm to 400 nm)">
+              </div>
+
+              <div class="dp-slider-row">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-tox-slider">Gate Oxide (t<sub>ox</sub>)</label>
+                    <button type="button" class="param-info-btn param-theme-tox" data-info-modal="geomTox" aria-label="Gate Oxide Thickness details" title="About Gate Oxide t_ox">&#9432;</button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-tox-val">2.0 nm</span>
+                </div>
+                <input type="range" id="geom-tox-slider" min="1.2" max="10.0" step="0.2" value="2.0" title="Gate Oxide Thickness t_ox (1.2 nm to 10.0 nm)">
+              </div>
+            </div>
+          </div>
+
+          <!-- View Controls (Collapsible accordion section directly below Device Geometry) -->
           <div class="wb-accordion-section" id="wb-view-controls-section">
             <div class="wb-accordion-head" data-target="view-controls-body">
               <span class="wb-accordion-title">VIEW CONTROLS</span>
@@ -252,11 +320,15 @@
 
               <div class="vh-sep"></div>
 
-              <!-- 3D Floating Labels Checkbox -->
+              <!-- 3D Floating Labels & Bulk Carriers Checkboxes -->
               <div class="dp-section dp-labels-toggle-row">
                 <label class="dp-checkbox-label">
                   <input type="checkbox" id="toggle-labels" checked>
                   <span>Show 3D Floating Labels</span>
+                </label>
+                <label class="dp-checkbox-label" style="margin-top:6px;">
+                  <input type="checkbox" id="toggle-holes">
+                  <span>Show Bulk Carriers</span>
                 </label>
               </div>
             </div>
@@ -487,23 +559,23 @@
           <article id="dnmos-structure" class="theory-card">
             <div class="theory-card-header">
               <h3 class="theory-card-title">1. Device Architecture, Doping &amp; Normally-ON Conduction</h3>
-              <span class="theory-card-tag">Implanted N-Layer, IDSS = 0.21 mA, VTH = -0.80V</span>
+              <span class="theory-card-tag">Implanted N-Layer · Tunable L, W &amp; tox · Normally ON (VTH &lt; 0)</span>
             </div>
             <p class="theory-p">
-              The <b>Depletion N-Channel MOSFET (D-NMOS)</b> features a shallow donor-doped N-channel layer intentionally pre-implanted beneath the gate oxide into the P-type silicon substrate (donor implant dose <code>Φ<sub>D</sub> ≈ 1×10¹² cm⁻²</code>). This metallurgical layer provides a permanent conductive highway connecting the heavily doped N+ Source and Drain regions even with <b>zero gate-to-source bias (V<sub>GS</sub> = 0V)</b>.
+              The <b>Depletion N-Channel MOSFET (D-NMOS)</b> features a shallow donor-doped N-channel layer intentionally pre-implanted beneath the gate oxide into the P-type silicon substrate (donor implant dose <code>Φ<sub>D</sub> ≈ 1×10¹² cm⁻²</code>). This metallurgical layer provides a permanent conductive highway connecting the heavily doped N+ Source and Drain regions even with <b>zero gate-to-source bias (V<sub>GS</sub> = 0V)</b>. Scaling <b>L</b>, <b>W</b>, and <b>t<sub>ox</sub></b> continuously reshapes gate capacitance <code>C<sub>ox</sub> = ε<sub>ox</sub> / t<sub>ox</sub></code>, aspect ratio <code>W/L</code>, and short-channel electrostatics.
             </p>
             <div class="theory-grid-3">
               <div class="theory-subcard">
                 <span class="theory-subcard-title">1. Built-in Channel Highway</span>
-                <p class="theory-subcard-desc">At zero external gate bias, high free electron density already populates the implanted channel. Substantial current (<code>I<sub>DSS</sub> ≈ 0.208 mA</code>) flows when V<sub>DS</sub> is applied.</p>
+                <p class="theory-subcard-desc">At zero external gate bias, high free electron density already populates the implanted channel. Substantial current (<code>I<sub>DSS</sub></code>, scaling directly with <code>C<sub>ox</sub> · W/L</code>) flows when V<sub>DS</sub> is applied.</p>
               </div>
               <div class="theory-subcard">
                 <span class="theory-subcard-title">2. Negative Threshold (VTH &lt; 0)</span>
-                <p class="theory-subcard-desc">Because a conductive channel pre-exists, the gate threshold voltage is negative (<code>V<sub>TH</sub> = V<sub>P</sub> ≈ -0.80V</code>), representing the pinch-off voltage required to deplete the channel.</p>
+                <p class="theory-subcard-desc">Because a conductive channel pre-exists, the threshold voltage is negative (long-channel baseline <code>V<sub>TH0</sub> ≈ -0.80 V</code> at <code>t<sub>ox</sub> = 2.0 nm</code>). At shorter <b>L</b> or thicker <b>t<sub>ox</sub></b>, roll-off and DIBL shift <code>V<sub>TH</sub></code> further negative.</p>
               </div>
               <div class="theory-subcard">
                 <span class="theory-subcard-title">3. Normally-ON Property</span>
-                <p class="theory-subcard-desc">Unlike enhancement MOSFETs which start in cutoff at zero bias, depletion MOSFETs are inherently conductive and require negative bias to turn OFF.</p>
+                <p class="theory-subcard-desc">Unlike enhancement MOSFETs which start in cutoff at zero bias, depletion MOSFETs are inherently conductive and require negative bias below <code>V<sub>TH</sub></code> to pinch off the channel.</p>
               </div>
             </div>
           </article>
@@ -520,7 +592,7 @@
             <div class="theory-grid-3">
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Cutoff / Full Pinch-Off (VGS ≤ VTH)</span>
-                <p class="theory-subcard-desc">When <code>V<sub>GS</sub> ≤ -0.80V</code>, the gate depletion region expands downward across the entire implanted channel thickness, completely cutting off electron transit: <code>I<sub>D</sub> = 0</code>.</p>
+                <p class="theory-subcard-desc">When <code>V<sub>GS</sub> ≤ V<sub>TH</sub></code>, the gate depletion region expands downward across the entire implanted channel thickness, completely shutting off mobile electron flow: <code>I<sub>D</sub> = 0</code>.</p>
               </div>
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Depletion Mode (VTH &lt; VGS &lt; 0V)</span>
@@ -539,42 +611,42 @@
           <!-- Section 3: Explicit Pinch-Off Mechanism -->
           <article id="dnmos-pinchoff" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">3. The Pinch-Off Mechanism &amp; Boundary Conditions</h3>
-              <span class="theory-card-tag">VDS,sat = VGS - VTH = VGS - (-0.80V) = VGS + 0.80V</span>
+              <h3 class="theory-card-title">3. Pinch-Off, Velocity Saturation &amp; Short-Channel Scaling</h3>
+              <span class="theory-card-tag">VDsat = (VOV · Esat · L) / (VOV + Esat · L) · L = 20–200 nm</span>
             </div>
             <p class="theory-p">
-              In a depletion MOSFET, channel pinch-off is governed by the simultaneous action of gate depletion from the top surface and substrate junction depletion from the bottom.
+              In a depletion MOSFET, channel pinch-off is governed by gate depletion from the top surface, substrate junction depletion from the bottom, and high-field carrier velocity saturation along short channels.
             </p>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">Pinch-Off Boundary Equation: V<sub>DS</sub> = V<sub>DS,sat</sub> = V<sub>GS</sub> - V<sub>TH</sub> = V<sub>GS</sub> + |V<sub>TH</sub>| &nbsp;⟺&nbsp; V<sub>GD</sub> = V<sub>TH</sub></div>
-              <div class="theory-formula-sub">With V<sub>TH</sub> = -0.80 V, pinch-off at zero gate bias (V<sub>GS</sub> = 0V) occurs at exactly V<sub>DS,sat</sub> = 0 - (-0.80V) = +0.80 V!</div>
+              <div class="theory-formula-main">Saturation Voltage: V<sub>Dsat</sub> = (V<sub>OV</sub> · E<sub>sat</sub> · L) / (V<sub>OV</sub> + E<sub>sat</sub> · L) &nbsp;(reduces to V<sub>OV</sub> = V<sub>GS</sub> − V<sub>TH</sub> at long L)</div>
+              <div class="theory-formula-sub">Beyond V<sub>Dsat</sub>, ΔL widens into the channel (L<sub>eff</sub> = L − ΔL) while channel-length modulation λ ∝ 1/L sets the finite saturation output slope.</div>
             </div>
             <p class="theory-p">
               <b>Why and How Pinch-Off Occurs:</b>
             </p>
             <div class="theory-grid-2">
               <div class="theory-subcard">
-                <span class="theory-subcard-title">Linear / Triode (VDS &lt; VDS,sat)</span>
-                <p class="theory-subcard-desc">The implanted channel remains open throughout its entire length from Source to Drain. The channel depth narrows toward the Drain due to increasing local reverse bias <code>V<sub>GD</sub>(y)</code>.</p>
+                <span class="theory-subcard-title">Linear / Triode (VDS &lt; VDsat)</span>
+                <p class="theory-subcard-desc">The implanted channel remains open throughout its entire length from Source to Drain. Channel depth tapers smoothly toward Drain with local reverse bias <code>V<sub>GD</sub>(x)</code>.</p>
               </div>
               <div class="theory-subcard">
-                <span class="theory-subcard-title">Beyond Pinch-Off (VDS ≥ VDS,sat)</span>
-                <p class="theory-subcard-desc">The gate depletion region merges with the substrate depletion region at the Drain boundary. The channel pinches off, and excess voltage <code>V<sub>DS</sub> - V<sub>DS,sat</sub></code> drops across the high-field drain depletion gap.</p>
+                <span class="theory-subcard-title">Beyond Pinch-Off (VDS ≥ VDsat)</span>
+                <p class="theory-subcard-desc">At short <b>L</b>, carriers saturate near <code>v<sub>sat</sub></code> before classical pinch-off; excess voltage <code>V<sub>DS</sub> − V<sub>Dsat</sub></code> drops across the expanding high-field drain gap <code>ΔL</code>.</p>
               </div>
             </div>
             <p class="theory-p">
-              <b>Carrier Transport Beyond Pinch-Off:</b> Electrons traversing the open channel arrive at the pinch-off point and are rapidly propelled across the drain depletion region by the intense lateral electric field (<code>E<sub>x</sub> &gt; 10⁴ V/cm</code>) at saturation velocity (<code>v<sub>sat</sub> ≈ 1×10⁷ cm/s</code>). Drain current saturates at a constant plateau with modest slope due to channel-length modulation.
+              <b>Carrier Transport Beyond Pinch-Off:</b> Electrons traversing the open channel arrive at the pinch-off boundary and accelerate rapidly across the drain depletion region toward the N+ Drain at saturation velocity.
             </p>
           </article>
 
           <!-- Section 4: Operating Regions & Equations -->
           <article id="dnmos-equations" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">4. Operating Regions, Analytical Formulations &amp; Shockley Form</h3>
-              <span class="theory-card-tag">kn = 0.65 mA/V², VTH = -0.80V, IDSS = 0.208 mA</span>
+              <h3 class="theory-card-title">4. Operating Regions, Analytical Formulations &amp; Geometry Scaling</h3>
+              <span class="theory-card-tag">kn = μn · (εox / tox) · (W / L) · Short-Channel Effects</span>
             </div>
             <p class="theory-p">
-              Define the process transconductance parameter as <code>k<sub>n</sub> = μ<sub>n</sub> · C<sub>ox</sub> · (W / L) = 0.65 mA/V²</code>. Overdrive voltage is defined as <code>V<sub>OV</sub> = V<sub>GS</sub> - V<sub>TH</sub> = V<sub>GS</sub> - (-0.80V) = V<sub>GS</sub> + 0.80V</code>.
+              With dynamic oxide capacitance <code>C<sub>ox</sub> = ε<sub>ox</sub> / t<sub>ox</sub></code>, the transconductance parameter scales continuously as <code>k<sub>n</sub> = μ<sub>n</sub> · C<sub>ox</sub> · (W / L)</code>, and overdrive voltage is <code>V<sub>OV</sub> = V<sub>GS</sub> − V<sub>TH</sub>(L, t<sub>ox</sub>, V<sub>DS</sub>)</code>.
             </p>
             <div class="theory-table-wrap">
               <table class="theory-table">
@@ -589,28 +661,28 @@
                 <tbody>
                   <tr>
                     <td><b>Cutoff</b></td>
-                    <td><code>V<sub>GS</sub> ≤ V<sub>TH</sub> (-0.80V)</code></td>
+                    <td><code>V<sub>GS</sub> ≤ V<sub>TH</sub></code></td>
                     <td><code>I<sub>D</sub> = 0</code></td>
                     <td>Fully depleted; space-charge barrier shuts off current</td>
                   </tr>
                   <tr>
                     <td><b>Linear (Triode)</b></td>
-                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> &lt; V<sub>GS</sub> - V<sub>TH</sub></code></td>
-                    <td><code>I<sub>D</sub> = k<sub>n</sub> · [(V<sub>GS</sub> - V<sub>TH</sub>)·V<sub>DS</sub> - ½·V<sub>DS</sub>²]</code></td>
+                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> &lt; V<sub>Dsat</sub></code></td>
+                    <td><code>I<sub>D</sub> = [k<sub>n</sub> / (1 + V<sub>DS</sub>/(E<sub>sat</sub>L))] · [V<sub>OV</sub>·V<sub>DS</sub> − ½·V<sub>DS</sub>²]</code></td>
                     <td>Continuous resistive N-channel from S to D</td>
                   </tr>
                   <tr>
                     <td><b>Saturation</b></td>
-                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> ≥ V<sub>GS</sub> - V<sub>TH</sub></code></td>
-                    <td><code>I<sub>D</sub> = ½·k<sub>n</sub>·(V<sub>GS</sub> - V<sub>TH</sub>)² · (1 + λ·V<sub>DS</sub>)</code></td>
-                    <td>Pinched off at drain edge; saturated drift current</td>
+                    <td><code>V<sub>GS</sub> &gt; V<sub>TH</sub></code><br><code>V<sub>DS</sub> ≥ V<sub>Dsat</sub></code></td>
+                    <td><code>I<sub>D</sub> = ½·k<sub>n</sub>·V<sub>OV</sub>·V<sub>Dsat</sub> · [1 + λ(L)·(V<sub>DS</sub> − V<sub>Dsat</sub>)]</code></td>
+                    <td>Pinched off / velocity saturated; ΔL reduces L<sub>eff</sub></td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">Shockley Zero-Bias Saturation Form: I<sub>DSS</sub> = ½ · k<sub>n</sub> · V<sub>TH</sub>² = ½ · (0.65 mA/V²) · (-0.80 V)² ≈ 0.208 mA</div>
-              <div class="theory-formula-sub">In normalized JFET/Depletion format: I<sub>D,sat</sub> = I<sub>DSS</sub> · [1 - (V<sub>GS</sub> / V<sub>TH</sub>)]² · (1 + λ · V<sub>DS</sub>)</div>
+              <div class="theory-formula-main">Zero-Bias Saturation Current I<sub>DSS</sub> = ½ · k<sub>n</sub>(W, L, t<sub>ox</sub>) · |V<sub>TH</sub>| · V<sub>Dsat</sub> · (1 + λ·ΔV)</div>
+              <div class="theory-formula-sub">Notice that reducing L raises k<sub>n</sub> and λ while driving earlier velocity saturation V<sub>Dsat</sub> &lt; V<sub>OV</sub> and negative DIBL/roll-off V<sub>TH</sub> shift.</div>
             </div>
           </article>
 
@@ -618,24 +690,24 @@
           <article id="dnmos-graphs" class="theory-card">
             <div class="theory-card-header">
               <h3 class="theory-card-title">5. Synchronization with the Interactive Physics &amp; Graph Panel</h3>
-              <span class="theory-card-tag">Presets: CUTOFF, DEPLETION, ZERO BIAS, ENHANCE</span>
+              <span class="theory-card-tag">Presets: CUTOFF, DEPLETION, ZERO BIAS, ENHANCE · Lock Y</span>
             </div>
             <p class="theory-p">
-              The live <b>PHYSICS &amp; GRAPH</b> panel in this D-NMOS module implements 4 dedicated operating region presets:
+              The live <b>OPERATING REGION</b> and <b>DEVICE GEOMETRY</b> panels update the 3D CAD stack, carrier flow, and full <code>I<sub>D</sub>–V<sub>DS</sub></code> curve family in real time:
             </p>
             <div class="theory-grid-2">
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Region Presets &amp; Biasing</span>
                 <p class="theory-subcard-desc">
-                  • <b>CUTOFF:</b> V<sub>GS</sub> = -1.00V (Channel depleted, I<sub>D</sub> = 0)<br>
-                  • <b>DEPLETION:</b> V<sub>GS</sub> = -0.40V (Narrowed channel, I<sub>D</sub> &lt; I<sub>DSS</sub>)<br>
-                  • <b>ZERO BIAS:</b> V<sub>GS</sub> = 0.00V (Normally ON, I<sub>D</sub> = I<sub>DSS</sub> = 0.21 mA)<br>
-                  • <b>ENHANCE:</b> V<sub>GS</sub> = +0.80V (Accumulation layer, I<sub>D</sub> &gt; I<sub>DSS</sub>)
+                  • <b>CUTOFF:</b> V<sub>GS</sub> = -1.20 V (Channel pinched off, I<sub>D</sub> = 0)<br>
+                  • <b>DEPLETION:</b> V<sub>GS</sub> = -0.40 V (Narrowed channel, I<sub>D</sub> &lt; I<sub>DSS</sub>)<br>
+                  • <b>ZERO BIAS:</b> V<sub>GS</sub> = +0.00 V (Normally ON at I<sub>DSS</sub>)<br>
+                  • <b>ENHANCE:</b> V<sub>GS</sub> = +0.80 V (Surface accumulation, I<sub>D</sub> &gt; I<sub>DSS</sub>)
                 </p>
               </div>
               <div class="theory-subcard">
-                <span class="theory-subcard-title">Saturation Locus Curve</span>
-                <p class="theory-subcard-desc">The dashed golden curve shows the pinch-off boundary <code>V<sub>DS,sat</sub> = V<sub>GS</sub> - V<sub>TH</sub></code>. Observe that even at V<sub>GS</sub> = 0V, saturation begins at <code>V<sub>DS</sub> = 0.80V</code>.</p>
+                <span class="theory-subcard-title">Saturation Locus &amp; Lock Y-Axis</span>
+                <p class="theory-subcard-desc">The dashed golden curve tracks <code>V<sub>Dsat</sub></code> as geometry changes. Toggle <b>Lock Y</b> above the graph to freeze the vertical current ceiling when comparing <code>28nm Short-Ch</code>, <code>180nm Long-Ch</code>, and <code>High-Drive</code>.</p>
               </div>
             </div>
           </article>
@@ -652,7 +724,7 @@
             <div class="theory-grid-2">
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Constant Current Reference</span>
-                <p class="theory-subcard-desc">With gate tied to source, D-NMOS behaves as a two-terminal constant current sink: <code>I = I<sub>DSS</sub> (1 + λ V<sub>DS</sub>)</code>, operating down to <code>V<sub>DS</sub> = |V<sub>TH</sub>|</code>.</p>
+                <p class="theory-subcard-desc">With gate tied to source, D-NMOS behaves as a two-terminal constant current sink: <code>I = I<sub>DSS</sub> (1 + λ V<sub>DS</sub>)</code>, operating down to <code>V<sub>Dsat</sub></code>.</p>
               </div>
               <div class="theory-subcard">
                 <span class="theory-subcard-title">Power Management Startup</span>
@@ -671,7 +743,7 @@
         <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
           <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
           <div class="scale-note-popover-body">
-            Vertical dimensions are exaggerated for visualization; this is a conceptual D-NMOS layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are not design-rule compliant — topology and functional relationships are physically meaningful.
+            3D geometry responds smoothly (sublinearly) to Length (L: 20–200 nm), Width (W: 40–400 nm), and Gate Oxide (t<sub>ox</sub>: 1.2–10.0 nm) sliders while physics curves compute continuous short-channel depletion-mode NMOS equations. Vertical dimensions are exaggerated for CAD clarity; not a fabrication-ready PDK layout.
           </div>
         </div>
       </div>
@@ -815,7 +887,7 @@
     <div class="iv-modal-card">
       <div class="iv-modal-header">
         <div class="iv-modal-title" id="iv-modal-title">
-          <span>I<sub>DS</sub> – V<sub>DS</sub> Output Characteristics (Depletion N-MOSFET)</span>
+          <span>I<sub>D</sub> – V<sub>DS</sub> Output Characteristics (Depletion N-MOSFET)</span>
         </div>
         <button class="iv-modal-close" id="iv-modal-close" aria-label="Close modal">&times;</button>
       </div>
@@ -826,10 +898,13 @@
         <div class="iv-modal-footer">
           <div class="iv-modal-hint">Drag or click anywhere on the graph to modulate V<sub>DS</sub> and set operating point. Fully synced with sliders &amp; 3D model.</div>
           <div class="iv-modal-readouts">
-            <span class="iv-m-item">V<sub>GS</sub> = <b id="iv-m-vgs">0.00 V</b></span>
-            <span class="iv-m-item">V<sub>DS</sub> = <b id="iv-m-vds">0.80 V</b></span>
-            <span class="iv-m-item">I<sub>DS</sub> = <b id="iv-m-ids">0.21 mA</b></span>
-            <span class="iv-m-item">REGION: <b id="iv-m-region">SATURATION</b></span>
+            <span class="iv-m-item">V<sub>GS</sub> = <b id="iv-modal-ro-vgs">+0.00 V</b></span>
+            <span class="iv-m-item">V<sub>DS</sub> = <b id="iv-modal-ro-vds">0.80 V</b></span>
+            <span class="iv-m-item">V<sub>TH</sub> = <b id="iv-modal-ro-vth">-0.91 V</b></span>
+            <span class="iv-m-item">W/L = <b id="iv-modal-ro-wl">4.29</b></span>
+            <span class="iv-m-item">I<sub>D</sub> = <b id="iv-modal-ro-ids">1.45 mA</b></span>
+            <span class="iv-m-item">L<sub>eff</sub> = <b id="iv-modal-ro-leff">28.0 nm</b></span>
+            <span class="iv-m-item">REGION: <b id="iv-modal-ro-region" class="iv-modal-ro-val sat">SATURATION</b></span>
           </div>
         </div>
       </div>
@@ -924,6 +999,7 @@
 <script src="js/dimensions.js"></script>
 <script src="js/view-mode.js"></script>
 <script src="js/flow.js"></script>
+<script src="../../../../shared/js/param-info-modal.js"></script>
 <script src="js/logic-state.js"></script>
 <script src="js/build-anim.js"></script>
 <script src="js/render-loop.js"></script>

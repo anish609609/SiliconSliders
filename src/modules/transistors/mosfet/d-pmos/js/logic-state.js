@@ -1,558 +1,802 @@
 /**
- * logic-state.js - Depletion-Mode PMOS (D-PMOS) CAD Viewer
- * Continuous D-PMOS Operating-Region Physics Engine & Live ISD-VSD Graph:
- * - Implanted P-channel provides pre-existing conduction at VGS = 0V (Normally ON).
- * - Threshold voltage VTH,p = +0.80V.
- * - Gate overdrive VOV = VTH,p - VGS.
- * - Delineates:
- *     1. Cutoff: VGS >= VTH,p (VOV <= 0), channel depleted of holes, ISD = 0.
- *     2. Depletion Mode: 0 < VGS < VTH,p, positive gate repels holes, thinning channel.
- *     3. Zero Bias: VGS = 0V, baseline implanted P-channel conduction.
- *     4. Enhancement Mode: VGS < 0, negative gate accumulates extra holes, thickening channel.
- * - Triode / Linear: VSD < VOV => ISD = kp * (VOV * VSD - 0.5 * VSD^2).
- * - Saturation: VSD >= VOV => ISD = 0.5 * kp * VOV^2 * (1 + lambda * (VSD - VOV)).
- * - Strictly continuous across pinch-off boundary (zero downward kink).
+ * logic-state.js - Depletion-Mode PMOS CAD Viewer
+ * Interactive Device Scaling Physics & Telemetry + Live ISD-VSD Curves:
+ * - Continuous geometry-dependent equations for C_ox, W/L, V_TH,p roll-off, DIBL,
+ *   hole velocity saturation (V_SD,sat), and channel-length modulation (lambda proportional to 1/L).
+ * - Preserves D-PMOS positive threshold behavior (normally ON at V_GS = 0V),
+ *   depletion mode (0V < V_GS < V_TH,p), and enhancement mode (V_GS < 0V).
  */
 
-// D-PMOS Physical Constants
-var VTH_P = 0.80;         // Threshold voltage VTH,p (+0.80V)
-var KP_PRIME = 0.65;      // Conduction parameter kp' = mu_p * Cox * (Wp/L) (mA/V^2)
-var LAMBDA_P = 0.08;      // Channel-length modulation parameter (1/V)
-var NOMINAL_L = 28.0;     // Gate length (nm)
-var MODEL_L = 2.0;        // 3D coordinate length along X
+var currentVgs = 0.00; // Normally ON at 0.00V
+var currentVsd = 0.80; // Active bias
+var geomL = 28;        // nm (20..200)
+var geomW = 120;       // nm (40..400)
+var geomTox = 2.0;     // nm (1.2..10.0)
+var lockYAxis = false;
+var lockedYMax = null;
 
-// Active continuous bias states (Initialized to Normally-ON Zero Gate Bias)
-var currentVgs = 0.00;    // Gate-to-Source bias (-1.00V to +1.20V, default 0.00V)
-var currentVsd = 0.80;    // Source-to-Drain bias (0.00V to 1.80V, default 0.80V)
-var currentIn = 0;        // Backward-compatibility flag (0 = ON, 1 = OFF/Cutoff)
+// Physical constants (SiO2 gate dielectric & hole mobility ~ 0.45 * mu_n)
+var EPS_0 = 8.854187817e-12; // F/m
+var K_OX = 3.9;
+var EPS_OX = K_OX * EPS_0;
+var MU_P = 0.0135;           // Effective low-field hole mobility (~0.45 * MU_N = 0.030)
+var E_SAT = 5.0e6;           // Critical field for velocity saturation (V/m)
+var LC_ROLLOFF_NM = 25.0;    // Characteristic SCE roll-off decay length (nm)
 
-// Public accessor for other modules (e.g. flow.js, scene.js)
-window.getMosfetPhysicsState = function() {
-  var vov = Math.max(0, VTH_P - currentVgs);
-  var vsdSat = vov;
+function computeThresholdDetails(vsd, L_nm, tox_nm) {
+  var L = Math.max(20, Math.min(200, Number(L_nm) || 28));
+  var tox = Math.max(1.2, Math.min(10.0, Number(tox_nm) || 2.0));
+  var vsdVal = Math.max(0, Number(vsd) || 0);
+
+  // D-PMOS has positive V_TH,p (~ +0.80V baseline at tox = 2.0 nm) so V_GS = 0V is Normally ON.
+  // Thicker gate oxide weakens vertical gate depletion authority -> slightly higher V_TH0.
+  var vth0 = 0.76 + 0.02 * tox;
+
+  // Short-channel V_TH roll-off & DIBL both lower positive V_TH,p toward 0V (early turn-on),
+  // clamped >= +0.40V so V_GS = +1.20V reliably reaches full Cutoff across all supported geometries.
+  var rollOff = 0.12 * Math.exp(-L / LC_ROLLOFF_NM) * Math.sqrt(tox / 2.0);
+  var diblEta = 0.08 * Math.pow(28.0 / L, 2.0) * Math.sqrt(tox / 2.0);
+  var diblShift = diblEta * vsdVal;
+
+  var vth = Math.max(0.40, vth0 - rollOff - diblShift);
+  return {
+    vth: vth,
+    vth0: vth0,
+    rollOff: rollOff,
+    diblEta: diblEta
+  };
+}
+
+function computeDpmosPoint(vgs, vsd, L_nm, W_nm, tox_nm) {
+  var L = Math.max(20, Math.min(200, Number(L_nm) || 28));
+  var W = Math.max(40, Math.min(400, Number(W_nm) || 120));
+  var tox = Math.max(1.2, Math.min(10.0, Number(tox_nm) || 2.0));
+  var vsdVal = Math.max(0, Number(vsd) || 0);
+
+  var L_m = L * 1e-9;
+  var tox_m = tox * 1e-9;
+  var cox = EPS_OX / tox_m;
+  var wlRatio = W / L;
+  var kp = MU_P * cox * wlRatio * 1000.0; // mA/V^2 (0.45 * kn at identical W/L, tox)
+  var lambda = 0.06 * (28.0 / L);         // 1/V, scales as 1/L
+
+  var th = computeThresholdDetails(vsdVal, L, tox);
+  var vth = th.vth;
+  var vov = Math.max(0, vth - vgs);
+  var esatL = E_SAT * L_m;
+  var vsdSat = vov > 0.0001 ? (vov * esatL) / (vov + esatL) : 0.0;
+
   var region = 'CUTOFF';
   var isd = 0.0;
-  var deltaL = 0.0;
+  var deltaL_nm = 0.0;
 
   if (vov <= 0.001) {
     region = 'CUTOFF';
     isd = 0.0;
-  } else if (currentVsd < vsdSat) {
+  } else if (vsdVal < vsdSat) {
     region = 'LINEAR';
-    isd = KP_PRIME * (vov * currentVsd - 0.5 * currentVsd * currentVsd);
+    isd = (kp / (1.0 + vsdVal / esatL)) * (vov * vsdVal - 0.5 * vsdVal * vsdVal);
   } else {
     region = 'SATURATION';
-    var vsdDiff = currentVsd - vsdSat;
-    isd = 0.5 * KP_PRIME * vov * vov * (1.0 + LAMBDA_P * vsdDiff);
-    deltaL = MODEL_L * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vsdDiff)));
+    var vsdDiff = vsdVal - vsdSat;
+    isd = 0.5 * kp * vov * vsdSat * (1.0 + lambda * vsdDiff);
+    deltaL_nm = Math.min(0.8 * L, 5.5 * Math.sqrt(Math.max(0, vsdDiff)));
   }
 
-  var leff = NOMINAL_L * (1.0 - (deltaL / MODEL_L));
-  var mode = (currentVgs >= VTH_P) ? 'cutoff' : (currentVgs > 0.02 ? 'depletion' : (Math.abs(currentVgs) <= 0.02 ? 'zero' : 'enhancement'));
+  var mode = 'CUTOFF';
+  if (vgs >= vth) {
+    mode = 'CUTOFF';
+  } else if (vgs > 0.02) {
+    mode = 'DEPLETION';
+  } else if (vgs >= -0.02) {
+    mode = 'ZERO BIAS';
+  } else {
+    mode = 'ENHANCE';
+  }
+
+  var leff = Math.max(0.2 * L, L - deltaL_nm);
+  var gState = (typeof window.getDeviceGeomState === 'function') ? window.getDeviceGeomState() : null;
+  var modelL = gState ? gState.gateL : 2.0;
+  var deltaL_scene = modelL * ((L - leff) / L);
 
   return {
-    vgs: currentVgs,
-    vsd: currentVsd,
-    vth: VTH_P,
+    vgs: vgs,
+    vsd: vsdVal,
+    vds: -vsdVal,
+    vth: vth,
     vov: vov,
     vsdSat: vsdSat,
+    vdsSat: -vsdSat,
+    esatL: esatL,
     isd: Math.max(0, isd),
     ids: Math.max(0, isd),
     region: region,
     mode: mode,
-    deltaL: deltaL,
-    leff: leff
+    deltaL: deltaL_scene,
+    deltaL_nm: L - leff,
+    leff: leff,
+    L: L,
+    W: W,
+    tox: tox,
+    wlRatio: wlRatio,
+    kp: kp,
+    cox: cox,
+    lambda: lambda,
+    diblEta: th.diblEta
   };
+}
+
+function calculateIsd(testVgs, testVsd) {
+  var pt = computeDpmosPoint(testVgs, testVsd, geomL, geomW, geomTox);
+  return { isd: pt.isd, region: pt.region };
+}
+window.calculateIsd = calculateIsd;
+
+window.getMosfetPhysicsState = function() {
+  return computeDpmosPoint(currentVgs, currentVsd, geomL, geomW, geomTox);
 };
 
-// ---------------------------------------------------------------------------
-// APPLY STATE: Drives Topbar, Graph, 3D Channel, Telemetry & Hole Flow
-// ---------------------------------------------------------------------------
-function applyLogicState() {
-  var phys = window.getMosfetPhysicsState();
-  var vgs = phys.vgs;
-  var vsd = phys.vsd;
-  var vov = phys.vov;
-  var isd = phys.isd;
-  var region = phys.region;
-  var mode = phys.mode;
-  var deltaL = phys.deltaL;
-  var leff = phys.leff;
+window.setMosfetGeometry = function(L_nm, W_nm, tox_nm) {
+  if (typeof L_nm === 'number' && Number.isFinite(L_nm)) geomL = Math.max(20, Math.min(200, L_nm));
+  if (typeof W_nm === 'number' && Number.isFinite(W_nm)) geomW = Math.max(40, Math.min(400, W_nm));
+  if (typeof tox_nm === 'number' && Number.isFinite(tox_nm)) geomTox = Math.max(1.2, Math.min(10.0, tox_nm));
+  applyLogicState();
+};
 
-  currentIn = (region === 'CUTOFF') ? 1 : 0;
+function formatIsdText(isd) {
+  if (isd < 0.0005) return '≈ 0 mA';
+  if (isd < 0.1) return isd.toFixed(3) + ' mA';
+  return isd.toFixed(2) + ' mA';
+}
 
-  // 1. Update Topbar Sliders & Value Readouts
-  var vgsSlider = document.getElementById('vgs-slider') || document.getElementById('vsg-slider');
-  var vgsVal = document.getElementById('vgs-val') || document.getElementById('vsg-val');
-  if (vgsSlider && Math.abs(parseFloat(vgsSlider.value) - vgs) > 0.01) vgsSlider.value = vgs.toFixed(2);
-  if (vgsVal) vgsVal.textContent = vgs.toFixed(2) + 'V';
+function syncGeometryControlsUI() {
+  var lSlider = document.getElementById('geom-l-slider');
+  var lVal = document.getElementById('geom-l-val');
+  if (lSlider && Math.abs(parseFloat(lSlider.value) - geomL) > 0.1) lSlider.value = String(geomL);
+  if (lVal) lVal.textContent = Math.round(geomL) + ' nm';
 
-  var vsdSlider = document.getElementById('vsd-slider');
-  var vsdVal = document.getElementById('vsd-val');
-  if (vsdSlider && Math.abs(parseFloat(vsdSlider.value) - vsd) > 0.01) vsdSlider.value = vsd.toFixed(2);
-  if (vsdVal) vsdVal.textContent = vsd.toFixed(2) + 'V';
+  var wSlider = document.getElementById('geom-w-slider');
+  var wVal = document.getElementById('geom-w-val');
+  if (wSlider && Math.abs(parseFloat(wSlider.value) - geomW) > 0.1) wSlider.value = String(geomW);
+  if (wVal) wVal.textContent = Math.round(geomW) + ' nm';
 
-  // 2. Update Topbar Region Badge & Presets
-  var regionBadge = document.getElementById('region-badge');
-  if (regionBadge) {
-    regionBadge.textContent = region === 'LINEAR' ? 'LINEAR / TRIODE' : region;
-    regionBadge.className = 'region-badge-pill ' + region.toLowerCase();
-  }
+  var toxSlider = document.getElementById('geom-tox-slider');
+  var toxVal = document.getElementById('geom-tox-val');
+  if (toxSlider && Math.abs(parseFloat(toxSlider.value) - geomTox) > 0.02) toxSlider.value = geomTox.toFixed(1);
+  if (toxVal) toxVal.textContent = geomTox.toFixed(1) + ' nm';
 
-  document.querySelectorAll('#region-preset-seg button').forEach(function(b) {
-    var p = b.dataset.preset;
-    b.classList.toggle('active', (p === mode));
-  });
-
-  // 3. Update HUD Graph Pill & Readouts
-  var hudRegionPill = document.getElementById('iv-hud-region-pill');
-  if (hudRegionPill) {
-    hudRegionPill.textContent = region === 'LINEAR' ? 'LINEAR' : region;
-    hudRegionPill.className = 'region-pill ' + region.toLowerCase();
-  }
-
-  var ivVgs = document.getElementById('iv-vgs-readout') || document.getElementById('iv-vsg-readout');
-  if (ivVgs) ivVgs.textContent = vgs.toFixed(2) + ' V';
-  var ivVsd = document.getElementById('iv-vsd-readout');
-  if (ivVsd) ivVsd.textContent = vsd.toFixed(2) + ' V';
-  var ivVov = document.getElementById('iv-vov-readout');
-  if (ivVov) ivVov.textContent = vov.toFixed(2) + ' V';
-  var ivIsd = document.getElementById('iv-isd-readout') || document.getElementById('iv-ids-readout');
-  if (ivIsd) ivIsd.textContent = (isd >= 0.01 ? isd.toFixed(2) : '0.00') + ' mA';
-  var ivLeff = document.getElementById('iv-leff-readout');
-  if (ivLeff) ivLeff.textContent = leff.toFixed(1) + ' nm';
-
-  var ivStateDesc = document.getElementById('iv-state-desc');
-  if (ivStateDesc) {
-    if (region === 'CUTOFF') {
-      ivStateDesc.textContent = 'Implanted P-channel depleted · Zero conduction (VGS ≥ +0.80V)';
-    } else if (mode === 'depletion') {
-      ivStateDesc.textContent = (region === 'LINEAR') ?
-        'Depleted channel · Triode hole drift' :
-        'Depleted channel · Pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm';
-    } else if (mode === 'zero') {
-      ivStateDesc.textContent = (region === 'LINEAR') ?
-        'Normally-ON P-channel · Triode hole drift' :
-        'Normally-ON P-channel · Pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm';
-    } else {
-      ivStateDesc.textContent = (region === 'LINEAR') ?
-        'Enriched channel (VGS < 0) · High hole conductivity' :
-        'Enriched channel · High-current pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm';
-    }
-  }
-
-  // 4. Update HUD Status Telemetry Badge
-  var badgeVgs = document.getElementById('badge-vgs') || document.getElementById('badge-vg');
-  var badgeState = document.getElementById('badge-state');
-  var badgeChan = document.getElementById('badge-chan');
-  var badgeIsd = document.getElementById('badge-isd');
-
-  if (badgeVgs) {
-    badgeVgs.textContent = vgs.toFixed(2) + ' V (' + (vgs >= VTH_P ? 'CUTOFF' : (vgs > 0 ? 'DEPLETION' : (vgs === 0 ? 'ZERO BIAS' : 'ENHANCE'))) + ')';
-    badgeVgs.className = 'v ' + (region === 'CUTOFF' ? 'off' : 'on');
-  }
-  if (badgeState) {
-    badgeState.textContent = region;
-    badgeState.className = 'v ' + (region === 'CUTOFF' ? 'off' : (region === 'SATURATION' ? 'on' : 'warn'));
-  }
-  if (badgeChan) {
-    if (region === 'CUTOFF') {
-      badgeChan.textContent = 'DEPLETED / OFF';
-      badgeChan.className = 'v off';
-    } else if (region === 'LINEAR') {
-      badgeChan.textContent = 'IMPLANTED P-CHANNEL (CONTINUOUS)';
-      badgeChan.className = 'v on';
-    } else {
-      badgeChan.textContent = 'PINCHED-OFF (Leff=' + leff.toFixed(1) + 'nm)';
-      badgeChan.className = 'v warn';
-    }
-  }
-  if (badgeIsd) {
-    badgeIsd.textContent = (isd >= 0.01 ? isd.toFixed(2) + ' mA' : '0.00 mA (CUTOFF)');
-    badgeIsd.className = 'v ' + (isd >= 0.01 ? 'on' : 'off');
-  }
-
-  // 5. Update 2D SVG Schematic Indicators
-  var schVg = document.getElementById('sch-vg-val');
-  if (schVg) schVg.textContent = vgs.toFixed(2) + 'V';
-  var schChan = document.getElementById('sch-channel-state');
-  if (schChan) {
-    schChan.textContent = region === 'CUTOFF' ? 'OFF (CUTOFF)' : (mode === 'zero' ? 'NORMALLY ON' : (mode === 'depletion' ? 'DEPLETED' : 'ENHANCED'));
-  }
-
-  // 6. Dynamically Deform 3D P-Channel in Real-Time
-  if (typeof window.updateChannelGeometry === 'function') {
-    window.updateChannelGeometry(vgs, vsd, isd, region, deltaL);
-  }
-
-  // 7. Redraw Live ISD-VSD Graph
-  drawIsdVsdGraph(vgs, vsd, isd, region);
-
-  // 8. Rebuild Fine Hole Carrier Flow Simulation
-  if (typeof rebuildFlowCurves === 'function') {
-    rebuildFlowCurves(isd, region, deltaL);
-  }
-
-  // 9. Update Context for AI Voice Assistant and Inspector
-  if (typeof lastSelectedId !== 'undefined' && lastSelectedId) {
-    if (typeof window.updateVoiceAssistantContext === 'function') {
-      window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
-    }
-    if ((lastSelectedId === 'channel' || lastSelectedId === 'depletion') && typeof showInspector === 'function') {
-      showInspector(lastSelectedId, idToInfo(lastSelectedId));
-    }
+  var presets = document.getElementById('geom-presets');
+  if (presets) {
+    presets.querySelectorAll('.geom-preset-btn').forEach(function(btn) {
+      var pL = parseFloat(btn.dataset.l);
+      var pW = parseFloat(btn.dataset.w);
+      var pTox = parseFloat(btn.dataset.tox);
+      var match = (Math.abs(pL - geomL) < 0.5 && Math.abs(pW - geomW) < 0.5 && Math.abs(pTox - geomTox) < 0.05);
+      btn.classList.toggle('active', match);
+    });
   }
 }
 
-// ---------------------------------------------------------------------------
-// LIVE ISD vs VSD CHARACTERISTIC GRAPH RENDERER (Dual Canvas: Inline Workbench & Expanded Modal)
-// ---------------------------------------------------------------------------
-function renderSingleDpmosGraph(canvas, isModal, activeVgs, activeVsd, activeIsd, activeRegion) {
+function getNiceYMax(rawMax) {
+  var m = Math.max(0.15, rawMax * 1.15);
+  var exp = Math.pow(10, Math.floor(Math.log10(m)));
+  var frac = m / exp;
+  var nice;
+  if (frac <= 1.2) nice = 1.2;
+  else if (frac <= 1.5) nice = 1.5;
+  else if (frac <= 2.0) nice = 2.0;
+  else if (frac <= 2.5) nice = 2.5;
+  else if (frac <= 3.0) nice = 3.0;
+  else if (frac <= 4.0) nice = 4.0;
+  else if (frac <= 5.0) nice = 5.0;
+  else if (frac <= 6.0) nice = 6.0;
+  else if (frac <= 8.0) nice = 8.0;
+  else nice = 10.0;
+  return nice * exp;
+}
+
+function getGraphYMax(vgsFamily) {
+  var peak = 0.0;
+  vgsFamily.forEach(function(vg) {
+    var pt = computeDpmosPoint(vg, 1.8, geomL, geomW, geomTox);
+    if (pt.isd > peak) peak = pt.isd;
+  });
+  var curMax = computeDpmosPoint(currentVgs, 1.8, geomL, geomW, geomTox).isd;
+  if (curMax > peak) peak = curMax;
+  var autoMax = getNiceYMax(peak);
+  if (lockYAxis) {
+    if (lockedYMax === null) lockedYMax = autoMax;
+    return lockedYMax;
+  }
+  return autoMax;
+}
+
+var IV_GRAPH_PAD = { L: 48, R: 38, T: 22, B: 24 };
+
+function renderIsdVsdOnCanvas(canvas, isLarge) {
   if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+
+  var dpr = window.devicePixelRatio || 1;
+  var targetW = Math.round(rect.width * dpr);
+  var targetH = Math.round(rect.height * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+
   var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  var dpr = window.devicePixelRatio || 1;
-  var rect = canvas.getBoundingClientRect();
-  var W = canvas.clientWidth || rect.width || (isModal ? 560 : 310);
-  var H = canvas.clientHeight || rect.height || (isModal ? 380 : 225);
-
-  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-  }
-
+  var w = rect.width;
+  var h = rect.height;
   ctx.save();
   ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
 
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var bgCol = isLight ? '#f8fafc' : '#090d14';
+  var gridCol = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.06)';
+  var axisCol = isLight ? 'rgba(15, 23, 42, 0.25)' : 'rgba(255, 255, 255, 0.22)';
+  var textCol = isLight ? '#64748b' : '#7d8ba0';
+  var satLocusCol = isLight ? 'rgba(217, 119, 6, 0.65)' : 'rgba(230, 162, 60, 0.55)';
+  var activeCurveCol = isLight ? '#b45309' : '#e6c94a';
+  var famCol = isLight ? '#64748b' : '#8b9ab0';
+  var zeroBiasCol = isLight ? '#0d9488' : '#5fd9c4';
 
-  // Palette - Standardized D-NMOS teal-green & warm amber palette
-  var bgColor = isLight ? '#f8fafc' : '#080c12';
-  var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
-  var textColor = isLight ? '#64748b' : '#7d8ba0';
-  var dimmedCurveColor = isLight ? 'rgba(13,148,136,0.24)' : 'rgba(95,217,196,0.20)';
-  var activeCurveColor = isLight ? '#0d9488' : '#5fd9c4';
-  var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
-  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#10b981' : '#0284c7');
+  ctx.fillStyle = bgCol;
+  ctx.fillRect(0, 0, w, h);
 
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, W, H);
+  var pad = isLarge ? { L: 56, R: 46, T: 26, B: 32 } : IV_GRAPH_PAD;
+  var gw = w - pad.L - pad.R;
+  var gh = h - pad.T - pad.B;
+  if (gw <= 10 || gh <= 10) { ctx.restore(); return; }
 
-  // Margins
-  var padL = isModal ? 52 : 36;
-  var padR = isModal ? 44 : 30;
-  var padT = isModal ? 20 : 14;
-  var padB = isModal ? 32 : 24;
-  var plotW = W - padL - padR;
-  var plotH = H - padT - padB;
+  var maxV = 1.8;
+  var vgsFamily = [0.4, 0.2, 0.0, -0.4, -0.8];
+  var maxI = getGraphYMax(vgsFamily);
 
-  var vsdMax = 1.8;
-  var isdMax = 1.35; // mA
+  function mapX(v) { return pad.L + (v / maxV) * gw; }
+  function mapY(isd) { return pad.T + gh - Math.min(1.06, Math.max(0, isd / maxI)) * gh; }
 
-  function toX(v) { return padL + (v / vsdMax) * plotW; }
-  function toY(i) { return padT + plotH - (i / isdMax) * plotH; }
-
-  // Draw Grid Lines & Tick Labels
-  ctx.strokeStyle = gridColor;
+  ctx.strokeStyle = gridCol;
   ctx.lineWidth = 1;
-  ctx.fillStyle = textColor;
-  ctx.font = (isModal ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
+  ctx.beginPath();
+  [0.0, 0.6, 1.2, 1.8].forEach(function(vx) {
+    var gx = mapX(vx);
+    ctx.moveTo(gx, pad.T);
+    ctx.lineTo(gx, pad.T + gh);
+  });
+  var yTicks = [0, maxI * 0.25, maxI * 0.5, maxI * 0.75, maxI];
+  yTicks.forEach(function(iy) {
+    var gy = mapY(iy);
+    ctx.moveTo(pad.L, gy);
+    ctx.lineTo(pad.L + gw, gy);
+  });
+  ctx.stroke();
+
+  ctx.strokeStyle = axisCol;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(pad.L, pad.T);
+  ctx.lineTo(pad.L, pad.T + gh);
+  ctx.lineTo(pad.L + gw, pad.T + gh);
+  ctx.stroke();
+
+  ctx.fillStyle = textCol;
+  ctx.font = (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
-
-  // VSD ticks: 0, 0.6, 1.2, 1.8
-  [0, 0.6, 1.2, 1.8].forEach(function(v) {
-    var x = toX(v);
-    ctx.beginPath();
-    ctx.moveTo(x, padT);
-    ctx.lineTo(x, padT + plotH);
-    ctx.stroke();
-    ctx.fillText(v.toFixed(1), x, padT + plotH + (isModal ? 16 : 13));
+  ctx.textBaseline = 'top';
+  [0.0, 0.6, 1.2, 1.8].forEach(function(vx) {
+    ctx.fillText(vx.toFixed(1) + 'V', mapX(vx), pad.T + gh + (isLarge ? 7 : 5));
   });
-  ctx.fillText('V_SD (V)', padL + plotW / 2, padT + plotH + (isModal ? 28 : 22));
+  ctx.fillStyle = isLight ? '#475569' : '#9aa6b6';
+  ctx.font = 'bold ' + (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
+  ctx.fillText('VSD (V)', pad.L + gw / 2, pad.T + gh + (isLarge ? 19 : 13));
 
-  // ISD ticks: 0, 0.3, 0.6, 0.9, 1.2
+  ctx.fillStyle = textCol;
+  ctx.font = (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
   ctx.textAlign = 'right';
-  [0, 0.3, 0.6, 0.9, 1.2].forEach(function(i) {
-    var y = toY(i);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(padL + plotW, y);
-    ctx.stroke();
-    ctx.fillText(i.toFixed(1), padL - 6, y + 3);
+  ctx.textBaseline = 'middle';
+  [0, maxI * 0.5, maxI].forEach(function(iy) {
+    var lbl = iy < 0.01 ? '0' : (iy >= 10 ? iy.toFixed(0) : (iy >= 1 ? iy.toFixed(1) : iy.toFixed(2)));
+    ctx.fillText(lbl, pad.L - (isLarge ? 8 : 5), mapY(iy));
   });
-
   ctx.save();
-  ctx.translate(isModal ? 14 : 11, padT + plotH / 2);
+  ctx.translate(isLarge ? 13 : 10, pad.T + gh / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.fillText('I_SD (mA)', 0, 0);
+  ctx.fillStyle = isLight ? '#475569' : '#9aa6b6';
+  ctx.font = 'bold ' + (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
+  ctx.fillText('ISD (mA)', 0, 0);
   ctx.restore();
 
-  // Draw Pinch-off Parabolic Boundary Curve: VSD = VOV => ISD = 0.5 * KP * VSD^2
-  ctx.strokeStyle = pinchOffColor;
-  ctx.lineWidth = isModal ? 1.5 : 1.2;
-  ctx.setLineDash([3, 3]);
+  // Clip curves cleanly inside axes frame
+  ctx.save();
   ctx.beginPath();
-  var startedPinch = false;
-  for (var v = 0; v <= vsdMax; v += 0.05) {
-    var iBoundary = 0.5 * KP_PRIME * v * v;
-    if (iBoundary > isdMax) break;
-    var px = toX(v);
-    var py = toY(iBoundary);
-    if (!startedPinch) { ctx.moveTo(px, py); startedPinch = true; }
-    else { ctx.lineTo(px, py); }
+  ctx.rect(pad.L, pad.T - 2, gw + 1, gh + 4);
+  ctx.clip();
+
+  // Dashed Pinch-Off Locus (VSD = VSD,sat)
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = satLocusCol;
+  ctx.lineWidth = isLarge ? 1.8 : 1.3;
+  ctx.beginPath();
+  var startedLocus = false;
+  for (var lxVgs = 1.05; lxVgs >= -1.0; lxVgs -= 0.025) {
+    var ptSatGuess = computeDpmosPoint(lxVgs, 0.8, geomL, geomW, geomTox);
+    var vSat = ptSatGuess.vsdSat;
+    if (vSat > 0.005 && vSat <= maxV) {
+      var ptSat = computeDpmosPoint(lxVgs, vSat, geomL, geomW, geomTox);
+      var lx = mapX(vSat);
+      var ly = mapY(ptSat.isd);
+      if (!startedLocus) {
+        ctx.moveTo(lx, ly);
+        startedLocus = true;
+      } else {
+        ctx.lineTo(lx, ly);
+      }
+    }
   }
   ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.restore();
 
-  // Labels for Linear and Saturation regions
-  ctx.font = (isModal ? '10px' : '8px') + ' "IBM Plex Mono", monospace';
-  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.75)' : 'rgba(74,146,201,0.60)';
-  ctx.textAlign = 'left';
-  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + (isModal ? 20 : 16));
-  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.80)' : 'rgba(87,207,143,0.65)';
-  ctx.textAlign = 'right';
-  ctx.fillText('SATURATION', padL + plotW - 8, padT + (isModal ? 20 : 16));
-
-  function getSamplePoints(vov, maxV, baseStep) {
-    var pts = [];
-    for (var v = 0; v <= maxV + 0.0001; v += baseStep) {
-      pts.push(Math.min(maxV, v));
-    }
-    if (vov > 0.001 && vov < maxV) {
-      pts.push(vov);
-    }
-    pts.sort(function(a, b) { return a - b; });
-    var unique = [pts[0]];
-    for (var i = 1; i < pts.length; i++) {
-      if (pts[i] - unique[unique.length - 1] > 0.002) {
-        unique.push(pts[i]);
-      }
-    }
-    return unique;
-  }
-
-  // Family of VGS Curves for D-PMOS: Cutoff (+0.8V), Depletion (+0.4V), Zero Bias (0.0V), Enhancement (-0.4V, -0.8V)
-  var vgsFamily = [0.80, 0.40, 0.00, -0.40, -0.80];
-  vgsFamily.forEach(function(curveVgs) {
-    var vovFamily = Math.max(0, VTH_P - curveVgs);
-    if (vovFamily <= 0.001) return;
-
-    var isCloseToActive = Math.abs(curveVgs - activeVgs) < 0.06;
-    if (isCloseToActive) return;
-
-    var pts = getSamplePoints(vovFamily, vsdMax, 0.04);
-    ctx.strokeStyle = dimmedCurveColor;
-    ctx.lineWidth = isModal ? 1.4 : 1.2;
+  var labelCandidates = [];
+  vgsFamily.forEach(function(vg) {
+    var isZero = Math.abs(vg) < 0.01;
+    ctx.strokeStyle = isZero
+      ? (isLight ? 'rgba(13, 148, 136, 0.55)' : 'rgba(95, 217, 196, 0.45)')
+      : (isLight ? 'rgba(100, 116, 139, 0.40)' : 'rgba(148, 163, 184, 0.34)');
+    ctx.lineWidth = isZero ? (isLarge ? 2.0 : 1.5) : (isLarge ? 1.5 : 1.1);
     ctx.beginPath();
-    var started = false;
-
-    for (var idx = 0; idx < pts.length; idx++) {
-      var v = pts[idx];
-      var iCalc = 0;
-      if (v < vovFamily) {
-        iCalc = KP_PRIME * (vovFamily * v - 0.5 * v * v);
-      } else {
-        iCalc = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (v - vovFamily));
-      }
-      var cx = toX(v);
-      var cy = toY(Math.min(isdMax, iCalc));
-      if (!started) { ctx.moveTo(cx, cy); started = true; }
-      else { ctx.lineTo(cx, cy); }
+    var lastY = pad.T + gh;
+    for (var s = 0; s <= 40; s++) {
+      var v = (s / 40) * maxV;
+      var iVal = computeDpmosPoint(vg, v, geomL, geomW, geomTox).isd;
+      var px = mapX(v);
+      var py = mapY(iVal);
+      if (s === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+      if (s === 40) lastY = py;
     }
     ctx.stroke();
-
-    var endI = 0.5 * KP_PRIME * vovFamily * vovFamily * (1.0 + LAMBDA_P * (vsdMax - vovFamily));
-    if (endI < isdMax) {
-      ctx.fillStyle = textColor;
-      ctx.font = (isModal ? '9px' : '7.5px') + ' "IBM Plex Mono", monospace';
-      ctx.textAlign = 'right';
-      ctx.fillText((curveVgs > 0 ? '+' : '') + curveVgs.toFixed(1) + 'V', toX(vsdMax) - 2, toY(endI) - 3);
-    }
+    labelCandidates.push({
+      vg: vg,
+      text: (vg > 0 ? '+' : '') + vg.toFixed(1) + 'V',
+      y: lastY,
+      color: isZero ? zeroBiasCol : famCol
+    });
   });
 
-  // Active Highlighted VGS Curve
-  var activeVov = Math.max(0, VTH_P - activeVgs);
-  if (activeVov > 0.001) {
-    var activePts = getSamplePoints(activeVov, vsdMax, 0.03);
-    ctx.strokeStyle = activeCurveColor;
-    ctx.lineWidth = isModal ? 3.0 : 2.4;
-    ctx.beginPath();
-    var startedActive = false;
+  // Active VGS Curve Highlighted
+  var activeState = computeDpmosPoint(currentVgs, currentVsd, geomL, geomW, geomTox);
+  var activeRg = activeState.region;
+  var dotCol = activeRg === 'CUTOFF' ? '#e35d5d' : (activeRg === 'LINEAR' ? '#4a92c9' : '#57cf8f');
 
-    for (var idx = 0; idx < activePts.length; idx++) {
-      var v = activePts[idx];
-      var iCalc = 0;
-      if (v < activeVov) {
-        iCalc = KP_PRIME * (activeVov * v - 0.5 * v * v);
-      } else {
-        iCalc = 0.5 * KP_PRIME * activeVov * activeVov * (1.0 + LAMBDA_P * (v - activeVov));
-      }
-      var cx = toX(v);
-      var cy = toY(Math.min(isdMax, iCalc));
-      if (!startedActive) { ctx.moveTo(cx, cy); startedActive = true; }
-      else { ctx.lineTo(cx, cy); }
-    }
+  ctx.strokeStyle = activeCurveCol;
+  ctx.lineWidth = isLarge ? 2.8 : 2.1;
+  ctx.beginPath();
+  for (var a = 0; a <= 48; a++) {
+    var av = (a / 48) * maxV;
+    var aiVal = computeDpmosPoint(currentVgs, av, geomL, geomW, geomTox).isd;
+    var apx = mapX(av);
+    var apy = mapY(aiVal);
+    if (a === 0) ctx.moveTo(apx, apy);
+    else ctx.lineTo(apx, apy);
+  }
+  ctx.stroke();
+
+  if (activeState.vsdSat > 0.02 && activeState.vsdSat < maxV && activeRg !== 'CUTOFF') {
+    var vxPin = mapX(activeState.vsdSat);
+    ctx.save();
+    ctx.setLineDash([2, 3]);
+    ctx.strokeStyle = satLocusCol;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(vxPin, pad.T);
+    ctx.lineTo(vxPin, pad.T + gh);
     ctx.stroke();
+    ctx.restore();
   }
 
-  // Crosshairs from Axes to Operating Point
-  var dotX = toX(activeVsd);
-  var dotY = toY(Math.min(isdMax, activeIsd));
+  var dotX = mapX(currentVsd);
+  var dotY = mapY(activeState.isd);
 
-  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.22)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([2, 2]);
-
+  ctx.fillStyle = dotCol;
+  ctx.globalAlpha = 0.25;
   ctx.beginPath();
-  ctx.moveTo(padL, dotY);
-  ctx.lineTo(dotX, dotY);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(dotX, padT + plotH);
-  ctx.lineTo(dotX, dotY);
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Active Operating Point Dot
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, isModal ? 9 : 7, 0, Math.PI * 2);
-  ctx.fillStyle = isLight ? 'rgba(13,148,136,0.25)' : 'rgba(95,217,196,0.30)';
+  ctx.arc(dotX, dotY, isLarge ? 10 : 7, 0, Math.PI * 2);
   ctx.fill();
+  ctx.globalAlpha = 1.0;
 
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, isModal ? 5.5 : 4.5, 0, Math.PI * 2);
-  ctx.fillStyle = dotColor;
-  ctx.fill();
-  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = dotCol;
+  ctx.strokeStyle = isLight ? '#ffffff' : '#090d14';
   ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, isLarge ? 5.2 : 4, 0, Math.PI * 2);
+  ctx.fill();
   ctx.stroke();
+  ctx.restore(); // end clip
+
+  // Non-overlapping VGS curve labels on the right edge with column header
+  ctx.font = 'bold ' + (isLarge ? '10px' : '8.5px') + ' "IBM Plex Mono", monospace';
+  ctx.fillStyle = textCol;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('VGS', pad.L + gw + 4, pad.T - (isLarge ? 10 : 8));
+
+  ctx.font = (isLarge ? '10px' : '8px') + ' "IBM Plex Mono", monospace';
+  var minGap = isLarge ? 13 : 10;
+  labelCandidates.sort(function(a, b) { return a.y - b.y; });
+  var prevY = pad.T - minGap;
+  for (var cIdx = 0; cIdx < labelCandidates.length; cIdx++) {
+    var item = labelCandidates[cIdx];
+    var placedY = Math.max(pad.T + 4, Math.max(item.y, prevY + minGap));
+    if (placedY <= pad.T + gh - 2) {
+      ctx.fillStyle = item.color;
+      ctx.fillText(item.text, pad.L + gw + 4, placedY);
+      prevY = placedY;
+    }
+  }
+
+  if (isLarge) {
+    ctx.fillStyle = textCol;
+    ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(
+      'L=' + activeState.L + 'nm · W=' + activeState.W + 'nm · tox=' + activeState.tox.toFixed(1) + 'nm',
+      pad.L + 8,
+      pad.T + 6
+    );
+  }
 
   ctx.restore();
 }
 
-function drawIsdVsdGraph(activeVgs, activeVsd, activeIsd, activeRegion) {
-  var phys = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
-  var vgs = (typeof activeVgs === 'number') ? activeVgs : (phys ? phys.vgs : currentVgs);
-  var vsd = (typeof activeVsd === 'number') ? activeVsd : (phys ? phys.vsd : currentVsd);
-  var isd = (typeof activeIsd === 'number') ? activeIsd : (phys ? phys.isd : 0.21);
-  var reg = activeRegion || (phys ? phys.region : 'SATURATION');
-
-  var canvas = document.getElementById('iv-canvas');
-  if (canvas) {
-    renderSingleDpmosGraph(canvas, false, vgs, vsd, isd, reg);
-  }
-
+function drawIsdVsdGraph() {
+  renderIsdVsdOnCanvas(document.getElementById('iv-canvas'), false);
   var modalBackdrop = document.getElementById('iv-modal-backdrop');
-  var modalCanvas = document.getElementById('iv-modal-canvas');
-  if (modalBackdrop && modalBackdrop.style.display !== 'none' && modalCanvas) {
-    renderSingleDpmosGraph(modalCanvas, true, vgs, vsd, isd, reg);
+  if (modalBackdrop && modalBackdrop.style.display !== 'none') {
+    renderIsdVsdOnCanvas(document.getElementById('iv-modal-canvas'), true);
+  }
+}
+window.drawIsdVsdGraph = drawIsdVsdGraph;
+window.drawIsdVdsGraph = drawIsdVsdGraph;
+
+window.updateLogicGraphTheme = function() {
+  drawIsdVsdGraph();
+};
+
+function applyLogicState() {
+  if (typeof window.updateDeviceGeometry3D === 'function') {
+    window.updateDeviceGeometry3D(geomL, geomW, geomTox);
   }
 
-  // Update modal readouts
-  var mVgs = document.getElementById('iv-m-vgs');
-  var mVsd = document.getElementById('iv-m-vsd') || document.getElementById('iv-m-vds');
-  var mIsd = document.getElementById('iv-m-isd') || document.getElementById('iv-m-ids');
-  var mReg = document.getElementById('iv-m-region');
-  if (mVgs) mVgs.textContent = vgs.toFixed(2) + ' V';
-  if (mVsd) mVsd.textContent = vsd.toFixed(2) + ' V';
-  if (mIsd) mIsd.textContent = (isd >= 0.01 ? isd.toFixed(2) : '0.00') + ' mA';
-  if (mReg) mReg.textContent = reg;
+  var state = computeDpmosPoint(currentVgs, currentVsd, geomL, geomW, geomTox);
+  var isd = state.isd;
+  var region = state.region;
+  var mode = state.mode;
+
+  var vgsStr = (currentVgs >= 0 ? '+' : '') + currentVgs.toFixed(2) + ' V';
+  var vsdStr = currentVsd.toFixed(2) + ' V';
+  var isdStr = formatIsdText(isd);
+
+  var vgsSlider = document.getElementById('vgs-slider');
+  var vgsVal = document.getElementById('vgs-val');
+  if (vgsSlider) vgsSlider.value = currentVgs.toFixed(2);
+  if (vgsVal) vgsVal.textContent = vgsStr;
+
+  var vsdSlider = document.getElementById('vsd-slider');
+  var vsdVal = document.getElementById('vsd-val');
+  if (vsdSlider) vsdSlider.value = currentVsd.toFixed(2);
+  if (vsdVal) vsdVal.textContent = vsdStr;
+
+  syncGeometryControlsUI();
+
+  var seg = document.getElementById('region-preset-seg');
+  if (seg) {
+    seg.querySelectorAll('.seg-btn, .dp-preset-btn').forEach(function(btn) {
+      var p = btn.dataset.preset;
+      var active = (
+        (p === 'cutoff' && region === 'CUTOFF') ||
+        (p === 'depletion' && mode === 'DEPLETION') ||
+        (p === 'zero' && mode === 'ZERO BIAS') ||
+        (p === 'enhancement' && mode === 'ENHANCE')
+      );
+      btn.classList.toggle('active', active);
+    });
+  }
+
+  var setText = function(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  setText('iv-vgs-readout', vgsStr);
+  setText('iv-vsd-readout', vsdStr);
+  setText('iv-vth-readout', '+' + state.vth.toFixed(2) + ' V');
+  setText('iv-vov-readout', state.vov.toFixed(2) + ' V');
+  setText('iv-wl-readout', state.wlRatio.toFixed(2));
+  setText('iv-isd-readout', isdStr);
+  setText('iv-leff-readout', state.leff.toFixed(1) + ' nm');
+  setText('iv-vsdsat-readout', state.vsdSat.toFixed(2) + ' V');
+  setText('iv-dl-readout', state.deltaL_nm.toFixed(1) + ' nm');
+
+  var stateDesc = document.getElementById('iv-state-desc');
+  if (stateDesc) {
+    if (region === 'CUTOFF') {
+      stateDesc.textContent = 'CUTOFF · VGS >= VTH,p (+' + state.vth.toFixed(2) + ' V) · Channel depleted';
+      stateDesc.style.color = '#e35d5d';
+    } else if (region === 'LINEAR') {
+      stateDesc.textContent = mode + ' · LINEAR (VSD < ' + state.vsdSat.toFixed(2) + ' V)';
+      stateDesc.style.color = '#4a92c9';
+    } else {
+      stateDesc.textContent = mode + ' · SATURATION (CLM + DIBL)';
+      stateDesc.style.color = '#57cf8f';
+    }
+  }
+
+  var mVgs = document.getElementById('iv-modal-ro-vgs');
+  var mVsd = document.getElementById('iv-modal-ro-vsd');
+  var mIsd = document.getElementById('iv-modal-ro-isd');
+  var mReg = document.getElementById('iv-modal-ro-region');
+  var mVth = document.getElementById('iv-modal-ro-vth');
+  var mWl = document.getElementById('iv-modal-ro-wl');
+  var mLeff = document.getElementById('iv-modal-ro-leff');
+  if (mVgs) mVgs.textContent = vgsStr;
+  if (mVsd) mVsd.textContent = vsdStr;
+  if (mIsd) mIsd.textContent = isdStr;
+  if (mReg) {
+    mReg.textContent = region + ' (' + mode + ')';
+    mReg.className = 'iv-modal-ro-val ' + (region === 'CUTOFF' ? 'cutoff' : (region === 'LINEAR' ? 'linear' : 'sat'));
+  }
+  if (mVth) mVth.textContent = '+' + state.vth.toFixed(2) + ' V';
+  if (mWl) mWl.textContent = state.wlRatio.toFixed(2);
+  if (mLeff) mLeff.textContent = state.leff.toFixed(1) + ' nm';
+
+  var vaCtx = document.getElementById('va-ctx-state');
+  if (vaCtx) vaCtx.textContent = 'VGS=' + vgsStr + ' · VSD=' + vsdStr + ' (' + region + ' · L=' + state.L + 'nm)';
+
+  var schVgs = document.getElementById('sch-vgs-val');
+  if (schVgs) schVgs.textContent = vgsStr;
+
+  var schChan = document.getElementById('sch-channel-state');
+  if (schChan) {
+    if (region === 'CUTOFF') {
+      schChan.textContent = 'CHANNEL DEPLETED (CUTOFF)';
+      schChan.setAttribute('fill', '#e35d5d');
+    } else if (mode === 'ZERO BIAS') {
+      schChan.textContent = 'NORMALLY ON (BUILT-IN P-CHANNEL)';
+      schChan.setAttribute('fill', '#5fd9c4');
+    } else if (mode === 'DEPLETION') {
+      schChan.textContent = 'DEPLETION MODE (' + region + ')';
+      schChan.setAttribute('fill', '#e6a23c');
+    } else {
+      schChan.textContent = 'ENHANCEMENT ACCUMULATION (' + region + ')';
+      schChan.setAttribute('fill', '#57cf8f');
+    }
+  }
+
+  var flowCap = document.getElementById('flow-caption');
+  if (flowCap) {
+    if (region === 'CUTOFF') {
+      flowCap.textContent = 'CUTOFF: Positive VGS >= VTH,p (+' + state.vth.toFixed(2) + ' V) depletes all mobile holes.';
+    } else if (currentVsd <= 0.005) {
+      flowCap.textContent = mode + ' (VSD = 0V): Built-in P-channel contains mobile holes with zero net horizontal drift.';
+    } else if (region === 'LINEAR') {
+      flowCap.textContent = mode + ' LINEAR: Continuous P-channel conducts ' + isdStr + ' (L=' + state.L + 'nm, W=' + state.W + 'nm).';
+    } else {
+      flowCap.textContent = mode + ' SATURATION: Pinched off (Leff=' + state.leff.toFixed(1) + 'nm, ΔL=' + state.deltaL_nm.toFixed(1) + 'nm); saturated ISD=' + isdStr + '.';
+    }
+  }
+
+  if (typeof window.updateChannelGeometry === 'function') {
+    window.updateChannelGeometry(currentVgs, currentVsd, isd, region, state.deltaL);
+  }
+
+  if (typeof rebuildFlowCurves === 'function') {
+    rebuildFlowCurves(isd, region, state.deltaL);
+  }
+
+  if (typeof window.updateSubGateCarriers === 'function') {
+    window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+  }
+
+  drawIsdVsdGraph();
+}
+window.applyLogicState = applyLogicState;
+
+function applyRegionPreset(preset) {
+  if (preset === 'cutoff') {
+    currentVgs = 1.20;
+    currentVsd = 0.80;
+  } else if (preset === 'depletion') {
+    currentVgs = 0.40;
+    currentVsd = 0.80;
+  } else if (preset === 'zero') {
+    currentVgs = 0.00;
+    currentVsd = 0.80;
+  } else if (preset === 'enhancement') {
+    currentVgs = -0.60;
+    currentVsd = 0.80;
+  }
+  applyLogicState();
 }
 
-window.drawIsdVsdGraph = drawIsdVsdGraph;
-window.drawIdsVdsGraph = drawIsdVsdGraph;
+function registerDpmosParamModals() {
+  var modalHelper = (typeof window.SiliconParamInfoModal !== 'undefined') ? window.SiliconParamInfoModal : window.SiliconInfoPopover;
+  if (!modalHelper) return;
+  modalHelper.register({
+    vgs: {
+      title: 'Gate-to-Source Voltage (V<sub>GS</sub>)',
+      param: 'Dual-Mode P-Channel Control: −1.00 V (Enhancement) to +1.20 V (Cutoff)',
+      formula: 'V<sub>OV</sub> = V<sub>TH,p</sub> − V<sub>GS</sub> (V<sub>TH,p</sub> &gt; 0)   |   I<sub>SD</sub> ∝ V<sub>OV</sub> · V<sub>SD,sat</sub>',
+      increase: 'Positive V<sub>GS</sub> depletes holes from the pre-implanted P-channel (Depletion Mode); when V<sub>GS</sub> ≥ V<sub>TH,p</sub>, hole conduction shuts off completely (Cutoff, I<sub>SD</sub> = 0).',
+      decrease: 'Toward 0 V reaches Normally-ON I<sub>DSS</sub>; negative V<sub>GS</sub> attracts additional surface holes into accumulation, lifting I<sub>SD</sub> well above I<sub>DSS</sub>.',
+      tradeoff: 'Normally ON conduction at V<sub>GS</sub> = 0 V enables zero-headroom high-side current sources, though μ<sub>p</sub> ≈ 0.45 μ<sub>n</sub> lowers current per unit width.',
+      theorySection: 'dpmos-dualmode'
+    },
+    vsd: {
+      title: 'Source-to-Drain Bias (V<sub>SD</sub>)',
+      param: 'Lateral Source-to-Drain Hole Drift Magnitude: 0.00 V to 1.80 V',
+      formula: 'Linear (V<sub>SD</sub> &lt; V<sub>SD,sat</sub>)  →  Saturation (V<sub>SD</sub> ≥ V<sub>SD,sat</sub>)',
+      increase: 'Pulls holes from P+ Source toward P+ Drain; past V<sub>SD,sat</sub>, widens drain pinch-off gap <code>ΔL</code> and lowers positive V<sub>TH,p</sub> via DIBL in short channels.',
+      decrease: 'Reduces lateral hole drift field and returns the channel from pinch-off saturation back into the linear region; at V<sub>SD</sub> = 0 V, holes thermally jitter in place.',
+      tradeoff: 'Elevated V<sub>SD</sub> sustains saturation current but strengthens short-channel DIBL and finite channel-length modulation slope <code>λ</code>.',
+      theorySection: 'dpmos-pinchoff'
+    },
+    geomL: {
+      title: 'Channel Length (L)',
+      param: 'Physical Metallurgical Gate Length: 20 nm to 200 nm',
+      formula: 'I<sub>SD</sub> ∝ 1/L   |   λ ∝ 1/L   |   V<sub>SD,sat</sub> = V<sub>OV</sub>·E<sub>sat</sub>·L / (V<sub>OV</sub> + E<sub>sat</sub>·L)',
+      increase: 'Flattens saturation slope (higher output resistance r<sub>o</sub>) and suppresses DIBL and roll-off so V<sub>TH,p</sub> stays near long-channel +0.80 V.',
+      decrease: 'Boosts drive current ∝ 1/L up toward velocity saturation, steepens <code>λ</code>, and reduces V<sub>TH,p</sub> via roll-off &amp; DIBL.',
+      tradeoff: 'Short L increases hole drive capability while sacrificing output resistance and sharp high-V<sub>GS</sub> cutoff stability.',
+      theorySection: 'dpmos-equations'
+    },
+    geomW: {
+      title: 'Channel Width (W)',
+      param: 'Active Transverse P+ Gate Width: 40 nm to 400 nm',
+      formula: 'I<sub>SD</sub> ∝ W   |   k<sub>p</sub> = μ<sub>p</sub> · C<sub>ox</sub> · (W / L)  (μ<sub>p</sub> ≈ 0.45 μ<sub>n</sub>)',
+      increase: 'Expands the 3D P-channel cross-section along Z and scales hole current linearly to compensate lower hole mobility μ<sub>p</sub>.',
+      decrease: 'Compresses active Z-width and scales hole drive current down proportionally without shifting V<sub>TH,p</sub> or V<sub>SD,sat</sub>.',
+      tradeoff: 'Widening D-PMOS to match D-NMOS drive adds proportional gate capacitance C<sub>g</sub> ∝ W·L.',
+      theorySection: 'dpmos-equations'
+    },
+    geomTox: {
+      title: 'Gate Oxide Thickness (t<sub>ox</sub>)',
+      param: 'Effective Equivalent Oxide Thickness (EOT): 1.2 nm to 10.0 nm',
+      formula: 'C<sub>ox</sub> = ε<sub>ox</sub> / t<sub>ox</sub> (ε<sub>ox</sub> = 3.9 ε<sub>0</sub>)   |   k<sub>p</sub> ∝ 1 / t<sub>ox</sub>',
+      increase: 'Weakens vertical gate control over the N-well channel, lowering k<sub>p</sub> and raising baseline V<sub>TH,p</sub> slightly.',
+      decrease: 'Boosts C<sub>ox</sub> and transconductance k<sub>p</sub> while tightening gate electrostatic control over channel depletion.',
+      tradeoff: 'Thin EOT maximizes gate capacitance and reduces short-channel SCE while High-k HfO₂ suppresses gate tunneling.',
+      theorySection: 'dpmos-structure'
+    }
+  });
+}
 
-// ---------------------------------------------------------------------------
-// INTERACTIVE EVENT LISTENERS & INITIALIZATION
-// ---------------------------------------------------------------------------
 function initLogicStateControls() {
-  var vgsSlider = document.getElementById('vgs-slider') || document.getElementById('vsg-slider');
+  var vgsSlider = document.getElementById('vgs-slider');
   if (vgsSlider) {
-    vgsSlider.addEventListener('input', function(e) {
-      currentVgs = parseFloat(e.target.value);
+    vgsSlider.addEventListener('input', function() {
+      currentVgs = parseFloat(vgsSlider.value);
       applyLogicState();
     });
   }
 
   var vsdSlider = document.getElementById('vsd-slider');
   if (vsdSlider) {
-    vsdSlider.addEventListener('input', function(e) {
-      currentVsd = parseFloat(e.target.value);
+    vsdSlider.addEventListener('input', function() {
+      currentVsd = parseFloat(vsdSlider.value);
       applyLogicState();
     });
   }
 
-  function applyPreset(preset) {
-    if (preset === 'cutoff') {
-      currentVgs = 1.00;
-      currentVsd = 0.80;
-    } else if (preset === 'depletion') {
-      currentVgs = 0.40;
-      currentVsd = 0.80;
-    } else if (preset === 'zero') {
-      currentVgs = 0.00;
-      currentVsd = 0.80;
-    } else if (preset === 'enhancement') {
-      currentVgs = -0.60;
-      currentVsd = 0.80;
-    }
-    applyLogicState();
+  var lSlider = document.getElementById('geom-l-slider');
+  if (lSlider) {
+    lSlider.addEventListener('input', function() {
+      geomL = parseFloat(lSlider.value);
+      applyLogicState();
+    });
   }
 
-  document.querySelectorAll('[data-preset]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      applyPreset(btn.dataset.preset);
-    });
-  });
-
-  function bindCanvasPointer(cvs, isModal) {
-    var isDragging = false;
-    function handleGraphPointer(e) {
-      var rect = cvs.getBoundingClientRect();
-      var padL = isModal ? 52 : 36;
-      var padR = isModal ? 44 : 30;
-      var plotW = rect.width - padL - padR;
-
-      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      var clickX = clientX - rect.left - padL;
-      var normX = Math.max(0, Math.min(1.0, clickX / plotW));
-
-      currentVsd = Math.round(normX * 1.8 * 20) / 20; // 0.05V step
+  var wSlider = document.getElementById('geom-w-slider');
+  if (wSlider) {
+    wSlider.addEventListener('input', function() {
+      geomW = parseFloat(wSlider.value);
       applyLogicState();
-    }
+    });
+  }
 
-    cvs.addEventListener('mousedown', function(e) {
-      isDragging = true;
-      handleGraphPointer(e);
+  var toxSlider = document.getElementById('geom-tox-slider');
+  if (toxSlider) {
+    toxSlider.addEventListener('input', function() {
+      geomTox = parseFloat(toxSlider.value);
+      applyLogicState();
     });
-    window.addEventListener('mousemove', function(e) {
-      if (isDragging) handleGraphPointer(e);
-    });
-    window.addEventListener('mouseup', function() {
-      isDragging = false;
-    });
+  }
 
-    cvs.addEventListener('touchstart', function(e) {
-      isDragging = true;
-      handleGraphPointer(e);
-      e.preventDefault();
-    }, { passive: false });
-    window.addEventListener('touchmove', function(e) {
-      if (isDragging) {
-        handleGraphPointer(e);
-        e.preventDefault();
+  var geomPresets = document.getElementById('geom-presets');
+  if (geomPresets) {
+    geomPresets.addEventListener('click', function(e) {
+      var btn = e.target.closest('.geom-preset-btn');
+      if (!btn) return;
+      geomL = parseFloat(btn.dataset.l) || 28;
+      geomW = parseFloat(btn.dataset.w) || 120;
+      geomTox = parseFloat(btn.dataset.tox) || 2.0;
+      applyLogicState();
+    });
+  }
+
+  var lockBtn = document.getElementById('iv-lock-y');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', function() {
+      lockYAxis = !lockYAxis;
+      if (lockYAxis) {
+        lockedYMax = null;
+        lockedYMax = getGraphYMax([0.4, 0.2, 0.0, -0.4, -0.8]);
+      } else {
+        lockedYMax = null;
       }
-    }, { passive: false });
-    window.addEventListener('touchend', function() {
-      isDragging = false;
+      lockBtn.classList.toggle('active', lockYAxis);
+      lockBtn.setAttribute('aria-pressed', lockYAxis ? 'true' : 'false');
+      drawIsdVsdGraph();
     });
   }
 
-  var canvas = document.getElementById('iv-canvas');
-  if (canvas) bindCanvasPointer(canvas, false);
+  var seg = document.getElementById('region-preset-seg');
+  if (seg) {
+    seg.addEventListener('click', function(e) {
+      var btn = e.target.closest('.seg-btn, .dp-preset-btn');
+      if (!btn || !btn.dataset.preset) return;
+      applyRegionPreset(btn.dataset.preset);
+    });
+  }
+
+  registerDpmosParamModals();
+
+  applyLogicState();
+  requestAnimationFrame(drawIsdVsdGraph);
+
+  window.addEventListener('resize', drawIsdVsdGraph);
+  var wb = document.getElementById('workbench');
+  if (wb && typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(function() { drawIsdVsdGraph(); });
+    ro.observe(wb);
+  }
+
+  function bindCanvasPointer(canvas, isLarge) {
+    var dragging = false;
+    function scrubFromEvent(e) {
+      var rect = canvas.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      var pad = isLarge ? { L: 56, R: 46 } : { L: IV_GRAPH_PAD.L, R: IV_GRAPH_PAD.R };
+      var gw = rect.width - pad.L - pad.R;
+      if (gw <= 5) return;
+      var x = (e.clientX - rect.left) - pad.L;
+      var frac = Math.max(0, Math.min(1, x / gw));
+      currentVsd = Math.round(frac * 1.8 * 20) / 20;
+      applyLogicState();
+    }
+    canvas.addEventListener('pointerdown', function(e) {
+      dragging = true;
+      if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+      scrubFromEvent(e);
+    });
+    canvas.addEventListener('pointermove', function(e) {
+      if (dragging) scrubFromEvent(e);
+    });
+    canvas.addEventListener('pointerup', function(e) {
+      dragging = false;
+      if (canvas.releasePointerCapture) canvas.releasePointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointercancel', function() { dragging = false; });
+  }
+
+  var inlineCanvas = document.getElementById('iv-canvas');
+  if (inlineCanvas) bindCanvasPointer(inlineCanvas, false);
 
   var modalCanvas = document.getElementById('iv-modal-canvas');
   if (modalCanvas) bindCanvasPointer(modalCanvas, true);
@@ -567,12 +811,12 @@ function initLogicStateControls() {
     modalBackdrop.style.display = 'flex';
     if (!modalResizeObserver && typeof ResizeObserver !== 'undefined' && modalCanvas) {
       modalResizeObserver = new ResizeObserver(function() {
-        if (modalBackdrop.style.display !== 'none') applyLogicState();
+        if (modalBackdrop.style.display !== 'none') drawIsdVsdGraph();
       });
       modalResizeObserver.observe(modalCanvas.parentElement || modalCanvas);
     }
-    applyLogicState();
-    requestAnimationFrame(applyLogicState);
+    drawIsdVsdGraph();
+    requestAnimationFrame(drawIsdVsdGraph);
   }
   function closeIvModal() {
     if (!modalBackdrop) return;

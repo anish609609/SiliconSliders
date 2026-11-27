@@ -24,15 +24,15 @@ var FAB_STEPS = [
   {
     badge: 'STEP 3 OF 9',
     title: 'Gate Dielectric Stack (SiO₂ + HfO₂)',
-    desc: 'Ultra-thin interfacial SiO₂ (~0.8 nm) and high-κ HfO₂ gate dielectric are deposited over both PMOS and NMOS channel regions.',
+    desc: 'Ultra-thin interfacial SiO₂ (~0.8 nm) and high-κ HfO₂ gate dielectric are deposited over both PMOS (Wp) and NMOS (Wn) channel regions.',
     layers: ['oxide', 'highk'],
     camPos: [10, 12, 19],
     camTarget: [0, 2.2, 0]
   },
   {
     badge: 'STEP 4 OF 9',
-    title: 'Polysilicon Gate Patterning',
-    desc: 'The continuous polysilicon gate strip spans both the N-Well (PMOS) and P-Well (NMOS), forming a shared input node (IN) perpendicular to source–drain flow.',
+    title: 'Polysilicon Gate Patterning (L & Wp/Wn)',
+    desc: 'A continuous polysilicon strip of gate length L (20–200 nm) spans both PMOS (Wp) and NMOS (Wn), coupling βp/βn sizing directly to switching threshold VM.',
     layers: ['poly'],
     camPos: [-14, 13, 20],
     camTarget: [0, 2.5, 0]
@@ -48,7 +48,7 @@ var FAB_STEPS = [
   {
     badge: 'STEP 6 OF 9',
     title: 'Si₃N₄ Gate Sidewall Spacers',
-    desc: 'Conformal silicon nitride (Si₃N₄) is etched back anisotropically to leave self-aligned spacers flanking the polysilicon gate.',
+    desc: 'Conformal silicon nitride (Si₃N₄) is etched anisotropically to form self-aligned sidewall spacers anchored flush to both gate edges across any channel length L.',
     layers: ['spacer'],
     camPos: [-10, 11, 16],
     camTarget: [0, 2.3, 0]

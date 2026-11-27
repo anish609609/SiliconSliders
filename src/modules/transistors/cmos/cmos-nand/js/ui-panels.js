@@ -351,6 +351,20 @@ function buildUiPanels() {
       applyLayerVisibility();
     }
   }
+
+  /* Bulk Carriers Checkbox (Default OFF) */
+  var chkHoles = document.getElementById('toggle-holes');
+  if (chkHoles) {
+    chkHoles.checked = false;
+    chkHoles.addEventListener('change', function () {
+      if (typeof window.toggleSubstrateHoles === 'function') {
+        window.toggleSubstrateHoles(chkHoles.checked);
+      }
+    });
+    if (typeof window.toggleSubstrateHoles === 'function') {
+      window.toggleSubstrateHoles(false);
+    }
+  }
 }
 
 buildUiPanels();

@@ -163,6 +163,19 @@ if (toggleLabelsChk) {
   }
 }
 
+// Bulk Carriers toggle checkbox
+var toggleHolesChk = document.getElementById('toggle-holes');
+if (toggleHolesChk) {
+  toggleHolesChk.addEventListener('change', function(e) {
+    if (typeof window.toggleSubstrateHoles === 'function') {
+      window.toggleSubstrateHoles(e.target.checked);
+    }
+  });
+  if (typeof window.toggleSubstrateHoles === 'function') {
+    window.toggleSubstrateHoles(toggleHolesChk.checked);
+  }
+}
+
 // 2D Schematic SVG element click handlers: jumps to 3D and highlights component
 if (schematicOverlay) {
   schematicOverlay.querySelectorAll('[data-id]').forEach(function(el) {

@@ -2595,10 +2595,32 @@
   /* -------------------------------------------------------------------------
      Expand Button on IDS-VDS Graph
      ------------------------------------------------------------------------- */
+  /* -------------------------------------------------------------------------
+     VTC Graph Header, Expand Button & Geometry Preset Pills
+     ------------------------------------------------------------------------- */
+  .iv-graph-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 8px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(15, 23, 42, 0.45);
+  }
+  .iv-graph-title {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+  }
+  .iv-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
   .iv-expand-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
+    position: static;
     width: 22px;
     height: 22px;
     display: flex;
@@ -2609,7 +2631,6 @@
     border-radius: 4px;
     color: var(--text-dim);
     cursor: pointer;
-    z-index: 5;
     padding: 0;
     transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
   }
@@ -2619,8 +2640,12 @@
     border-color: var(--accent);
     transform: scale(1.05);
   }
-  :root[data-theme="light"] .iv-expand-btn {
+  :root[data-theme="light"] .iv-graph-header {
     background: rgba(241, 245, 249, 0.85);
+    border-bottom-color: #e2e8f0;
+  }
+  :root[data-theme="light"] .iv-expand-btn {
+    background: #ffffff;
     border-color: #cbd5e1;
     color: #475569;
   }
@@ -2628,6 +2653,71 @@
     background: #ffffff;
     border-color: #0d9488;
     color: #0d9488;
+  }
+  .geom-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .geom-preset-btn {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 6px 4px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  }
+  .geom-preset-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+  }
+  .geom-preset-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #061512;
+    font-weight: 700;
+  }
+  :root[data-theme="light"] .geom-preset-btn {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #475569;
+  }
+  :root[data-theme="light"] .geom-preset-btn:hover {
+    color: #0d9488;
+    border-color: #0d9488;
+  }
+  :root[data-theme="light"] .geom-preset-btn.active {
+    background: #0d9488;
+    border-color: #0d9488;
+    color: #ffffff;
+  }
+  .dp-lbl-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+  }
+  .param-theme-vin,
+  .param-theme-wp,
+  .param-theme-wn,
+  .param-theme-l {
+    --param-color: var(--accent, #5fd9c4);
+  }
+  :root[data-theme="light"] .param-theme-vin,
+  :root[data-theme="light"] .param-theme-wp,
+  :root[data-theme="light"] .param-theme-wn,
+  :root[data-theme="light"] .param-theme-l {
+    --param-color: var(--accent, #0d9488);
   }
 
   /* -------------------------------------------------------------------------

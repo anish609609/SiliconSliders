@@ -197,6 +197,11 @@ function resetAll() {
   var crumbSel = document.getElementById('crumb-sel');
   if (crumbSel) crumbSel.textContent = '';
 
+  // Reset Device Geometry to default Balanced (2:1) preset (Wp=240nm, Wn=120nm, L=28nm)
+  if (typeof window.setCmosGeometryPreset === 'function') {
+    window.setCmosGeometryPreset('balanced');
+  }
+
   // Reset workbench tab to Controls (default)
   if (typeof switchWorkbenchTab === 'function') {
     switchWorkbenchTab('controls');
@@ -207,11 +212,157 @@ function resetAll() {
   if (toggleLabelsChk) toggleLabelsChk.checked = true;
   if (typeof window.toggleLabels === 'function') window.toggleLabels(true);
 
+  // Reset Bulk Carriers toggle OFF (clean default landing view)
+  var toggleHolesChk = document.getElementById('toggle-holes');
+  if (toggleHolesChk) toggleHolesChk.checked = false;
+  if (typeof window.toggleSubstrateHoles === 'function') window.toggleSubstrateHoles(false);
+
   // Sliders mode: workbench is expanded by default at max desktop width
   expandWorkbench();
   setWorkbenchWidth(getDefaultWbWidth());
 }
 window.resetAll = resetAll;
+
+// =====================================================================
+// CMOS INVERTER GUIDED TOUR CONFIGURATION (Includes Geometry & β-Ratio Step)
+// =====================================================================
+window.SILICON_TOUR_CONFIG = {
+  storageKey: 'siliconsliders_cad_tour_seen',
+  readySelector: '#wb-physics-section',
+  steps: [
+    {
+      id: 'theory',
+      title: '1. Start with CMOS Inverter Theory',
+      description: 'Open THEORY anytime to review complementary switching regions, VTC threshold VM, noise margins (NMH/NML), βp/βn sizing, and twin-well layout.',
+      selectors: ['#mode-seg button[data-mode="theory"]', '#btn-view-theory'],
+      pulseSelector: '#mode-seg button[data-mode="theory"]',
+      beforeEnter: function () {
+        var b = document.querySelector('#mode-seg button[data-mode="theory"]');
+        if (b && !b.classList.contains('active')) b.click();
+        else if (typeof setViewMode === 'function') setViewMode('theory');
+      }
+    },
+    {
+      id: 'logic-vtc',
+      title: '2. Logic Bias & Live VTC Curve',
+      description: 'Sweep VIN from 0V to 1.0V—or scrub directly on the VTC graph—to watch PMOS pull-up, NMOS pull-down, shoot-through IDD peak, and channel inversion respond live.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#wb-physics-section', '#wb-pane-controls .wb-bias-controls']
+      ],
+      pulseSelector: '#wb-tab-controls',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+        var body = document.getElementById('wb-body');
+        if (body) body.scrollTop = 0;
+      },
+      onEnter: function (api) {
+        if (api && api.animateExplodeY) api.animateExplodeY(14, 520);
+        if (api && api.animateCameraTo && typeof TOUR_CLOSEUP_POS !== 'undefined' && typeof TOUR_CLOSEUP_TARGET !== 'undefined') {
+          api.animateCameraTo(TOUR_CLOSEUP_POS, TOUR_CLOSEUP_TARGET, 720);
+        }
+      }
+    },
+    {
+      id: 'device-geometry',
+      title: '3. Device Geometry & β-Ratio Sizing',
+      description: 'Adjust PMOS Width (Wp), NMOS Width (Wn), and Channel Length (L: 20–200 nm)—or click Balanced (2:1), Min Area (1:1), and PMOS-Skewed—to shift VM live on the VTC and deform the 3D twin-well CMOS cell.',
+      selectors: ['#wb-geometry-section'],
+      pulseSelector: '#wb-geometry-section .wb-accordion-head',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+        var geomBody = document.getElementById('device-geometry-body');
+        if (geomBody && geomBody.classList.contains('hidden')) {
+          var head = document.querySelector('#wb-geometry-section .wb-accordion-head');
+          if (head) head.click();
+          else geomBody.classList.remove('hidden');
+        }
+        var sec = document.getElementById('wb-geometry-section');
+        if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      },
+      onEnter: function (api) {
+        if (api && api.animateExplodeY) api.animateExplodeY(18, 520);
+        if (api && api.animateCameraTo && typeof INITIAL_POS !== 'undefined' && typeof INITIAL_TARGET !== 'undefined') {
+          api.animateCameraTo(INITIAL_POS, INITIAL_TARGET, 680);
+        }
+      }
+    },
+    {
+      id: 'view-controls',
+      title: '4. Explode Stack & Section Scrub',
+      description: 'Separate Metal-1, Tungsten Vias, Poly Gate, and Active S/D layers along X/Y/Z, toggle Show Bulk Carriers, or slice internal junctions with Section Scrub.',
+      selectors: ['#wb-view-controls-section', '#view-controls-body'],
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+        var bodyEl = document.getElementById('view-controls-body');
+        if (bodyEl && bodyEl.classList.contains('hidden')) {
+          var head = document.querySelector('#wb-view-controls-section .wb-accordion-head');
+          if (head) head.click();
+          else bodyEl.classList.remove('hidden');
+        }
+        var sec = document.getElementById('wb-view-controls-section');
+        if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      },
+      onEnter: function (api) {
+        if (api && api.animateExplodeY) api.animateExplodeY(38, 600);
+        if (api && api.returnToHeroCamera) api.returnToHeroCamera();
+      }
+    },
+    {
+      id: 'layers',
+      title: '5. Toggle & Isolate 3D Layers',
+      description: 'Use the Layers tab to isolate N-Well, P-Well, SDE, High-κ/SiO2 dielectrics, NiSi salicide, contacts, or Metal-1 routing rails.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#layers-body', '#wb-pane-layers']
+      ],
+      pulseSelector: '#wb-tab-layers',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('layers');
+        var body = document.getElementById('wb-body');
+        if (body) body.scrollTop = 0;
+      },
+      onEnter: function (api) {
+        if (api && api.returnToHeroCamera) api.returnToHeroCamera();
+      }
+    },
+    {
+      id: 'inspect',
+      title: '6. Inspect Materials & Structure',
+      description: 'Switch to Inspect to review physical roles, doping conventions, and the full Architecture Tree of every CMOS node and layer.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#wb-pane-inspect', '#inspector-body']
+      ],
+      pulseSelector: '#wb-tab-inspect',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('inspect');
+        var body = document.getElementById('wb-body');
+        if (body) body.scrollTop = 0;
+      },
+      onEnter: function (api) {
+        if (api && api.returnToHeroCamera) api.returnToHeroCamera();
+      }
+    },
+    {
+      id: 'schematic',
+      title: '7. Circuit Schematic View',
+      description: 'Switch to SCHEMATIC anytime to compare the 3D complementary silicon stick cell with its pull-up/pull-down transistor symbol and live voltages.',
+      selectors: ['#mode-seg button[data-mode="schematic"]', '#btn-view-schematic'],
+      pulseSelector: '#mode-seg button[data-mode="schematic"]',
+      beforeEnter: function () {
+        var b = document.querySelector('#mode-seg button[data-mode="schematic"]');
+        if (b && !b.classList.contains('active')) b.click();
+        else if (typeof setViewMode === 'function') setViewMode('schematic');
+      }
+    }
+  ]
+};
 
 // =====================================================================
 // SUBTLE 1-LINE CAMERA CONTROLS HINT

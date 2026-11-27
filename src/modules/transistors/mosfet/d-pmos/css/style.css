@@ -2556,14 +2556,55 @@
   }
 
   /* -------------------------------------------------------------------------
-     Expand Button on IDS-VDS Graph
+     IDS-VDS Graph Header, Lock Y-Axis & Expand Controls
      ------------------------------------------------------------------------- */
+  .iv-graph-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 5px 8px 4px;
+    border-bottom: 1px solid var(--border-soft);
+    background: rgba(15, 23, 42, 0.35);
+  }
+  .iv-graph-title {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: var(--text-dim);
+  }
+  .iv-graph-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .iv-lock-btn {
+    appearance: none;
+    height: 20px;
+    padding: 0 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border-soft);
+    background: rgba(15, 23, 42, 0.65);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.14s ease;
+  }
+  .iv-lock-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .iv-lock-btn.active {
+    background: rgba(95, 217, 196, 0.16);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
   .iv-expand-btn {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2572,25 +2613,119 @@
     border-radius: 4px;
     color: var(--text-dim);
     cursor: pointer;
-    z-index: 5;
     padding: 0;
-    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+    transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
   }
   .iv-expand-btn:hover {
     color: var(--accent);
     background: #141d28;
     border-color: var(--accent);
-    transform: scale(1.05);
   }
+  :root[data-theme="light"] .iv-graph-header {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+  :root[data-theme="light"] .iv-lock-btn,
   :root[data-theme="light"] .iv-expand-btn {
-    background: rgba(241, 245, 249, 0.85);
+    background: rgba(255, 255, 255, 0.9);
     border-color: #cbd5e1;
     color: #475569;
   }
+  :root[data-theme="light"] .iv-lock-btn.active {
+    background: rgba(13, 148, 136, 0.12);
+    border-color: #0d9488;
+    color: #0d9488;
+  }
+  :root[data-theme="light"] .iv-lock-btn:hover,
   :root[data-theme="light"] .iv-expand-btn:hover {
     background: #ffffff;
     border-color: #0d9488;
     color: #0d9488;
+  }
+
+  /* Device Geometry Preset Pills */
+  .geom-presets {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 5px;
+    margin-bottom: 10px;
+  }
+  .geom-preset-btn {
+    appearance: none;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 9.5px;
+    font-weight: 600;
+    padding: 5px 4px;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.14s ease;
+  }
+  .geom-preset-btn:hover {
+    color: var(--text);
+    border-color: var(--accent);
+    background: rgba(95, 217, 196, 0.08);
+  }
+  .geom-preset-btn.active {
+    background: rgba(95, 217, 196, 0.18);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  :root[data-theme="light"] .geom-preset-btn {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #475569;
+  }
+  :root[data-theme="light"] .geom-preset-btn.active {
+    background: rgba(13, 148, 136, 0.12);
+    border-color: #0d9488;
+    color: #0d9488;
+  }
+
+  /* Slider label + info button inline alignment (uniform accent green) */
+  .dp-lbl-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .dp-lbl-group .param-info-btn {
+    --param-info-color: var(--accent);
+    width: 15px;
+    height: 15px;
+    font-size: 10px;
+    color: var(--accent);
+    border-color: var(--border);
+    background: transparent;
+    opacity: 0.85;
+  }
+  .dp-lbl-group .param-info-btn:hover,
+  .dp-lbl-group .param-info-btn.active {
+    opacity: 1;
+    border-color: var(--accent);
+    background: rgba(95, 217, 196, 0.14);
+  }
+  :root[data-theme="light"] .dp-lbl-group .param-info-btn {
+    --param-info-color: #0d9488;
+    color: #0d9488;
+    border-color: #cbd5e1;
+  }
+  :root[data-theme="light"] .dp-lbl-group .param-info-btn:hover,
+  :root[data-theme="light"] .dp-lbl-group .param-info-btn.active {
+    border-color: #0d9488;
+    background: rgba(13, 148, 136, 0.12);
+  }
+  .param-theme-vgs,
+  .param-theme-vsd,
+  .param-theme-l,
+  .param-theme-w,
+  .param-theme-tox {
+    --param-info-color: var(--accent);
   }
 
   /* -------------------------------------------------------------------------

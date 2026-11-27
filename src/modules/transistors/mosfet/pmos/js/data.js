@@ -76,9 +76,9 @@ var INFO = {
   channel: {
     title: 'HOLE INVERSION CHANNEL REGION',
     fn: 'Sub-gate silicon interface inside the N-Well where electrostatic band bending and hole transport occur.',
-    role: 'When VSG > |VTH,p| (0.40V), negative gate-to-channel potential induces an accumulation of mobile holes (p-channel inversion). In Linear/Triode (VSD < VSG - |VTH,p|), channel is continuous from Source to Drain. In Saturation (VSD ≥ VSG - |VTH,p|), channel pinches off near the drain (effective length Leff = L - ΔL) and mobile holes accelerate across the space-charge depletion field.',
+    role: 'When VSG > |VTH,p| (geometry- and DIBL-dependent threshold, VTH0 ≈ -0.45V long-channel), negative gate bias attracts mobile holes (p-channel inversion). In Linear/Triode (VSD < VDsat), channel is continuous from Source to Drain. In Saturation (VSD ≥ VDsat), velocity saturation and pinch-off compress effective channel length to Leff = L - ΔL as holes sweep across ΔL.',
     conn: 'Conductive p-type bridge between P+ Source and P+ Drain.',
-    rel: 'Modulated dynamically by gate overdrive (VOV = VSG - |VTH,p|) and drain bias (VSD).',
+    rel: 'Modulated dynamically by overdrive VOV = VSG - |VTH,p|, drain bias VSD, channel dimensions (L, W), and gate oxide thickness tox.',
     doping: 'Induced mobile holes — p-channel active inversion layer'
   },
   depletion: {
@@ -194,7 +194,7 @@ var INFO = {
   gateRail: {
     title: 'GATE INPUT PAD (G / VG / VSG)',
     fn: 'Metal-1 terminal pad supplying continuous input gate bias VSG (0.00V to 1.80V) where VG = VDD - VSG.',
-    role: 'Controls channel inversion: Cutoff when VSG < |VTH,p| (0.40V), Linear/Triode when VSD < VSG - |VTH,p|, and Saturation when VSD ≥ VSG - |VTH,p|.',
+    role: 'Controls channel inversion: Cutoff when VSG < |VTH,p|, Linear/Triode when VSD < VDsat, and Saturation when VSD ≥ VDsat (with dynamic VTH roll-off and DIBL at short L).',
     conn: 'Drives gate electrode via tungsten contact plug.',
     rel: 'Purely capacitive terminal — draws near-zero DC steady-state current.'
   },

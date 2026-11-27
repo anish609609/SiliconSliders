@@ -32,18 +32,18 @@ var FAB_STEPS = [
   {
     step: 3,
     title: 'Gate Dielectric Stack (SiO2 / HfO2)',
-    desc: 'Thermal growth of ultra-thin interfacial SiO2 (~0.6 nm) followed by ALD High-k HfO2 deposition (κ ≈ 25) to suppress gate tunneling leakage.',
+    desc: 'Thermally grown gate oxide (tunable tox: 1.2–10.0 nm via Device Geometry) capped with ALD High-k HfO2 (κ ≈ 25) to govern vertical gate capacitance Cox.',
     layers: ['substrate', 'well', 'dchannel', 'oxide', 'highk'],
     newLayers: ['oxide', 'highk'],
-    narration: 'Interfacial silicon dioxide is grown and capped with ALD hafnium dioxide to maximize gate capacitance with minimal leakage.'
+    narration: 'Tunable gate oxide thickness and ALD hafnium dioxide are stacked to control vertical gate capacitance while curbing gate tunneling leakage.'
   },
   {
     step: 4,
     title: 'Gate Electrode Patterning',
-    desc: 'Polysilicon / workfunction-tuned metal gate deposition and anisotropic lithographic dry etching establish physical gate length L (Wp ≈ 2Wn).',
+    desc: 'Workfunction-tuned gate deposition and anisotropic dry etch establish physical channel length L (tunable 20–200 nm) and gate width W (40–400 nm).',
     layers: ['substrate', 'well', 'dchannel', 'oxide', 'highk', 'poly'],
     newLayers: ['poly'],
-    narration: 'The polysilicon gate electrode is deposited and etched over the high-k dielectric to define the transistor gate length.'
+    narration: 'The gate electrode is patterned to define the physical channel length L between Source and Drain while modulating short-channel behavior.'
   },
   {
     step: 5,
@@ -263,7 +263,7 @@ function stopBuildAnimation(restoreAll) {
 
     if (_savedTourBias !== null) {
       if (typeof currentVgs !== 'undefined') currentVgs = _savedTourBias.vgs;
-      if (typeof currentVds !== 'undefined') currentVds = _savedTourBias.vds;
+      if (typeof currentVsd !== 'undefined') currentVsd = _savedTourBias.vsd;
       _savedTourBias = null;
       if (typeof applyLogicState === 'function') applyLogicState();
     }
@@ -278,11 +278,11 @@ function startBuildAnimation() {
   }
   if (_savedTourBias === null && typeof window.getMosfetPhysicsState === 'function') {
     var st = window.getMosfetPhysicsState();
-    _savedTourBias = { vgs: st.vgs, vds: st.vds };
+    _savedTourBias = { vgs: st.vgs, vsd: st.vsd };
   }
   isTourActive = true;
   window.isTourActive = true;
-  // D-PMOS has VTH,p = +0.80V; VGS >= +0.80V enters full CUTOFF during fab tour
+  // VGS = +1.20V puts D-PMOS into Cutoff across all L/tox configurations during fab tour
   if (typeof currentVgs !== 'undefined') currentVgs = 1.20;
   if (typeof applyLogicState === 'function') applyLogicState();
   currentFabStep = 1;

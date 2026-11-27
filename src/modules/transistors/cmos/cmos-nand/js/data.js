@@ -292,15 +292,15 @@ var INFO = {
   polyA: {
     title: 'Polysilicon Gate A (MP1 + MN1)',
     layer: 'poly',
-    type: 'Silicided Gate Electrode (X = -3.0, L = 2λ)',
-    role: 'Continuous vertical Euler-path gate simultaneously driving PMOS MP1 (active low) and NMOS MN1 (active high) from Input A.',
+    type: 'Silicided Gate Electrode (Adjustable L: 20–200 nm, Wp / Wn)',
+    role: 'Continuous vertical Euler-path gate simultaneously driving PMOS MP1 (pull-up) and series NMOS MN1 (bottom pull-down) from Input A.',
     process: 'LPCVD polysilicon / HKMG patterning with 193nm/EUV lithography and anisotropic RIE.'
   },
   polyB: {
     title: 'Polysilicon Gate B (MP2 + MN2)',
     layer: 'poly',
-    type: 'Silicided Gate Electrode (X = +3.0, L = 2λ)',
-    role: 'Continuous vertical Euler-path gate simultaneously driving PMOS MP2 (active low) and NMOS MN2 (active high) from Input B.',
+    type: 'Silicided Gate Electrode (Adjustable L: 20–200 nm, Wp / Wn)',
+    role: 'Continuous vertical Euler-path gate simultaneously driving PMOS MP2 (pull-up) and series NMOS MN2 (top pull-down) from Input B.',
     process: 'LPCVD polysilicon / HKMG patterning aligned parallel to Gate A.'
   },
   spacer: {

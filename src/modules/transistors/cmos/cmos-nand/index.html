@@ -33,6 +33,7 @@
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
 <link rel="stylesheet" href="../../../../shared/css/guided-tour.css">
+<link rel="stylesheet" href="../../../../shared/css/param-info-modal.css">
 <script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
@@ -170,23 +171,33 @@
               <button data-preset="01" class="dp-preset-btn" title="VA = 0V, VB = 1V -> OUT = 1 (VDD)">0, 1</button>
               <button data-preset="10" class="dp-preset-btn" title="VA = 1V, VB = 0V -> OUT = 1 (VDD)">1, 0</button>
               <button data-preset="11" class="dp-preset-btn" title="VA = 1V, VB = 1V -> OUT = 0 (GND)">1, 1</button>
-              <button data-preset="vm" class="dp-preset-btn" title="VA = VB = 0.50V (Switching Threshold VM)">VM (0.5V)</button>
+              <button data-preset="vm" class="dp-preset-btn" title="VA = VB = VM (Live Switching Threshold)">V<sub>M</sub></button>
               <button data-preset="off" class="dp-preset-btn active" title="Inputs Disconnected (High-Z Floating)">OFF</button>
             </div>
 
             <!-- Voltage Input Sliders (VA & VB) -->
             <div class="wb-bias-controls">
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-va">
                 <div class="dp-slider-lbl">
-                  <label for="va-slider">V<sub>A</sub> (Gate A)</label>
+                  <span class="dp-lbl-group">
+                    <label for="va-slider">V<sub>A</sub> (Gate A)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="va" aria-label="About VA (Gate A)" aria-expanded="false" title="Input A Voltage info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="va-val">OFF</span>
                 </div>
                 <input type="range" id="va-slider" min="0" max="1.0" step="0.01" value="0.00" title="Gate A Input Voltage VA">
               </div>
 
-              <div class="dp-slider-row">
+              <div class="dp-slider-row param-theme-vb">
                 <div class="dp-slider-lbl">
-                  <label for="vb-slider">V<sub>B</sub> (Gate B)</label>
+                  <span class="dp-lbl-group">
+                    <label for="vb-slider">V<sub>B</sub> (Gate B)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="vb" aria-label="About VB (Gate B)" aria-expanded="false" title="Input B Voltage info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
                   <span class="dp-slider-val" id="vb-val">OFF</span>
                 </div>
                 <input type="range" id="vb-slider" min="0" max="1.0" step="0.01" value="0.00" title="Gate B Input Voltage VB">
@@ -202,14 +213,19 @@
 
             <!-- Live NAND2 Transfer Characteristic Graph -->
             <div class="iv-canvas-wrap">
-              <button class="iv-expand-btn" id="iv-expand-btn" title="Expand Transfer graph" aria-label="Expand Transfer graph">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="15 3 21 3 21 9"></polyline>
-                  <polyline points="9 21 3 21 3 15"></polyline>
-                  <line x1="21" y1="3" x2="14" y2="10"></line>
-                  <line x1="3" y1="21" x2="10" y2="14"></line>
-                </svg>
-              </button>
+              <div class="iv-graph-header">
+                <span class="iv-graph-title">NAND2 VTC &amp; SHOOT-THROUGH I<sub>DD</sub></span>
+                <div class="iv-header-actions">
+                  <button type="button" class="iv-expand-btn" id="iv-expand-btn" title="Expand Transfer graph" aria-label="Expand Transfer graph">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="15 3 21 3 21 9"></polyline>
+                      <polyline points="9 21 3 21 3 15"></polyline>
+                      <line x1="21" y1="3" x2="14" y2="10"></line>
+                      <line x1="3" y1="21" x2="10" y2="14"></line>
+                    </svg>
+                  </button>
+                </div>
+              </div>
               <canvas id="iv-canvas" width="310" height="225"></canvas>
               <div class="iv-canvas-hint">Drag or click on Transfer curve to modulate swept input voltage</div>
             </div>
@@ -230,8 +246,28 @@
                   <span class="iv-v" id="iv-vout-readout">FLOATING</span>
                 </div>
                 <div class="iv-item">
+                  <span class="iv-k">V<sub>M</sub></span>
+                  <span class="iv-v" id="iv-vm-readout">0.50 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">W<sub>p</sub> / W<sub>n</sub></span>
+                  <span class="iv-v" id="iv-ratio-readout">1.00</span>
+                </div>
+                <div class="iv-item">
                   <span class="iv-k">LOGIC OUT</span>
                   <span class="iv-v" id="iv-logic-readout">HIGH-Z</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">NM<sub>H</sub></span>
+                  <span class="iv-v" id="iv-nmh-readout">0.41 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">NM<sub>L</sub></span>
+                  <span class="iv-v" id="iv-nml-readout">0.41 V</span>
+                </div>
+                <div class="iv-item">
+                  <span class="iv-k">I<sub>DD</sub></span>
+                  <span class="iv-v" id="iv-idd-readout">0.0 µA</span>
                 </div>
               </div>
 
@@ -264,6 +300,60 @@
             <!-- Hidden compatibility hooks for state badge telemetry in logic-state.js -->
             <div style="display:none;" id="state-badge">
               <span id="state-rows"></span><span id="state-banner"></span><span id="state-dot"></span>
+            </div>
+          </div>
+
+          <!-- Device Geometry & Series/Parallel Sizing (Collapsible accordion section below VTC and above View Controls) -->
+          <div class="wb-accordion-section" id="wb-geometry-section">
+            <div class="wb-accordion-head" data-target="device-geometry-body">
+              <span class="wb-accordion-title">DEVICE GEOMETRY</span>
+              <span class="wb-chev">▾</span>
+            </div>
+            <div class="wb-accordion-body" id="device-geometry-body">
+              <div class="geom-presets" id="geom-preset-group" role="group" aria-label="CMOS NAND2 Geometry Presets">
+                <button type="button" class="geom-preset-btn active" data-geom-preset="balanced" title="Wp = 240 nm, Wn = 240 nm, L = 28 nm (Compensates 2x series NMOS stack; VM ≈ VDD/2)">Balanced (2:2)</button>
+                <button type="button" class="geom-preset-btn" data-geom-preset="minarea" title="Wp = 120 nm, Wn = 120 nm, L = 28 nm (Minimum area; weaker drive)">Min Area (1:1)</button>
+                <button type="button" class="geom-preset-btn" data-geom-preset="strongpd" title="Wp = 180 nm, Wn = 360 nm, L = 28 nm (Fast series NMOS pull-down; shifts VM left)">Strong Pull-Down</button>
+              </div>
+
+              <div class="dp-slider-row param-theme-wp">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-wp-slider">PMOS Width (W<sub>p</sub>)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomWp" aria-label="About PMOS Width (Wp)" aria-expanded="false" title="PMOS Width info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-wp-val">240 nm</span>
+                </div>
+                <input type="range" id="geom-wp-slider" min="60" max="400" step="10" value="240" title="Parallel PMOS Channel Width Wp (nm)">
+              </div>
+
+              <div class="dp-slider-row param-theme-wn">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-wn-slider">NMOS Width (W<sub>n</sub>)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomWn" aria-label="About NMOS Width (Wn)" aria-expanded="false" title="NMOS Width info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-wn-val">240 nm</span>
+                </div>
+                <input type="range" id="geom-wn-slider" min="60" max="400" step="10" value="240" title="Series NMOS Pull-Down Channel Width Wn (nm)">
+              </div>
+
+              <div class="dp-slider-row param-theme-l">
+                <div class="dp-slider-lbl">
+                  <span class="dp-lbl-group">
+                    <label for="geom-l-slider">Channel Length (L)</label>
+                    <button type="button" class="param-info-btn" data-info-modal="geomL" aria-label="About Channel Length (L)" aria-expanded="false" title="Channel Length info">
+                      <svg class="param-info-glyph" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="7" y1="6.2" x2="7" y2="11"></line><circle cx="7" cy="3.2" r="1.1" fill="currentColor" stroke="none"></circle></svg>
+                    </button>
+                  </span>
+                  <span class="dp-slider-val" id="geom-l-val">28 nm</span>
+                </div>
+                <input type="range" id="geom-l-slider" min="20" max="200" step="2" value="28" title="Shared Gate A & Gate B Channel Length L (nm)">
+              </div>
             </div>
           </div>
 
@@ -305,6 +395,13 @@
                 <label class="dp-checkbox-label">
                   <input type="checkbox" id="toggle-labels" checked>
                   <span>Show 3D Floating Labels</span>
+                </label>
+              </div>
+              <!-- Bulk Carriers Checkbox (Default OFF) -->
+              <div class="dp-section dp-labels-toggle-row">
+                <label class="dp-checkbox-label">
+                  <input type="checkbox" id="toggle-holes">
+                  <span>Show Bulk Carriers</span>
                 </label>
               </div>
             </div>
@@ -683,23 +780,19 @@
           <!-- Section 3: Series Sizing Rules -->
           <article id="nand-sizing" class="theory-card">
             <div class="theory-card-header">
-              <h3 class="theory-card-title">3. Transistor Sizing Rules &amp; Series Stacking Penalty</h3>
-              <span class="theory-card-tag">(Wn/L)NAND = 2 × (Wn/L)INV</span>
+              <h3 class="theory-card-title">3. Transistor β-Ratio Sizing, Series Stacking &amp; Short-Channel Effects</h3>
+              <span class="theory-card-tag">(Wn/L)NAND = 2 × (Wn/L)INV · Balanced (2:2)</span>
             </div>
             <p class="theory-p">
-              When two identical NMOS transistors are stacked in series, their on-resistances sum together: <code>R<sub>PDN</sub> = R<sub>n1</sub> + R<sub>n2</sub> = 2 R<sub>n</sub></code>. To match the pull-down delay of a reference unit inverter (<code>R<sub>inv,N</sub></code>):
+              When two NMOS devices are stacked in series, their on-resistances add: <code>R<sub>PDN</sub> = R<sub>n1</sub> + R<sub>n2</sub></code>, yielding effective pull-down strength <code>&beta;<sub>n,eff</sub> = &beta;<sub>n</sub> / 2</code>. Meanwhile electron mobility exceeds hole mobility (<code>&mu;<sub>n</sub> &approx; 2.0 &mu;<sub>p</sub></code>), so sizing <b>Balanced (2:2)</b> (<code>W<sub>p</sub> = W<sub>n</sub> = 240 nm</code>) equates <code>&beta;<sub>p</sub> = &beta;<sub>n,eff</sub></code> and centers worst-case switching threshold <code>V<sub>M</sub> &approx; V<sub>DD</sub>/2</code>.
             </p>
             <div class="theory-formula-box">
-              <div class="theory-formula-main">(W<sub>n</sub> / L)<sub>NAND</sub> = 2 × (W<sub>n</sub> / L)<sub>INV</sub></div>
-              <div class="theory-formula-sub">Doubling NMOS channel width halves each transistor's on-resistance (R<sub>n</sub> = R<sub>inv</sub> / 2), keeping total stack resistance equal to R<sub>inv</sub>.</div>
+              <div class="theory-formula-main">V<sub>M</sub> = [V<sub>THn</sub> + &radic;(&beta;<sub>p</sub> / &beta;<sub>n,eff</sub>)(V<sub>DD</sub> &minus; |V<sub>THp</sub>|)] / [1 + &radic;(&beta;<sub>p</sub> / &beta;<sub>n,eff</sub>)]</div>
+              <div class="theory-formula-sub">Increasing W<sub>n</sub> (Strong Pull-Down) lowers pull-down resistance and shifts V<sub>M</sub> left; shorter gate length L increases &lambda; &prop; 1/L and SCE |V<sub>TH</sub>| roll-off.</div>
             </div>
             <p class="theory-p">
-              <b>Parallel PMOS Sizing:</b> In the worst-case pull-up transition (A=0, B=1 or A=1, B=0), only a single PMOS conducts. Therefore, each PMOS width must match the unit inverter PMOS width:
+              <b>Parallel PMOS Sizing:</b> In single-input pull-up transitions (<code>A=0, B=1</code> or <code>A=1, B=0</code>), only MP1 or MP2 conducts, so each PMOS keeps width <code>W<sub>p</sub></code> rather than halving width.
             </p>
-            <div class="theory-formula-box">
-              <div class="theory-formula-main">(W<sub>p</sub> / L)<sub>NAND</sub> = 1 × (W<sub>p</sub> / L)<sub>INV</sub> ≈ 2 × (W<sub>n</sub> / L)<sub>INV</sub></div>
-              <div class="theory-formula-sub">Worst-case pull-up resistance equals R<sub>inv,P</sub> without needing to oversize PMOS.</div>
-            </div>
           </article>
 
           <!-- Section 4: Charge Sharing & Body Effect -->
@@ -784,7 +877,7 @@
         <div class="scale-note-popover" id="scale-note-popover" role="tooltip">
           <div class="scale-note-popover-title">VISUALIZATION SCALE &amp; PDK NOTE</div>
           <div class="scale-note-popover-body">
-            Vertical dimensions are exaggerated for visualization; this is a conceptual CMOS NAND layout, not a fabrication-ready PDK layout. Dimensions, spacing and layer thicknesses are illustrative Mead–Conway style rules.
+            PMOS width (W<sub>p</sub>: 60–400 nm), series NMOS width (W<sub>n</sub>: 60–400 nm), and dual gate length (L: 20–200 nm) scale continuously in 3D alongside live &beta;<sub>p</sub>/&beta;<sub>n,eff</sub> VTC physics. Vertical thicknesses and Mead–Conway spacing remain illustrative rather than a DRC sign-off PDK deck.
           </div>
         </div>
       </div>
@@ -904,11 +997,14 @@
           <canvas id="iv-modal-canvas" width="560" height="380"></canvas>
         </div>
         <div class="iv-modal-footer">
-          <div class="iv-modal-hint">Drag or click anywhere on the Transfer curve to modulate the swept input voltage. Fully synced with sliders &amp; 3D model.</div>
+          <div class="iv-modal-hint">Drag or click anywhere on the Transfer curve to modulate the swept input voltage. Fully synced with geometry sliders &amp; 3D model.</div>
           <div class="iv-modal-readouts">
             <span class="iv-m-item">V<sub>A</sub> = <b id="iv-m-va">0.00 V</b></span>
             <span class="iv-m-item">V<sub>B</sub> = <b id="iv-m-vb">0.00 V</b></span>
             <span class="iv-m-item">V<sub>OUT</sub> = <b id="iv-m-vout">1.00 V</b></span>
+            <span class="iv-m-item">V<sub>M</sub> = <b id="iv-m-vm">0.50 V</b></span>
+            <span class="iv-m-item">W<sub>p</sub>/W<sub>n</sub> = <b id="iv-m-ratio">1.00</b></span>
+            <span class="iv-m-item">NM<sub>H</sub>/NM<sub>L</sub> = <b id="iv-m-nm">0.41 / 0.41 V</b></span>
             <span class="iv-m-item">OUT: <b id="iv-m-state">1 (VDD)</b></span>
           </div>
           <div class="nand-transistor-grid" style="margin-top:4px;">
@@ -1010,6 +1106,7 @@
 <script src="js/dimensions.js"></script>
 <script src="js/view-mode.js"></script>
 <script src="js/flow.js"></script>
+<script src="../../../../shared/js/param-info-modal.js"></script>
 <script src="js/logic-state.js"></script>
 <script src="js/build-anim.js"></script>
 <script src="js/render-loop.js"></script>

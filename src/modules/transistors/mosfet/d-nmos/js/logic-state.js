@@ -1,602 +1,802 @@
 /**
- * logic-state.js - NMOS CAD Viewer
- * Continuous MOSFET Operating-Region Physics Engine & Live IDS-VDS Graph:
- * - Delineates Cutoff (VGS < VTH), Linear/Triode (VDS < VGS - VTH), and Saturation (VDS >= VGS - VTH).
- * - Computes drain current IDS with channel-length modulation lambda.
- * - Live interactive IDS vs VDS graph renderer with active operating point dot and pinch-off locus.
- * - Two-way coupled to 3D inversion channel taper/pinch-off and fine carrier particle flow.
+ * logic-state.js - Depletion-Mode NMOS CAD Viewer
+ * Interactive Device Scaling Physics & Telemetry + Live ID-VDS Curves:
+ * - Continuous geometry-dependent equations for C_ox, W/L, V_TH roll-off, DIBL,
+ *   velocity saturation (V_Dsat), and channel-length modulation (lambda proportional to 1/L).
+ * - Preserves D-NMOS negative threshold behavior (normally ON at V_GS = 0V),
+ *   depletion mode (V_TH < V_GS < 0V), and enhancement mode (V_GS > 0V).
  */
 
-// MOSFET Physical Constants (Depletion-Mode NMOS with implanted N-channel)
-var VTH = -0.80;         // Negative threshold voltage (V) due to donor implant
-var KN_PRIME = 0.65;     // Conduction parameter kn' = mu_n * Cox * (W/L) (mA/V^2)
-var LAMBDA = 0.08;       // Channel-length modulation parameter (1/V)
-var NOMINAL_L = 28.0;    // Gate length (nm)
-var MODEL_L = 2.0;       // 3D coordinate length along X
+var currentVgs = 0.00; // Normally ON at 0.00V
+var currentVds = 0.80; // Active bias
+var geomL = 28;        // nm (20..200)
+var geomW = 120;       // nm (40..400)
+var geomTox = 2.0;     // nm (1.2..10.0)
+var lockYAxis = false;
+var lockedYMax = null;
 
-// Active continuous bias states (Default VGS = 0.0V to show Normally-ON conduction)
-var currentVgs = 0.00;   // Gate-to-Source bias (-1.20V to +1.00V)
-var currentVds = 0.80;   // Drain-to-Source bias (0.00V to 1.80V)
-var currentIn = 1;       // Backward-compatibility flag (1 = ON, 0 = OFF/Cutoff)
+// Physical constants (SiO2 gate dielectric & electron velocity saturation)
+var EPS_0 = 8.854187817e-12; // F/m
+var K_OX = 3.9;
+var EPS_OX = K_OX * EPS_0;
+var MU_N = 0.030;            // Effective low-field electron mobility (m^2 / V*s)
+var E_SAT = 5.0e6;           // Critical field for velocity saturation (V/m)
+var LC_ROLLOFF_NM = 25.0;    // Characteristic SCE roll-off decay length (nm)
 
-// Public accessor for other modules (e.g. flow.js)
-window.getMosfetPhysicsState = function() {
-  var vov = Math.max(0, currentVgs - VTH);
-  var vdsSat = vov;
+function computeThresholdDetails(vds, L_nm, tox_nm) {
+  var L = Math.max(20, Math.min(200, Number(L_nm) || 28));
+  var tox = Math.max(1.2, Math.min(10.0, Number(tox_nm) || 2.0));
+  var vd = Math.max(0, Number(vds) || 0);
+
+  // D-NMOS has negative V_TH due to built-in donor channel implant (~ -0.80V baseline at tox = 2.0 nm).
+  // Thicker gate oxide weakens vertical gate depletion authority -> slightly more negative V_TH0.
+  var vth0 = -0.76 - 0.02 * tox;
+
+  // Short-channel V_TH roll-off & DIBL both shift V_TH more negative (harder to pinch off channel),
+  // clamped at -1.12V so V_GS = -1.20V reliably reaches full Cutoff across all supported geometries.
+  var rollOff = 0.14 * Math.exp(-L / LC_ROLLOFF_NM) * Math.sqrt(tox / 2.0);
+  var diblEta = 0.085 * Math.pow(28.0 / L, 2.0) * Math.sqrt(tox / 2.0);
+  var diblShift = diblEta * vd;
+
+  var vth = Math.max(-1.12, vth0 - rollOff - diblShift);
+  return {
+    vth: vth,
+    vth0: vth0,
+    rollOff: rollOff,
+    diblEta: diblEta
+  };
+}
+
+function computeDnmosPoint(vgs, vds, L_nm, W_nm, tox_nm) {
+  var L = Math.max(20, Math.min(200, Number(L_nm) || 28));
+  var W = Math.max(40, Math.min(400, Number(W_nm) || 120));
+  var tox = Math.max(1.2, Math.min(10.0, Number(tox_nm) || 2.0));
+  var vd = Math.max(0, Number(vds) || 0);
+
+  var L_m = L * 1e-9;
+  var tox_m = tox * 1e-9;
+  var cox = EPS_OX / tox_m;
+  var wlRatio = W / L;
+  var kp = MU_N * cox * wlRatio * 1000.0; // mA/V^2
+  var lambda = 0.06 * (28.0 / L);         // 1/V, scales as 1/L
+
+  var th = computeThresholdDetails(vd, L, tox);
+  var vth = th.vth;
+  var vov = Math.max(0, vgs - vth);
+  var esatL = E_SAT * L_m;
+  var vdsSat = vov > 0.0001 ? (vov * esatL) / (vov + esatL) : 0.0;
+
   var region = 'CUTOFF';
   var ids = 0.0;
-  var deltaL = 0.0;
+  var deltaL_nm = 0.0;
 
   if (vov <= 0.001) {
     region = 'CUTOFF';
     ids = 0.0;
-  } else if (currentVds < vdsSat) {
+  } else if (vd < vdsSat) {
     region = 'LINEAR';
-    ids = KN_PRIME * (vov * currentVds - 0.5 * currentVds * currentVds);
+    ids = (kp / (1.0 + vd / esatL)) * (vov * vd - 0.5 * vd * vd);
   } else {
     region = 'SATURATION';
-    var vdsDiff = currentVds - vdsSat;
-    ids = 0.5 * KN_PRIME * vov * vov * (1.0 + LAMBDA * vdsDiff);
-    deltaL = MODEL_L * Math.min(0.40, 0.22 * Math.sqrt(Math.max(0, vdsDiff)));
+    var vdsDiff = vd - vdsSat;
+    ids = 0.5 * kp * vov * vdsSat * (1.0 + lambda * vdsDiff);
+    deltaL_nm = Math.min(0.8 * L, 5.5 * Math.sqrt(Math.max(0, vdsDiff)));
   }
 
-  var leff = NOMINAL_L * (1.0 - (deltaL / MODEL_L));
+  var mode = 'CUTOFF';
+  if (vgs <= vth) {
+    mode = 'CUTOFF';
+  } else if (vgs < -0.02) {
+    mode = 'DEPLETION';
+  } else if (vgs <= 0.02) {
+    mode = 'ZERO BIAS';
+  } else {
+    mode = 'ENHANCE';
+  }
+
+  var leff = Math.max(0.2 * L, L - deltaL_nm);
+  var gState = (typeof window.getDeviceGeomState === 'function') ? window.getDeviceGeomState() : null;
+  var modelL = gState ? gState.gateL : 2.0;
+  var deltaL_scene = modelL * ((L - leff) / L);
 
   return {
-    vgs: currentVgs,
-    vds: currentVds,
-    vth: VTH,
+    vgs: vgs,
+    vds: vd,
+    vth: vth,
     vov: vov,
     vdsSat: vdsSat,
+    esatL: esatL,
     ids: Math.max(0, ids),
     region: region,
-    deltaL: deltaL,
-    leff: leff
+    mode: mode,
+    deltaL: deltaL_scene,
+    deltaL_nm: L - leff,
+    leff: leff,
+    L: L,
+    W: W,
+    tox: tox,
+    wlRatio: wlRatio,
+    kp: kp,
+    cox: cox,
+    lambda: lambda,
+    diblEta: th.diblEta
   };
+}
+
+function calculateIds(testVgs, testVds) {
+  var pt = computeDnmosPoint(testVgs, testVds, geomL, geomW, geomTox);
+  return { ids: pt.ids, region: pt.region };
+}
+window.calculateIds = calculateIds;
+
+window.getMosfetPhysicsState = function() {
+  return computeDnmosPoint(currentVgs, currentVds, geomL, geomW, geomTox);
 };
 
-// ---------------------------------------------------------------------------
-// APPLY STATE: Drives Topbar, Graph, 3D Channel, Telemetry & Carrier Flow
-// ---------------------------------------------------------------------------
-function applyLogicState() {
-  var phys = window.getMosfetPhysicsState();
-  var vgs = phys.vgs;
-  var vds = phys.vds;
-  var vov = phys.vov;
-  var ids = phys.ids;
-  var region = phys.region;
-  var deltaL = phys.deltaL;
-  var leff = phys.leff;
+window.setMosfetGeometry = function(L_nm, W_nm, tox_nm) {
+  if (typeof L_nm === 'number' && Number.isFinite(L_nm)) geomL = Math.max(20, Math.min(200, L_nm));
+  if (typeof W_nm === 'number' && Number.isFinite(W_nm)) geomW = Math.max(40, Math.min(400, W_nm));
+  if (typeof tox_nm === 'number' && Number.isFinite(tox_nm)) geomTox = Math.max(1.2, Math.min(10.0, tox_nm));
+  applyLogicState();
+};
 
-  currentIn = (region === 'CUTOFF') ? 0 : 1;
+function formatIdsText(ids) {
+  if (ids < 0.0005) return '≈ 0 mA';
+  if (ids < 0.1) return ids.toFixed(3) + ' mA';
+  return ids.toFixed(2) + ' mA';
+}
 
-  // 1. Update Topbar Sliders & Value Readouts
-  var vgsSlider = document.getElementById('vgs-slider');
-  var vgsVal = document.getElementById('vgs-val');
-  if (vgsSlider && Math.abs(parseFloat(vgsSlider.value) - vgs) > 0.01) vgsSlider.value = vgs.toFixed(2);
-  if (vgsVal) vgsVal.textContent = vgs.toFixed(2) + 'V';
+function syncGeometryControlsUI() {
+  var lSlider = document.getElementById('geom-l-slider');
+  var lVal = document.getElementById('geom-l-val');
+  if (lSlider && Math.abs(parseFloat(lSlider.value) - geomL) > 0.1) lSlider.value = String(geomL);
+  if (lVal) lVal.textContent = Math.round(geomL) + ' nm';
 
-  var vdsSlider = document.getElementById('vds-slider');
-  var vdsVal = document.getElementById('vds-val');
-  if (vdsSlider && Math.abs(parseFloat(vdsSlider.value) - vds) > 0.01) vdsSlider.value = vds.toFixed(2);
-  if (vdsVal) vdsVal.textContent = vds.toFixed(2) + 'V';
+  var wSlider = document.getElementById('geom-w-slider');
+  var wVal = document.getElementById('geom-w-val');
+  if (wSlider && Math.abs(parseFloat(wSlider.value) - geomW) > 0.1) wSlider.value = String(geomW);
+  if (wVal) wVal.textContent = Math.round(geomW) + ' nm';
 
-  // 2. Update Topbar Region Badge & Presets
-  var regionBadge = document.getElementById('region-badge');
-  if (regionBadge) {
-    regionBadge.textContent = region === 'LINEAR' ? 'LINEAR / TRIODE' : region;
-    regionBadge.className = 'region-badge-pill ' + region.toLowerCase();
-  }
+  var toxSlider = document.getElementById('geom-tox-slider');
+  var toxVal = document.getElementById('geom-tox-val');
+  if (toxSlider && Math.abs(parseFloat(toxSlider.value) - geomTox) > 0.02) toxSlider.value = geomTox.toFixed(1);
+  if (toxVal) toxVal.textContent = geomTox.toFixed(1) + ' nm';
 
-  document.querySelectorAll('#region-preset-seg button').forEach(function(b) {
-    var p = b.dataset.preset;
-    b.classList.toggle('active', (p === 'cutoff' && vgs <= VTH + 0.01) ||
-                                 (p === 'depletion' && vgs > VTH + 0.01 && vgs < -0.01) ||
-                                 (p === 'zero' && Math.abs(vgs) <= 0.02) ||
-                                 (p === 'enhancement' && vgs > 0.02));
-  });
-
-  // 3. Update HUD Graph Pill & Readouts
-  var hudRegionPill = document.getElementById('iv-hud-region-pill');
-  if (hudRegionPill) {
-    hudRegionPill.textContent = region === 'LINEAR' ? 'LINEAR' : region;
-    hudRegionPill.className = 'region-pill ' + region.toLowerCase();
-  }
-
-  var ivVgs = document.getElementById('iv-vgs-readout');
-  if (ivVgs) ivVgs.textContent = vgs.toFixed(2) + ' V';
-  var ivVds = document.getElementById('iv-vds-readout');
-  if (ivVds) ivVds.textContent = vds.toFixed(2) + ' V';
-  var ivVov = document.getElementById('iv-vov-readout');
-  if (ivVov) ivVov.textContent = vov.toFixed(2) + ' V';
-  var ivIds = document.getElementById('iv-ids-readout');
-  if (ivIds) ivIds.textContent = (ids >= 0.01 ? ids.toFixed(2) : '≈ 0') + ' mA';
-  var ivLeff = document.getElementById('iv-leff-readout');
-  if (ivLeff) ivLeff.textContent = leff.toFixed(1) + ' nm';
-
-  var ivStateDesc = document.getElementById('iv-state-desc');
-  if (ivStateDesc) {
-    if (region === 'CUTOFF') {
-      ivStateDesc.textContent = 'Gate bias VGS ≤ -0.80V fully depletes channel · Cutoff (IDS = 0)';
-    } else if (vgs < -0.02) {
-      if (region === 'LINEAR') {
-        ivStateDesc.textContent = 'Depletion mode (VGS < 0) · Partially depleted channel · Ohmic drift';
-      } else {
-        ivStateDesc.textContent = 'Depletion mode (VGS < 0) · Pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm · High-field sweep';
-      }
-    } else if (Math.abs(vgs) <= 0.02) {
-      if (region === 'LINEAR') {
-        ivStateDesc.textContent = 'Zero bias (VGS = 0V) · Normally-ON conduction · Continuous ohmic drift';
-      } else {
-        ivStateDesc.textContent = 'Zero bias (VGS = 0V) · Normally-ON conduction · Pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm';
-      }
-    } else {
-      if (region === 'LINEAR') {
-        ivStateDesc.textContent = 'Enhancement mode (VGS > 0) · Surface accumulation + channel · Ohmic drift';
-      } else {
-        ivStateDesc.textContent = 'Enhancement mode (VGS > 0) · High-field drift · Pinch-off ΔL = ' + (NOMINAL_L - leff).toFixed(1) + ' nm';
-      }
-    }
-  }
-
-  // 4. Update HUD Status Telemetry Badge
-  var badgeVgs = document.getElementById('badge-vgs') || document.getElementById('badge-in');
-  var badgeState = document.getElementById('badge-state') || document.getElementById('badge-pmos');
-  var badgeChan = document.getElementById('badge-chan') || document.getElementById('badge-nmos');
-  var badgeIds = document.getElementById('badge-ids') || document.getElementById('badge-out');
-
-  if (badgeVgs) {
-    badgeVgs.textContent = vgs.toFixed(2) + ' V (' + (vgs <= VTH ? 'VGS < VTH' : 'VGS > VTH') + ')';
-    badgeVgs.className = 'v ' + (region === 'CUTOFF' ? 'off' : 'on');
-  }
-  if (badgeState) {
-    badgeState.textContent = region;
-    badgeState.className = 'v ' + (region === 'CUTOFF' ? 'off' : (region === 'SATURATION' ? 'on' : 'warn'));
-  }
-  if (badgeChan) {
-    if (region === 'CUTOFF') {
-      badgeChan.textContent = 'DEPLETED / NO CHANNEL';
-      badgeChan.className = 'v off';
-    } else if (region === 'LINEAR') {
-      badgeChan.textContent = 'INVERTED (CONTINUOUS)';
-      badgeChan.className = 'v on';
-    } else {
-      badgeChan.textContent = 'PINCHED-OFF (Leff=' + leff.toFixed(1) + 'nm)';
-      badgeChan.className = 'v warn';
-    }
-  }
-  if (badgeIds) {
-    badgeIds.textContent = (ids >= 0.01 ? ids.toFixed(2) + ' mA' : '0.00 mA (CUTOFF)');
-    badgeIds.className = 'v ' + (ids >= 0.01 ? 'on' : 'off');
-  }
-
-  // 5. Update 2D SVG Schematic Indicators
-  var schVgs = document.getElementById('sch-vgs-val');
-  if (schVgs) schVgs.textContent = vgs.toFixed(2) + 'V';
-  var schChan = document.getElementById('sch-channel-state');
-  if (schChan) {
-    schChan.textContent = region === 'CUTOFF' ? 'OFF (CUTOFF)' : (region === 'LINEAR' ? 'ON (TRIODE)' : 'ON (SAT)');
-  }
-
-  // 6. Dynamically Deform 3D Inversion Channel in Real-Time
-  if (typeof window.updateChannelGeometry === 'function') {
-    window.updateChannelGeometry(vgs, vds, ids, region, deltaL);
-  }
-
-  // 7. Redraw Live IDS-VDS Graph
-  drawIdsVdsGraph(vgs, vds, ids, region);
-
-  // 8. Rebuild Fine Carrier Flow Simulation
-  if (typeof rebuildFlowCurves === 'function') {
-    rebuildFlowCurves(ids, region, deltaL);
-  }
-
-  // 9. Update Context for AI Voice Assistant and Inspector
-  if (typeof lastSelectedId !== 'undefined' && lastSelectedId) {
-    if (typeof window.updateVoiceAssistantContext === 'function') {
-      window.updateVoiceAssistantContext(lastSelectedId, idToInfo(lastSelectedId));
-    }
-    if ((lastSelectedId === 'channel' || lastSelectedId === 'depletion') && typeof showInspector === 'function') {
-      showInspector(lastSelectedId, idToInfo(lastSelectedId));
-    }
+  var presets = document.getElementById('geom-presets');
+  if (presets) {
+    presets.querySelectorAll('.geom-preset-btn').forEach(function(btn) {
+      var pL = parseFloat(btn.dataset.l);
+      var pW = parseFloat(btn.dataset.w);
+      var pTox = parseFloat(btn.dataset.tox);
+      var match = (Math.abs(pL - geomL) < 0.5 && Math.abs(pW - geomW) < 0.5 && Math.abs(pTox - geomTox) < 0.05);
+      btn.classList.toggle('active', match);
+    });
   }
 }
 
-// ---------------------------------------------------------------------------
-// LIVE IDS vs VDS CHARACTERISTIC GRAPH RENDERER
-// ---------------------------------------------------------------------------
-var IV_GRAPH_PAD = { L: 32, R: 28, T: 16, B: 24 };
+function getNiceYMax(rawMax) {
+  var m = Math.max(0.2, rawMax * 1.15);
+  var exp = Math.pow(10, Math.floor(Math.log10(m)));
+  var frac = m / exp;
+  var nice;
+  if (frac <= 1.2) nice = 1.2;
+  else if (frac <= 1.5) nice = 1.5;
+  else if (frac <= 2.0) nice = 2.0;
+  else if (frac <= 2.5) nice = 2.5;
+  else if (frac <= 3.0) nice = 3.0;
+  else if (frac <= 4.0) nice = 4.0;
+  else if (frac <= 5.0) nice = 5.0;
+  else if (frac <= 6.0) nice = 6.0;
+  else if (frac <= 8.0) nice = 8.0;
+  else nice = 10.0;
+  return nice * exp;
+}
 
-function renderSingleGraph(canvas, activeVgs, activeVds, activeIds, activeRegion, isModal) {
+function getGraphYMax(vgsFamily) {
+  var peak = 0.0;
+  vgsFamily.forEach(function(vg) {
+    var pt = computeDnmosPoint(vg, 1.8, geomL, geomW, geomTox);
+    if (pt.ids > peak) peak = pt.ids;
+  });
+  var curMax = computeDnmosPoint(currentVgs, 1.8, geomL, geomW, geomTox).ids;
+  if (curMax > peak) peak = curMax;
+  var autoMax = getNiceYMax(peak);
+  if (lockYAxis) {
+    if (lockedYMax === null) lockedYMax = autoMax;
+    return lockedYMax;
+  }
+  return autoMax;
+}
+
+var IV_GRAPH_PAD = { L: 48, R: 38, T: 22, B: 24 };
+
+function renderIdsVdsOnCanvas(canvas, isLarge) {
   if (!canvas) return;
+  var rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return;
+
+  var dpr = window.devicePixelRatio || 1;
+  var targetW = Math.round(rect.width * dpr);
+  var targetH = Math.round(rect.height * dpr);
+  if (canvas.width !== targetW || canvas.height !== targetH) {
+    canvas.width = targetW;
+    canvas.height = targetH;
+  }
+
   var ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  var dpr = window.devicePixelRatio || 1;
-  var rect = canvas.getBoundingClientRect();
-  var W = canvas.clientWidth || rect.width || (isModal ? 560 : 310);
-  var H = canvas.clientHeight || rect.height || (isModal ? 380 : 225);
-
-  if (canvas.width !== Math.round(W * dpr) || canvas.height !== Math.round(H * dpr)) {
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-  }
-
+  var w = rect.width;
+  var h = rect.height;
   ctx.save();
   ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
 
   var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  var bgCol = isLight ? '#f8fafc' : '#090d14';
+  var gridCol = isLight ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.06)';
+  var axisCol = isLight ? 'rgba(15, 23, 42, 0.25)' : 'rgba(255, 255, 255, 0.22)';
+  var textCol = isLight ? '#64748b' : '#7d8ba0';
+  var satLocusCol = isLight ? 'rgba(217, 119, 6, 0.65)' : 'rgba(230, 162, 60, 0.55)';
+  var activeCurveCol = isLight ? '#b45309' : '#e6c94a';
+  var famCol = isLight ? '#64748b' : '#8b9ab0';
+  var zeroBiasCol = isLight ? '#0d9488' : '#5fd9c4';
 
-  // Palette
-  var bgColor = isLight ? '#f8fafc' : '#080c12';
-  var gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
-  var axisColor = isLight ? '#94a3b8' : '#232b38';
-  var textColor = isLight ? '#64748b' : '#7d8ba0';
-  var dimmedCurveColor = isLight ? 'rgba(13,148,136,0.24)' : 'rgba(95,217,196,0.20)';
-  var activeCurveColor = isLight ? '#0d9488' : '#5fd9c4';
-  var pinchOffColor = isLight ? '#d97706' : '#f59e0b';
-  var dotColor = activeRegion === 'CUTOFF' ? '#dc2626' : (activeRegion === 'SATURATION' ? '#10b981' : '#0284c7');
+  ctx.fillStyle = bgCol;
+  ctx.fillRect(0, 0, w, h);
 
-  ctx.fillStyle = bgColor;
-  ctx.fillRect(0, 0, W, H);
+  var pad = isLarge ? { L: 56, R: 46, T: 26, B: 32 } : IV_GRAPH_PAD;
+  var gw = w - pad.L - pad.R;
+  var gh = h - pad.T - pad.B;
+  if (gw <= 10 || gh <= 10) { ctx.restore(); return; }
 
-  // Margins: Trimmed for inline, slightly more generous for modal
-  var padL = isModal ? 40 : IV_GRAPH_PAD.L;
-  var padR = isModal ? 34 : IV_GRAPH_PAD.R;
-  var padT = isModal ? 18 : IV_GRAPH_PAD.T;
-  var padB = isModal ? 26 : IV_GRAPH_PAD.B;
-  var plotW = W - padL - padR;
-  var plotH = H - padT - padB;
+  var maxV = 1.8;
+  var vgsFamily = [-0.6, -0.2, 0.0, 0.4, 0.8];
+  var maxI = getGraphYMax(vgsFamily);
 
-  var vdsMax = 1.8;
-  var idsMax = 1.35; // mA
+  function mapX(v) { return pad.L + (v / maxV) * gw; }
+  function mapY(ids) { return pad.T + gh - Math.min(1.06, Math.max(0, ids / maxI)) * gh; }
 
-  function toX(v) { return padL + (v / vdsMax) * plotW; }
-  function toY(i) { return padT + plotH - (i / idsMax) * plotH; }
-
-  // Draw Grid Lines & Tick Labels
-  ctx.strokeStyle = gridColor;
+  ctx.strokeStyle = gridCol;
   ctx.lineWidth = 1;
-  ctx.fillStyle = textColor;
-  var tickFont = isModal ? '11px "IBM Plex Mono", monospace' : '9.5px "IBM Plex Mono", monospace';
-  var axisFont = isModal ? '600 11px "IBM Plex Mono", monospace' : '600 9.5px "IBM Plex Mono", monospace';
-  ctx.font = tickFont;
+  ctx.beginPath();
+  [0.0, 0.6, 1.2, 1.8].forEach(function(vx) {
+    var gx = mapX(vx);
+    ctx.moveTo(gx, pad.T);
+    ctx.lineTo(gx, pad.T + gh);
+  });
+  var yTicks = [0, maxI * 0.25, maxI * 0.5, maxI * 0.75, maxI];
+  yTicks.forEach(function(iy) {
+    var gy = mapY(iy);
+    ctx.moveTo(pad.L, gy);
+    ctx.lineTo(pad.L + gw, gy);
+  });
+  ctx.stroke();
+
+  ctx.strokeStyle = axisCol;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(pad.L, pad.T);
+  ctx.lineTo(pad.L, pad.T + gh);
+  ctx.lineTo(pad.L + gw, pad.T + gh);
+  ctx.stroke();
+
+  ctx.fillStyle = textCol;
+  ctx.font = (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
   ctx.textAlign = 'center';
-
-  // VDS ticks: 0, 0.6, 1.2, 1.8
-  [0, 0.6, 1.2, 1.8].forEach(function(v) {
-    var x = toX(v);
-    ctx.beginPath();
-    ctx.moveTo(x, padT);
-    ctx.lineTo(x, padT + plotH);
-    ctx.stroke();
-    ctx.fillText(v.toFixed(1), x, padT + plotH + (isModal ? 15 : 13));
+  ctx.textBaseline = 'top';
+  [0.0, 0.6, 1.2, 1.8].forEach(function(vx) {
+    ctx.fillText(vx.toFixed(1) + 'V', mapX(vx), pad.T + gh + (isLarge ? 7 : 5));
   });
-  ctx.font = axisFont;
-  ctx.fillText('V_DS (V)', padL + plotW / 2, padT + plotH + (isModal ? 26 : 23));
+  ctx.fillStyle = isLight ? '#475569' : '#9aa6b6';
+  ctx.font = 'bold ' + (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
+  ctx.fillText('VDS (V)', pad.L + gw / 2, pad.T + gh + (isLarge ? 19 : 13));
 
-  // IDS ticks: 0, 0.3, 0.6, 0.9, 1.2
-  ctx.font = tickFont;
+  ctx.fillStyle = textCol;
+  ctx.font = (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
   ctx.textAlign = 'right';
-  [0, 0.3, 0.6, 0.9, 1.2].forEach(function(i) {
-    var y = toY(i);
-    ctx.beginPath();
-    ctx.moveTo(padL, y);
-    ctx.lineTo(padL + plotW, y);
-    ctx.stroke();
-    ctx.fillText(i.toFixed(1), padL - 5, y + 3.5);
+  ctx.textBaseline = 'middle';
+  [0, maxI * 0.5, maxI].forEach(function(iy) {
+    var lbl = iy < 0.01 ? '0' : (iy >= 10 ? iy.toFixed(0) : (iy >= 1 ? iy.toFixed(1) : iy.toFixed(2)));
+    ctx.fillText(lbl, pad.L - (isLarge ? 8 : 5), mapY(iy));
   });
-
   ctx.save();
-  ctx.translate(isModal ? 12 : 9, padT + plotH / 2);
+  ctx.translate(isLarge ? 13 : 10, pad.T + gh / 2);
   ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.font = axisFont;
-  ctx.fillText('I_DS (mA)', 0, 0);
+  ctx.fillStyle = isLight ? '#475569' : '#9aa6b6';
+  ctx.font = 'bold ' + (isLarge ? '11px' : '9px') + ' "IBM Plex Mono", monospace';
+  ctx.fillText('ID (mA)', 0, 0);
   ctx.restore();
 
-  // Draw Pinch-off Parabolic Boundary Curve: VDS = VGS - VTH => IDS = 0.5 * KN * VDS^2
-  ctx.strokeStyle = pinchOffColor;
-  ctx.lineWidth = isModal ? 1.5 : 1.3;
-  ctx.setLineDash([3, 3]);
+  // Clip curve drawing to the interior plot frame so zoomed/locked Y curves never overflow axes
+  ctx.save();
   ctx.beginPath();
-  var startedPinch = false;
-  for (var v = 0; v <= vdsMax; v += 0.04) {
-    var iBoundary = 0.5 * KN_PRIME * v * v;
-    if (iBoundary > idsMax) break;
-    var px = toX(v);
-    var py = toY(iBoundary);
-    if (!startedPinch) { ctx.moveTo(px, py); startedPinch = true; }
-    else { ctx.lineTo(px, py); }
-  }
-  ctx.stroke();
-  ctx.setLineDash([]);
+  ctx.rect(pad.L, pad.T - 2, gw + 1, gh + 4);
+  ctx.clip();
 
-  // Labels for Linear and Saturation regions
-  ctx.font = (isModal ? '10px' : '8.5px') + ' "IBM Plex Mono", monospace';
-  ctx.fillStyle = isLight ? 'rgba(74,146,201,0.75)' : 'rgba(74,146,201,0.60)';
-  ctx.textAlign = 'left';
-  ctx.fillText('TRIODE / LINEAR', padL + 8, padT + 13);
-  ctx.fillStyle = isLight ? 'rgba(16,185,129,0.80)' : 'rgba(87,207,143,0.65)';
-  ctx.textAlign = 'center';
-  ctx.fillText('SATURATION', toX(1.35), padT + 13);
-
-  // Helper to compute IDS(VDS) for a given VGS (Continuous at pinch-off VDS = VOV)
-  function calcIds(testVgs, testVds) {
-    var vov = Math.max(0, testVgs - VTH);
-    if (vov <= 0.001) return 0;
-    var vdsSat = vov;
-    if (testVds < vdsSat) {
-      return KN_PRIME * (vov * testVds - 0.5 * testVds * testVds);
-    } else {
-      return 0.5 * KN_PRIME * vov * vov * (1.0 + LAMBDA * (testVds - vdsSat));
-    }
-  }
-
-  // Generates curve sampling coordinates that strictly include boundary point v = vov
-  function getSamplePoints(vov, maxV, baseStep) {
-    var pts = [];
-    for (var v = 0; v <= maxV + 0.0001; v += baseStep) {
-      pts.push(Math.min(maxV, v));
-    }
-    if (vov > 0.001 && vov < maxV) {
-      pts.push(vov);
-    }
-    pts.sort(function(a, b) { return a - b; });
-    var unique = [pts[0]];
-    for (var i = 1; i < pts.length; i++) {
-      if (pts[i] - unique[unique.length - 1] > 0.002) {
-        unique.push(pts[i]);
+  // Dashed Pinch-Off Locus (VDS = VDS,sat)
+  ctx.save();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = satLocusCol;
+  ctx.lineWidth = isLarge ? 1.8 : 1.3;
+  ctx.beginPath();
+  var startedLocus = false;
+  for (var lxVgs = -1.1; lxVgs <= 1.05; lxVgs += 0.025) {
+    var ptSatGuess = computeDnmosPoint(lxVgs, 0.8, geomL, geomW, geomTox);
+    var vSat = ptSatGuess.vdsSat;
+    if (vSat > 0.005 && vSat <= maxV) {
+      var ptSat = computeDnmosPoint(lxVgs, vSat, geomL, geomW, geomTox);
+      var lx = mapX(vSat);
+      var ly = mapY(ptSat.ids);
+      if (!startedLocus) {
+        ctx.moveTo(lx, ly);
+        startedLocus = true;
+      } else {
+        ctx.lineTo(lx, ly);
       }
     }
-    return unique;
   }
+  ctx.stroke();
+  ctx.restore();
 
-  // Draw Family of VGS Curves for D-NMOS
-  var vgsFamily = [-0.8, -0.4, 0.0, 0.4, 0.8];
-  var labelPositions = [];
-
-  vgsFamily.forEach(function(fVgs) {
-    var fVov = Math.max(0, fVgs - VTH);
-    var pts = getSamplePoints(fVov, vdsMax, 0.04);
-    ctx.strokeStyle = dimmedCurveColor;
-    ctx.lineWidth = isModal ? 1.4 : 1.2;
+  var labelCandidates = [];
+  vgsFamily.forEach(function(vg) {
+    var isZero = Math.abs(vg) < 0.01;
+    ctx.strokeStyle = isZero
+      ? (isLight ? 'rgba(13, 148, 136, 0.55)' : 'rgba(95, 217, 196, 0.45)')
+      : (isLight ? 'rgba(100, 116, 139, 0.40)' : 'rgba(148, 163, 184, 0.34)');
+    ctx.lineWidth = isZero ? (isLarge ? 2.0 : 1.5) : (isLarge ? 1.5 : 1.1);
     ctx.beginPath();
-    for (var idx = 0; idx < pts.length; idx++) {
-      var v = pts[idx];
-      var i = calcIds(fVgs, v);
-      var px = toX(v);
-      var py = toY(i);
-      if (idx === 0) ctx.moveTo(px, py);
+    var lastY = pad.T + gh;
+    for (var s = 0; s <= 40; s++) {
+      var v = (s / 40) * maxV;
+      var iVal = computeDnmosPoint(vg, v, geomL, geomW, geomTox).ids;
+      var px = mapX(v);
+      var py = mapY(iVal);
+      if (s === 0) ctx.moveTo(px, py);
       else ctx.lineTo(px, py);
+      if (s === 40) lastY = py;
     }
     ctx.stroke();
-
-    var endI = calcIds(fVgs, vdsMax);
-    var lbl = (fVgs === 0 ? '0.0V (ON)' : (fVgs === -0.8 ? '-0.8V (OFF)' : (fVgs < 0 ? fVgs.toFixed(1) + 'V' : '+' + fVgs.toFixed(1) + 'V')));
-    labelPositions.push({
-      vgs: fVgs,
-      endI: endI,
-      rawY: toY(endI) + 3,
-      label: lbl
+    labelCandidates.push({
+      vg: vg,
+      text: (vg > 0 ? '+' : '') + vg.toFixed(1) + 'V',
+      y: lastY,
+      color: isZero ? zeroBiasCol : famCol,
+      bold: isZero
     });
   });
 
-  // Space curve labels cleanly to prevent overlapping near zero current
-  var minSpacing = isModal ? 17 : 15; // px
-  var lastY = toY(0) + 3;
-  for (var k = 0; k < labelPositions.length; k++) {
-    var lp = labelPositions[k];
-    if (lp.endI >= idsMax * 0.99) continue;
-    var finalY = Math.min(lp.rawY, lastY - (k > 0 ? minSpacing : 0));
-    lastY = finalY;
-    ctx.fillStyle = textColor;
-    ctx.font = (isModal ? '9.5px' : '8.5px') + ' "IBM Plex Mono", monospace';
-    ctx.textAlign = 'left';
-    ctx.fillText(lp.label, toX(vdsMax) + 3, finalY);
-  }
+  // Active VGS Curve Highlighted
+  var activeState = computeDnmosPoint(currentVgs, currentVds, geomL, geomW, geomTox);
+  var activeRg = activeState.region;
+  var dotCol = activeRg === 'CUTOFF' ? '#e35d5d' : (activeRg === 'LINEAR' ? '#4a92c9' : '#57cf8f');
 
-  // Draw Highlighted Active VGS Curve
-  var activeVov = Math.max(0, activeVgs - VTH);
-  var activePts = getSamplePoints(activeVov, vdsMax, 0.03);
-  ctx.strokeStyle = activeCurveColor;
-  ctx.lineWidth = isModal ? 2.8 : 2.4;
+  ctx.strokeStyle = activeCurveCol;
+  ctx.lineWidth = isLarge ? 2.8 : 2.1;
   ctx.beginPath();
-  for (var idx = 0; idx < activePts.length; idx++) {
-    var v = activePts[idx];
-    var i = calcIds(activeVgs, v);
-    var px = toX(v);
-    var py = toY(i);
-    if (idx === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
+  for (var a = 0; a <= 48; a++) {
+    var av = (a / 48) * maxV;
+    var aiVal = computeDnmosPoint(currentVgs, av, geomL, geomW, geomTox).ids;
+    var apx = mapX(av);
+    var apy = mapY(aiVal);
+    if (a === 0) ctx.moveTo(apx, apy);
+    else ctx.lineTo(apx, apy);
   }
   ctx.stroke();
 
-  // Draw Crosshairs to Operating Point
-  var dotX = toX(activeVds);
-  var dotY = toY(activeIds);
+  if (activeState.vdsSat > 0.02 && activeState.vdsSat < maxV && activeRg !== 'CUTOFF') {
+    var vxPin = mapX(activeState.vdsSat);
+    ctx.save();
+    ctx.setLineDash([2, 3]);
+    ctx.strokeStyle = satLocusCol;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(vxPin, pad.T);
+    ctx.lineTo(vxPin, pad.T + gh);
+    ctx.stroke();
+    ctx.restore();
+  }
 
-  ctx.strokeStyle = isLight ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([2, 2]);
-  ctx.beginPath();
-  ctx.moveTo(dotX, padT + plotH);
-  ctx.lineTo(dotX, dotY);
-  ctx.lineTo(padL, dotY);
-  ctx.stroke();
-  ctx.setLineDash([]);
+  var dotX = mapX(currentVds);
+  var dotY = mapY(activeState.ids);
 
-  // Draw Glowing Active Operating Point Dot (VDS, IDS)
+  ctx.fillStyle = dotCol;
+  ctx.globalAlpha = 0.25;
   ctx.beginPath();
-  ctx.arc(dotX, dotY, isModal ? 8 : 7, 0, Math.PI * 2);
-  ctx.fillStyle = isLight ? 'rgba(13,148,136,0.25)' : 'rgba(95,217,196,0.30)';
+  ctx.arc(dotX, dotY, isLarge ? 10 : 7, 0, Math.PI * 2);
   ctx.fill();
+  ctx.globalAlpha = 1.0;
 
-  ctx.beginPath();
-  ctx.arc(dotX, dotY, isModal ? 5 : 4.5, 0, Math.PI * 2);
-  ctx.fillStyle = dotColor;
-  ctx.fill();
-  ctx.strokeStyle = '#ffffff';
+  ctx.fillStyle = dotCol;
+  ctx.strokeStyle = isLight ? '#ffffff' : '#090d14';
   ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, isLarge ? 5.2 : 4, 0, Math.PI * 2);
+  ctx.fill();
   ctx.stroke();
+  ctx.restore(); // end clip
+
+  // Non-overlapping VGS curve labels on the right edge with column header
+  ctx.font = 'bold ' + (isLarge ? '10px' : '8.5px') + ' "IBM Plex Mono", monospace';
+  ctx.fillStyle = textCol;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('VGS', pad.L + gw + 4, pad.T - (isLarge ? 10 : 8));
+
+  ctx.font = (isLarge ? '10px' : '8px') + ' "IBM Plex Mono", monospace';
+  var minGap = isLarge ? 13 : 10;
+  labelCandidates.sort(function(a, b) { return a.y - b.y; });
+  var prevY = pad.T - minGap;
+  for (var cIdx = 0; cIdx < labelCandidates.length; cIdx++) {
+    var item = labelCandidates[cIdx];
+    var placedY = Math.max(pad.T + 4, Math.max(item.y, prevY + minGap));
+    if (placedY <= pad.T + gh - 2) {
+      ctx.fillStyle = item.color;
+      ctx.fillText(item.text, pad.L + gw + 4, placedY);
+      prevY = placedY;
+    }
+  }
+
+  if (isLarge) {
+    ctx.fillStyle = textCol;
+    ctx.font = '10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillText(
+      'L=' + activeState.L + 'nm · W=' + activeState.W + 'nm · tox=' + activeState.tox.toFixed(1) + 'nm',
+      pad.L + 8,
+      pad.T + 6
+    );
+  }
 
   ctx.restore();
 }
 
-function drawIdsVdsGraph(activeVgs, activeVds, activeIds, activeRegion) {
-  var phys = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
-  var vgs = (typeof activeVgs === 'number') ? activeVgs : (phys ? phys.vgs : currentVgs);
-  var vds = (typeof activeVds === 'number') ? activeVds : (phys ? phys.vds : currentVds);
-  var ids = (typeof activeIds === 'number') ? activeIds : (phys ? phys.ids : 0.21);
-  var reg = activeRegion || (phys ? phys.region : 'SATURATION');
-
-  var inlineCanvas = document.getElementById('iv-canvas');
-  if (inlineCanvas) {
-    renderSingleGraph(inlineCanvas, vgs, vds, ids, reg, false);
-  }
-
+function drawIdsVdsGraph() {
+  renderIdsVdsOnCanvas(document.getElementById('iv-canvas'), false);
   var modalBackdrop = document.getElementById('iv-modal-backdrop');
-  var modalCanvas = document.getElementById('iv-modal-canvas');
-  if (modalCanvas && modalBackdrop && modalBackdrop.style.display !== 'none') {
-    renderSingleGraph(modalCanvas, vgs, vds, ids, reg, true);
+  if (modalBackdrop && modalBackdrop.style.display !== 'none') {
+    renderIdsVdsOnCanvas(document.getElementById('iv-modal-canvas'), true);
   }
-
-  // Update modal readouts if present
-  var mVgs = document.getElementById('iv-m-vgs');
-  var mVds = document.getElementById('iv-m-vds');
-  var mIds = document.getElementById('iv-m-ids');
-  var mReg = document.getElementById('iv-m-region');
-  if (mVgs) mVgs.textContent = vgs.toFixed(2) + ' V';
-  if (mVds) mVds.textContent = vds.toFixed(2) + ' V';
-  if (mIds) mIds.textContent = (ids >= 0.01 ? ids.toFixed(2) : '≈ 0') + ' mA';
-  if (mReg) mReg.textContent = reg;
 }
 
-// ---------------------------------------------------------------------------
-// INTERACTIVE EVENT LISTENERS & INITIALIZATION
-// ---------------------------------------------------------------------------
+window.updateLogicGraphTheme = function() {
+  drawIdsVdsGraph();
+};
+
+function applyLogicState() {
+  if (typeof window.updateDeviceGeometry3D === 'function') {
+    window.updateDeviceGeometry3D(geomL, geomW, geomTox);
+  }
+
+  var state = computeDnmosPoint(currentVgs, currentVds, geomL, geomW, geomTox);
+  var ids = state.ids;
+  var region = state.region;
+  var mode = state.mode;
+
+  var vgsStr = (currentVgs >= 0 ? '+' : '') + currentVgs.toFixed(2) + ' V';
+  var vdsStr = currentVds.toFixed(2) + ' V';
+  var idsStr = formatIdsText(ids);
+
+  var vgsSlider = document.getElementById('vgs-slider');
+  var vgsVal = document.getElementById('vgs-val');
+  if (vgsSlider) vgsSlider.value = currentVgs.toFixed(2);
+  if (vgsVal) vgsVal.textContent = vgsStr;
+
+  var vdsSlider = document.getElementById('vds-slider');
+  var vdsVal = document.getElementById('vds-val');
+  if (vdsSlider) vdsSlider.value = currentVds.toFixed(2);
+  if (vdsVal) vdsVal.textContent = vdsStr;
+
+  syncGeometryControlsUI();
+
+  var seg = document.getElementById('region-preset-seg');
+  if (seg) {
+    seg.querySelectorAll('.seg-btn').forEach(function(btn) {
+      var p = btn.dataset.preset;
+      var active = (
+        (p === 'cutoff' && region === 'CUTOFF') ||
+        (p === 'depletion' && mode === 'DEPLETION') ||
+        (p === 'zero' && mode === 'ZERO BIAS') ||
+        (p === 'enhancement' && mode === 'ENHANCE')
+      );
+      btn.classList.toggle('active', active);
+    });
+  }
+
+  var setText = function(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  setText('iv-vgs-readout', vgsStr);
+  setText('iv-vds-readout', vdsStr);
+  setText('iv-vth-readout', state.vth.toFixed(2) + ' V');
+  setText('iv-vov-readout', state.vov.toFixed(2) + ' V');
+  setText('iv-wl-readout', state.wlRatio.toFixed(2));
+  setText('iv-ids-readout', idsStr);
+  setText('iv-leff-readout', state.leff.toFixed(1) + ' nm');
+  setText('iv-vdsat-readout', state.vdsSat.toFixed(2) + ' V');
+  setText('iv-dl-readout', state.deltaL_nm.toFixed(1) + ' nm');
+
+  var stateDesc = document.getElementById('iv-state-desc');
+  if (stateDesc) {
+    if (region === 'CUTOFF') {
+      stateDesc.textContent = 'CUTOFF · VGS <= VTH (' + state.vth.toFixed(2) + ' V) · Channel pinched off';
+      stateDesc.style.color = '#e35d5d';
+    } else if (region === 'LINEAR') {
+      stateDesc.textContent = mode + ' · LINEAR (VDS < ' + state.vdsSat.toFixed(2) + ' V)';
+      stateDesc.style.color = '#4a92c9';
+    } else {
+      stateDesc.textContent = mode + ' · SATURATION (CLM + DIBL)';
+      stateDesc.style.color = '#57cf8f';
+    }
+  }
+
+  var mVgs = document.getElementById('iv-modal-ro-vgs');
+  var mVds = document.getElementById('iv-modal-ro-vds');
+  var mIds = document.getElementById('iv-modal-ro-ids');
+  var mReg = document.getElementById('iv-modal-ro-region');
+  var mVth = document.getElementById('iv-modal-ro-vth');
+  var mWl = document.getElementById('iv-modal-ro-wl');
+  var mLeff = document.getElementById('iv-modal-ro-leff');
+  if (mVgs) mVgs.textContent = vgsStr;
+  if (mVds) mVds.textContent = vdsStr;
+  if (mIds) mIds.textContent = idsStr;
+  if (mReg) {
+    mReg.textContent = region + ' (' + mode + ')';
+    mReg.className = 'iv-modal-ro-val ' + (region === 'CUTOFF' ? 'cutoff' : (region === 'LINEAR' ? 'linear' : 'sat'));
+  }
+  if (mVth) mVth.textContent = state.vth.toFixed(2) + ' V';
+  if (mWl) mWl.textContent = state.wlRatio.toFixed(2);
+  if (mLeff) mLeff.textContent = state.leff.toFixed(1) + ' nm';
+
+  var vaCtx = document.getElementById('va-ctx-state');
+  if (vaCtx) vaCtx.textContent = 'VGS=' + vgsStr + ' · VDS=' + vdsStr + ' (' + region + ' · L=' + state.L + 'nm)';
+
+  var schVgs = document.getElementById('sch-vgs-val');
+  if (schVgs) schVgs.textContent = vgsStr;
+
+  var schChan = document.getElementById('sch-channel-state');
+  if (schChan) {
+    if (region === 'CUTOFF') {
+      schChan.textContent = 'CHANNEL PINCHED OFF (CUTOFF)';
+      schChan.setAttribute('fill', '#e35d5d');
+    } else if (mode === 'ZERO BIAS') {
+      schChan.textContent = 'NORMALLY ON (BUILT-IN CHANNEL)';
+      schChan.setAttribute('fill', '#5fd9c4');
+    } else if (mode === 'DEPLETION') {
+      schChan.textContent = 'DEPLETION MODE (' + region + ')';
+      schChan.setAttribute('fill', '#e6a23c');
+    } else {
+      schChan.textContent = 'ENHANCEMENT ACCUMULATION (' + region + ')';
+      schChan.setAttribute('fill', '#57cf8f');
+    }
+  }
+
+  var flowCap = document.getElementById('flow-caption');
+  if (flowCap) {
+    if (region === 'CUTOFF') {
+      flowCap.textContent = 'CUTOFF: Negative VGS <= VTH (' + state.vth.toFixed(2) + ' V) fully depletes the implanted N-channel.';
+    } else if (currentVds <= 0.005) {
+      flowCap.textContent = mode + ' (VDS = 0V): Built-in channel contains mobile electrons with zero net horizontal drift.';
+    } else if (region === 'LINEAR') {
+      flowCap.textContent = mode + ' LINEAR: Continuous N-channel conducts ' + idsStr + ' (L=' + state.L + 'nm, W=' + state.W + 'nm).';
+    } else {
+      flowCap.textContent = mode + ' SATURATION: Pinched off (Leff=' + state.leff.toFixed(1) + 'nm, ΔL=' + state.deltaL_nm.toFixed(1) + 'nm); saturated ID=' + idsStr + '.';
+    }
+  }
+
+  if (typeof window.updateChannelGeometry === 'function') {
+    window.updateChannelGeometry(currentVgs, currentVds, ids, region, state.deltaL);
+  }
+
+  if (typeof rebuildFlowCurves === 'function') {
+    rebuildFlowCurves(ids, region, state.deltaL);
+  }
+
+  if (typeof window.updateSubGateCarriers === 'function') {
+    window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+  }
+
+  drawIdsVdsGraph();
+}
+window.applyLogicState = applyLogicState;
+
+function applyRegionPreset(preset) {
+  if (preset === 'cutoff') {
+    currentVgs = -1.20;
+    currentVds = 0.80;
+  } else if (preset === 'depletion') {
+    currentVgs = -0.40;
+    currentVds = 0.80;
+  } else if (preset === 'zero') {
+    currentVgs = 0.00;
+    currentVds = 0.80;
+  } else if (preset === 'enhancement') {
+    currentVgs = 0.80;
+    currentVds = 0.80;
+  }
+  applyLogicState();
+}
+
+function registerDnmosParamModals() {
+  var modalHelper = (typeof window.SiliconParamInfoModal !== 'undefined') ? window.SiliconParamInfoModal : window.SiliconInfoPopover;
+  if (!modalHelper) return;
+  modalHelper.register({
+    vgs: {
+      title: 'Gate-to-Source Voltage (V<sub>GS</sub>)',
+      param: 'Dual-Mode Control: −1.20 V (Cutoff/Depletion) to +1.00 V (Enhancement)',
+      formula: 'V<sub>OV</sub> = V<sub>GS</sub> − V<sub>TH</sub> (V<sub>TH</sub> &lt; 0)   |   I<sub>D</sub> ∝ V<sub>OV</sub> · V<sub>Dsat</sub>',
+      increase: 'From −V<sub>GS</sub> toward 0 V, restores the implanted N-channel (Zero Bias I<sub>DSS</sub>); for V<sub>GS</sub> &gt; 0 V, adds a surface accumulation layer boosting I<sub>D</sub> &gt; I<sub>DSS</sub>.',
+      decrease: 'Repels mobile channel electrons downward into the P-substrate (Depletion Mode); when V<sub>GS</sub> ≤ V<sub>TH</sub>, the built-in channel pinches off completely (Cutoff, I<sub>D</sub> = 0).',
+      tradeoff: 'Normally ON conduction at V<sub>GS</sub> = 0 V makes D-NMOS ideal for depletion-load pull-ups and startup switches, at the cost of standby current if left unbiased.',
+      theorySection: 'dnmos-dualmode'
+    },
+    vds: {
+      title: 'Drain-to-Source Voltage (V<sub>DS</sub>)',
+      param: 'Lateral Source-to-Drain Drift Bias: 0.00 V to 1.80 V',
+      formula: 'Linear (V<sub>DS</sub> &lt; V<sub>Dsat</sub>)  →  Saturation (V<sub>DS</sub> ≥ V<sub>Dsat</sub>)',
+      increase: 'Drives electrons from Source to Drain; past V<sub>Dsat</sub>, expands drain pinch-off gap <code>ΔL</code> and induces negative DIBL threshold shift in short channels.',
+      decrease: 'Relaxes lateral electric field and drain depletion wedge back into linear conduction; at V<sub>DS</sub> = 0 V, channel electrons oscillate with zero net drift.',
+      tradeoff: 'Higher V<sub>DS</sub> provides saturation current plateaus but increases DIBL sensitivity and channel-length modulation slope <code>λ</code> at short gate lengths.',
+      theorySection: 'dnmos-pinchoff'
+    },
+    geomL: {
+      title: 'Channel Length (L)',
+      param: 'Physical Metallurgical Gate Length: 20 nm to 200 nm',
+      formula: 'I<sub>D</sub> ∝ 1/L   |   λ ∝ 1/L   |   V<sub>Dsat</sub> = V<sub>OV</sub>·E<sub>sat</sub>·L / (V<sub>OV</sub> + E<sub>sat</sub>·L)',
+      increase: 'Restores long-channel Shockley plateaus (small <code>λ</code>), eliminates DIBL and roll-off, and yields crisp cutoff right near V<sub>TH0</sub>.',
+      decrease: 'Boosts drive current ∝ 1/L until velocity saturation, increases <code>λ</code>, and shifts V<sub>TH</sub> further negative via charge-sharing &amp; DIBL (harder to shut OFF).',
+      tradeoff: 'Short L improves pull-up current density but makes complete Cutoff harder to maintain at elevated V<sub>DS</sub>.',
+      theorySection: 'dnmos-equations'
+    },
+    geomW: {
+      title: 'Channel Width (W)',
+      param: 'Active Transverse Gate Width: 40 nm to 400 nm',
+      formula: 'I<sub>D</sub> ∝ W   |   k<sub>n</sub> = μ<sub>n</sub> · C<sub>ox</sub> · (W / L)',
+      increase: 'Scales the 3D N+ active/channel width along Z and multiplies current carrying capacity proportionally without altering V<sub>TH</sub>.',
+      decrease: 'Narrows transverse conduction area and lowers I<sub>D</sub> (often sized narrower for depletion-load ratioed logic).',
+      tradeoff: 'Larger W directly scales current drive and parasitic gate/diffusion capacitance C<sub>g</sub> ∝ W·L without shifting pinch-off voltage.',
+      theorySection: 'dnmos-equations'
+    },
+    geomTox: {
+      title: 'Gate Oxide Thickness (t<sub>ox</sub>)',
+      param: 'Effective Equivalent Oxide Thickness (EOT): 1.2 nm to 10.0 nm',
+      formula: 'C<sub>ox</sub> = ε<sub>ox</sub> / t<sub>ox</sub> (ε<sub>ox</sub> = 3.9 ε<sub>0</sub>)   |   k<sub>n</sub> ∝ 1 / t<sub>ox</sub>',
+      increase: 'Weakens vertical capacitive coupling over the implanted N-channel, lowering k<sub>n</sub> and pushing V<sub>TH</sub> further negative.',
+      decrease: 'Maximizes C<sub>ox</sub> and transconductance k<sub>n</sub> while strengthening vertical gate depletion authority for cleaner cutoff.',
+      tradeoff: 'Ultra-thin gate oxides strengthen electrostatic pinch-off control while requiring High-k HfO₂ stacks to prevent excessive gate leakage.',
+      theorySection: 'dnmos-structure'
+    }
+  });
+}
+
 function initLogicStateControls() {
-  // Topbar VGS Slider
   var vgsSlider = document.getElementById('vgs-slider');
   if (vgsSlider) {
-    vgsSlider.addEventListener('input', function(e) {
-      currentVgs = parseFloat(e.target.value);
+    vgsSlider.addEventListener('input', function() {
+      currentVgs = parseFloat(vgsSlider.value);
       applyLogicState();
     });
   }
 
-  // Topbar VDS Slider
   var vdsSlider = document.getElementById('vds-slider');
   if (vdsSlider) {
-    vdsSlider.addEventListener('input', function(e) {
-      currentVds = parseFloat(e.target.value);
+    vdsSlider.addEventListener('input', function() {
+      currentVds = parseFloat(vdsSlider.value);
       applyLogicState();
     });
   }
 
-  // Preset Buttons (Topbar & Workbench)
-  function applyPreset(preset) {
-    if (preset === 'cutoff') {
-      currentVgs = -1.00;
-      currentVds = 0.80;
-    } else if (preset === 'depletion') {
-      currentVgs = -0.40;
-      currentVds = 0.80;
-    } else if (preset === 'zero') {
-      currentVgs = 0.00;
-      currentVds = 0.80;
-    } else if (preset === 'enhancement') {
-      currentVgs = 0.80;
-      currentVds = 0.80;
-    }
-    applyLogicState();
-  }
-
-  document.querySelectorAll('[data-preset]').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      applyPreset(btn.dataset.preset);
-    });
-  });
-
-  // Toggle HUD Collapsible Section
-  var ivHudToggle = document.getElementById('iv-hud-toggle');
-  var ivHudBody = document.getElementById('iv-hud-body');
-  var ivHudChev = document.getElementById('iv-hud-chev');
-  if (ivHudToggle && ivHudBody) {
-    ivHudToggle.addEventListener('click', function() {
-      var isCollapsed = ivHudBody.classList.toggle('collapsed');
-      if (ivHudChev) ivHudChev.classList.toggle('closed', isCollapsed);
-    });
-  }
-
-  // Interactive Graph Canvas: Drag or Click to modulate VDS and VGS
-  function bindCanvasPointer(c, isModal) {
-    if (!c) return;
-    var isDragging = false;
-
-    function handleGraphPointer(e) {
-      var rect = c.getBoundingClientRect();
-      if (!rect.width || !rect.height) return;
-      var scaleX = c.width / rect.width;
-      var scaleY = c.height / rect.height;
-
-      var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
-      var canvasX = (clientX - rect.left) * scaleX;
-      var canvasY = (clientY - rect.top) * scaleY;
-
-      var padL = (isModal ? 40 : IV_GRAPH_PAD.L) * (scaleX || 1);
-      var padR = (isModal ? 34 : IV_GRAPH_PAD.R) * (scaleX || 1);
-      var padT = (isModal ? 18 : IV_GRAPH_PAD.T) * (scaleY || 1);
-      var padB = (isModal ? 26 : IV_GRAPH_PAD.B) * (scaleY || 1);
-      var plotW = c.width - padL - padR;
-      var plotH = c.height - padT - padB;
-
-      var clickX = canvasX - padL;
-      var clickY = canvasY - padT;
-
-      var normX = Math.max(0, Math.min(1.0, clickX / plotW));
-      var normY = Math.max(0, Math.min(1.0, 1.0 - (clickY / plotH)));
-
-      currentVds = Math.round(normX * 1.8 * 20) / 20; // 0.05V step
+  var lSlider = document.getElementById('geom-l-slider');
+  if (lSlider) {
+    lSlider.addEventListener('input', function() {
+      geomL = parseFloat(lSlider.value);
       applyLogicState();
-    }
+    });
+  }
 
-    c.addEventListener('mousedown', function(e) {
-      isDragging = true;
-      handleGraphPointer(e);
+  var wSlider = document.getElementById('geom-w-slider');
+  if (wSlider) {
+    wSlider.addEventListener('input', function() {
+      geomW = parseFloat(wSlider.value);
+      applyLogicState();
     });
-    window.addEventListener('mousemove', function(e) {
-      if (isDragging) handleGraphPointer(e);
-    });
-    window.addEventListener('mouseup', function() {
-      isDragging = false;
-    });
+  }
 
-    c.addEventListener('touchstart', function(e) {
-      isDragging = true;
-      handleGraphPointer(e);
-      e.preventDefault();
-    }, { passive: false });
-    window.addEventListener('touchmove', function(e) {
-      if (isDragging) {
-        handleGraphPointer(e);
-        e.preventDefault();
+  var toxSlider = document.getElementById('geom-tox-slider');
+  if (toxSlider) {
+    toxSlider.addEventListener('input', function() {
+      geomTox = parseFloat(toxSlider.value);
+      applyLogicState();
+    });
+  }
+
+  var geomPresets = document.getElementById('geom-presets');
+  if (geomPresets) {
+    geomPresets.addEventListener('click', function(e) {
+      var btn = e.target.closest('.geom-preset-btn');
+      if (!btn) return;
+      geomL = parseFloat(btn.dataset.l) || 28;
+      geomW = parseFloat(btn.dataset.w) || 120;
+      geomTox = parseFloat(btn.dataset.tox) || 2.0;
+      applyLogicState();
+    });
+  }
+
+  var lockBtn = document.getElementById('iv-lock-y');
+  if (lockBtn) {
+    lockBtn.addEventListener('click', function() {
+      lockYAxis = !lockYAxis;
+      if (lockYAxis) {
+        lockedYMax = null;
+        lockedYMax = getGraphYMax([-0.6, -0.2, 0.0, 0.4, 0.8]);
+      } else {
+        lockedYMax = null;
       }
-    }, { passive: false });
-    window.addEventListener('touchend', function() {
-      isDragging = false;
+      lockBtn.classList.toggle('active', lockYAxis);
+      lockBtn.setAttribute('aria-pressed', lockYAxis ? 'true' : 'false');
+      drawIdsVdsGraph();
     });
   }
 
-  var canvas = document.getElementById('iv-canvas');
-  if (canvas) bindCanvasPointer(canvas, false);
+  var seg = document.getElementById('region-preset-seg');
+  if (seg) {
+    seg.addEventListener('click', function(e) {
+      var btn = e.target.closest('.seg-btn');
+      if (!btn || !btn.dataset.preset) return;
+      applyRegionPreset(btn.dataset.preset);
+    });
+  }
+
+  registerDnmosParamModals();
+
+  applyLogicState();
+  requestAnimationFrame(drawIdsVdsGraph);
+
+  window.addEventListener('resize', drawIdsVdsGraph);
+  var wb = document.getElementById('workbench');
+  if (wb && typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(function() { drawIdsVdsGraph(); });
+    ro.observe(wb);
+  }
+
+  function bindCanvasPointer(canvas, isLarge) {
+    var dragging = false;
+    function scrubFromEvent(e) {
+      var rect = canvas.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      var pad = isLarge ? { L: 56, R: 46 } : { L: IV_GRAPH_PAD.L, R: IV_GRAPH_PAD.R };
+      var gw = rect.width - pad.L - pad.R;
+      if (gw <= 5) return;
+      var x = (e.clientX - rect.left) - pad.L;
+      var frac = Math.max(0, Math.min(1, x / gw));
+      currentVds = Math.round(frac * 1.8 * 20) / 20;
+      applyLogicState();
+    }
+    canvas.addEventListener('pointerdown', function(e) {
+      dragging = true;
+      if (canvas.setPointerCapture) canvas.setPointerCapture(e.pointerId);
+      scrubFromEvent(e);
+    });
+    canvas.addEventListener('pointermove', function(e) {
+      if (dragging) scrubFromEvent(e);
+    });
+    canvas.addEventListener('pointerup', function(e) {
+      dragging = false;
+      if (canvas.releasePointerCapture) canvas.releasePointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointercancel', function() { dragging = false; });
+  }
+
+  var inlineCanvas = document.getElementById('iv-canvas');
+  if (inlineCanvas) bindCanvasPointer(inlineCanvas, false);
 
   var modalCanvas = document.getElementById('iv-modal-canvas');
   if (modalCanvas) bindCanvasPointer(modalCanvas, true);
 
-  // Expandable Graph Modal Controls
   var expandBtn = document.getElementById('iv-expand-btn');
   var modalBackdrop = document.getElementById('iv-modal-backdrop');
   var modalCloseBtn = document.getElementById('iv-modal-close');

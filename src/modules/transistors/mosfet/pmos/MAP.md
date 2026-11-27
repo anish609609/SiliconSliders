@@ -1,15 +1,15 @@
 # Enhancement-Mode PMOS Navigation Map (`src/modules/transistors/mosfet/pmos/`)
 
-**Purpose:** Interactive 3D Enhancement-mode PMOS (`|VTH,p| = 0.40V`) CAD viewer inside an N-Well body with VSG/VSD controls, ISD-VSD graph, hole channel/depletion rendering, and 8-step tour.
+**Purpose:** Interactive 3D Enhancement-mode PMOS CAD viewer inside an N-Well body with dynamic device geometry scaling (`L`, `W`, `t_ox`), short-channel effects, VSG/VSD controls, ISD-VSD graph (`Lock Y`), unified hole/current streak flow, optional bulk carriers, `ⓘ` info popovers, and 8-step fabrication tour.
 
 ## Files
 
-- `index.html` -> Viewport, VSG/VSD controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
-- `css/style.css` -> PMOS theme tokens (`--c-well`, `--c-active-p`, `--c-sde-p`, `--c-depletion`), HUD, and modal styles.
+- `index.html` -> Viewport, VSG/VSD + `ⓘ` info popovers, `DEVICE GEOMETRY` sandbox (`L`, `W`, `t_ox` + presets), `Show Bulk Carriers` toggle, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack (including `shared/js/param-info-modal.js`).
+- `css/style.css` -> PMOS theme tokens (`--c-well`, `--c-active-p`, `--c-sde-p`, `--c-depletion`), graph header/Lock Y, geometry preset pills, uniform teal/green `ⓘ` styles, HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
-- `js/geometry.js` -> 3D P-Substrate, N-Well tub, P+ S/D + N+ well tap, P-SDE/LDD extensions, dynamic hole channel + depletion shells, HKMG gate, Si3N4 spacers, NiSi, W contacts, Metal-1.
-- `js/logic-state.js` -> Continuous PMOS physics (`calculateIsd`, `applyLogicState`, `getMosfetPhysicsState`), 3-region ISD(VSG, VSD) solver, and ISD-VSD inline/modal canvas renderer.
-- `js/flow.js` -> Hole/electron flow markers (`createFlowCurve`, `rebuildFlowCurves`, `updateFlowMarkers`) synced to `getMosfetPhysicsState` and flow direction mode.
+- `js/geometry.js` -> 3D P-Substrate, N-Well tub, P+ S/D + N+ well tap, P-SDE/LDD extensions, dynamic hole channel + depletion shells, HKMG gate, flush Si3N4 spacers (`0.002` clearance), NiSi, W contacts, Metal-1, `updateDeviceGeometry3D(L, W, tox)`, and optional N-Well majority electrons (`holeInstMesh` / `updateSubGateCarriers`, default OFF).
+- `js/logic-state.js` -> Continuous geometry-dependent PMOS physics (`computePmosPoint`, `calculateIsd`, `getMosfetPhysicsState`, `setMosfetGeometry`) with `mu_p ~ 0.45*mu_n`, `VTH,p` roll-off, DIBL, velocity saturation, `lambda ~ 1/L`, `SiliconParamInfoModal` registrations, and Lock-Y ISD-VSD canvas renderer.
+- `js/flow.js` -> Unified `InstancedMesh` hole/current streaks (`createFlowCurve`, `rebuildFlowCurves`, `stepFlowMarkers`, `updateFlowMarkers`) scaling lane count with `W`, zero-bias thermal jitter, and acceleration across `deltaL`.
 - `js/build-anim.js` -> Offline 8-step `FAB_STEPS` drop-down tour (`applyFabStep`, `updateBuildAnimation`, `startBuildAnimation`).
 - `js/controls-explode-scrub.js` -> Layer Y-explode (`applyExplode`) and X/Y/Z clipping-plane scrub (`wireScrub`, `resetScrub`).
 - `js/selection.js` -> 6px drag-threshold raycasting via `SiliconSelectionHighlight`, synced with Architecture Tree, Inspector, and popover.

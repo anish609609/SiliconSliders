@@ -59,18 +59,18 @@ var INFO = {
   nmos: { title:'NMOS TRANSISTOR', fn:'N-channel MOSFET with High-k gate dielectric.', role:'Pulls OUT down to GND when IN = 1 (gate high turns NMOS on).', conn:'Source → GND · Gate → IN · Drain → OUT', rel:'Built in the p-substrate from active diffusion + High-k gate stack.' },
   nmosChannel: {
     title: 'ELECTRON INVERSION CHANNEL (NMOS)',
-    fn: 'Sub-gate silicon interface where mobile electron inversion layer forms when VIN > VTN (0.40V).',
-    role: 'Conductive n-type surface channel pulling output OUT down to GND (0V) when input is high (VIN = 1V). In Saturation, pinches off near the drain.',
+    fn: 'Sub-gate silicon interface inside the P-Well where mobile electron inversion forms when VIN > VTHn (width Wn, gate length L).',
+    role: 'Conductive n-type surface channel pulling OUT down to GND (0V) when IN is high. Scales drive with Wn/L and pinches off near drain.',
     conn: 'NMOS Source (GND) ↔ NMOS Drain (OUT)',
-    rel: 'Formed under interfacial oxide & High-k HfO2 when gate is positively biased.',
+    rel: 'Formed under interfacial SiO2 & High-k HfO2 when gate overdrive (VIN − VTHn) is positive.',
     doping: 'Surface electron inversion layer in P-Well / P-Substrate (n-type conductivity)'
   },
   pmosChannel: {
     title: 'HOLE INVERSION CHANNEL (PMOS)',
-    fn: 'Sub-gate silicon interface inside the N-Well where mobile hole inversion layer forms when VIN < VDD - |VTP| (0.60V).',
-    role: 'Conductive p-type surface channel pulling output OUT up to VDD (1.0V) when input is low (VIN = 0V). In Saturation, pinches off near the drain.',
+    fn: 'Sub-gate silicon interface inside the N-Well where mobile hole inversion forms when VIN < VDD − |VTHp| (width Wp, gate length L).',
+    role: 'Conductive p-type surface channel pulling OUT up to VDD (1.0V) when IN is low. Requires Wp ≈ 2×Wn to balance μn/μp drive.',
     conn: 'PMOS Source (VDD) ↔ PMOS Drain (OUT)',
-    rel: 'Formed under interfacial oxide & High-k HfO2 when gate is negatively biased relative to N-well.',
+    rel: 'Formed under interfacial SiO2 & High-k HfO2 when gate bias is negative relative to N-well.',
     doping: 'Surface hole inversion layer in N-Well (p-type conductivity)'
   },
   vdd:  { title:'VDD', fn:'Positive supply rail, Metal-1.', role:'Sourced only through the PMOS transistor — never directly tied to GND.', conn:'PMOS source, N-well tap', rel:'Runs along the layout edge nearest the PMOS row.' },

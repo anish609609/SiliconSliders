@@ -75,6 +75,9 @@ function renderTick(now) {
       }
       updateActivePulse(_animTime, true);
     }
+    if (!tourActive && typeof window.updateSubGateCarriers === 'function') {
+      window.updateSubGateCarriers(_animTime);
+    }
 
     if (typeof controls !== 'undefined' && controls) {
       controls.update();

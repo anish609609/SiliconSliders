@@ -186,6 +186,16 @@ function resetAll() {
   currentVgs = 0.00;
   currentVsd = 0.80;
   currentIn = 0; // D-PMOS zero bias (Normally ON)
+  if (typeof geomL !== 'undefined') geomL = 28;
+  if (typeof geomW !== 'undefined') geomW = 120;
+  if (typeof geomTox !== 'undefined') geomTox = 2.0;
+  if (typeof lockYAxis !== 'undefined') lockYAxis = false;
+  if (typeof lockedYMax !== 'undefined') lockedYMax = null;
+  var lockBtn = document.getElementById('iv-lock-y');
+  if (lockBtn) {
+    lockBtn.classList.remove('active');
+    lockBtn.setAttribute('aria-pressed', 'false');
+  }
 
   flowMode = 'carrier';
   var flowSeg = document.getElementById('flow-seg');
@@ -194,6 +204,7 @@ function resetAll() {
       b.classList.toggle('active', b.dataset.flow === 'carrier');
     });
   }
+  if (typeof window.syncFlowTheme === 'function') window.syncFlowTheme();
 
   if (typeof applyLogicState === 'function') applyLogicState();
   if (typeof rebuildFlowCurves === 'function') rebuildFlowCurves();
@@ -215,10 +226,14 @@ function resetAll() {
     switchWorkbenchTab('controls');
   }
 
-  // Reset 3D Floating Labels toggle
+  // Reset 3D Floating Labels & Bulk Carriers toggles
   var toggleLabelsChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
   if (toggleLabelsChk) toggleLabelsChk.checked = true;
   if (typeof window.toggleLabels === 'function') window.toggleLabels(true);
+
+  var toggleHolesChk = document.getElementById('toggle-holes');
+  if (toggleHolesChk) toggleHolesChk.checked = false;
+  if (typeof window.toggleSubstrateHoles === 'function') window.toggleSubstrateHoles(false);
 
   // Sliders mode: workbench is expanded by default at max desktop width
   if (window.innerWidth >= 768) {
@@ -226,6 +241,53 @@ function resetAll() {
     setWorkbenchWidth(getDefaultWbWidth());
   }
 }
+
+window.SILICON_TOUR_CONFIG = {
+  steps: [
+    {
+      target: '#wb-tab-controls',
+      title: '1. Operating Region & Presets',
+      body: 'Depletion PMOS conducts hole current even at VGS = 0V (Normally ON, VTH > 0). Use CUTOFF, DEPLETION, ZERO BIAS, or ENHANCE presets to inspect positive/negative gate modulation.',
+      position: 'right'
+    },
+    {
+      target: '#vgs-slider',
+      title: '2. Gate & Drain Biases (VGS / VSD)',
+      body: 'Click ⓘ beside any bias or geometry slider for compact physics equations and scaling effects. Positive VGS depletes the built-in P-channel toward Cutoff; negative VGS enhances hole conduction.',
+      position: 'right'
+    },
+    {
+      target: '#iv-canvas',
+      title: '3. Interactive ISD–VSD Curves',
+      body: 'Monitor live saturation pinch-off (VSD,sat), effective length Leff, and channel-length modulation λ. Drag directly on the canvas to scrub VSD or use Lock Y when comparing geometry changes.',
+      position: 'right'
+    },
+    {
+      target: '#wb-geometry-section',
+      title: '4. Device Geometry Scaling',
+      body: 'Sweep Channel Length L (20–200 nm), Width W (40–400 nm), and Gate Oxide tox (1.2–10.0 nm) or test 28nm Short-Ch, 180nm Long-Ch, and High-Drive presets to deform the 3D CAD stack and observe SCE.',
+      position: 'right'
+    },
+    {
+      target: '#flow-seg',
+      title: '5. Hole Drift & Bulk Carriers',
+      body: 'Switch between HOLES (S→D) and CURRENT streaks inside the implanted P-channel, and optionally toggle Show Bulk Carriers in View Controls to inspect N-Well majority electrons.',
+      position: 'bottom'
+    },
+    {
+      target: '#btn-build-anim',
+      title: '6. Fabrication Process & Theory',
+      body: 'Run FAB STEPS to watch layer-by-layer self-aligned construction, or switch to the Theory tab for full velocity saturation and depletion-PMOS equations.',
+      position: 'bottom'
+    },
+    {
+      target: '#viewport-wrap',
+      title: '7. 3D Inspection & Explode/Scrub',
+      body: 'Orbit, zoom, or click any 3D layer to inspect doping profiles. Combine DEVICE GEOMETRY scaling with Explode Layers and Section Scrub clipping planes.',
+      position: 'left'
+    }
+  ]
+};
 
 // =====================================================================
 // SUBTLE 1-LINE CAMERA CONTROLS HINT

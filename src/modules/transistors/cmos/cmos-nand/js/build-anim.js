@@ -24,7 +24,7 @@ var FAB_STEPS = [
   {
     badge: 'STEP 3 OF 9',
     title: 'Gate Dielectric Stack (SiO₂ + HfO₂)',
-    desc: 'Interfacial SiO₂ and high-κ HfO₂ gate dielectrics are formed beneath both dual-gate channels (Gate A and Gate B) across pull-up and pull-down pairs.',
+    desc: 'Interfacial SiO₂ and high-κ HfO₂ gate dielectrics are formed beneath both dual-gate channels (Gate A and Gate B) across PMOS (Wp) and NMOS (Wn) active stripes.',
     layers: ['oxide', 'highk'],
     camPos: [11, 13, 20],
     camTarget: [0, 2.2, 0]
@@ -32,7 +32,7 @@ var FAB_STEPS = [
   {
     badge: 'STEP 4 OF 9',
     title: 'Polysilicon Gate Patterning (Gates A & B)',
-    desc: 'Two parallel polysilicon gate stripes route Input A (MP1 + MN1) and Input B (MP2 + MN2) along the Euler layout path.',
+    desc: 'Two parallel polysilicon gate stripes of channel length L (20–200 nm) route Input A and Input B across Wp/Wn active areas along the Euler layout path.',
     layers: ['poly'],
     camPos: [-15, 14, 21],
     camTarget: [0, 2.5, 0]
@@ -48,7 +48,7 @@ var FAB_STEPS = [
   {
     badge: 'STEP 6 OF 9',
     title: 'Si₃N₄ Gate Sidewall Spacers',
-    desc: 'Anisotropic etch-back of conformal Si₃N₄ forms dielectric sidewall spacers along both Gate A and Gate B.',
+    desc: 'Anisotropic etch-back of conformal Si₃N₄ forms self-aligned dielectric sidewall spacers anchored flush to both Gate A and Gate B faces.',
     layers: ['spacer'],
     camPos: [-11, 12, 18],
     camTarget: [0, 2.3, 0]
