@@ -543,6 +543,75 @@
       }
     }, [resizeCanvases]);
 
+    // Register 3-Stage Process Engineering Guided Tour Configuration
+    var switchTabRef = useRef(switchTab);
+    switchTabRef.current = switchTab;
+
+    useEffect(function () {
+      window.SILICON_TOUR_CONFIG = {
+        storageKey: 'siliconsliders_process_tour_seen',
+        readySelector: '#btn-guided-tour',
+        peekContainerSelector: '#ox-chamber-controls, #ox-playback-bar, #wafer-cross-section, [data-tour-peek-zone]',
+        onStop: function () {},
+        steps: [
+          {
+            id: 'process-theory',
+            title: '1. Review Process Theory',
+            description: 'Start in Theory to explore the 1965 Deal-Grove origin story, oxidant diffusion vs. interface reaction kinetics, and governing equations before configuring the furnace.',
+            selectors: ['#ox-tab-theory'],
+            pulseSelector: '#ox-tab-theory',
+            beforeEnter: function () {
+              if (switchTabRef.current) switchTabRef.current('theory');
+            }
+          },
+          {
+            id: 'chamber-controls',
+            title: '2. Chamber Controls & Parameters',
+            description: 'Drag chamber sliders or click a Recipe Preset. Peek Mode auto-hides this card while dragging sliders so you can watch charts and wafer thickness update live.',
+            descriptionHtml:
+              'Drag any parameter or preset live (Peek Mode fades this card while dragging):' +
+              '<div class="ss-tour-corr-list">' +
+                '<div class="ss-tour-corr-row"><span class="ss-tour-corr-key">Temp &amp; Soak Time</span><span class="ss-tour-corr-arrow">&rarr;</span><span class="ss-tour-corr-val">Oxide Thickness (X<sub>ox</sub>) &amp; Thermal Budget</span></div>' +
+                '<div class="ss-tour-corr-row"><span class="ss-tour-corr-key">Ramp Rate</span><span class="ss-tour-corr-arrow">&rarr;</span><span class="ss-tour-corr-val">Wafer Slip Risk &amp; Cycle Time</span></div>' +
+                '<div class="ss-tour-corr-row"><span class="ss-tour-corr-key">Chemistry &amp; Crystal</span><span class="ss-tour-corr-arrow">&rarr;</span><span class="ss-tour-corr-val">Linear (B/A) &amp; Parabolic (B) Rates</span></div>' +
+                '<div class="ss-tour-corr-row"><span class="ss-tour-corr-key">Pressure &amp; Conc.</span><span class="ss-tour-corr-arrow">&rarr;</span><span class="ss-tour-corr-val">Partial Pressure &amp; Flush Kinetics</span></div>' +
+              '</div>',
+            selectors: ['#ox-chamber-controls'],
+            pulseSelector: '#ox-tab-sliders',
+            beforeEnter: function () {
+              if (switchTabRef.current) switchTabRef.current('sliders');
+            }
+          },
+          {
+            id: 'playback-reaction',
+            title: '3. Playback & Live Reaction Front',
+            description: 'Press ▶ PLAY, switch speed (1x / 10x / 60x), or scrub the timeline to watch 56% upward SiO₂ growth and 44% silicon consumption in real time.',
+            targets: [['#ox-playback-bar'], ['#wafer-cross-section']],
+            pulseSelector: '#ox-tab-sliders',
+            beforeEnter: function () {
+              if (switchTabRef.current) switchTabRef.current('sliders');
+              var pb = document.getElementById('ox-playback-bar');
+              if (pb && pb.scrollIntoView) pb.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+            }
+          },
+          {
+            id: 'process-industry',
+            title: '4. Commercial Fab Tooling & Industry',
+            description: 'Open Industry to compare commercial vertical batch furnaces vs. single-wafer RTP/ISSG chambers, inspect manufacturing challenges, and launch recipes back into Sliders.',
+            selectors: ['#ox-tab-industry'],
+            pulseSelector: '#ox-tab-industry',
+            beforeEnter: function () {
+              if (switchTabRef.current) switchTabRef.current('industry');
+            }
+          }
+        ]
+      };
+
+      if (window.SiliconGuidedTour && typeof window.SiliconGuidedTour.refresh === 'function') {
+        window.SiliconGuidedTour.refresh();
+      }
+    }, []);
+
     // Apply Recipe Preset
     var handleApplyPreset = useCallback(function (presetKey) {
       var p = PRESETS[presetKey];
@@ -771,6 +840,7 @@
             {/* Center: Clean Single-Row 3-Tab Bar with Blue Accent Indicator */}
             <nav className="flex items-center p-0.5 sm:p-1 bg-slate-100 dark:bg-slate-900/90 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-mono shadow-inner order-3 sm:order-2">
               <button
+                id="ox-tab-theory"
                 type="button"
                 onClick={function () { switchTab('theory'); }}
                 className={
@@ -783,6 +853,7 @@
                 <span>Theory</span>
               </button>
               <button
+                id="ox-tab-sliders"
                 type="button"
                 onClick={function () { switchTab('sliders'); }}
                 className={
@@ -795,6 +866,7 @@
                 <span>Sliders</span>
               </button>
               <button
+                id="ox-tab-industry"
                 type="button"
                 onClick={function () { switchTab('industry'); }}
                 className={
@@ -808,7 +880,7 @@
               </button>
             </nav>
 
-            {/* Right: Stage Status Badge & Theme Toggle */}
+            {/* Right: Stage Status Badge, Guided Tour & Theme Toggle */}
             <div className="flex items-center space-x-2 flex-shrink-0 order-2 sm:order-3">
               <div className="hidden xl:inline-flex flex-shrink-0">
                 <span
@@ -824,6 +896,17 @@
                   {stageBadge.label}
                 </span>
               </div>
+
+              <button
+                type="button"
+                id="btn-guided-tour"
+                className="tbtn-guided-tour h-8 px-2.5 rounded border text-xs font-mono font-semibold transition-all shadow-sm flex items-center gap-1.5"
+                title="Start Interactive Guided Tour"
+                aria-label="Start interactive guided tour"
+              >
+                <span className="tour-q-icon">?</span>
+                <span className="tour-btn-text">Tour</span>
+              </button>
 
               <button
                 type="button"
@@ -895,7 +978,11 @@
           <div className="w-full flex-1 flex flex-col lg:flex-row lg:h-[calc(100vh-53px)] lg:overflow-hidden">
 
             {/* LEFT COLUMN: Chamber Parameters & Kinetic Controls (340px–360px Fixed Width, Independently Scrollable) */}
-            <aside className="w-full lg:w-[355px] lg:min-w-[340px] lg:max-w-[360px] flex-shrink-0 lg:h-full lg:overflow-y-auto border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex flex-col gap-3.5 bg-slate-50/70 dark:bg-[#090d15] order-2 lg:order-1">
+            <aside
+              id="ox-chamber-controls"
+              data-tour-peek-zone="1"
+              className="w-full lg:w-[355px] lg:min-w-[340px] lg:max-w-[360px] flex-shrink-0 lg:h-full lg:overflow-y-auto border-t lg:border-t-0 lg:border-r border-slate-200 dark:border-slate-800 p-3 sm:p-4 flex flex-col gap-3.5 bg-slate-50/70 dark:bg-[#090d15] order-2 lg:order-1"
+            >
               
               <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-2">
                 <h2 className="font-mono font-bold text-xs uppercase tracking-wider text-slate-800 dark:text-slate-300 flex items-center gap-2">
@@ -1266,7 +1353,11 @@
             >
               
               {/* 1. PLAYBACK BAR (Pinned at top of Right Column inside Sliders tab) */}
-              <div className="sticky top-0 z-20 bg-white/95 dark:bg-[#0d121c]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl p-2 sm:p-2.5 shadow-sm transition-colors duration-150">
+              <div
+                id="ox-playback-bar"
+                data-tour-peek-zone="1"
+                className="sticky top-0 z-20 bg-white/95 dark:bg-[#0d121c]/95 backdrop-blur-md border border-slate-200 dark:border-slate-800 rounded-xl p-2 sm:p-2.5 shadow-sm transition-colors duration-150"
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
                   
                   {/* Left Controls: Play/Pause, Reset, Speed Multipliers */}
@@ -1505,6 +1596,7 @@
               <div
                 ref={waferSectionRef}
                 id="wafer-cross-section"
+                data-tour-peek-zone="1"
                 className="flex flex-col bg-white dark:bg-[#0d121c] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm dark:shadow-md transition-colors duration-150 scroll-mt-20"
               >
                 <div className="px-3.5 py-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0a0e17] flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs font-mono">

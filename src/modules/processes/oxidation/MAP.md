@@ -4,12 +4,12 @@
 
 ## Files
 
-- `index.html` -> Tailwind CDN + React 18 + ReactDOM 18 + `@babel/standalone` bootstrap loading `physics.js`, `canvas-wafer.js`, `charts.js`, and `js/app.js` (`type="text/babel"`).
-- `css/style.css` -> Dark/light glassmorphic panels, custom range slider tracks, and split-screen chamber layout.
+- `index.html` -> Tailwind CDN + React 18 + ReactDOM 18 + `@babel/standalone` bootstrap loading `shared/css/guided-tour.css`, `shared/js/guided-tour.js`, `physics.js`, `canvas-wafer.js`, `charts.js`, and `js/app.js` (`type="text/babel"`).
+- `css/style.css` -> Dark/light glassmorphic panels, semantic tour/theme tokens, custom range slider tracks, and split-screen chamber layout.
 - `js/physics.js` -> `OxidationPhysics` solving 300-step Deal-Grove + Massoud thin-oxide trajectories, CSTR `C_ox`/`C_n2` flushing, cumulative thermal budget, and wafer slip risk.
 - `js/canvas-wafer.js` -> `WaferCanvasRenderer` animating N2 elastic bounces, Fickian oxidant diffusion, 44% Si consumption / 56% upward SiO2 expansion, interface sparks, and 1x–50x zoom.
 - `js/charts.js` -> `OxidationCharts` rendering synchronized top (`x_ox(t)` & `T(t)`) and bottom (`N2` & oxidant MFC) DPR canvases with hover/click seek.
-- `js/app.js` -> `SimulatorApp` React component managing presets (`PRESETS`), slider info popovers (`SLIDER_INFOS`), `THEORY_SECTION_MAP` deep-links, Fab Challenges, and playback loop.
+- `js/app.js` -> `SimulatorApp` React component managing presets (`PRESETS`), slider info popovers (`SLIDER_INFOS`), `THEORY_SECTION_MAP` deep-links, Fab Challenges, playback loop, and 4-step `SILICON_TOUR_CONFIG` onboarding (`#btn-guided-tour`, `siliconsliders_process_tour_seen`).
 - `js/oxidation.js` -> Legacy standalone Deal-Grove canvas prototype (not loaded by `index.html`).
 - `README.md` -> Module documentation covering Deal-Grove derivations, rate constants, and 3-stage layout.
 

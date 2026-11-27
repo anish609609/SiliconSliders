@@ -360,8 +360,9 @@
     if (node.classList && node.classList.contains('ss-tour-dim-panel')) return false;
     var control = node.closest('input[type="range"], canvas');
     if (!control) return false;
-    var wb = document.getElementById('left-workbench');
-    return Boolean(wb && wb.contains(control));
+    var peekSel = (root.SILICON_TOUR_CONFIG && root.SILICON_TOUR_CONFIG.peekContainerSelector) ||
+                  '#left-workbench, #process-controls-aside, #ox-chamber-controls, [data-tour-peek-zone]';
+    return Boolean(control.closest(peekSel));
   }
 
   function setPeekClass(peeking) {
@@ -485,6 +486,7 @@
         id: s.id,
         title: s.title,
         description: s.description,
+        descriptionHtml: s.descriptionHtml,
         selectors: mapped && !Array.isArray(s.targets) ? mapped : s.selectors,
         targets: Array.isArray(mapped) && Array.isArray(s.targets) ? mapped : s.targets,
         pulseSelector: s.pulseSelector,
@@ -664,12 +666,20 @@
     var targets = resolveTargetElements(step);
     var union = computeUnionRect(targets);
     if (!union) {
-      if (currentIdx < activeSteps.length - 1) {
-        currentIdx += 1;
-        renderStep();
-        return;
-      }
-      stop(true);
+      // Deferred retry once on next frame for async UI libraries (e.g. React tab state updates)
+      requestAnimationFrame(function () {
+        if (!isTourRunning || activeSteps[currentIdx] !== step) return;
+        var delayedTargets = resolveTargetElements(step);
+        var delayedUnion = computeUnionRect(delayedTargets);
+        if (delayedUnion) {
+          positionSpotlightAndPopover(delayedUnion);
+        } else if (currentIdx < activeSteps.length - 1) {
+          currentIdx += 1;
+          renderStep();
+        } else {
+          stop(true);
+        }
+      });
       return;
     }
 
@@ -682,7 +692,10 @@
 
     if (stepLabel) stepLabel.textContent = 'Step ' + (currentIdx + 1) + ' of ' + activeSteps.length;
     if (titleEl) titleEl.textContent = step.title;
-    if (descEl) descEl.textContent = step.description;
+    if (descEl) {
+      if (step.descriptionHtml) descEl.innerHTML = step.descriptionHtml;
+      else descEl.textContent = step.description || '';
+    }
     if (backBtn) backBtn.disabled = currentIdx === 0;
     if (nextBtn) nextBtn.textContent = currentIdx === activeSteps.length - 1 ? 'Finish' : 'Next';
 
@@ -782,9 +795,14 @@
 
     if (saveSeen !== false) markSeen();
 
-    activateWorkbenchTab('controls');
-    var body = document.getElementById('wb-body');
-    if (body) body.scrollTop = 0;
+    var cfg = root.SILICON_TOUR_CONFIG || {};
+    if (typeof cfg.onStop === 'function') {
+      try { cfg.onStop(saveSeen); } catch (_) {}
+    } else if (document.getElementById('wb-tab-controls') || document.getElementById('wb-pane-controls')) {
+      activateWorkbenchTab('controls');
+      var body = document.getElementById('wb-body');
+      if (body) body.scrollTop = 0;
+    }
 
     returnToHeroCamera();
   }
@@ -815,19 +833,27 @@
 
   function waitForReadyAndAutoStart() {
     if (root.__SS_DISABLE_AUTO_TOUR__ || hasSeen()) return;
+    var cfg = root.SILICON_TOUR_CONFIG || {};
+    if (cfg.autoStart === false) return;
     var attempts = 0;
-    var maxAttempts = 25;
+    var maxAttempts = 30;
+
+    function isElHidden(el) {
+      if (!el) return true;
+      var st = window.getComputedStyle(el);
+      return st.display === 'none' || st.opacity === '0' || el.classList.contains('hidden');
+    }
 
     function poll() {
       attempts += 1;
+      var curCfg = root.SILICON_TOUR_CONFIG || {};
       var loading = document.getElementById('loading');
-      var loadingHidden = !loading ||
-        window.getComputedStyle(loading).display === 'none' ||
-        window.getComputedStyle(loading).opacity === '0' ||
-        loading.classList.contains('hidden');
+      var oxLoading = document.getElementById('oxidation-loading');
+      var loadingHidden = isElHidden(loading) && isElHidden(oxLoading);
+      var readyMatch = !curCfg.readySelector || Boolean(document.querySelector(curCfg.readySelector));
 
-      if (loadingHidden || attempts >= maxAttempts) {
-        if (!hasSeen() && !isTourRunning) {
+      if ((loadingHidden && readyMatch && resolveActiveSteps().length > 0) || attempts >= maxAttempts) {
+        if (!hasSeen() && !isTourRunning && curCfg.autoStart !== false && resolveActiveSteps().length > 0) {
           setTimeout(function () {
             if (!hasSeen() && !isTourRunning) start(0);
           }, 280);
@@ -840,11 +866,13 @@
     setTimeout(poll, 300);
   }
 
+  var launcherDelegatedBound = false;
   function bindLauncherButton() {
-    var btn = document.getElementById('btn-guided-tour');
-    if (btn && !btn.dataset.tourBound) {
-      btn.dataset.tourBound = '1';
-      btn.addEventListener('click', function () {
+    if (!launcherDelegatedBound && typeof document !== 'undefined') {
+      launcherDelegatedBound = true;
+      document.addEventListener('click', function (e) {
+        var btn = e.target && e.target.closest ? e.target.closest('#btn-guided-tour') : null;
+        if (!btn) return;
         if (isTourRunning) stop(false);
         else start(0);
       });
@@ -872,6 +900,7 @@
     next: next,
     prev: prev,
     goTo: goTo,
+    refresh: init,
     animateCameraTo: animateCameraTo,
     animateExplodeY: animateExplodeY,
     isActive: function () { return isTourRunning; },

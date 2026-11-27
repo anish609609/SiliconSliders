@@ -199,6 +199,47 @@
   color: #475569;
 }
 
+.ss-tour-corr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color, rgba(148, 163, 184, 0.2));
+}
+
+.ss-tour-corr-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.ss-tour-corr-key {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--accent-cyan, #38bdf8);
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .ss-tour-corr-key {
+  color: var(--accent-cyan, #0284c7);
+}
+
+.ss-tour-corr-arrow {
+  color: var(--text-muted, #94a3b8);
+  flex-shrink: 0;
+}
+
+.ss-tour-corr-val {
+  color: var(--text-body, #cbd5e1);
+}
+
+[data-theme="light"] .ss-tour-corr-val {
+  color: #334155;
+}
+
 .ss-tour-footer {
   display: flex;
   align-items: center;

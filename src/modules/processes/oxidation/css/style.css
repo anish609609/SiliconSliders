@@ -11,9 +11,16 @@ html.dark,
   --bg-page: #080b11;
   --bg-panel: #0d121c;
   --border-panel: #1e293b;
+  --border-color: #1e2638;
+  --border-hover: #334155;
+  --text-heading: #f8fafc;
   --text-main: #e2e8f0;
+  --text-body: #cbd5e1;
   --text-muted: #94a3b8;
+  --btn-bg: #151c2c;
+  --btn-text: #e2e8f0;
   --accent-cyan: #38bdf8;
+  --accent-cyan-glow: rgba(56, 189, 248, 0.15);
   --accent-amber: #f59e0b;
 
   /* Primary Blue Kinetic Accent Variables (Dark Mode) */
@@ -32,9 +39,16 @@ html.light,
   --bg-page: #f8fafc;
   --bg-panel: #ffffff;
   --border-panel: #e2e8f0;
+  --border-color: #cbd5e1;
+  --border-hover: #94a3b8;
+  --text-heading: #0f172a;
   --text-main: #0f172a;
+  --text-body: #475569;
   --text-muted: #64748b;
+  --btn-bg: #ffffff;
+  --btn-text: #0f172a;
   --accent-cyan: #0284c7;
+  --accent-cyan-glow: rgba(2, 132, 199, 0.12);
   --accent-amber: #d97706;
 
   /* Primary Blue Kinetic Accent Variables (Light Mode) */
