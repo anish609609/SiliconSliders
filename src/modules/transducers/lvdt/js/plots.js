@@ -67,7 +67,7 @@
     ctx.fillStyle = pal.bg;
     ctx.fillRect(0, 0, w, h);
 
-    var pad = { left: 42, right: 14, top: 18, bottom: 24 };
+    var pad = { left: 56, right: 14, top: 22, bottom: 28 };
     var pw = w - pad.left - pad.right;
     var ph = h - pad.top - pad.bottom;
     var midY = pad.top + ph * 0.5;
@@ -132,24 +132,43 @@
     ctx.stroke();
     ctx.restore();
 
-    // Labels
+    // Y-axis tick labels (kept clear of left rotated axis title)
     ctx.fillStyle = pal.text;
-    ctx.font = '500 10.5px "IBM Plex Mono", monospace';
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
     ctx.textAlign = 'right';
-    ctx.fillText('+' + wf.voutPeak.toFixed(1) + 'V', pad.left - 5, pad.top + 8);
-    ctx.fillText('0', pad.left - 5, midY + 3);
-    ctx.fillText('-' + wf.voutPeak.toFixed(1) + 'V', pad.left - 5, pad.top + ph);
+    ctx.fillText('+' + wf.voutPeak.toFixed(1) + 'V', pad.left - 6, pad.top + 8);
+    ctx.fillText('0', pad.left - 6, midY + 3);
+    ctx.fillText('-' + wf.voutPeak.toFixed(1) + 'V', pad.left - 6, pad.top + ph);
 
+    // Rotated left Y-axis title: Voltage (V)
+    ctx.save();
+    ctx.translate(13, pad.top + ph * 0.5);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = pal.text;
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Voltage (V)', 0, 0);
+    ctx.restore();
+
+    // Top waveform legend
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
     ctx.textAlign = 'left';
     ctx.fillStyle = pal.vin;
-    ctx.fillText('--- Vin (' + state.vpVrms.toFixed(1) + ' Vrms)', pad.left + 4, h - 6);
+    ctx.fillText('--- Vin (' + state.vpVrms.toFixed(1) + ' Vrms)', pad.left + 2, 13);
 
     ctx.fillStyle = outColor;
     var modeText = state.demodulatorMode === 'demod'
       ? '— Vout DC (' + (state.vOutDemodDc >= 0 ? '+' : '') + state.vOutDemodDc.toFixed(2) + ' V)'
       : '— Vout (' + state.phaseDeg.toFixed(0) + '°)';
     ctx.textAlign = 'right';
-    ctx.fillText(modeText, w - pad.right, h - 6);
+    ctx.fillText(modeText, w - pad.right, 13);
+
+    // Centered bottom X-axis title: Time (t)
+    ctx.fillStyle = pal.text;
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('Time (t)', pad.left + pw * 0.5, h - 8);
   }
 
   function renderTransferCurve(state) {
@@ -163,7 +182,7 @@
     ctx.fillStyle = pal.bg;
     ctx.fillRect(0, 0, w, h);
 
-    var pad = { left: 42, right: 16, top: 18, bottom: 24 };
+    var pad = { left: 56, right: 16, top: 20, bottom: 38 };
     var pw = w - pad.left - pad.right;
     var ph = h - pad.top - pad.bottom;
 
@@ -275,21 +294,38 @@
     ctx.font = '500 10px "IBM Plex Mono", monospace';
     ctx.textAlign = 'center';
     [-10, -5, 0, 5, 10].forEach(function (xt) {
-      ctx.fillText((xt > 0 ? '+' : '') + xt, xToPx(xt), h - 6);
+      ctx.fillText((xt > 0 ? '+' : '') + xt, xToPx(xt), pad.top + ph + 13);
     });
-    ctx.fillText('x (mm)', xToPx(7.6), pad.top + 11);
 
+    // Centered bottom X-axis title
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.fillText('Core Displacement x (mm)', pad.left + pw * 0.5, h - 7);
+
+    // Y-axis tick labels
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(yMax.toFixed(1) + 'V', pad.left - 5, pad.top + 9);
+    ctx.fillText(yMax.toFixed(1) + 'V', pad.left - 6, pad.top + 9);
     if (isDemod) {
-      ctx.fillText('0', pad.left - 5, yToPx(0) + 3);
-      ctx.fillText(yMin.toFixed(1) + 'V', pad.left - 5, pad.top + ph);
+      ctx.fillText('0', pad.left - 6, yToPx(0) + 3);
+      ctx.fillText(yMin.toFixed(1) + 'V', pad.left - 6, pad.top + ph);
     } else {
-      ctx.fillText('0V', pad.left - 5, pad.top + ph);
+      ctx.fillText('0V', pad.left - 6, pad.top + ph);
     }
+
+    // Rotated left Y-axis title: Vout (V) or Vout DC (V)
+    ctx.save();
+    ctx.translate(13, pad.top + ph * 0.5);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = pal.text;
+    ctx.font = '600 10px "IBM Plex Mono", monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(isDemod ? 'Vout DC (V)' : 'Vout (V)', 0, 0);
+    ctx.restore();
 
     ctx.textAlign = 'center';
     ctx.fillStyle = pal.voutInPhase;
+    ctx.font = '500 10px "IBM Plex Mono", monospace';
     ctx.fillText('±5 mm LINEAR', xToPx(0), pad.top + 11);
   }
 

@@ -145,6 +145,7 @@
   var layerGroups = {};
   var housingCutawayGroup = null;
   var housingEnclosedGroup = null;
+  var viewModeGroups = [];
   var housingViewMode = 'cutaway';
   var layerVisibility = {
     housing: true,
@@ -273,8 +274,13 @@
     });
   }
 
-  function buildCoilBay(group, layerId, centerX, bayWidth, innerR, outerR, turns, mat) {
-    var drumGeo = createCutawayTubeGeo(innerR, innerR + 0.06, bayWidth - 0.14, CUT_START, CUT_END, 40);
+  function buildCoilBay(group, layerId, centerX, bayWidth, innerR, outerR, turns, mat, isEnclosed) {
+    var arcStart = isEnclosed ? 0 : CUT_START;
+    var arcEnd = isEnclosed ? (Math.PI * 2) : CUT_END;
+    var arcSpan = isEnclosed ? (Math.PI * 2) : CUT_ARC;
+    var segs = isEnclosed ? 48 : 40;
+
+    var drumGeo = createCutawayTubeGeo(innerR, innerR + 0.06, bayWidth - 0.14, arcStart, arcEnd, segs);
     var drum = new THREE.Mesh(drumGeo, mat);
     drum.position.x = centerX;
     drum.castShadow = true;
@@ -290,8 +296,8 @@
     for (var row = 0; row < 2; row++) {
       var rRow = ringRadius + (row === 0 ? -0.065 : 0.075);
       for (var i = 0; i < turns; i++) {
-        var torusGeo = new THREE.TorusGeometry(rRow, wireRadius, 10, 44, CUT_ARC);
-        torusGeo.rotateZ(CUT_START);
+        var torusGeo = new THREE.TorusGeometry(rRow, wireRadius, 10, 48, arcSpan);
+        torusGeo.rotateZ(arcStart);
         torusGeo.rotateY(Math.PI / 2);
         var wire = new THREE.Mesh(torusGeo, mat);
         wire.position.x = startX + i * pitch;
@@ -306,6 +312,38 @@
     pin.position.set(centerX, outerR + 0.38, -0.35);
     registerLayerMesh(pin, layerId);
     group.add(pin);
+  }
+
+  function buildBobbinMeshes(group, isEnclosed) {
+    var arcStart = isEnclosed ? 0 : CUT_START;
+    var arcEnd = isEnclosed ? (Math.PI * 2) : CUT_END;
+    var bobbinTubeGeo = createCutawayTubeGeo(0.76, 0.90, 8.9, arcStart, arcEnd, 48);
+    var bobbinTube = new THREE.Mesh(bobbinTubeGeo, materials.bobbin);
+    bobbinTube.castShadow = true;
+    bobbinTube.receiveShadow = true;
+    registerLayerMesh(bobbinTube, 'bobbin');
+    group.add(bobbinTube);
+
+    [-4.25, -1.45, 1.45, 4.25].forEach(function (fx) {
+      var flangeGeo = createCutawayTubeGeo(0.76, 1.56, 0.16, arcStart, arcEnd, 48);
+      var flange = new THREE.Mesh(flangeGeo, materials.bobbin);
+      flange.position.x = fx;
+      flange.castShadow = true;
+      registerLayerMesh(flange, 'bobbin');
+      group.add(flange);
+    });
+  }
+
+  function addCutawayEnclosedPair(parentGrp, buildFn) {
+    var cutSub = new THREE.Group();
+    var encSub = new THREE.Group();
+    buildFn(cutSub, false);
+    buildFn(encSub, true);
+    cutSub.visible = housingViewMode === 'cutaway';
+    encSub.visible = housingViewMode === 'enclosed';
+    parentGrp.add(cutSub);
+    parentGrp.add(encSub);
+    viewModeGroups.push({ cut: cutSub, enclosed: encSub });
   }
 
   function createFluxLoop(xStart, xEnd, radiusY, radiusZ, sideSign, colorHex) {
@@ -358,6 +396,9 @@
   function buildAssembly() {
     assemblyRoot = new THREE.Group();
     assemblyRoot.name = 'lvdtAssembly';
+    viewModeGroups = [];
+    fluxLeftEntries = [];
+    fluxRightEntries = [];
     scene.add(assemblyRoot);
 
     // 1. Housing Group (contains Cutaway & Enclosed sub-groups)
@@ -431,6 +472,9 @@
     housingEnclosedGroup.add(turretFull);
 
     housingGrp.add(housingEnclosedGroup);
+    viewModeGroups.push({ cut: housingCutawayGroup, enclosed: housingEnclosedGroup });
+    housingCutawayGroup.visible = housingViewMode === 'cutaway';
+    housingEnclosedGroup.visible = housingViewMode === 'enclosed';
     layerGroups.housing = housingGrp;
     assemblyRoot.add(housingGrp);
 
@@ -438,22 +482,9 @@
     var bobbinGrp = new THREE.Group();
     bobbinGrp.userData.basePos = new THREE.Vector3(0, 0, 0);
     bobbinGrp.userData.explodeOffset = new THREE.Vector3(0, -3.6, -2.0);
-    var bobbinTubeGeo = createCutawayTubeGeo(0.76, 0.90, 8.9, CUT_START, CUT_END, 48);
-    var bobbinTube = new THREE.Mesh(bobbinTubeGeo, materials.bobbin);
-    bobbinTube.castShadow = true;
-    bobbinTube.receiveShadow = true;
-    registerLayerMesh(bobbinTube, 'bobbin');
-    bobbinGrp.add(bobbinTube);
-
-    [-4.25, -1.45, 1.45, 4.25].forEach(function (fx) {
-      var flangeGeo = createCutawayTubeGeo(0.76, 1.56, 0.16, CUT_START, CUT_END, 48);
-      var flange = new THREE.Mesh(flangeGeo, materials.bobbin);
-      flange.position.x = fx;
-      flange.castShadow = true;
-      registerLayerMesh(flange, 'bobbin');
-      bobbinGrp.add(flange);
+    addCutawayEnclosedPair(bobbinGrp, function (sub, isEnc) {
+      buildBobbinMeshes(sub, isEnc);
     });
-
     layerGroups.bobbin = bobbinGrp;
     assemblyRoot.add(bobbinGrp);
 
@@ -461,7 +492,9 @@
     var primaryGrp = new THREE.Group();
     primaryGrp.userData.basePos = new THREE.Vector3(0, 0, 0);
     primaryGrp.userData.explodeOffset = new THREE.Vector3(0, 1.9, 1.6);
-    buildCoilBay(primaryGrp, 'primary', 0.0, 2.55, 0.93, 1.42, 11, materials.primaryCopper);
+    addCutawayEnclosedPair(primaryGrp, function (sub, isEnc) {
+      buildCoilBay(sub, 'primary', 0.0, 2.55, 0.93, 1.42, 11, materials.primaryCopper, isEnc);
+    });
     layerGroups.primary = primaryGrp;
     assemblyRoot.add(primaryGrp);
 
@@ -469,7 +502,9 @@
     var sec1Grp = new THREE.Group();
     sec1Grp.userData.basePos = new THREE.Vector3(0, 0, 0);
     sec1Grp.userData.explodeOffset = new THREE.Vector3(-3.2, 1.6, 1.6);
-    buildCoilBay(sec1Grp, 'secondary1', -2.85, 2.45, 0.93, 1.42, 10, materials.sec1Copper);
+    addCutawayEnclosedPair(sec1Grp, function (sub, isEnc) {
+      buildCoilBay(sub, 'secondary1', -2.85, 2.45, 0.93, 1.42, 10, materials.sec1Copper, isEnc);
+    });
     layerGroups.secondary1 = sec1Grp;
     assemblyRoot.add(sec1Grp);
 
@@ -477,7 +512,9 @@
     var sec2Grp = new THREE.Group();
     sec2Grp.userData.basePos = new THREE.Vector3(0, 0, 0);
     sec2Grp.userData.explodeOffset = new THREE.Vector3(3.2, 1.6, 1.6);
-    buildCoilBay(sec2Grp, 'secondary2', 2.85, 2.45, 0.93, 1.42, 10, materials.sec2Copper);
+    addCutawayEnclosedPair(sec2Grp, function (sub, isEnc) {
+      buildCoilBay(sub, 'secondary2', 2.85, 2.45, 0.93, 1.42, 10, materials.sec2Copper, isEnc);
+    });
     layerGroups.secondary2 = sec2Grp;
     assemblyRoot.add(sec2Grp);
 
@@ -607,8 +644,15 @@
 
   function setHousingView(mode) {
     housingViewMode = mode === 'enclosed' ? 'enclosed' : 'cutaway';
-    if (housingCutawayGroup) housingCutawayGroup.visible = housingViewMode === 'cutaway';
-    if (housingEnclosedGroup) housingEnclosedGroup.visible = housingViewMode === 'enclosed';
+    var isEnc = housingViewMode === 'enclosed';
+    for (var i = 0; i < viewModeGroups.length; i++) {
+      var pair = viewModeGroups[i];
+      if (pair.cut) pair.cut.visible = !isEnc;
+      if (pair.enclosed) pair.enclosed.visible = isEnc;
+    }
+    if (activeHighlightId) {
+      highlightLayer(activeHighlightId);
+    }
   }
 
   function setLayerVisible(layerId, visible) {
@@ -703,6 +747,30 @@
     moverGroup.position.x = simState.xMm * MM_TO_SCENE;
   }
 
+  function applySideFluxVisuals(entries, fluxStrength, vpNorm, freqNorm) {
+    // Symmetric at null (fluxStrength = 0.5); strongly amplified toward coupled coil & dimmed opposite
+    var nonLin = Math.pow(Math.max(0.0, Math.min(1.0, fluxStrength)), 1.38);
+    var sideOpacity = (0.045 + 0.94 * nonLin) * (0.45 + 0.55 * vpNorm);
+    var reachScale = (0.72 + 0.42 * fluxStrength) * (0.94 + 0.12 * vpNorm);
+    var thickScale = (0.58 + 0.88 * fluxStrength) * (0.88 + 0.22 * vpNorm);
+    var speed = 0.20 + 0.65 * fluxStrength * freqNorm;
+
+    entries.forEach(function (entry, idx) {
+      var loopWeight = idx === 0 ? 1.0 : (0.92 - 0.06 * idx);
+      var tubeAlpha = Math.min(0.92, Math.max(0.04, sideOpacity * loopWeight));
+      entry.tubeMat.opacity = tubeAlpha;
+      entry.tube.scale.set(reachScale, thickScale, thickScale);
+
+      entry.beads.forEach(function (b) {
+        var t = (simPhase * speed + b.offset + idx * 0.17) % 1.0;
+        var pt = entry.curve.getPointAt(t);
+        b.mesh.position.set(pt.x * reachScale, pt.y * thickScale, pt.z * thickScale);
+        b.mesh.material.opacity = Math.min(0.98, Math.max(0.05, tubeAlpha * 1.38));
+        b.mesh.scale.setScalar((0.42 + 0.96 * fluxStrength) * (0.85 + 0.25 * vpNorm));
+      });
+    });
+  }
+
   function updateFluxVisuals(dtSec) {
     if (!currentSimState) return;
     var freqNorm = 0.65 + 1.8 * Math.min(1, currentSimState.freqHz / 6000.0);
@@ -712,38 +780,14 @@
     var acOsc = Math.sin(simPhase * 1.4);
     if (!activeHighlightId) {
       materials.primaryCopper.emissiveIntensity = 0.14 + 0.16 * vpNorm * (0.5 + 0.5 * Math.abs(acOsc));
-      materials.sec1Copper.emissiveIntensity = 0.10 + 0.32 * currentSimState.fluxLeft * vpNorm;
-      materials.sec2Copper.emissiveIntensity = 0.10 + 0.32 * currentSimState.fluxRight * vpNorm;
+      materials.sec1Copper.emissiveIntensity = 0.10 + 0.34 * currentSimState.fluxLeft * vpNorm;
+      materials.sec2Copper.emissiveIntensity = 0.10 + 0.34 * currentSimState.fluxRight * vpNorm;
     }
 
     if (!fluxGroup || !fluxVisible) return;
 
-    var leftOpacity = (0.14 + 0.72 * currentSimState.fluxLeft) * vpNorm;
-    var rightOpacity = (0.14 + 0.72 * currentSimState.fluxRight) * vpNorm;
-
-    fluxLeftEntries.forEach(function (entry, idx) {
-      entry.tubeMat.opacity = Math.min(0.88, leftOpacity);
-      var speed = 0.28 + 0.45 * currentSimState.fluxLeft * freqNorm;
-      entry.beads.forEach(function (b) {
-        var t = (simPhase * speed + b.offset + idx * 0.17) % 1.0;
-        var pt = entry.curve.getPointAt(t);
-        b.mesh.position.copy(pt);
-        b.mesh.material.opacity = Math.min(0.95, leftOpacity * 1.25);
-        b.mesh.scale.setScalar(0.65 + 0.65 * currentSimState.fluxLeft);
-      });
-    });
-
-    fluxRightEntries.forEach(function (entry, idx) {
-      entry.tubeMat.opacity = Math.min(0.88, rightOpacity);
-      var speed = 0.28 + 0.45 * currentSimState.fluxRight * freqNorm;
-      entry.beads.forEach(function (b) {
-        var t = (simPhase * speed + b.offset + idx * 0.17) % 1.0;
-        var pt = entry.curve.getPointAt(t);
-        b.mesh.position.copy(pt);
-        b.mesh.material.opacity = Math.min(0.95, rightOpacity * 1.25);
-        b.mesh.scale.setScalar(0.65 + 0.65 * currentSimState.fluxRight);
-      });
-    });
+    applySideFluxVisuals(fluxLeftEntries, currentSimState.fluxLeft, vpNorm, freqNorm);
+    applySideFluxVisuals(fluxRightEntries, currentSimState.fluxRight, vpNorm, freqNorm);
   }
 
   function tick(dtSec) {
