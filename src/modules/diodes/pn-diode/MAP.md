@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, workbench tabs, I-V modal (`#iv-modal-backdrop`), 2D junction overlay, and script load order.
+- `index.html` -> Viewport, workbench tabs, I-V modal (`#iv-modal-backdrop`), 2D junction overlay, `? Tour` onboarding (`guided-tour`), and script load order.
 - `css/style.css` -> Diode viewer layout, bias/doping slider styling, and theme overrides.
 - `js/data.js` -> Component metadata (`COMPONENTS`), layer toggle definitions (`LAYERS_LIST`), `ARCHITECTURE_TREE`, and `LAMBDA_RULES`.
 - `js/physics.js` -> `DiodePhysics` engine (Varshni `Eg`, `Vbi`, `W`/`xp`/`xn`, `Emax`, Sze `VBR`, Shockley + breakdown current).

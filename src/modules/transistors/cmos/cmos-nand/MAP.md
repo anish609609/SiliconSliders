@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, `A`/`B` logic + continuous sliders, sweep selector (`va`/`vb`/`both`), expandable VTC modal (`#iv-modal-backdrop`), schematic/theory overlays, and script stack.
+- `index.html` -> Viewport, `A`/`B` logic + continuous sliders, sweep selector (`va`/`vb`/`both`), expandable VTC modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
 - `css/style.css` -> NAND2 EDA theme tokens, dual-input HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
 - `js/geometry.js` -> `buildNand2Cell` twin-well standard cell, dynamic `depletion` shells, parallel PMOS + series NMOS diffusions, dual HKMG gates, spacers, NiSi, filleted Metal-1 & vias.

@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, VGS/VDS controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, and script stack.
+- `index.html` -> Viewport, VGS/VDS controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
 - `css/style.css` -> Module-specific theme colors (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
 - `js/geometry.js` -> 3D substrate, N+ S/D Gaussian tubs, N-SDE/LDD extensions, dynamic inversion channel + depletion shells, HKMG gate stack, Si3N4 spacers, NiSi salicide, W contacts, Metal-1.

@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, VGS (`-1.00V` to `+1.20V`)/VSD controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, and script stack.
+- `index.html` -> Viewport, VGS (`-1.00V` to `+1.20V`)/VSD controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
 - `css/style.css` -> D-PMOS theme tokens (`--c-well`, `--c-active-p`, `--c-sde-p`, `--c-depletion`), HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
 - `js/geometry.js` -> 3D P-Substrate, N-Well tub, P+ S/D + N+ well tap, implanted P-channel (`dchannel`), P-SDE/LDD, wrap-around depletion + upper/lower channel pinch-off meshes, HKMG, spacers, NiSi, W contacts, Metal-1.

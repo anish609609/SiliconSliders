@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, `VIN` controls (`0`, `1`, `OFF` + continuous slider), expandable VTC modal (`#iv-modal-backdrop`), schematic/theory overlays, and script stack.
+- `index.html` -> Viewport, `VIN` controls (`0`, `1`, `OFF` + continuous slider), expandable VTC modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
 - `css/style.css` -> CMOS Inverter EDA theme variables, HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
 - `js/geometry.js` -> Twin-well (`N-Well`, `P-Well`) standard cell, dynamic `DEPLETION REGION` shells, active S/D + taps, SDE/LDD, `pmosChannel`/`nmosChannel`, HKMG gates, Si3N4 spacers, NiSi salicide, Metal-1 & vias.

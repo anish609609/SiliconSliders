@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, VGS (`-1.20V` to `+1.00V`)/VDS controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, and script stack.
+- `index.html` -> Viewport, VGS (`-1.20V` to `+1.00V`)/VDS controls, expandable I-V modal (`#iv-modal-backdrop`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), and script stack.
 - `css/style.css` -> D-NMOS theme tokens (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
 - `js/geometry.js` -> 3D substrate, N+ S/D tubs, implanted N-channel slab (`dchannel`), N-SDE/LDD, wrap-around PN depletion envelope + upper/lower channel pinch-off meshes, HKMG, spacers, silicide, W contacts, Metal-1.

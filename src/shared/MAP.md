@@ -6,7 +6,9 @@
 
 - `materialPalette.js` -> Single source of truth for dark/light doping, dielectric, metal, carrier colors, and canonical material finishes (`MATERIAL_PALETTE`, `MATERIAL_PROPERTIES`).
 - `css/design-tokens.css` -> Global EDA CSS variables, typography (`IBM Plex Mono`, `Inter`), and glassmorphic surface tokens.
+- `css/guided-tour.css` -> Spotlight cutout, glassmorphic popover, and topbar `? Tour` button styles for CAD onboarding.
 - `css/home.css` -> Landing page layout, module card grid, and responsive telemetry strip styles.
+- `js/guided-tour.js` -> `SiliconGuidedTour` zero-build 6-step spotlight onboarding engine with auto-tab switching and `localStorage` persistence (`siliconsliders_cad_tour_seen`).
 - `js/home.js` -> Homepage theme persistence (`siliconsliders-theme` + time-of-day fallback) and cross-tab `pageshow`/`storage` sync.
 - `three/layerHighlight.ts` -> Unified TS layer discovery (`userData.layerId`), raycasting, opaque/low-opacity highlighting, and exact material restoration (`SiliconLayerHighlight`).
 - `three/layerHighlight.js` -> Zero-bundler browser global companion (`window.SiliconLayerHighlight`) mirroring `layerHighlight.ts`.
@@ -23,6 +25,7 @@
 - **Palette (`materialPalette.js`):** `MATERIAL_PALETTE`, `MATERIAL_PROPERTIES`, `getMaterialPalette`, `getMaterialProperties` (registered on ESM export and `globalThis` / `window`).
 - **Viewer Theme (`viewer-theme.js`):** `ViewerTheme.init`, `ViewerTheme.getTheme`, `ViewerTheme.setTheme`, `ViewerTheme.toggleTheme`, `ViewerTheme.onThemeChange`.
 - **Homepage Theme (`home.js`):** `applyPlatformTheme`, `getPlatformTheme` (syncs `pageshow` and cross-tab `storage` events).
+- **Guided Tour (`guided-tour.js`):** `SiliconGuidedTour.start`, `SiliconGuidedTour.stop`, `SiliconGuidedTour.next`, `SiliconGuidedTour.prev`, `SiliconGuidedTour.goTo`, `SiliconGuidedTour.isActive`, `SiliconGuidedTour.resetSeen`, `SiliconGuidedTour.DEFAULT_STEPS`.
 - **Layer Highlight (`three/layerHighlight.ts` / `.js`):** `discoverClickableMeshes`, `collectLayerMeshes`, `raycastLayer`, `raycastLayers`, `selectLayer`, `clearHighlight`, `applyHighlight`, `updateHighlightColor`, `SiliconLayerHighlight`.
 - **Viewer Core (`viewer-core.js`):** `SiliconViewer.init` (binds `#left-toggle`, `#right-toggle`, theme, topbar, and panels).
 - **Selection Highlight (`viewer-core.js`):** `SiliconSelectionHighlight.apply`, `SiliconSelectionHighlight.updateColor` (forwards to `SiliconLayerHighlight`).

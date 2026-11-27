@@ -32,6 +32,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="../../../../shared/viewer/css/viewer-shell.css">
+<link rel="stylesheet" href="../../../../shared/css/guided-tour.css">
 <script>
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
@@ -113,6 +114,9 @@
           <line x1="12" y1="19" x2="12" y2="23"></line>
           <line x1="8" y1="23" x2="16" y2="23"></line>
         </svg>
+      </button>
+      <button class="tbtn tbtn-guided-tour" id="btn-guided-tour" title="Interactive UI Guided Tour" aria-label="Start Interactive UI Guided Tour">
+        <span class="tour-q-icon" aria-hidden="true">?</span><span class="tour-btn-text">&nbsp;Tour</span>
       </button>
       <button class="tbtn tbtn-play-tour" id="btn-build-anim" title="Watch step-by-step 3D fabrication sequence" aria-label="Play 3D Fabrication Tour">
         <span class="play-icon">▶</span>
@@ -1003,6 +1007,7 @@
 <script src="js/render-loop.js"></script>
 <script src="js/main.js"></script>
 <script src="js/voice-assistant.js"></script>
+<script src="../../../../shared/js/guided-tour.js"></script>
 
 </body>
 </html>
