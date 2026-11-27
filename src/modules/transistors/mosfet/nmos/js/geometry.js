@@ -840,14 +840,16 @@ function getCachedBoxAxes(geom) {
 }
 
 function getChannelThicknessAtX(x, hasChannel, maxH, isSat, dL, ratio) {
-  if (!hasChannel || x < -1.001 || x > 1.001) return 0;
-  var pinchX = 1.0 - dL;
+  var halfL = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.halfL : 1.0;
+  var fullL = halfL * 2.0;
+  if (!hasChannel || x < -(halfL + 0.001) || x > (halfL + 0.001)) return 0;
+  var pinchX = halfL - dL;
   if (isSat) {
     if (x >= pinchX) return 0;
-    var sSat = Math.max(0, Math.min(1, (x + 1.0) / Math.max(0.001, 2.0 - dL)));
+    var sSat = Math.max(0, Math.min(1, (x + halfL) / Math.max(0.001, fullL - dL)));
     return maxH * Math.max(0, 1.0 - sSat);
   }
-  var sLin = Math.max(0, Math.min(1, (x + 1.0) / 2.0));
+  var sLin = Math.max(0, Math.min(1, (x + halfL) / Math.max(0.001, fullL)));
   return maxH * Math.max(0, 1.0 - sLin * ratio);
 }
 
@@ -856,6 +858,9 @@ function updateHalfWellShell(geo, edgeGeo, perim, isDrain, wDep, hasChannel, max
   var pos = posAttr.array;
   var edgeAttr = edgeGeo.attributes.position;
   var edgeArr = edgeAttr.array;
+
+  var halfL = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.halfL : 1.0;
+  var curActD = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.actD : actD;
 
   var nP = perim.length;
   var nR = DEPL_ETA.length;
@@ -894,15 +899,15 @@ function updateHalfWellShell(geo, edgeGeo, perim, isDrain, wDep, hasChannel, max
       var inX = pt.cx + pt.lx * tHoriz;
       var inZ = pt.zSpine + (pt.lz - pt.zSpine) * tHoriz;
 
-      // Stepped depth: shallow under LDD (|x| <= 1.85), deep under N+ well (|x| >= 2.08)
-      var tWell = deplSmoothstep(1.80, 2.08, Math.abs(inX));
+      // Stepped depth: shallow under LDD (|x| <= halfL + 0.80), deep under N+ well (|x| >= halfL + 1.08)
+      var tWell = deplSmoothstep(halfL + 0.80, halfL + 1.08, Math.abs(inX));
       var depth = 0.512 + (1.216 - 0.512) * tWell;
       var inY = yTop - depth * tDepth;
 
       var localW = wDep;
       if (isDrain) {
         // Asymmetrically widen Drain bulb toward outer Drain side & bottom when VDS > 0
-        var bulbFactor = 0.72 + 0.28 * deplSmoothstep(0.95, 2.50, inX);
+        var bulbFactor = 0.72 + 0.28 * deplSmoothstep(halfL - 0.05, halfL + 1.50, inX);
         localW = wDep * bulbFactor;
       }
 
@@ -910,8 +915,8 @@ function updateHalfWellShell(geo, edgeGeo, perim, isDrain, wDep, hasChannel, max
       var outZ = inZ + pt.nzh * localW * outHWeight;
       var outY = Math.max(Y.subBot + 0.02, inY - localW * outVWeight);
 
-      // Keep depletion strictly beneath any active inversion channel inside |x| < 1.0
-      if (hasChannel && Math.abs(inZ) <= (actD * 0.5 + 0.02)) {
+      // Keep depletion strictly beneath any active inversion channel inside |x| < halfL
+      if (hasChannel && Math.abs(inZ) <= (curActD * 0.5 + 0.02)) {
         var cTIn = getChannelThicknessAtX(inX, hasChannel, maxH, isSat, dL, ratio);
         if (cTIn > 0.002) {
           inY = Math.min(inY, yChanTop - cTIn - 0.004);
@@ -959,16 +964,21 @@ function syncChannelBaseEmissive() {
 
 // Function to dynamically deform inversion channel and 4-regime depletion geometry based on E-NMOS physics
 window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
-  var vth = 0.40;
-  var vov = Math.max(0, vgs - vth);
+  var phys = (typeof window.getMosfetPhysicsState === 'function') ? window.getMosfetPhysicsState() : null;
+  var vth = phys ? phys.vth : 0.40;
+  var vov = phys ? phys.vov : Math.max(0, vgs - vth);
+  var vdsSat = phys ? phys.vdsSat : vov;
   var hasChannel = (region !== 'CUTOFF' && vov > 0.001);
   var deplLayerOn = (window.showDepletionLayer !== false);
 
+  var halfL = (typeof deviceGeomState !== 'undefined' && deviceGeomState) ? deviceGeomState.halfL : 1.0;
+  var fullL = halfL * 2.0;
+
   var maxH = 0.16;
-  var vdsDiff = Math.max(0, vds - vov);
-  var isSat = hasChannel && (vds >= vov) && (region === 'SATURATION');
-  var dL = isSat ? 2.0 * Math.min(0.40, 0.22 * Math.sqrt(vdsDiff)) : 0.0;
-  var ratio = (vov > 0.0001) ? Math.min(1.0, Math.max(0, vds / vov)) : 1.0;
+  var vdsDiff = Math.max(0, vds - vdsSat);
+  var isSat = hasChannel && (vds >= vdsSat) && (region === 'SATURATION');
+  var dL = isSat ? (typeof deltaL === 'number' ? deltaL : (phys ? phys.deltaL : 0.0)) : 0.0;
+  var ratio = (vdsSat > 0.0001) ? Math.min(1.0, Math.max(0, vds / vdsSat)) : 1.0;
 
   // 1. Update Inversion Channel Mesh (top flush beneath SiO2 at yChanTop = 3.006)
   if (!hasChannel) {
@@ -978,13 +988,13 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
     var chanData = getCachedBoxAxes(chanGeom);
     for (var i = 0; i < chanData.pos.count; i++) {
       var origX = chanData.initX[i];
-      var s = (origX + 1.0) / 2.0;
+      var s = (origX + 1.0) / 2.0; // initX is in [-1.0, +1.0] from base BoxGeometry(2.0, ...)
       var mappedX, thickness;
       if (!isSat) {
-        mappedX = origX;
+        mappedX = -halfL + s * fullL;
         thickness = maxH * Math.max(0.002, 1.0 - s * ratio);
       } else {
-        mappedX = -1.0 + s * (2.0 - dL);
+        mappedX = -halfL + s * Math.max(0.05, fullL - dL);
         thickness = maxH * Math.max(0.002, 1.0 - s);
       }
       chanData.pos.setX(i, mappedX);
@@ -993,7 +1003,7 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
     chanData.pos.needsUpdate = true;
     chanGeom.computeVertexNormals();
 
-    var intensityNorm = Math.min(1.0, ids / 0.5);
+    var intensityNorm = Math.min(1.0, ids / 0.35);
     chanMat.emissiveIntensity = 0.20 + 0.65 * intensityNorm;
   }
 
@@ -1013,9 +1023,14 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
     gateDeplMesh.visible = false;
   } else {
     gateDeplMesh.visible = true;
-    var subFrac = Math.min(1.0, Math.max(0, vgs / vth));
-    var xLeft = -0.985 + wSrc - 0.001;
-    var xRight = 0.985 - (wDrn * 0.72) + 0.001;
+    var subFrac = Math.min(1.0, Math.max(0, vgs / Math.max(0.10, vth)));
+    var xLeft = -(halfL - 0.015) + wSrc - 0.001;
+    var xRight = (halfL - 0.015) - (wDrn * 0.72) + 0.001;
+    if (xRight < xLeft + 0.05) {
+      var midX = 0.5 * (xLeft + xRight);
+      xLeft = midX - 0.025;
+      xRight = midX + 0.025;
+    }
     var yTopSurface = Y.subTop + 0.002; // 3.002
     var gateData = getCachedBoxAxes(gateDeplGeo);
 
@@ -1038,7 +1053,7 @@ window.updateChannelGeometry = function(vgs, vds, ids, region, deltaL) {
     gateDeplGeo.computeVertexNormals();
   }
 
-  pinchMat.emissiveIntensity = isSat ? (0.20 + 0.22 * Math.min(1.0, vdsDiff / 0.8)) : (0.14 + 0.08 * Math.min(1.0, vgs / vth));
+  pinchMat.emissiveIntensity = isSat ? (0.20 + 0.22 * Math.min(1.0, vdsDiff / 0.8)) : (0.14 + 0.08 * Math.min(1.0, vgs / Math.max(0.10, vth)));
   syncChannelBaseEmissive();
 };
 
@@ -1653,3 +1668,177 @@ var initLabelChk = document.getElementById('toggle-labels') || document.getEleme
 if (initLabelChk) {
   toggleLabels(initLabelChk.checked);
 }
+
+// ---------------------------------------------------------------------------
+// 11. INTERACTIVE DEVICE GEOMETRY SCALING (L, W, t_ox)
+// ---------------------------------------------------------------------------
+var BASE_GATE_L = 2.0;
+var BASE_ACT_D = 7.0;
+var BASE_OX_H = 0.180;
+var BASE_HK_H = 0.240;
+var BASE_POLY_H = 1.030;
+var BASE_POLY_LEN = 11.2;
+var BASE_SPACER_H = spacerH;
+var BASE_CT_H = ctH;
+var BASE_GATE_W = gateW;
+var BASE_M1_H = m1H;
+
+var deviceGeomState = {
+  L_nm: 28,
+  W_nm: 120,
+  tox_nm: 2.0,
+  gateL: BASE_GATE_L,
+  halfL: BASE_GATE_L / 2,
+  actD: BASE_ACT_D,
+  oxH: BASE_OX_H,
+  srcX: srcX,
+  drnX: drnX,
+  sdeSrcX: sdeSrcX,
+  sdeDrnX: sdeDrnX,
+  gatePadZ: 5.2,
+  tapX: -6.5,
+  tapZ: 6.2
+};
+
+window.getDeviceGeomState = function() {
+  return deviceGeomState;
+};
+
+window.updateDeviceGeometry3D = function(L_nm, W_nm, tox_nm) {
+  L_nm = Math.max(20, Math.min(200, Number(L_nm) || 28));
+  W_nm = Math.max(40, Math.min(400, Number(W_nm) || 120));
+  tox_nm = Math.max(1.2, Math.min(10.0, Number(tox_nm) || 2.0));
+
+  // Visually legible non-linear mappings calibrated so (28, 120, 2.0) equals exact baseline
+  var newGateL = BASE_GATE_L * Math.pow(L_nm / 28.0, 0.58);
+  var newHalfL = newGateL / 2.0;
+  var newActD = BASE_ACT_D * Math.pow(W_nm / 120.0, 0.50);
+  var newHalfD = newActD / 2.0;
+  var newOxH = BASE_OX_H * Math.pow(tox_nm / 2.0, 0.72);
+  var deltaOxY = newOxH - BASE_OX_H;
+
+  var scaleZ = newActD / BASE_ACT_D;
+  var scaleGateX = newGateL / BASE_GATE_L;
+
+  // Update vertical Y stack monotonically (Z-fighting free)
+  Y.oxTop = Y.oxBot + newOxH;
+  Y.hkBot = Y.oxTop;
+  Y.hkTop = Y.hkBot + BASE_HK_H;
+  Y.polyBot = Y.hkTop;
+  Y.polyTop = Y.polyBot + BASE_POLY_H;
+  Y.ctTop = 5.158 + deltaOxY;
+  Y.m1Bot = Y.ctTop;
+  Y.m1Top = Y.m1Bot + BASE_M1_H;
+
+  // Symmetric lateral X positions anchored to gate edge +/- newHalfL
+  var newSdeSrcX = -(newHalfL + sdeW / 2.0);
+  var newSdeDrnX = +(newHalfL + sdeW / 2.0);
+  var newSrcX = -(newHalfL + sdeW + actW / 2.0);
+  var newDrnX = +(newHalfL + sdeW + actW / 2.0);
+  var newSpacerOuterX = newHalfL + sdeW;
+  var newSpacerCenterX = newHalfL + spacerInnerGap + spacerW / 2.0;
+  var newSilInnerEdgeX = newSpacerOuterX + 0.006;
+  var newSilOuterEdgeX = Math.abs(newSrcX) + actW / 2.0 - 0.04;
+  var newSilCenterX = (newSilOuterEdgeX + newSilInnerEdgeX) / 2.0;
+
+  // Z positions scaled cleanly with active width W
+  var newGateW = newActD + 0.6;
+  var newGatePadZ = newHalfD + 1.7;
+  var polyBackZ = -(newHalfD + 0.9);
+  var polyFrontZ = newGatePadZ + 1.6;
+  var newPolyRunnerLen = polyFrontZ - polyBackZ;
+  var newPolyCenterZ = (polyFrontZ + polyBackZ) / 2.0;
+  var newTapX = -6.5;
+  var newTapZ = newHalfD + 2.7;
+
+  // Persist live geometry state for channel, depletion, and carrier flow
+  deviceGeomState.L_nm = L_nm;
+  deviceGeomState.W_nm = W_nm;
+  deviceGeomState.tox_nm = tox_nm;
+  deviceGeomState.gateL = newGateL;
+  deviceGeomState.halfL = newHalfL;
+  deviceGeomState.actD = newActD;
+  deviceGeomState.oxH = newOxH;
+  deviceGeomState.srcX = newSrcX;
+  deviceGeomState.drnX = newDrnX;
+  deviceGeomState.sdeSrcX = newSdeSrcX;
+  deviceGeomState.sdeDrnX = newSdeDrnX;
+  deviceGeomState.gatePadZ = newGatePadZ;
+  deviceGeomState.tapX = newTapX;
+  deviceGeomState.tapZ = newTapZ;
+
+  // Expand substrate slab smoothly if long L or wide W approaches edge
+  if (typeof subMesh !== 'undefined' && subMesh) {
+    var reqSubW = Math.max(22.0, 2.0 * (Math.abs(newSrcX) + actW / 2.0 + 2.5));
+    var reqSubD = Math.max(20.0, 2.0 * (newTapZ + 2.4));
+    subMesh.scale.set(reqSubW / 22.0, 1.0, reqSubD / 20.0);
+  }
+
+  // Active N+ S/D & N-SDE/LDD extensions
+  if (srcMesh) { srcMesh.position.x = newSrcX; srcMesh.scale.set(1, 1, scaleZ); }
+  if (drnMesh) { drnMesh.position.x = newDrnX; drnMesh.scale.set(1, 1, scaleZ); }
+  if (sdeSrcMesh) { sdeSrcMesh.position.x = newSdeSrcX; sdeSrcMesh.scale.set(1, 1, scaleZ); }
+  if (sdeDrnMesh) { sdeDrnMesh.position.x = newSdeDrnX; sdeDrnMesh.scale.set(1, 1, scaleZ); }
+
+  // Inversion channel & depletion pocket Z scaling + S/D depletion shell perimeters
+  if (channelMesh) channelMesh.scale.set(1, 1, scaleZ);
+  if (gateDeplMesh) gateDeplMesh.scale.set(1, 1, scaleZ);
+  srcPerim = buildWellShellPerimeter(-(newHalfL + 2.6515), 2.6665, newHalfD + 0.018, 0.25);
+  drnPerim = buildWellShellPerimeter(+(newHalfL + 2.6515), 2.6665, newHalfD + 0.018, 0.25);
+
+  // Gate dielectric stack (SiO2 + HfO2) & gate electrode
+  if (oxMesh) {
+    oxMesh.position.y = (Y.oxTop + Y.oxBot) / 2.0;
+    oxMesh.scale.set(scaleGateX, newOxH / BASE_OX_H, newGateW / BASE_GATE_W);
+  }
+  if (hkMesh) {
+    hkMesh.position.y = (Y.hkTop + Y.hkBot) / 2.0;
+    hkMesh.scale.set(scaleGateX, 1.0, newGateW / BASE_GATE_W);
+  }
+  if (polyMesh) {
+    polyMesh.position.set(0, (Y.polyTop + Y.polyBot) / 2.0, newPolyCenterZ);
+    polyMesh.scale.set(scaleGateX, 1.0, newPolyRunnerLen / BASE_POLY_LEN);
+  }
+
+  // Si3N4 Sidewall Spacers flush against gate stack and over SDE
+  var newSpacerH = Y.polyTop - spacerBot;
+  var newSpacerCenterY = (Y.polyTop + spacerBot) / 2.0;
+  if (leftSpacer) {
+    leftSpacer.position.set(-newSpacerCenterX, newSpacerCenterY, 0);
+    leftSpacer.scale.set(1, newSpacerH / BASE_SPACER_H, scaleZ);
+  }
+  if (rightSpacer) {
+    rightSpacer.position.set(newSpacerCenterX, newSpacerCenterY, 0);
+    rightSpacer.scale.set(1, newSpacerH / BASE_SPACER_H, scaleZ);
+  }
+
+  // Self-aligned Silicide (NiSi) pads & Body tap
+  if (srcSilMesh) { srcSilMesh.position.x = -newSilCenterX; srcSilMesh.scale.set(1, 1, scaleZ); }
+  if (drnSilMesh) { drnSilMesh.position.x = newSilCenterX; drnSilMesh.scale.set(1, 1, scaleZ); }
+  if (tapMesh) tapMesh.position.set(newTapX, (Y.actTop + Y.actBot) / 2.0, newTapZ);
+  if (tapSilMesh) tapSilMesh.position.set(newTapX, silCenterY, newTapZ);
+
+  // Tungsten Contact Vias
+  var newCtH = Y.ctTop - Y.ctBot;
+  var newCtCenterY = (Y.ctTop + Y.ctBot) / 2.0;
+  if (srcCt) { srcCt.position.set(newSrcX, newCtCenterY, 0); srcCt.scale.set(1, newCtH / BASE_CT_H, 1); }
+  if (drnCt) { drnCt.position.set(newDrnX, newCtCenterY, 0); drnCt.scale.set(1, newCtH / BASE_CT_H, 1); }
+  if (subCt) { subCt.position.set(newTapX, newCtCenterY, newTapZ); subCt.scale.set(1, newCtH / BASE_CT_H, 1); }
+  if (gateCt) gateCt.position.set(0, (Y.ctTop + Y.polyTop) / 2.0, newGatePadZ);
+
+  // Metal-1 Interconnect Pads
+  var newM1Y = (Y.m1Top + Y.m1Bot) / 2.0;
+  if (srcPad) srcPad.position.set(newSrcX, newM1Y, 0);
+  if (drnPad) drnPad.position.set(newDrnX, newM1Y, 0);
+  if (gatePad) gatePad.position.set(0, newM1Y, newGatePadZ);
+  if (bodyPad) bodyPad.position.set(newTapX, newM1Y, newTapZ);
+
+  // 3D Floating Terminal Labels
+  if (typeof srcCallout !== 'undefined' && srcCallout) srcCallout.position.set(newSrcX, Y.m1Top, 0);
+  if (typeof drnCallout !== 'undefined' && drnCallout) drnCallout.position.set(newDrnX, Y.m1Top, 0);
+  if (typeof gateCallout !== 'undefined' && gateCallout) gateCallout.position.set(0, Y.m1Top, newGatePadZ);
+  if (typeof bodyCallout !== 'undefined' && bodyCallout) bodyCallout.position.set(newTapX, Y.m1Top, newTapZ);
+  if (typeof deplCallout !== 'undefined' && deplCallout) {
+    deplCallout.position.set(Math.abs(newSrcX) + actW / 2.0 + 0.15, Y.subTop + 0.002, newHalfD + 0.10);
+  }
+};

@@ -23,18 +23,18 @@ var FAB_STEPS = [
   {
     step: 2,
     title: 'Gate Dielectric Stack (SiO2 / HfO2)',
-    desc: 'Thermal growth of ultra-thin interfacial SiO2 (~0.6 nm) followed by ALD High-k HfO2 deposition (κ ≈ 25) to suppress gate tunneling leakage.',
+    desc: 'Gate dielectric formation establishing effective oxide thickness t_ox (tunable 1.2–10.0 nm in Device Geometry; interfacial SiO2 + High-k HfO2) to control gate capacitance Cox.',
     layers: ['substrate', 'oxide', 'highk'],
     newLayers: ['oxide', 'highk'],
-    narration: 'Interfacial silicon dioxide is grown and capped with ALD hafnium dioxide to maximize gate capacitance with minimal leakage.'
+    narration: 'The gate dielectric stack is formed over the silicon channel, setting the effective oxide thickness and gate capacitance.'
   },
   {
     step: 3,
     title: 'Gate Electrode Patterning',
-    desc: 'Polysilicon / workfunction-tuned metal gate deposition and anisotropic lithographic dry etching establish physical gate length L.',
+    desc: 'Polysilicon / workfunction-tuned metal gate deposition and anisotropic dry etching establish physical channel length L (tunable 20–200 nm in Device Geometry).',
     layers: ['substrate', 'oxide', 'highk', 'poly'],
     newLayers: ['poly'],
-    narration: 'The polysilicon gate electrode is deposited and etched over the high-k dielectric to define the transistor gate length.'
+    narration: 'The gate electrode is deposited and etched over the gate dielectric to define the transistor channel length.'
   },
   {
     step: 4,

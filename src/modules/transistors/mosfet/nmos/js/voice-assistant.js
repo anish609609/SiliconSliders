@@ -472,13 +472,21 @@
 
     try {
       var selInfo = typeof lastSelectedId !== 'undefined' && lastSelectedId ? idToInfo(lastSelectedId) : null;
+      var physSt = typeof window.getMosfetPhysicsState === 'function' ? window.getMosfetPhysicsState() : null;
       var contextPayload = {
         title: selInfo ? selInfo.title : 'NMOS Transistor',
         role: selInfo ? selInfo.role : 'N-channel field-effect transistor conduction control',
         fn: selInfo ? selInfo.fn : '',
         doping: selInfo ? selInfo.doping : '',
-        circuitState: {
-          vgs: currentIn === 1 ? '1.0V (ON)' : (currentIn === 0 ? '0.0V (OFF)' : 'FLOATING'),
+        circuitState: physSt ? {
+          vgs: physSt.vgs.toFixed(2) + 'V',
+          vds: physSt.vds.toFixed(2) + 'V',
+          vth: physSt.vth.toFixed(2) + 'V',
+          region: physSt.region,
+          geometry: 'L=' + physSt.L + 'nm, W=' + physSt.W + 'nm, tox=' + physSt.tox.toFixed(1) + 'nm',
+          ids: physSt.ids.toFixed(3) + 'mA'
+        } : {
+          vgs: currentIn === 1 ? 'ON' : 'OFF',
           channel: currentIn === 1 ? 'INVERSION LAYER (CONDUCTING)' : 'CUTOFF (DEPLETION)'
         }
       };
@@ -784,20 +792,26 @@
 
   window.addEventListener('DOMContentLoaded', init);
 
+  function formatVaStateText() {
+    var phys = typeof window.getMosfetPhysicsState === 'function' ? window.getMosfetPhysicsState() : null;
+    if (phys) {
+      return 'VGS=' + phys.vgs.toFixed(2) + 'V · ' + phys.region + ' · L=' + phys.L + 'nm';
+    }
+    return 'VGS: ' + (currentIn === 1 ? 'ON' : 'OFF');
+  }
+
   window.updateVoiceAssistantContext = function (id, info) {
     var ctxVal = document.getElementById('va-ctx-val');
     var ctxState = document.getElementById('va-ctx-state');
     if (ctxVal) ctxVal.textContent = (info ? info.title : id) || 'None';
-    if (ctxState) {
-      ctxState.textContent = 'VGS: ' + (currentIn === 1 ? '1.0V (ON)' : (currentIn === 0 ? '0.0V (OFF)' : 'FLT'));
-    }
+    if (ctxState) ctxState.textContent = formatVaStateText();
   };
 
   window.clearVoiceAssistantContext = function () {
     var ctxVal = document.getElementById('va-ctx-val');
     var ctxState = document.getElementById('va-ctx-state');
     if (ctxVal) ctxVal.textContent = 'None';
-    if (ctxState) ctxState.textContent = 'VGS: ' + (currentIn === 1 ? '1.0V (ON)' : (currentIn === 0 ? '0.0V (OFF)' : 'FLT'));
+    if (ctxState) ctxState.textContent = formatVaStateText();
   };
 
   window.openSarvamApiKeyModal = openApiKeyModal;

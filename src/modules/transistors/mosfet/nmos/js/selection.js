@@ -51,13 +51,16 @@ function buildInfoHtml(id, info){
   if ((id === 'channel' || id === 'depletion') && typeof window.getMosfetPhysicsState === 'function') {
     var phys = window.getMosfetPhysicsState();
     if (phys) {
+      var dlNm = (phys.L !== undefined && phys.leff !== undefined) ? Math.max(0, phys.L - phys.leff) : 0;
       liveHtml = '<div class="field"><div class="k">OPERATING STATE</div><div class="v">' +
         'Region: <b>' + phys.region + '</b> &nbsp;|&nbsp; ' +
-        'Leff: <b>' + (phys.leff ? phys.leff.toFixed(1) : '40.0') + ' nm</b> &nbsp;|&nbsp; ' +
-        'Pinch-off &Delta;L: <b>' + (phys.deltaL ? (phys.deltaL * 20).toFixed(1) : '0.0') + ' nm</b><br>' +
-        'VGS: <b>' + phys.vgs.toFixed(2) + ' V</b> &nbsp;|&nbsp; ' +
-        'VDS: <b>' + phys.vds.toFixed(2) + ' V</b> &nbsp;|&nbsp; ' +
-        'IDS: <b>' + (phys.ids >= 0.01 ? phys.ids.toFixed(2) : '0.00') + ' mA</b>' +
+        'V<sub>TH</sub>: <b>' + (phys.vth !== undefined ? phys.vth.toFixed(2) : '0.40') + ' V</b> &nbsp;|&nbsp; ' +
+        'L<sub>eff</sub>: <b>' + (phys.leff ? phys.leff.toFixed(1) : '28.0') + ' nm</b> &nbsp;|&nbsp; ' +
+        '&Delta;L: <b>' + dlNm.toFixed(1) + ' nm</b><br>' +
+        'L/W/t<sub>ox</sub>: <b>' + (phys.L || 28) + ' / ' + (phys.W || 120) + ' / ' + (phys.tox ? phys.tox.toFixed(1) : '2.0') + ' nm</b><br>' +
+        'V<sub>GS</sub>: <b>' + phys.vgs.toFixed(2) + ' V</b> &nbsp;|&nbsp; ' +
+        'V<sub>DS</sub>: <b>' + phys.vds.toFixed(2) + ' V</b> &nbsp;|&nbsp; ' +
+        'I<sub>DS</sub>: <b>' + (phys.ids >= 0.001 ? phys.ids.toFixed(3) : '0.000') + ' mA</b>' +
         '</div></div>';
     }
   }

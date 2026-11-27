@@ -31,7 +31,7 @@ var DIM_RULES = [
   { key:'substrateDepth', label:'Substrate thickness', note:'Exaggerated for display — real dies run hundreds of µm thick; not modeled to scale here.' },
   { key:'wellDepth',     label:'N-well depth',                lambda:8 },
   { key:'activeDepth',   label:'Source/Drain junction depth', lambda:1.5 },
-  { key:'oxideThickness',label:'Gate oxide thickness (tOX)',  note:'~2 nm equivalent, illustrative — exaggerated in the model for visibility.' },
+  { key:'oxideThickness',label:'Gate oxide thickness (tOX)',  note:'Tunable 1.2–10.0 nm in Device Geometry (visually scaled in 3D for legibility).' },
   { key:'polyThickness', label:'Poly gate height',            lambda:3 },
   { key:'metalThickness',label:'Metal-1 thickness (flat ribbon)', lambda:1 },
   { key:'viaOverlap',    label:'Metal-1 via enclosure (overlap)', lambda:1 },

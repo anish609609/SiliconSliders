@@ -102,34 +102,44 @@ function rebuildFlowCurves(optIds, optRegion, optDeltaL) {
   var isCarrier = flowMode === 'carrier';
 
   // Base speed directly driven by calculated drain current IDS
-  var currentNorm = Math.min(1.0, Math.max(0.05, ids / 0.5));
+  var currentNorm = Math.min(1.0, Math.max(0.05, ids / 0.35));
   var baseSpeed = 0.0035 + 0.014 * currentNorm;
 
-  // Saturation pinch-off location
-  var pinchX = (region === 'SATURATION') ? Math.max(-0.2, 1.0 - deltaL) : 1.0;
+  // Dynamic 3D geometry bounds from geometry.js
+  var gState = (typeof window.getDeviceGeomState === 'function') ? window.getDeviceGeomState() : null;
+  var halfL = gState ? gState.halfL : 1.0;
+  var actD = gState ? gState.actD : 7.0;
+  var absSrcX = gState ? Math.abs(gState.srcX) : 4.2;
+  var srcEnd = -(absSrcX + 0.3);
+  var drnEnd = absSrcX + 0.3;
+  var sdeMid = halfL + 0.8;
 
-  // 5 parallel tracks along transistor width Z (-2.4 to +2.4)
-  var zTracks = [-2.4, -1.2, 0.0, 1.2, 2.4];
+  // Saturation pinch-off location
+  var pinchX = (region === 'SATURATION') ? Math.max(-halfL * 0.2, halfL - deltaL) : halfL;
+
+  // 5 parallel tracks along transistor width Z scaled with channel width W
+  var zMax = (actD * 0.5) * 0.685;
+  var zTracks = [-zMax, -0.5 * zMax, 0.0, 0.5 * zMax, zMax];
   var particlesPerTrack = Math.round(7 + 7 * currentNorm);
 
   zTracks.forEach(function(zOff) {
     var pts = [];
     if (isCarrier) {
       // Electron drift: Source (N+) -> Inversion Channel -> Drain (N+)
-      pts.push(new THREE.Vector3(-4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(srcEnd + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(-sdeMid + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(-halfL + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(sdeMid + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(drnEnd + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
     } else {
       // Conventional current ID: Drain (+VDS) -> Channel -> Source (GND)
-      pts.push(new THREE.Vector3(4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(drnEnd + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(sdeMid + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
       pts.push(new THREE.Vector3(pinchX + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-1.0 + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-1.8 + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
-      pts.push(new THREE.Vector3(-4.5 + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(-halfL + actOffset.x, 2.94 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(-sdeMid + actOffset.x, 2.82 + actOffset.y, zOff + actOffset.z));
+      pts.push(new THREE.Vector3(srcEnd + actOffset.x, 2.60 + actOffset.y, zOff + actOffset.z));
     }
 
     var curve = createFlowCurve(pts);

@@ -8,7 +8,7 @@ var LEGEND = [
   { key: 'substrate', name: 'P-SUBSTRATE', color: 'var(--c-substrate)', desc: 'Base silicon wafer (P-type bulk). Hosts the NMOS transistor channel and depletion region.' },
   { key: 'depletion', name: 'DEPLETION REGION', color: 'var(--c-depletion)', desc: 'Ionized space-charge shells wrapping the N+ Source/Drain junctions and sub-gate bulk depletion pocket. Separate around S/D at VGS=0, merges beneath SiO2 in subthreshold/inversion, and bulges around Drain in saturation.' },
   { key: 'active',    name: 'ACTIVE / DIFFUSION (N+)', color: 'var(--c-active-n)', desc: 'Heavily doped N+ regions forming the Source and Drain terminals (Nd ≈ 1×10²⁰ cm⁻³).' },
-  { key: 'channel',   name: 'ELECTRON INVERSION CHANNEL (N-TYPE)', color: 'var(--c-sde-n)', desc: 'Conductive surface inversion layer of mobile electrons induced beneath gate oxide when VGS > VTH (0.40V).' },
+  { key: 'channel',   name: 'ELECTRON INVERSION CHANNEL (N-TYPE)', color: 'var(--c-sde-n)', desc: 'Conductive surface inversion layer of mobile electrons induced beneath gate oxide when VGS > VTH (dynamic threshold scaled by t_ox, L roll-off, and DIBL).' },
   { key: 'sde',       name: 'SOURCE/DRAIN EXTENSION (N-SDE / LDD)', color: 'var(--c-sde-n)', desc: 'Shallow, lightly doped extension regions (Nd ≈ 1×10¹⁸ cm⁻³) flanking gate edges to curb Hot Carrier Injection (HCI) and short-channel effects.' },
   { key: 'oxide',     name: 'GATE OXIDE (INTERFACIAL SiO2)', color: 'var(--c-oxide)', desc: 'Ultra-thin chemical oxide layer (~0.6 nm) passivating the silicon interface to minimize interface trap states (Dit).' },
   { key: 'highk',     name: 'HIGH-K DIELECTRIC (HfO2)', color: 'var(--c-highk)', desc: 'Hafnium oxide (k ≈ 25 vs SiO2 k = 3.9) providing high gate capacitive coupling while eliminating quantum mechanical direct-tunneling leakage.' },
@@ -67,7 +67,7 @@ var INFO = {
   channel: {
     title: 'ELECTRON INVERSION CHANNEL REGION',
     fn: 'Sub-gate silicon interface where electrostatic band bending and carrier transport occur.',
-    role: 'When VGS > VTH (0.40V), surface potential reaches 2φF creating an n-type electron inversion channel. In Linear/Triode (VDS < VGS - VTH), channel is continuous from Source to Drain. In Saturation (VDS ≥ VGS - VTH), channel pinches off near the drain (effective length Leff = L - ΔL) and electrons are accelerated across the high-field space-charge depletion region.',
+    role: 'When VGS > VTH (threshold scales dynamically with t_ox, L roll-off, and DIBL), surface potential reaches 2φF creating an n-type electron inversion channel. In Linear/Triode (VDS < VDsat), channel is continuous from Source to Drain. In Saturation (VDS ≥ VDsat), channel pinches off near the drain (effective length Leff = max(0.2L, L - ΔL)) and electrons are swept across the high-field space-charge depletion region.',
     conn: 'Conductive bridge between Source and Drain.',
     rel: 'Modulated dynamically by gate overdrive (VOV = VGS - VTH) and drain bias (VDS).',
     doping: 'Induced mobile electrons — n-channel active inversion layer'
@@ -217,7 +217,7 @@ var INFO = {
   gateRail: {
     title: 'GATE INPUT PAD (VGS)',
     fn: 'Metal-1 terminal pad supplying continuous input gate bias VGS (0.00V to 1.80V).',
-    role: 'Controls channel inversion: Cutoff when VGS < VTH (0.40V), Linear/Triode when VDS < VGS - VTH, and Saturation when VDS ≥ VGS - VTH.',
+    role: 'Controls channel inversion: Cutoff when VGS ≤ VTH, Linear/Triode when VDS < VDsat, and Saturation when VDS ≥ VDsat (with velocity saturation and DIBL in short channels).',
     conn: 'Drives gate electrode via tungsten contact plug.',
     rel: 'Purely capacitive terminal — draws near-zero DC steady-state current.'
   },

@@ -176,6 +176,12 @@ function resetAll() {
   currentVgs = 1.00;
   currentVds = 0.80;
   currentIn = 1;
+  if (typeof geomL !== 'undefined') geomL = 28;
+  if (typeof geomW !== 'undefined') geomW = 120;
+  if (typeof geomTox !== 'undefined') geomTox = 2.0;
+  if (typeof lockYAxis !== 'undefined' && lockYAxis && typeof toggleLockYAxis === 'function') {
+    toggleLockYAxis();
+  }
   var inSeg = document.getElementById('in-seg');
   if (inSeg) {
     inSeg.querySelectorAll('button').forEach(function(b) {
@@ -263,6 +269,147 @@ function initScaleNote() {
   });
 }
 initScaleNote();
+
+// =====================================================================
+// E-NMOS GUIDED TOUR CONFIGURATION (Includes Device Geometry Step)
+// =====================================================================
+window.SILICON_TOUR_CONFIG = {
+  storageKey: 'siliconsliders_cad_tour_seen',
+  readySelector: '#wb-physics-section',
+  steps: [
+    {
+      id: 'theory',
+      title: '1. Start with Device Theory',
+      description: 'Open THEORY anytime to review MOSFET band bending, short-channel effects (VTH roll-off, DIBL, velocity saturation), and governing equations.',
+      selectors: ['#mode-seg button[data-mode="theory"]', '#btn-view-theory'],
+      pulseSelector: '#mode-seg button[data-mode="theory"]',
+      beforeEnter: function () {
+        var b = document.querySelector('#mode-seg button[data-mode="theory"]');
+        if (b && !b.classList.contains('active')) b.click();
+        else if (typeof setViewMode === 'function') setViewMode('theory');
+      }
+    },
+    {
+      id: 'bias-sliders',
+      title: '2. Bias Sliders & Live I-V Curve',
+      description: 'Drag VGS and VDS sliders—or scrub directly on the IDS–VDS curve—to observe Cutoff, Linear, and Saturation pinch-off in real time. Toggle Lock Y-Axis to compare current scaling.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#wb-physics-section', '#wb-pane-controls .wb-bias-controls']
+      ],
+      pulseSelector: '#wb-tab-controls',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+        var body = document.getElementById('wb-body');
+        if (body) body.scrollTop = 0;
+      },
+      onEnter: function (api) {
+        if (api && api.animateExplodeY) api.animateExplodeY(14, 520);
+        if (api && api.animateCameraTo && typeof TOUR_CLOSEUP_POS !== 'undefined' && typeof TOUR_CLOSEUP_TARGET !== 'undefined') {
+          api.animateCameraTo(TOUR_CLOSEUP_POS, TOUR_CLOSEUP_TARGET, 720);
+        }
+      }
+    },
+    {
+      id: 'device-geometry',
+      title: '3. Device Geometry & Scaling',
+      description: 'Scale Channel Length (L: 20–200 nm), Width (W: 40–400 nm), and Gate Oxide (tox: 1.2–10.0 nm)—or compare presets like 28nm Short-Ch vs 180nm Long-Ch—to explore DIBL, VTH roll-off, velocity saturation, and live 3D deformation.',
+      selectors: ['#wb-geometry-section'],
+      pulseSelector: '#wb-geometry-section .wb-accordion-head',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+        var geomBody = document.getElementById('device-geometry-body');
+        if (geomBody && geomBody.classList.contains('hidden')) {
+          var head = document.querySelector('#wb-geometry-section .wb-accordion-head');
+          if (head) head.click();
+          else geomBody.classList.remove('hidden');
+        }
+        var sec = document.getElementById('wb-geometry-section');
+        if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      },
+      onEnter: function (api) {
+        if (api && api.animateExplodeY) api.animateExplodeY(18, 520);
+        if (api && api.animateCameraTo && typeof INITIAL_POS !== 'undefined' && typeof INITIAL_TARGET !== 'undefined') {
+          api.animateCameraTo(INITIAL_POS, INITIAL_TARGET, 680);
+        }
+      }
+    },
+    {
+      id: 'view-controls',
+      title: '4. Explode Stack & Section Scrub',
+      description: 'Peel apart the 3D fabrication stack along X/Y/Z with Explode Layers, or slice open internal junctions using Section Scrub.',
+      selectors: ['#wb-view-controls-section', '#view-controls-body'],
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('controls');
+        var bodyEl = document.getElementById('view-controls-body');
+        if (bodyEl && bodyEl.classList.contains('hidden')) {
+          var head = document.querySelector('#wb-view-controls-section .wb-accordion-head');
+          if (head) head.click();
+          else bodyEl.classList.remove('hidden');
+        }
+        var sec = document.getElementById('wb-view-controls-section');
+        if (sec && sec.scrollIntoView) sec.scrollIntoView({ behavior: 'auto', block: 'nearest' });
+      },
+      onEnter: function (api) {
+        if (api && api.animateExplodeY) api.animateExplodeY(38, 600);
+        if (api && api.returnToHeroCamera) api.returnToHeroCamera();
+      }
+    },
+    {
+      id: 'layers',
+      title: '5. Toggle & Isolate 3D Layers',
+      description: 'Use the Layers tab to turn individual substrate, oxide, gate, contact, or metal layers on and off to reveal buried structures.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#layers-body', '#wb-pane-layers']
+      ],
+      pulseSelector: '#wb-tab-layers',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('layers');
+        var body = document.getElementById('wb-body');
+        if (body) body.scrollTop = 0;
+      },
+      onEnter: function (api) {
+        if (api && api.returnToHeroCamera) api.returnToHeroCamera();
+      }
+    },
+    {
+      id: 'inspect',
+      title: '6. Inspect Materials & Structure',
+      description: 'Switch to Inspect to view live bias & geometry state, doping concentrations, materials, and the full Architecture Tree of every 3D component.',
+      targets: [
+        ['#left-workbench .wb-header', '.wb-tabs'],
+        ['#wb-pane-inspect', '#inspector-body']
+      ],
+      pulseSelector: '#wb-tab-inspect',
+      beforeEnter: function () {
+        if (typeof setViewMode === 'function') setViewMode('layout');
+        if (typeof switchWorkbenchTab === 'function') switchWorkbenchTab('inspect');
+        var body = document.getElementById('wb-body');
+        if (body) body.scrollTop = 0;
+      },
+      onEnter: function (api) {
+        if (api && api.returnToHeroCamera) api.returnToHeroCamera();
+      }
+    },
+    {
+      id: 'schematic',
+      title: '7. Circuit Schematic View',
+      description: 'Switch to SCHEMATIC anytime to compare the 3D physical silicon layout with its circuit-level symbol and live node voltages.',
+      selectors: ['#mode-seg button[data-mode="schematic"]', '#btn-view-schematic'],
+      pulseSelector: '#mode-seg button[data-mode="schematic"]',
+      beforeEnter: function () {
+        var b = document.querySelector('#mode-seg button[data-mode="schematic"]');
+        if (b && !b.classList.contains('active')) b.click();
+        else if (typeof setViewMode === 'function') setViewMode('schematic');
+      }
+    }
+  ]
+};
 
 // Bootstrap
 resize();
