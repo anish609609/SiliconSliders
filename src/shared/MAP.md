@@ -25,7 +25,7 @@
 - **Palette (`materialPalette.js`):** `MATERIAL_PALETTE`, `MATERIAL_PROPERTIES`, `getMaterialPalette`, `getMaterialProperties` (registered on ESM export and `globalThis` / `window`).
 - **Viewer Theme (`viewer-theme.js`):** `ViewerTheme.init`, `ViewerTheme.getTheme`, `ViewerTheme.setTheme`, `ViewerTheme.toggleTheme`, `ViewerTheme.onThemeChange`.
 - **Homepage Theme (`home.js`):** `applyPlatformTheme`, `getPlatformTheme` (syncs `pageshow` and cross-tab `storage` events).
-- **Guided Tour (`guided-tour.js`):** `SiliconGuidedTour.start`, `SiliconGuidedTour.stop`, `SiliconGuidedTour.next`, `SiliconGuidedTour.prev`, `SiliconGuidedTour.goTo`, `SiliconGuidedTour.isActive`, `SiliconGuidedTour.resetSeen`, `SiliconGuidedTour.DEFAULT_STEPS`.
+- **Guided Tour (`guided-tour.js`):** `SiliconGuidedTour.start`, `SiliconGuidedTour.stop`, `SiliconGuidedTour.next`, `SiliconGuidedTour.prev`, `SiliconGuidedTour.goTo`, `SiliconGuidedTour.animateCameraTo`, `SiliconGuidedTour.animateExplodeY`, `SiliconGuidedTour.isActive`, `SiliconGuidedTour.isPeeking`, `SiliconGuidedTour.resetSeen`, `SiliconGuidedTour.DEFAULT_STEPS`.
 - **Layer Highlight (`three/layerHighlight.ts` / `.js`):** `discoverClickableMeshes`, `collectLayerMeshes`, `raycastLayer`, `raycastLayers`, `selectLayer`, `clearHighlight`, `applyHighlight`, `updateHighlightColor`, `SiliconLayerHighlight`.
 - **Viewer Core (`viewer-core.js`):** `SiliconViewer.init` (binds `#left-toggle`, `#right-toggle`, theme, topbar, and panels).
 - **Selection Highlight (`viewer-core.js`):** `SiliconSelectionHighlight.apply`, `SiliconSelectionHighlight.updateColor` (forwards to `SiliconLayerHighlight`).

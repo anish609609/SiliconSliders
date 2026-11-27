@@ -205,7 +205,7 @@ function resetAll() {
     window.resetExplodeAndScrub();
   } else {
     var expY = document.getElementById('explode-y-slider');
-    if (expY) { expY.value = 0; expY.dispatchEvent(new Event('input')); }
+    if (expY) { expY.value = 18; expY.dispatchEvent(new Event('input')); }
     var expX = document.getElementById('explode-x-slider');
     if (expX) { expX.value = 0; expX.dispatchEvent(new Event('input')); }
     var expZ = document.getElementById('explode-z-slider');

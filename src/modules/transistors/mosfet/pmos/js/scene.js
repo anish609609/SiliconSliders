@@ -15,8 +15,10 @@ var W = function(){ return host.clientWidth; };
 var H = function(){ return host.clientHeight; };
 
 var camPersp = new THREE.PerspectiveCamera(42, W()/H(), 0.1, 1000);
-var INITIAL_POS = new THREE.Vector3(1.2, 42, 0.05);
-var INITIAL_TARGET = new THREE.Vector3(1.2, 3.2, 0);
+var INITIAL_POS = new THREE.Vector3(19.0, 19.2, 24.0);
+var INITIAL_TARGET = new THREE.Vector3(0.4, 3.8, 0.0);
+var TOUR_CLOSEUP_POS = [3.6, 5.8, 12.6];
+var TOUR_CLOSEUP_TARGET = [0.2, 3.0, 0.0];
 var TOP_VIEW_POS = new THREE.Vector3(1.2, 55, 0.05); // straight overhead, captures full 100% exploded stack
 camPersp.position.copy(INITIAL_POS);
 

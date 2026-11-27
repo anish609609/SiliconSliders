@@ -11,8 +11,10 @@ function H() {
 }
 
 var TOP_VIEW_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 58, 0.05) : null;
-var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 58, 0.05) : null;
-var INITIAL_TARGET = typeof THREE !== 'undefined' ? new THREE.Vector3(0.8, 1.5, 0) : null;
+var INITIAL_POS = typeof THREE !== 'undefined' ? new THREE.Vector3(23.5, 21.8, 29.8) : null;
+var INITIAL_TARGET = typeof THREE !== 'undefined' ? new THREE.Vector3(0.4, 2.8, 0.0) : null;
+var TOUR_CLOSEUP_POS = [6.0, 6.8, 17.6];
+var TOUR_CLOSEUP_TARGET = [0.4, 2.3, 0.0];
 
 var scene = null;
 var camera = null;
@@ -38,7 +40,7 @@ try {
   scene.fog = new THREE.Fog(0x0a0d12, 60, 220);
 
   camera = new THREE.PerspectiveCamera(42, W() / H(), 0.1, 1000);
-  camera.position.copy(TOP_VIEW_POS);
+  camera.position.copy(INITIAL_POS);
 
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
   renderer.setSize(W(), H());

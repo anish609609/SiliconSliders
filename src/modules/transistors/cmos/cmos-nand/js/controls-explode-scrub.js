@@ -1,7 +1,7 @@
 /* Independent 3-axis EXPLODE (X/Y/Z) & always-on THREE.Plane section clipping (SCRUB X/Y/Z) */
 
 var explodeX = 0;
-var explodeY = 1;
+var explodeY = 18;
 var explodeZ = 0;
 
 function computeExplodedPosition(restPos, layerKey, explodeIdx, ex, ey, ez) {

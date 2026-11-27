@@ -163,14 +163,14 @@ function resetAll() {
     controls.update();
   }
 
-  if (typeof applyExplode === 'function') applyExplode(0, 0, 0);
+  if (typeof applyExplode === 'function') applyExplode(0, 18, 0);
   if (typeof resetScrub === 'function') resetScrub();
 
   currentVsg = 1.00;
   currentVsd = 0.80;
 
   var expY = document.getElementById('explode-y-slider');
-  if (expY) { expY.value = 1; expY.dispatchEvent(new Event('input')); }
+  if (expY) { expY.value = 18; expY.dispatchEvent(new Event('input')); }
   var expX = document.getElementById('explode-x-slider');
   if (expX) { expX.value = 0; expX.dispatchEvent(new Event('input')); }
   var expZ = document.getElementById('explode-z-slider');

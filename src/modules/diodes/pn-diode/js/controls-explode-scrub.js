@@ -10,7 +10,7 @@ var clipPlaneZ = new THREE.Plane(new THREE.Vector3(0, 0, -1), 30);
 
 window.pnExplodeState = {
   pctX: 0,
-  pctY: 0,
+  pctY: 0.18,
   pctZ: 0
 };
 
@@ -217,7 +217,7 @@ function initExplodeAndScrub() {
 
   window.resetExplodeAndScrub = function () {
     if (expX) expX.value = 0;
-    if (expY) expY.value = 0;
+    if (expY) expY.value = 18;
     if (expZ) expZ.value = 0;
     updateExplosion();
 

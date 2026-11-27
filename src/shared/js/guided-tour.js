@@ -3,11 +3,10 @@
  * Zero-build IIFE global exposing window.SiliconGuidedTour (100% file:// compatible).
  *
  * Features:
- *  - 4-panel dim backdrop around the spotlight cutout so controls inside the
- *    spotlight remain 100% interactive (clickable & draggable in real time).
- *  - Multi-element union bounding-box spotlighting (includes Controls|Layers|Inspect
- *    tab bar alongside active sidebar panels, plus brief active-tab pulse).
- *  - Auto-switches tabs/accordions and persists first-visit completion in localStorage.
+ *  - 4-panel dim backdrop around spotlight cutout (controls inside remain 100% interactive).
+ *  - Multi-element union spotlighting (includes Controls|Layers|Inspect tab bar + active-tab pulse).
+ *  - Smart camera lerp & auto-explode transitions via step `onEnter` hooks.
+ *  - Peek Mode: fades overlay on slider/graph drag so the 3D device is 100% bright & unobstructed.
  */
 (function (root) {
   'use strict';
@@ -75,6 +74,161 @@
     }
   }
 
+  // =========================================================================
+  // Smooth Camera & Auto-Explode Animation Helpers
+  // =========================================================================
+  var camAnimId = null;
+  var explodeAnimId = null;
+  var userManuallyOrbited = false;
+  var orbitHookedCtrl = null;
+
+  function onOrbitStart() {
+    if (isTourRunning) {
+      userManuallyOrbited = true;
+      cancelCameraTween();
+    }
+  }
+
+  function ensureOrbitListener() {
+    var ctrl = root.controls;
+    if (ctrl && typeof ctrl.addEventListener === 'function' && orbitHookedCtrl !== ctrl) {
+      orbitHookedCtrl = ctrl;
+      ctrl.addEventListener('start', onOrbitStart);
+    }
+  }
+
+  function cancelCameraTween() {
+    if (camAnimId) {
+      cancelAnimationFrame(camAnimId);
+      camAnimId = null;
+    }
+  }
+
+  function toVec3(v) {
+    if (!v) return null;
+    if (Array.isArray(v)) return { x: Number(v[0]) || 0, y: Number(v[1]) || 0, z: Number(v[2]) || 0 };
+    if (typeof v.x === 'number') return { x: v.x, y: v.y, z: v.z };
+    return null;
+  }
+
+  function animateCameraTo(posLike, targetLike, durationMs) {
+    if (userManuallyOrbited) return;
+    var cam = root.activeCamera || root.camera;
+    var ctrl = root.controls;
+    var toPos = toVec3(posLike);
+    var toTgt = toVec3(targetLike);
+    if (!cam || !ctrl || !toPos || !toTgt) return;
+
+    ensureOrbitListener();
+    cancelCameraTween();
+
+    var fromPos = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
+    var fromTgt = { x: ctrl.target.x, y: ctrl.target.y, z: ctrl.target.z };
+    var dur = durationMs || 650;
+    var startT = performance.now();
+
+    function step(now) {
+      if (userManuallyOrbited) {
+        camAnimId = null;
+        return;
+      }
+      var t = Math.min(1, (now - startT) / dur);
+      var ease = 1 - Math.pow(1 - t, 3);
+      cam.position.set(
+        fromPos.x + (toPos.x - fromPos.x) * ease,
+        fromPos.y + (toPos.y - fromPos.y) * ease,
+        fromPos.z + (toPos.z - fromPos.z) * ease
+      );
+      ctrl.target.set(
+        fromTgt.x + (toTgt.x - fromTgt.x) * ease,
+        fromTgt.y + (toTgt.y - fromTgt.y) * ease,
+        fromTgt.z + (toTgt.z - fromTgt.z) * ease
+      );
+      ctrl.update();
+      if (t < 1) {
+        camAnimId = requestAnimationFrame(step);
+      } else {
+        camAnimId = null;
+      }
+    }
+
+    camAnimId = requestAnimationFrame(step);
+  }
+
+  function cancelExplodeTween() {
+    if (explodeAnimId) {
+      cancelAnimationFrame(explodeAnimId);
+      explodeAnimId = null;
+    }
+  }
+
+  function getExplodeYSlider() {
+    return document.getElementById('explode-y-slider') || document.getElementById('explode-y');
+  }
+
+  function setExplodeYImmediate(pct) {
+    var val = Math.max(0, Math.min(100, Math.round(pct)));
+    var slider = getExplodeYSlider();
+    if (slider) {
+      slider.value = val;
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    } else if (typeof root.applyExplode === 'function') {
+      root.applyExplode(undefined, val, undefined);
+    }
+  }
+
+  function animateExplodeY(targetPct, durationMs) {
+    var slider = getExplodeYSlider();
+    if (!slider) return;
+    cancelExplodeTween();
+
+    var fromVal = parseFloat(slider.value) || 0;
+    var toVal = Math.max(0, Math.min(100, Number(targetPct) || 0));
+    if (Math.abs(fromVal - toVal) < 0.5) {
+      setExplodeYImmediate(toVal);
+      return;
+    }
+
+    var dur = durationMs || 550;
+    var startT = performance.now();
+
+    function step(now) {
+      var t = Math.min(1, (now - startT) / dur);
+      var ease = 1 - Math.pow(1 - t, 3);
+      setExplodeYImmediate(fromVal + (toVal - fromVal) * ease);
+      if (t < 1) {
+        explodeAnimId = requestAnimationFrame(step);
+      } else {
+        setExplodeYImmediate(toVal);
+        explodeAnimId = null;
+      }
+    }
+
+    explodeAnimId = requestAnimationFrame(step);
+  }
+
+  function getCloseupCamera() {
+    var cfg = root.SILICON_TOUR_CONFIG || {};
+    if (cfg.closeupPos && cfg.closeupTarget) {
+      return { pos: cfg.closeupPos, target: cfg.closeupTarget };
+    }
+    if (root.TOUR_CLOSEUP_POS && root.TOUR_CLOSEUP_TARGET) {
+      return { pos: root.TOUR_CLOSEUP_POS, target: root.TOUR_CLOSEUP_TARGET };
+    }
+    var tgt = toVec3(root.INITIAL_TARGET) || { x: 0.4, y: 2.8, z: 0 };
+    return {
+      pos: [tgt.x + 3.4, tgt.y + 2.4, 13.5],
+      target: [tgt.x, Math.max(0.5, tgt.y - 0.6), tgt.z]
+    };
+  }
+
+  function returnToHeroCamera() {
+    if (userManuallyOrbited) return;
+    if (root.INITIAL_POS && root.INITIAL_TARGET) {
+      animateCameraTo(root.INITIAL_POS, root.INITIAL_TARGET, 680);
+    }
+  }
+
   var DEFAULT_STEPS = [
     {
       id: 'theory',
@@ -88,7 +242,7 @@
     {
       id: 'bias-sliders',
       title: '2. Bias Sliders & Live Curve',
-      description: 'Drag the voltage, doping, or input sliders—or scrub directly on the characteristic curve—to update the 3D device in real time.',
+      description: 'Drag the voltage, doping, or input sliders—or scrub directly on the characteristic curve—while watching the intact junction react in real time.',
       targets: [
         ['#left-workbench .wb-header', '.wb-tabs'],
         ['#wb-physics-section', '#wb-pane-controls .wb-bias-controls']
@@ -98,6 +252,11 @@
         activateWorkbenchTab('controls');
         var body = document.getElementById('wb-body');
         if (body) body.scrollTop = 0;
+      },
+      onEnter: function () {
+        animateExplodeY(0, 520);
+        var closeCam = getCloseupCamera();
+        animateCameraTo(closeCam.pos, closeCam.target, 720);
       }
     },
     {
@@ -115,6 +274,10 @@
         }
         var sec = document.getElementById('wb-view-controls-section');
         scrollTargetIntoWorkbench(sec);
+      },
+      onEnter: function () {
+        animateExplodeY(38, 600);
+        returnToHeroCamera();
       }
     },
     {
@@ -130,6 +293,9 @@
         activateWorkbenchTab('layers');
         var body = document.getElementById('wb-body');
         if (body) body.scrollTop = 0;
+      },
+      onEnter: function () {
+        returnToHeroCamera();
       }
     },
     {
@@ -145,6 +311,9 @@
         activateWorkbenchTab('inspect');
         var body = document.getElementById('wb-body');
         if (body) body.scrollTop = 0;
+      },
+      onEnter: function () {
+        returnToHeroCamera();
       }
     },
     {
@@ -156,6 +325,9 @@
         activateWorkbenchTab('controls');
         var body = document.getElementById('wb-body');
         if (body) body.scrollTop = 0;
+      },
+      onEnter: function () {
+        returnToHeroCamera();
       }
     }
   ];
@@ -173,6 +345,87 @@
   var rafId = null;
   var pulsedEl = null;
   var pulseTimer = null;
+
+  // Peek Mode state (fade overlay while dragging sliders / graph canvas)
+  var isPeeking = false;
+  var peekResumeTimer = null;
+
+  function getOverlayParts() {
+    return [dimTopEl, dimBottomEl, dimLeftEl, dimRightEl, spotlightEl, popoverEl];
+  }
+
+  function isInteractiveDragTarget(node) {
+    if (!node || typeof node.closest !== 'function') return false;
+    if (popoverEl && popoverEl.contains(node)) return false;
+    if (node.classList && node.classList.contains('ss-tour-dim-panel')) return false;
+    var control = node.closest('input[type="range"], canvas');
+    if (!control) return false;
+    var wb = document.getElementById('left-workbench');
+    return Boolean(wb && wb.contains(control));
+  }
+
+  function setPeekClass(peeking) {
+    isPeeking = peeking;
+    getOverlayParts().forEach(function (el) {
+      if (el) el.classList.toggle('ss-tour-peeking', peeking);
+    });
+  }
+
+  function clearPeekTimer() {
+    if (peekResumeTimer) {
+      clearTimeout(peekResumeTimer);
+      peekResumeTimer = null;
+    }
+  }
+
+  function onPeekDragStart(e) {
+    if (!isTourRunning) return;
+    if (!isInteractiveDragTarget(e.target)) return;
+    clearPeekTimer();
+    if (!isPeeking) setPeekClass(true);
+  }
+
+  function onPeekDragEnd() {
+    if (!isTourRunning || !isPeeking) return;
+    clearPeekTimer();
+    peekResumeTimer = setTimeout(function () {
+      peekResumeTimer = null;
+      if (!isTourRunning) return;
+      setPeekClass(false);
+      onReposition();
+    }, 800);
+  }
+
+  function onPeekSliderInput(e) {
+    if (!isTourRunning || !isPeeking) return;
+    if (e.target && e.target.type === 'range') {
+      clearPeekTimer();
+    }
+  }
+
+  function attachPeekListeners() {
+    document.addEventListener('pointerdown', onPeekDragStart, true);
+    document.addEventListener('mousedown', onPeekDragStart, true);
+    document.addEventListener('touchstart', onPeekDragStart, true);
+    document.addEventListener('input', onPeekSliderInput, true);
+    window.addEventListener('pointerup', onPeekDragEnd, true);
+    window.addEventListener('mouseup', onPeekDragEnd, true);
+    window.addEventListener('touchend', onPeekDragEnd, true);
+    window.addEventListener('pointercancel', onPeekDragEnd, true);
+  }
+
+  function detachPeekListeners() {
+    clearPeekTimer();
+    setPeekClass(false);
+    document.removeEventListener('pointerdown', onPeekDragStart, true);
+    document.removeEventListener('mousedown', onPeekDragStart, true);
+    document.removeEventListener('touchstart', onPeekDragStart, true);
+    document.removeEventListener('input', onPeekSliderInput, true);
+    window.removeEventListener('pointerup', onPeekDragEnd, true);
+    window.removeEventListener('mouseup', onPeekDragEnd, true);
+    window.removeEventListener('touchend', onPeekDragEnd, true);
+    window.removeEventListener('pointercancel', onPeekDragEnd, true);
+  }
 
   function resolveTargetElements(step) {
     var out = [];
@@ -235,7 +488,8 @@
         selectors: mapped && !Array.isArray(s.targets) ? mapped : s.selectors,
         targets: Array.isArray(mapped) && Array.isArray(s.targets) ? mapped : s.targets,
         pulseSelector: s.pulseSelector,
-        beforeEnter: s.beforeEnter
+        beforeEnter: s.beforeEnter,
+        onEnter: s.onEnter
       };
       if (hasAnyConfiguredTarget(stepClone)) {
         resolved.push(stepClone);
@@ -312,7 +566,6 @@
     if (!pulseSelector) return;
     var el = queryFirst(pulseSelector);
     if (!el) return;
-    // Reflow to restart animation reliably when revisiting steps
     void el.offsetWidth;
     el.classList.add('ss-tour-tab-pulse');
     pulsedEl = el;
@@ -321,7 +574,7 @@
 
   function setDimVisibility(show) {
     var disp = show ? 'block' : 'none';
-    [dimTopEl, dimBottomEl, dimLeftEl, dimRightEl, spotlightEl, popoverEl].forEach(function (el) {
+    getOverlayParts().forEach(function (el) {
       if (el) el.style.display = disp;
     });
   }
@@ -332,7 +585,6 @@
     var vh = window.innerHeight;
     var pad = 6;
 
-    // Clamp cutout inside visible viewport so tall panels stay clean & interactive
     var left = Math.max(4, Math.round(rawRect.left - pad));
     var top = Math.max(4, Math.round(rawRect.top - pad));
     var right = Math.min(vw - 4, Math.round(rawRect.right + pad));
@@ -340,7 +592,6 @@
     var width = Math.max(24, right - left);
     var height = Math.max(24, bottom - top);
 
-    // Position 4 dim panels around the cutout
     if (dimTopEl) {
       dimTopEl.style.top = '0px';
       dimTopEl.style.left = '0px';
@@ -403,6 +654,9 @@
     var step = activeSteps[currentIdx];
     if (!step) return;
 
+    clearPeekTimer();
+    setPeekClass(false);
+
     if (typeof step.beforeEnter === 'function') {
       try { step.beforeEnter(); } catch (_) {}
     }
@@ -441,6 +695,16 @@
     }
 
     applyTabPulse(step.pulseSelector);
+
+    if (typeof step.onEnter === 'function') {
+      try {
+        step.onEnter({
+          animateCameraTo: animateCameraTo,
+          animateExplodeY: animateExplodeY,
+          returnToHeroCamera: returnToHeroCamera
+        });
+      } catch (_) {}
+    }
 
     requestAnimationFrame(function () {
       if (!isTourRunning) return;
@@ -490,12 +754,15 @@
     createDomIfNeeded();
     setDimVisibility(true);
 
+    userManuallyOrbited = false;
+    ensureOrbitListener();
     isTourRunning = true;
     currentIdx = Math.max(0, Math.min(activeSteps.length - 1, startIndex || 0));
 
     window.addEventListener('resize', onReposition);
     window.addEventListener('scroll', onReposition, true);
     window.addEventListener('keydown', onKeyDown);
+    attachPeekListeners();
 
     renderStep();
   }
@@ -507,7 +774,9 @@
     window.removeEventListener('resize', onReposition);
     window.removeEventListener('scroll', onReposition, true);
     window.removeEventListener('keydown', onKeyDown);
+    detachPeekListeners();
 
+    cancelExplodeTween();
     clearTabPulse();
     setDimVisibility(false);
 
@@ -516,6 +785,8 @@
     activateWorkbenchTab('controls');
     var body = document.getElementById('wb-body');
     if (body) body.scrollTop = 0;
+
+    returnToHeroCamera();
   }
 
   function next() {
@@ -601,7 +872,10 @@
     next: next,
     prev: prev,
     goTo: goTo,
+    animateCameraTo: animateCameraTo,
+    animateExplodeY: animateExplodeY,
     isActive: function () { return isTourRunning; },
+    isPeeking: function () { return isPeeking; },
     resetSeen: function () {
       var key = (root.SILICON_TOUR_CONFIG && root.SILICON_TOUR_CONFIG.storageKey) || STORAGE_KEY;
       try { localStorage.removeItem(key); } catch (_) {}

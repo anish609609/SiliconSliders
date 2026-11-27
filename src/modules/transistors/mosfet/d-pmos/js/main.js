@@ -180,7 +180,7 @@ function resetAll() {
     controls.update();
   }
 
-  if (typeof applyExplode === 'function') applyExplode(0, 0, 0);
+  if (typeof applyExplode === 'function') applyExplode(0, 18, 0);
   if (typeof resetScrub === 'function') resetScrub();
 
   currentVgs = 0.00;

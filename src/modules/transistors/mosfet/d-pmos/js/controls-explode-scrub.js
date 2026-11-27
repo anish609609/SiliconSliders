@@ -16,7 +16,7 @@ var explodeYVal = document.getElementById('explode-y-val');
 var explodeZVal = document.getElementById('explode-z-val');
 
 var explodeX = 0;
-var explodeY = 1;
+var explodeY = 18;
 var explodeZ = 0;
 
 function applyExplode(pctX, pctY, pctZ){

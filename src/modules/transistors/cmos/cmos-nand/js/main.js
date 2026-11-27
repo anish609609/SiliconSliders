@@ -191,15 +191,15 @@ function resetAll() {
     stopTour();
   }
 
-  // Reset explode to Y=1% and others 0%
-  var expY = document.getElementById('explode-y'); if (expY) expY.value = 1;
+  // Reset explode to Y=18% and others 0%
+  var expY = document.getElementById('explode-y'); if (expY) expY.value = 18;
   var expX = document.getElementById('explode-x'); if (expX) expX.value = 0;
   var expZ = document.getElementById('explode-z'); if (expZ) expZ.value = 0;
-  var vey = document.getElementById('val-explode-y'); if (vey) vey.textContent = '1%';
+  var vey = document.getElementById('val-explode-y'); if (vey) vey.textContent = '18%';
   var vex = document.getElementById('val-explode-x'); if (vex) vex.textContent = '0%';
   var vez = document.getElementById('val-explode-z'); if (vez) vez.textContent = '0%';
   if (typeof explodeX !== 'undefined') explodeX = 0;
-  if (typeof explodeY !== 'undefined') explodeY = 1;
+  if (typeof explodeY !== 'undefined') explodeY = 18;
   if (typeof explodeZ !== 'undefined') explodeZ = 0;
   if (typeof applyExplode === 'function') applyExplode();
 
@@ -234,7 +234,7 @@ function resetAll() {
     switchWorkbenchTab('controls');
   }
 
-  if (camera && TOP_VIEW_POS) camera.position.copy(TOP_VIEW_POS);
+  if (camera && INITIAL_POS) camera.position.copy(INITIAL_POS);
   if (controls && INITIAL_TARGET) {
     controls.target.copy(INITIAL_TARGET);
     controls.update();

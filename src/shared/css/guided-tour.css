@@ -50,7 +50,9 @@
   z-index: 9500;
   background: rgba(3, 7, 18, 0.70);
   pointer-events: auto;
+  opacity: 1;
   transition:
+    opacity 0.2s ease,
     top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
@@ -67,13 +69,23 @@
   z-index: 9501;
   border-radius: 10px;
   pointer-events: none;
+  opacity: 1;
   border: 2px solid var(--accent-cyan, #38bdf8);
   box-shadow: 0 0 22px rgba(56, 189, 248, 0.45);
   transition:
+    opacity 0.2s ease,
     top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     height 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Peek Mode: fade overlay & popover during active slider/graph drags */
+.ss-tour-dim-panel.ss-tour-peeking,
+.ss-tour-spotlight.ss-tour-peeking,
+.ss-tour-popover.ss-tour-peeking {
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 [data-theme="light"] .ss-tour-spotlight {
@@ -114,7 +126,9 @@
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.58);
   color: var(--text-body, #cbd5e1);
   font-family: var(--font-sans, 'Inter', sans-serif);
+  opacity: 1;
   transition:
+    opacity 0.2s ease,
     top 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     left 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
