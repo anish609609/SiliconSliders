@@ -223,8 +223,8 @@ function resetAll() {
   if (typeof window.toggleLabels === 'function') window.toggleLabels(true);
 
   var toggleHolesChk = document.getElementById('toggle-holes');
-  if (toggleHolesChk) toggleHolesChk.checked = true;
-  if (typeof window.toggleSubstrateHoles === 'function') window.toggleSubstrateHoles(true);
+  if (toggleHolesChk) toggleHolesChk.checked = false;
+  if (typeof window.toggleSubstrateHoles === 'function') window.toggleSubstrateHoles(false);
 
   // Sliders mode: workbench is expanded by default at max desktop width
   expandWorkbench();

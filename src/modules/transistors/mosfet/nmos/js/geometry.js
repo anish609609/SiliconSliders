@@ -1905,9 +1905,10 @@ var holeMat = new THREE.MeshBasicMaterial({
 });
 var holeInstMesh = createDecorativeInstanced(holeGeom, holeMat, MAX_BULK_HOLES);
 holeInstMesh.renderOrder = 1;
+holeInstMesh.visible = false;
 groups['substrate'].add(holeInstMesh);
 
-window.showSubstrateHoles = true;
+window.showSubstrateHoles = false;
 window.toggleSubstrateHoles = function(visible) {
   window.showSubstrateHoles = Boolean(visible);
   if (holeInstMesh) {

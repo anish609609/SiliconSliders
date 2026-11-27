@@ -4,7 +4,7 @@
 
 ## Files
 
-- `index.html` -> Viewport, VGS/VDS controls, Device Geometry scaling controls & presets, Lock Y-Axis I-V graph & expandable modal (`#iv-modal-backdrop`), View Controls (`#toggle-labels`, `#toggle-holes`), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), shared Chamber-style parameter info modal (`shared/js/param-info-modal.js`), and script stack.
+- `index.html` -> Viewport, VGS/VDS controls, Device Geometry scaling controls & presets, Lock Y-Axis I-V graph & expandable modal (`#iv-modal-backdrop`), View Controls (`#toggle-labels`, `#toggle-holes` `Show Bulk Carriers` default OFF), schematic/theory overlays, `? Tour` onboarding (`guided-tour`), shared Chamber-style parameter info modal (`shared/js/param-info-modal.js`), and script stack.
 - `css/style.css` -> Module-specific theme colors (`--c-substrate`, `--c-active-n`, `--c-sde-n`, `--c-depletion`), Device Geometry preset pills, uniform accent slider info buttons, I-V header/lock toggle, HUD, and modal styles.
 - `js/data.js` -> Layer legend (`LEGEND`) and component inspector metadata (`INFO`).
 - `js/geometry.js` -> 3D substrate, N+ S/D Gaussian tubs, N-SDE/LDD extensions, dynamic inversion channel + depletion shells, HKMG gate stack, Si3N4 spacers, NiSi salicide, W contacts, Metal-1, `updateDeviceGeometry3D(L, W, tox)` scaling engine, and `updateSubGateCarriers` (full-substrate `InstancedMesh` majority-carrier holes with thermal jitter, N+/tap exclusion, `VGS` gate depletion repulsion, and `VDS` drain depletion repulsion + `toggleSubstrateHoles`).
