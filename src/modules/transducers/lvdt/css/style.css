@@ -407,7 +407,7 @@ body {
   white-space: nowrap;
 }
 
-/* Compact Info (i) Icon Button */
+/* Compact Info (i) Icon Button — inherits per-slider --param-accent */
 .info-icon-btn {
   width: 16px;
   height: 16px;
@@ -415,16 +415,17 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.10);
-  color: var(--accent-cyan);
+  color: var(--param-accent, var(--accent-cyan));
+  border: 1px solid color-mix(in srgb, var(--param-accent, var(--accent-cyan)) 42%, transparent);
+  background: color-mix(in srgb, var(--param-accent, var(--accent-cyan)) 12%, transparent);
   flex-shrink: 0;
   transition: all var(--transition-fast);
 }
 
 .info-icon-btn:hover {
-  background: var(--accent-cyan);
-  color: var(--text-inverse);
+  background: color-mix(in srgb, var(--param-accent, var(--accent-cyan)) 24%, transparent);
+  border-color: var(--param-accent, var(--accent-cyan));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--param-accent, var(--accent-cyan)) 35%, transparent);
   transform: scale(1.08);
 }
 
@@ -619,6 +620,7 @@ input[type="range"].lvdt-slider::-moz-range-thumb {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background: var(--layer-color, var(--accent-cyan));
   flex-shrink: 0;
 }
 
@@ -629,25 +631,28 @@ input[type="range"].lvdt-slider::-moz-range-thumb {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  border: 1px solid transparent;
+  color: var(--layer-color, var(--text-muted));
+  border: 1px solid color-mix(in srgb, var(--layer-color, var(--border-color)) 38%, transparent);
+  background: color-mix(in srgb, var(--layer-color, transparent) 10%, transparent);
   transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
 .layer-icon-btn:hover {
-  color: var(--text-heading);
-  background: var(--btn-hover-bg);
-  border-color: var(--border-color);
+  color: var(--layer-color, var(--text-heading));
+  background: color-mix(in srgb, var(--layer-color, var(--accent-cyan)) 22%, transparent);
+  border-color: var(--layer-color, var(--border-hover));
+  box-shadow: 0 0 6px color-mix(in srgb, var(--layer-color, var(--accent-cyan)) 28%, transparent);
 }
 
 .layer-icon-btn[data-action="visibility"].off {
-  color: var(--accent-red);
+  opacity: 0.72;
+  background: color-mix(in srgb, var(--layer-color, transparent) 6%, transparent);
 }
 
-.layer-icon-btn[data-action="info"]:hover {
-  color: var(--accent-cyan);
-  border-color: rgba(56, 189, 248, 0.4);
+[data-theme="light"] .layer-row[data-layer="core"] .layer-icon-btn,
+[data-theme="light"] .layer-row[data-layer="pushrod"] .layer-icon-btn {
+  filter: brightness(0.62);
 }
 
 /* Telemetry Readout Grid */
