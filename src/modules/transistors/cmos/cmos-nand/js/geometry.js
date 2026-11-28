@@ -847,7 +847,7 @@ function buildNand2Cell() {
     sigmaV: 0.28,
     straggle: 0.08,
     cornerR: 0.35,
-    renderOrder: 2
+    renderOrder: 1
   });
   nwell.position.set(wellX, wellMidY, PMOS_ZC);
   registerMesh(nwell, 'nwell', 'well');
@@ -857,7 +857,7 @@ function buildNand2Cell() {
     sigmaV: 0.28,
     straggle: 0.08,
     cornerR: 0.35,
-    renderOrder: 2
+    renderOrder: 1
   });
   pwell.position.set(wellX, wellMidY, NMOS_ZC);
   registerMesh(pwell, 'pwell', 'well');
@@ -2176,6 +2176,7 @@ function buildNand2Cell() {
     if (typeof window.updateNandChannels === 'function') window.updateNandChannels(_lastNandSt);
     if (typeof rebuildFlowCurves === 'function') rebuildFlowCurves();
     if (typeof window.updateSubGateCarriers === 'function' && window.showSubstrateHoles) {
+      _lastNandCarrierTick = -999;
       window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
     }
   };
@@ -2216,13 +2217,15 @@ function buildNand2Cell() {
     color: isInitCarrierLight ? 0x1D4ED8 : 0x60A5FA,
     transparent: true,
     opacity: isInitCarrierLight ? 0.42 : 0.46,
-    depthWrite: false
+    depthWrite: false,
+    clippingPlanes: activeClipPlanes
   });
   var nandElecMat = new THREE.MeshBasicMaterial({
     color: isInitCarrierLight ? 0x15803D : 0x4ADE80,
     transparent: true,
     opacity: isInitCarrierLight ? 0.40 : 0.44,
-    depthWrite: false
+    depthWrite: false,
+    clippingPlanes: activeClipPlanes
   });
 
   var holeInstMesh = createNandDecorativeInstanced(nandBulkGeom, nandHoleMat, MAX_NAND_HOLES);
@@ -2236,6 +2239,7 @@ function buildNand2Cell() {
   cellGroup.add(bulkElecInstMesh);
 
   window.showSubstrateHoles = false;
+  window.showBulkCarriers = false;
   var _nandCarrierDummy = new THREE.Object3D();
   var _lastNandCarrierTick = -1;
 
@@ -2248,6 +2252,23 @@ function buildNand2Cell() {
     elecSeeds.push({ nx: nandHalton(ne + 23, 2), ny: nandHalton(ne + 23, 3), nz: nandHalton(ne + 23, 7), phase: ne * 0.89 });
   }
 
+  window.syncBulkCarriersExplode = function() {
+    if (holeInstMesh && psub && psub.userData && psub.userData.restPos) {
+      holeInstMesh.position.set(
+        psub.position.x - psub.userData.restPos.x,
+        psub.position.y - psub.userData.restPos.y,
+        psub.position.z - psub.userData.restPos.z
+      );
+    }
+    if (bulkElecInstMesh && nwell && nwell.userData && nwell.userData.restPos) {
+      bulkElecInstMesh.position.set(
+        nwell.position.x - nwell.userData.restPos.x,
+        nwell.position.y - nwell.userData.restPos.y,
+        nwell.position.z - nwell.userData.restPos.z
+      );
+    }
+  };
+
   window.updateBulkCarriersTheme = function(theme) {
     var isL = theme === 'light';
     if (nandHoleMat) { nandHoleMat.color.setHex(isL ? 0x1D4ED8 : 0x60A5FA); nandHoleMat.opacity = isL ? 0.42 : 0.46; }
@@ -2256,16 +2277,22 @@ function buildNand2Cell() {
 
   window.toggleSubstrateHoles = function(visible) {
     window.showSubstrateHoles = Boolean(visible);
+    window.showBulkCarriers = window.showSubstrateHoles;
     if (!window.showSubstrateHoles) {
       holeInstMesh.visible = false; holeInstMesh.count = 0;
       bulkElecInstMesh.visible = false; bulkElecInstMesh.count = 0;
       if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
       if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
-    } else if (typeof window.updateSubGateCarriers === 'function') {
-      _lastNandCarrierTick = -999;
-      window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+    } else {
+      holeInstMesh.visible = true;
+      bulkElecInstMesh.visible = true;
+      if (typeof window.updateSubGateCarriers === 'function') {
+        _lastNandCarrierTick = -999;
+        window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+      }
     }
   };
+  window.toggleBulkCarriers = window.toggleSubstrateHoles;
 
   window.updateSubGateCarriers = function(elapsedTime) {
     var t = typeof elapsedTime === 'number' ? elapsedTime : 0;
@@ -2293,115 +2320,105 @@ function buildNand2Cell() {
     var zcN = nandGeom3D.nmosZC;
     var tapX = nandGeom3D.tapX;
 
-    // 1. P-Substrate & P-Well Majority Holes
-    var showSub = (typeof layerVisibility === 'undefined') ? true : (layerVisibility.substrate !== false);
-    if (showSub) {
-      holeInstMesh.visible = true;
-      if (psub.userData && psub.userData.restPos) {
-        holeInstMesh.position.set(
-          psub.position.x - psub.userData.restPos.x,
-          psub.position.y - psub.userData.restPos.y,
-          psub.position.z - psub.userData.restPos.z
-        );
-      }
-      var subHW = nandGeom3D.subHalfW - 0.35;
-      var subHD = nandGeom3D.subHalfD - 0.35;
-      var yMinS = Y.subBot + 0.18;
-      var yMaxS = Y.subTop - 0.12;
-      var gatePushA = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, va));
-      var gatePushB = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, vb));
-
-      var hOut = 0;
-      for (var i = 0; i < MAX_NAND_HOLES; i++) {
-        var hs = holeSeeds[i];
-        var jx = 0.028 * Math.sin(t * 2.1 + hs.phase);
-        var jy = 0.018 * Math.cos(t * 2.4 + hs.phase * 1.27);
-        var jz = 0.028 * Math.sin(t * 1.8 + hs.phase * 0.73);
-
-        var hx = -0.5 + (hs.nx - 0.5) * 2.0 * subHW + jx;
-        var hz = (hs.nz - 0.5) * 2.0 * subHD + jz;
-        var hy = yMinS + hs.ny * (yMaxS - yMinS) + jy;
-
-        // Exclude N-Well bulk volume (reserved for N-Well electrons)
-        if (hz > 0.85 && hz < (zcP + halfWp + 0.95) && hx > (tapX - 1.5) && hx < (nandGeom3D.rightX + 2.6) && hy > Y.wellBot - 0.15) {
-          hy = yMinS + hs.ny * Math.max(0.15, (Y.wellBot - 0.20) - yMinS) + jy * 0.5;
-        }
-
-        // Exclude NMOS N+ diffusions & gates MN1/MN2
-        if (Math.abs(hz - zcN) < (halfWn + 0.30) && hy > Y.actBot - 0.30) {
-          if (Math.abs(hx - nandGeom3D.leftX) < 1.65 || Math.abs(hx) < 2.15 || Math.abs(hx - nandGeom3D.rightX) < 1.65) {
-            hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.34) - yMinS);
-          } else if (Math.abs(hx - gAX) < hL + 0.15 && gatePushA > 0.02) {
-            hy = Math.min(hy, yMaxS - gatePushA);
-          } else if (Math.abs(hx - gBX) < hL + 0.15 && gatePushB > 0.02) {
-            hy = Math.min(hy, yMaxS - gatePushB);
-          }
-        }
-
-        if (Math.abs(hx - tapX) < 0.8 && Math.abs(hz - zcN) < 0.8 && hy > Y.actBot - 0.1) {
-          hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.20) - yMinS);
-        }
-
-        _nandCarrierDummy.position.set(hx, hy, hz);
-        _nandCarrierDummy.rotation.set(0, 0, 0);
-        _nandCarrierDummy.scale.set(1, 1, 1);
-        if (typeof _nandCarrierDummy.updateMatrix === 'function') _nandCarrierDummy.updateMatrix();
-        holeInstMesh.setMatrixAt(hOut++, _nandCarrierDummy.matrix);
-      }
-      holeInstMesh.count = hOut;
-      if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
-    } else {
-      holeInstMesh.visible = false; holeInstMesh.count = 0;
+    // 1. P-Substrate & P-Well Majority Holes (decoupled from Layers tab visibility)
+    holeInstMesh.visible = true;
+    if (psub.userData && psub.userData.restPos) {
+      holeInstMesh.position.set(
+        psub.position.x - psub.userData.restPos.x,
+        psub.position.y - psub.userData.restPos.y,
+        psub.position.z - psub.userData.restPos.z
+      );
     }
+    var subHW = nandGeom3D.subHalfW - 0.35;
+    var subHD = nandGeom3D.subHalfD - 0.35;
+    var yMinS = Y.subBot + 0.18;
+    var yMaxS = Y.subTop - 0.12;
+    var gatePushA = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, va));
+    var gatePushB = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, vb));
 
-    // 2. N-Well Majority Electrons (tracks nwell explode offset!)
-    var showWell = (typeof layerVisibility === 'undefined') ? true : (layerVisibility.well !== false);
-    if (showWell) {
-      bulkElecInstMesh.visible = true;
-      if (nwell.userData && nwell.userData.restPos) {
-        bulkElecInstMesh.position.set(
-          nwell.position.x - nwell.userData.restPos.x,
-          nwell.position.y - nwell.userData.restPos.y,
-          nwell.position.z - nwell.userData.restPos.z
-        );
+    var hOut = 0;
+    for (var i = 0; i < MAX_NAND_HOLES; i++) {
+      var hs = holeSeeds[i];
+      var jx = 0.028 * Math.sin(t * 2.1 + hs.phase);
+      var jy = 0.018 * Math.cos(t * 2.4 + hs.phase * 1.27);
+      var jz = 0.028 * Math.sin(t * 1.8 + hs.phase * 0.73);
+
+      var hx = -0.5 + (hs.nx - 0.5) * 2.0 * subHW + jx;
+      var hz = (hs.nz - 0.5) * 2.0 * subHD + jz;
+      var hy = yMinS + hs.ny * (yMaxS - yMinS) + jy;
+
+      // Exclude N-Well bulk volume (reserved for N-Well electrons)
+      if (hz > 0.85 && hz < (zcP + halfWp + 0.95) && hx > (tapX - 1.5) && hx < (nandGeom3D.rightX + 2.6) && hy > Y.wellBot - 0.15) {
+        hy = yMinS + hs.ny * Math.max(0.15, (Y.wellBot - 0.20) - yMinS) + jy * 0.5;
       }
-      var wMinX = tapX - 1.25;
-      var wMaxX = nandGeom3D.rightX + 2.35;
-      var wMinZ = 1.05;
-      var wMaxZ = zcP + halfWp + 0.75;
-      var yMinW = Y.wellBot + 0.16;
-      var yMaxW = Y.wellTop - 0.12;
-      var pPushA = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, 1.0 - va));
-      var pPushB = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, 1.0 - vb));
 
-      var eOut = 0;
-      for (var j = 0; j < MAX_NAND_ELECS; j++) {
-        var es = elecSeeds[j];
-        var ex = wMinX + es.nx * (wMaxX - wMinX) + 0.025 * Math.cos(t * 2.2 + es.phase);
-        var ez = wMinZ + es.nz * (wMaxZ - wMinZ) + 0.025 * Math.sin(t * 2.0 + es.phase * 0.81);
-        var ey = yMinW + es.ny * (yMaxW - yMinW) + 0.016 * Math.sin(t * 2.5 + es.phase * 1.13);
-
-        if (Math.abs(ez - zcP) < (halfWp + 0.30) && ey > Y.actBot - 0.30) {
-          if (Math.abs(ex - nandGeom3D.leftX) < 1.65 || Math.abs(ex) < 2.15 || Math.abs(ex - nandGeom3D.rightX) < 1.65) {
-            ey = yMinW + es.ny * Math.max(0.12, (Y.actBot - 0.32) - yMinW);
-          } else if (Math.abs(ex - gAX) < hL + 0.15 && pPushA > 0.02) {
-            ey = Math.min(ey, yMaxW - pPushA);
-          } else if (Math.abs(ex - gBX) < hL + 0.15 && pPushB > 0.02) {
-            ey = Math.min(ey, yMaxW - pPushB);
-          }
+      // Exclude NMOS N+ diffusions & gates MN1/MN2
+      if (Math.abs(hz - zcN) < (halfWn + 0.30) && hy > Y.actBot - 0.30) {
+        if (Math.abs(hx - nandGeom3D.leftX) < 1.65 || Math.abs(hx) < 2.15 || Math.abs(hx - nandGeom3D.rightX) < 1.65) {
+          hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.34) - yMinS);
+        } else if (Math.abs(hx - gAX) < hL + 0.15 && gatePushA > 0.02) {
+          hy = Math.min(hy, yMaxS - gatePushA);
+        } else if (Math.abs(hx - gBX) < hL + 0.15 && gatePushB > 0.02) {
+          hy = Math.min(hy, yMaxS - gatePushB);
         }
-
-        _nandCarrierDummy.position.set(ex, ey, ez);
-        _nandCarrierDummy.rotation.set(0, 0, 0);
-        _nandCarrierDummy.scale.set(1, 1, 1);
-        if (typeof _nandCarrierDummy.updateMatrix === 'function') _nandCarrierDummy.updateMatrix();
-        bulkElecInstMesh.setMatrixAt(eOut++, _nandCarrierDummy.matrix);
       }
-      bulkElecInstMesh.count = eOut;
-      if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
-    } else {
-      bulkElecInstMesh.visible = false; bulkElecInstMesh.count = 0;
+
+      if (Math.abs(hx - tapX) < 0.8 && Math.abs(hz - zcN) < 0.8 && hy > Y.actBot - 0.1) {
+        hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.20) - yMinS);
+      }
+
+      _nandCarrierDummy.position.set(hx, hy, hz);
+      _nandCarrierDummy.rotation.set(0, 0, 0);
+      _nandCarrierDummy.scale.set(1, 1, 1);
+      if (typeof _nandCarrierDummy.updateMatrix === 'function') _nandCarrierDummy.updateMatrix();
+      holeInstMesh.setMatrixAt(hOut++, _nandCarrierDummy.matrix);
     }
+    holeInstMesh.count = hOut;
+    if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
+
+    // 2. N-Well Majority Electrons (tracks nwell explode offset, decoupled from Layers tab visibility)
+    bulkElecInstMesh.visible = true;
+    if (nwell.userData && nwell.userData.restPos) {
+      bulkElecInstMesh.position.set(
+        nwell.position.x - nwell.userData.restPos.x,
+        nwell.position.y - nwell.userData.restPos.y,
+        nwell.position.z - nwell.userData.restPos.z
+      );
+    }
+    var wMinX = tapX - 1.25;
+    var wMaxX = nandGeom3D.rightX + 2.35;
+    var wMinZ = 1.05;
+    var wMaxZ = zcP + halfWp + 0.75;
+    var yMinW = Y.wellBot + 0.16;
+    var yMaxW = Y.wellTop - 0.12;
+    var pPushA = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, 1.0 - va));
+    var pPushB = frozen ? 0 : 0.40 * Math.max(0, Math.min(1, 1.0 - vb));
+
+    var eOut = 0;
+    for (var j = 0; j < MAX_NAND_ELECS; j++) {
+      var es = elecSeeds[j];
+      var ex = wMinX + es.nx * (wMaxX - wMinX) + 0.025 * Math.cos(t * 2.2 + es.phase);
+      var ez = wMinZ + es.nz * (wMaxZ - wMinZ) + 0.025 * Math.sin(t * 2.0 + es.phase * 0.81);
+      var ey = yMinW + es.ny * (yMaxW - yMinW) + 0.016 * Math.sin(t * 2.5 + es.phase * 1.13);
+
+      if (Math.abs(ez - zcP) < (halfWp + 0.30) && ey > Y.actBot - 0.30) {
+        if (Math.abs(ex - nandGeom3D.leftX) < 1.65 || Math.abs(ex) < 2.15 || Math.abs(ex - nandGeom3D.rightX) < 1.65) {
+          ey = yMinW + es.ny * Math.max(0.12, (Y.actBot - 0.32) - yMinW);
+        } else if (Math.abs(ex - gAX) < hL + 0.15 && pPushA > 0.02) {
+          ey = Math.min(ey, yMaxW - pPushA);
+        } else if (Math.abs(ex - gBX) < hL + 0.15 && pPushB > 0.02) {
+          ey = Math.min(ey, yMaxW - pPushB);
+        }
+      }
+
+      _nandCarrierDummy.position.set(ex, ey, ez);
+      _nandCarrierDummy.rotation.set(0, 0, 0);
+      _nandCarrierDummy.scale.set(1, 1, 1);
+      if (typeof _nandCarrierDummy.updateMatrix === 'function') _nandCarrierDummy.updateMatrix();
+      bulkElecInstMesh.setMatrixAt(eOut++, _nandCarrierDummy.matrix);
+    }
+    bulkElecInstMesh.count = eOut;
+    if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
   };
 
   // Apply initial Balanced (2:2) dimensions (Wp=240nm, Wn=240nm, L=28nm)

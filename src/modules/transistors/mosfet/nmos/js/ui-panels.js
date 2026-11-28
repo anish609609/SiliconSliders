@@ -224,9 +224,20 @@ if (layersBody) {
 
     var cb = row.querySelector('input');
     cb.addEventListener('change', function(e) {
-      if (groups[l.key]) groups[l.key].visible = e.target.checked;
+      var vis = e.target.checked;
+      if (groups[l.key]) {
+        if (l.key === 'substrate' || l.key === 'well') {
+          groups[l.key].visible = true;
+          groups[l.key].children.forEach(function(child) {
+            if (child.userData && (child.userData.decorative || child.userData.isFlowHelper)) return;
+            child.visible = vis;
+          });
+        } else {
+          groups[l.key].visible = vis;
+        }
+      }
       if (l.key === 'depletion') {
-        window.showDepletionLayer = e.target.checked;
+        window.showDepletionLayer = vis;
         if (typeof applyLogicState === 'function') applyLogicState();
       }
     });

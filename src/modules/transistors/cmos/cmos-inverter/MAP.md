@@ -25,7 +25,7 @@
 
 ## Key Symbols
 
-- **Geometry, Scaling & Carriers:** `Y`, `LAYER_ORDER`, `resolveInverterCanonProp`, `buildActiveRow`, `updateCmosGeometry3D`, `getCmosGeom3DState`, `buildCmosWellShellPerimeter`, `createCmosWellShellGeometry`, `updateCmosWellShell`, `updateCmosGateCradle`, `getCmosChanThicknessAtWorldX`, `updateInverterDepletion`, `createCmosSalicideGeo`, `addInverterSilicide`, `updateInverterChannels`, `updateChannelThemes`, `updateMaterialsTheme`, `updateLabelPlacement`, `toggleLabels`, `showSubstrateHoles`, `toggleSubstrateHoles`, `updateSubGateCarriers`, `updateBulkCarriersTheme`.
+- **Geometry, Scaling & Carriers:** `Y`, `LAYER_ORDER`, `resolveInverterCanonProp`, `buildActiveRow`, `updateCmosGeometry3D`, `getCmosGeom3DState`, `buildCmosWellShellPerimeter`, `createCmosWellShellGeometry`, `updateCmosWellShell`, `updateCmosGateCradle`, `getCmosChanThicknessAtWorldX`, `updateInverterDepletion`, `createCmosSalicideGeo`, `addInverterSilicide`, `updateInverterChannels`, `updateChannelThemes`, `updateMaterialsTheme`, `updateLabelPlacement`, `toggleLabels`, `showSubstrateHoles`, `showBulkCarriers`, `toggleSubstrateHoles`, `toggleBulkCarriers`, `updateSubGateCarriers`, `updateBulkCarriersTheme`.
 - **Physics, Scaling & State:** `getCmosGeomState`, `setCmosGeometry`, `setCmosGeometryPreset`, `calcCmosState`, `getVoutAt`, `getIddAt`, `applyLogicState`, `setOnOffTint`, `setVinState`, `currentIn`, `initLogicStateControls`.
 - **VTC Graph & Modal:** `drawVtcGraph`, `renderSingleVtcGraph`, `openIvModal`, `closeIvModal`, `VTC_GRAPH_PAD`.
 - **Carrier Flow:** `rebuildFlowCurves`, `refreshConnections`, `stepFlowMarkers`, `updateFlowTheme`.

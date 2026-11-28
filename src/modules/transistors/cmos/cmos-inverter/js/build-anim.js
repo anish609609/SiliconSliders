@@ -174,6 +174,18 @@ function applyFabStep(stepNum, shouldAnimate) {
     if (!grp) return;
     if (activeLayers[k]) {
       grp.visible = true;
+      if (k === 'substrate' || k === 'well') {
+        var lblChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+        var lblOn = lblChk ? lblChk.checked : true;
+        grp.children.forEach(function(child) {
+          if (child.userData && (child.userData.decorative || child.userData.isFlowHelper)) return;
+          if (child.userData && child.userData.isLabel) {
+            child.visible = lblOn;
+            return;
+          }
+          child.visible = true;
+        });
+      }
       if (shouldAnimate && !prevLayers[k]) {
         grp.position.y = 3.5;
         fabState.layerTimers[k] = { dropY: 3.5, active: true };
@@ -326,6 +338,18 @@ function stopBuildAnimation(restoreAll) {
       if (groups[k]) {
         groups[k].visible = true;
         groups[k].position.y = 0;
+        if (k === 'substrate' || k === 'well') {
+          var lblChkRest = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+          var lblOnRest = lblChkRest ? lblChkRest.checked : true;
+          groups[k].children.forEach(function(child) {
+            if (child.userData && (child.userData.decorative || child.userData.isFlowHelper)) return;
+            if (child.userData && child.userData.isLabel) {
+              child.visible = lblOnRest;
+              return;
+            }
+            child.visible = true;
+          });
+        }
       }
     });
     document.querySelectorAll('#layers-body input[data-layer]').forEach(function(inp) {

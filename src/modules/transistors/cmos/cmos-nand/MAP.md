@@ -25,7 +25,7 @@
 
 ## Key Symbols
 
-- **Geometry, Scaling & Carriers:** `Y`, `LAYER_ORDER`, `allMeshes`, `meshById`, `meshesById`, `resolveNandCanonProp`, `buildNand2Cell`, `updateNandGeometry3D`, `getNandGeom3DState`, `buildNandWellShellPerimeter`, `createNandWellShellGeometry`, `updateNandWellShell`, `updateNandGateCradle`, `evalNandChanThickness`, `updateNandDepletion`, `updateNandChannels`, `updateNandChannelThemes`, `updateMaterialsTheme`, `updateNandLabelPlacement`, `toggleLabels`, `showSubstrateHoles`, `toggleSubstrateHoles`, `updateSubGateCarriers`, `updateBulkCarriersTheme`.
+- **Geometry, Scaling & Carriers:** `Y`, `LAYER_ORDER`, `allMeshes`, `meshById`, `meshesById`, `resolveNandCanonProp`, `buildNand2Cell`, `updateNandGeometry3D`, `getNandGeom3DState`, `buildNandWellShellPerimeter`, `createNandWellShellGeometry`, `updateNandWellShell`, `updateNandGateCradle`, `evalNandChanThickness`, `updateNandDepletion`, `updateNandChannels`, `updateNandChannelThemes`, `updateMaterialsTheme`, `updateNandLabelPlacement`, `toggleLabels`, `showSubstrateHoles`, `showBulkCarriers`, `toggleSubstrateHoles`, `toggleBulkCarriers`, `syncBulkCarriersExplode`, `updateSubGateCarriers`, `updateBulkCarriersTheme`.
 - **Physics, Scaling & State:** `getNandGeomState`, `setNandGeometry`, `setNandGeometryPreset`, `calcNandVout`, `computeTransistorRegions`, `computeNand2State`, `getCircuitStateSnapshot`, `applyLogicTint`, `setInputs`, `initLogicStateControls`.
 - **VTC Graph & Modal:** `drawTransferGraph`, `drawTransferOnCanvas`, `setupCanvasDrag`, `openModal`, `closeModal`.
 - **Carrier Flow:** `rebuildFlowCurves`, `updateFlowMarkers`, `hideAllFlowMarkers`, `setFlowMode`, `updateFlowTheme`.

@@ -187,7 +187,24 @@ if (layersBody) {
 
     var cb = row.querySelector('input');
     cb.addEventListener('change', function(e) {
-      if (groups[l.key]) groups[l.key].visible = e.target.checked;
+      var vis = e.target.checked;
+      if (groups[l.key]) {
+        if (l.key === 'substrate' || l.key === 'well') {
+          var lblChk = document.getElementById('toggle-labels') || document.getElementById('chk-labels');
+          var lblOn = lblChk ? lblChk.checked : true;
+          groups[l.key].visible = true;
+          groups[l.key].children.forEach(function(child) {
+            if (child.userData && (child.userData.decorative || child.userData.isFlowHelper)) return;
+            if (child.userData && child.userData.isLabel) {
+              child.visible = vis && lblOn;
+              return;
+            }
+            child.visible = vis;
+          });
+        } else {
+          groups[l.key].visible = vis;
+        }
+      }
     });
 
     row.querySelector('.layer-name').addEventListener('click', function() {

@@ -38,6 +38,9 @@ function applyExplode() {
     }
   }
 
+  if (typeof window.syncBulkCarriersExplode === 'function') {
+    window.syncBulkCarriersExplode();
+  }
   if (typeof rebuildFlowCurves === 'function') {
     rebuildFlowCurves();
   }

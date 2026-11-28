@@ -1856,6 +1856,10 @@ window.updateDeviceGeometry3D = function(L_nm, W_nm, tox_nm) {
   if (typeof deplCallout !== 'undefined' && deplCallout) {
     deplCallout.position.set(Math.abs(newSrcX) + actW / 2.0 + 0.15, Y.subTop + 0.002, newHalfD + 0.10);
   }
+  if (typeof window.updateSubGateCarriers === 'function' && window.showSubstrateHoles) {
+    _lastCarrierTick = -999;
+    window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -1909,10 +1913,12 @@ holeInstMesh.visible = false;
 groups['substrate'].add(holeInstMesh);
 
 window.showSubstrateHoles = false;
+window.showBulkCarriers = false;
 window.toggleSubstrateHoles = function(visible) {
   window.showSubstrateHoles = Boolean(visible);
+  window.showBulkCarriers = window.showSubstrateHoles;
   if (holeInstMesh) {
-    holeInstMesh.visible = window.showSubstrateHoles && Boolean(groups['substrate'] && groups['substrate'].visible !== false);
+    holeInstMesh.visible = window.showSubstrateHoles;
     if (!window.showSubstrateHoles) {
       holeInstMesh.count = 0;
       if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
@@ -1923,6 +1929,7 @@ window.toggleSubstrateHoles = function(visible) {
     window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
   }
 };
+window.toggleBulkCarriers = window.toggleSubstrateHoles;
 
 var initHoleChk = document.getElementById('toggle-holes');
 if (initHoleChk) {
@@ -1981,7 +1988,7 @@ window.updateSubGateCarriers = function(elapsedTime) {
   if (t > 0 && Math.abs(t - _lastCarrierTick) < 0.008) return;
   _lastCarrierTick = t;
 
-  if (!window.showSubstrateHoles || !groups['substrate'] || groups['substrate'].visible === false) {
+  if (!window.showSubstrateHoles) {
     holeInstMesh.visible = false;
     holeInstMesh.count = 0;
     return;

@@ -139,6 +139,12 @@ function applyFabStep(stepNum, shouldAnimateDrop) {
     var isNew = stepData.newLayers && stepData.newLayers.indexOf(layerKey) !== -1;
 
     groups[layerKey].visible = isIncluded;
+    if (isIncluded && (layerKey === 'substrate' || layerKey === 'well')) {
+      groups[layerKey].children.forEach(function(child) {
+        if (child.userData && (child.userData.decorative || child.userData.isFlowHelper)) return;
+        child.visible = true;
+      });
+    }
 
     if (!isIncluded) {
       dropOffsets[layerKey] = 0;
@@ -244,6 +250,12 @@ function stopBuildAnimation(restoreAll) {
       if (groups[layerKey]) {
         groups[layerKey].visible = true;
         groups[layerKey].position.y = 0;
+        if (layerKey === 'substrate' || layerKey === 'well') {
+          groups[layerKey].children.forEach(function(child) {
+            if (child.userData && (child.userData.decorative || child.userData.isFlowHelper)) return;
+            child.visible = true;
+          });
+        }
       }
     });
     document.querySelectorAll('#layers-body input').forEach(function(cb) {

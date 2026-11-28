@@ -885,7 +885,7 @@ var wellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-well', {
   straggle: 0.08,   // Controlled lateral straggle ensuring active is fully enclosed at all depths
   cornerR: 0.35,    // Tight corner radius so active corners never protrude
   depthWrite: false,
-  renderOrder: 2
+  renderOrder: 1
 });
 put(wellMesh, wellX, (Y.wellTop+Y.wellBot)/2, nwellZC);
 reg(wellMesh, 'nwell', 'well');
@@ -897,7 +897,7 @@ var pwellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-pwell', {
   straggle: 0.08,
   cornerR: 0.35,
   depthWrite: false,
-  renderOrder: 2
+  renderOrder: 1
 });
 put(pwellMesh, wellX, (Y.wellTop+Y.wellBot)/2, pwellZC);
 reg(pwellMesh, 'pwell', 'well');
@@ -2255,6 +2255,7 @@ window.updateCmosGeometry3D = function(Wp_nm, Wn_nm, L_nm) {
     window.rebuildFlowCurves();
   }
   if (typeof window.updateSubGateCarriers === 'function' && window.showSubstrateHoles) {
+    _lastCarrierTick = -999;
     window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
   }
 };
@@ -2357,17 +2358,19 @@ window.updateBulkCarriersTheme = function(theme) {
   }
 };
 
+window.showBulkCarriers = false;
 window.toggleSubstrateHoles = function(visible) {
   window.showSubstrateHoles = Boolean(visible);
+  window.showBulkCarriers = window.showSubstrateHoles;
   if (holeInstMesh) {
-    holeInstMesh.visible = window.showSubstrateHoles && Boolean(groups['substrate'] && groups['substrate'].visible !== false);
+    holeInstMesh.visible = window.showSubstrateHoles;
     if (!window.showSubstrateHoles) {
       holeInstMesh.count = 0;
       if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
     }
   }
   if (bulkElecInstMesh) {
-    bulkElecInstMesh.visible = window.showSubstrateHoles && Boolean(groups['well'] && groups['well'].visible !== false);
+    bulkElecInstMesh.visible = window.showSubstrateHoles;
     if (!window.showSubstrateHoles) {
       bulkElecInstMesh.count = 0;
       if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
@@ -2378,6 +2381,7 @@ window.toggleSubstrateHoles = function(visible) {
     window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
   }
 };
+window.toggleBulkCarriers = window.toggleSubstrateHoles;
 
 window.updateSubGateCarriers = function(elapsedTime) {
   var t = typeof elapsedTime === 'number' ? elapsedTime : 0;
@@ -2410,95 +2414,85 @@ window.updateSubGateCarriers = function(elapsedTime) {
   var subHW = cmosGeom3D.subHalfW - 0.35;
   var subHD = cmosGeom3D.subHalfD - 0.35;
 
-  // 1. Majority Holes in P-Substrate & P-Well
-  if (groups['substrate'] && groups['substrate'].visible !== false) {
-    holeInstMesh.visible = true;
-    var yMinS = Y.subBot + 0.18;
-    var yMaxS = Y.subTop - 0.12;
-    var nGatePush = isOff ? 0 : 0.42 * Math.min(1.0, Math.max(0, vInNum));
-    var nDrnDepl = 0.22 + (isOff ? 0 : 0.34 * Math.sqrt(Math.max(0, vOutNum)));
+  // 1. Majority Holes in P-Substrate & P-Well (decoupled from Layers tab visibility)
+  holeInstMesh.visible = true;
+  var yMinS = Y.subBot + 0.18;
+  var yMaxS = Y.subTop - 0.12;
+  var nGatePush = isOff ? 0 : 0.42 * Math.min(1.0, Math.max(0, vInNum));
+  var nDrnDepl = 0.22 + (isOff ? 0 : 0.34 * Math.sqrt(Math.max(0, vOutNum)));
 
-    var hOut = 0;
-    for (var i = 0; i < MAX_CMOS_BULK_HOLES; i++) {
-      var hs = bulkHoleSeeds[i];
-      var jx = 0.028 * Math.sin(t * 2.1 + hs.phase);
-      var jy = 0.018 * Math.cos(t * 2.4 + hs.phase * 1.27);
-      var jz = 0.028 * Math.sin(t * 1.8 + hs.phase * 0.73);
+  var hOut = 0;
+  for (var i = 0; i < MAX_CMOS_BULK_HOLES; i++) {
+    var hs = bulkHoleSeeds[i];
+    var jx = 0.028 * Math.sin(t * 2.1 + hs.phase);
+    var jy = 0.018 * Math.cos(t * 2.4 + hs.phase * 1.27);
+    var jz = 0.028 * Math.sin(t * 1.8 + hs.phase * 0.73);
 
-      var hx = -0.5 + (hs.nx - 0.5) * 2.0 * subHW + jx;
-      var hz = (hs.nz - 0.5) * 2.0 * subHD + jz;
-      var hy = yMinS + hs.ny * (yMaxS - yMinS) + jy;
+    var hx = -0.5 + (hs.nx - 0.5) * 2.0 * subHW + jx;
+    var hz = (hs.nz - 0.5) * 2.0 * subHD + jz;
+    var hy = yMinS + hs.ny * (yMaxS - yMinS) + jy;
 
-      if (hz > 0.65 && hz < (zcP + halfWp + 0.85) && hx > -8.6 && hx < (6.2 + (hL - 1.0) * 2) && hy > Y.wellBot - 0.15) {
-        hy = yMinS + hs.ny * Math.max(0.15, (Y.wellBot - 0.20) - yMinS) + jy * 0.5;
-      }
-
-      var inNmosZ = Math.abs(hz - zcN) < (halfWn + nDrnDepl);
-      if (inNmosZ && hy > Y.actBot - 0.30) {
-        if ((hx > -(hL + 3.2) && hx < -(hL - 0.25)) || (hx > (hL - 0.25) && hx < (hL + 3.2))) {
-          hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.35 - 0.2 * nDrnDepl) - yMinS);
-        } else if (Math.abs(hx) < hL + 0.2 && nGatePush > 0.02) {
-          hy = Math.min(hy, yMaxS - nGatePush);
-        }
-      }
-
-      if (Math.abs(hx - tapX) < 0.8 && Math.abs(hz - zcN) < 0.8 && hy > Y.actBot - 0.1) {
-        hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.20) - yMinS);
-      }
-
-      _carrierDummy.position.set(hx, hy, hz);
-      _carrierDummy.rotation.set(0, 0, 0);
-      _carrierDummy.scale.set(1, 1, 1);
-      if (typeof _carrierDummy.updateMatrix === 'function') _carrierDummy.updateMatrix();
-      holeInstMesh.setMatrixAt(hOut++, _carrierDummy.matrix);
+    if (hz > 0.65 && hz < (zcP + halfWp + 0.85) && hx > -8.6 && hx < (6.2 + (hL - 1.0) * 2) && hy > Y.wellBot - 0.15) {
+      hy = yMinS + hs.ny * Math.max(0.15, (Y.wellBot - 0.20) - yMinS) + jy * 0.5;
     }
-    holeInstMesh.count = hOut;
-    if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
-  } else {
-    holeInstMesh.visible = false;
-    holeInstMesh.count = 0;
-  }
 
-  // 2. Majority Electrons in N-Well
-  if (groups['well'] && groups['well'].visible !== false) {
-    bulkElecInstMesh.visible = true;
-    var wMinX = -8.4;
-    var wMaxX = 5.8 + 2.0 * Math.max(0, hL - 1.0);
-    var wMinZ = 0.90;
-    var wMaxZ = zcP + halfWp + 0.65;
-    var yMinW = Y.wellBot + 0.16;
-    var yMaxW = Y.wellTop - 0.12;
-    var pGatePush = isOff ? 0 : 0.42 * Math.min(1.0, Math.max(0, 1.0 - vInNum));
-    var pDrnDepl = 0.22 + (isOff ? 0 : 0.34 * Math.sqrt(Math.max(0, 1.0 - vOutNum)));
-
-    var eOut = 0;
-    for (var j = 0; j < MAX_CMOS_BULK_ELECS; j++) {
-      var es = bulkElecSeeds[j];
-      var ex = wMinX + es.nx * (wMaxX - wMinX) + 0.025 * Math.cos(t * 2.2 + es.phase);
-      var ez = wMinZ + es.nz * (wMaxZ - wMinZ) + 0.025 * Math.sin(t * 2.0 + es.phase * 0.81);
-      var ey = yMinW + es.ny * (yMaxW - yMinW) + 0.016 * Math.sin(t * 2.5 + es.phase * 1.13);
-
-      var inPmosZ = Math.abs(ez - zcP) < (halfWp + pDrnDepl);
-      if (inPmosZ && ey > Y.actBot - 0.30) {
-        if ((ex > -(hL + 3.2) && ex < -(hL - 0.25)) || (ex > (hL - 0.25) && ex < (hL + 3.2))) {
-          ey = yMinW + es.ny * Math.max(0.12, (Y.actBot - 0.32 - 0.2 * pDrnDepl) - yMinW);
-        } else if (Math.abs(ex) < hL + 0.2 && pGatePush > 0.02) {
-          ey = Math.min(ey, yMaxW - pGatePush);
-        }
+    var inNmosZ = Math.abs(hz - zcN) < (halfWn + nDrnDepl);
+    if (inNmosZ && hy > Y.actBot - 0.30) {
+      if ((hx > -(hL + 3.2) && hx < -(hL - 0.25)) || (hx > (hL - 0.25) && hx < (hL + 3.2))) {
+        hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.35 - 0.2 * nDrnDepl) - yMinS);
+      } else if (Math.abs(hx) < hL + 0.2 && nGatePush > 0.02) {
+        hy = Math.min(hy, yMaxS - nGatePush);
       }
-
-      _carrierDummy.position.set(ex, ey, ez);
-      _carrierDummy.rotation.set(0, 0, 0);
-      _carrierDummy.scale.set(1, 1, 1);
-      if (typeof _carrierDummy.updateMatrix === 'function') _carrierDummy.updateMatrix();
-      bulkElecInstMesh.setMatrixAt(eOut++, _carrierDummy.matrix);
     }
-    bulkElecInstMesh.count = eOut;
-    if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
-  } else {
-    bulkElecInstMesh.visible = false;
-    bulkElecInstMesh.count = 0;
+
+    if (Math.abs(hx - tapX) < 0.8 && Math.abs(hz - zcN) < 0.8 && hy > Y.actBot - 0.1) {
+      hy = yMinS + hs.ny * Math.max(0.15, (Y.actBot - 0.20) - yMinS);
+    }
+
+    _carrierDummy.position.set(hx, hy, hz);
+    _carrierDummy.rotation.set(0, 0, 0);
+    _carrierDummy.scale.set(1, 1, 1);
+    if (typeof _carrierDummy.updateMatrix === 'function') _carrierDummy.updateMatrix();
+    holeInstMesh.setMatrixAt(hOut++, _carrierDummy.matrix);
   }
+  holeInstMesh.count = hOut;
+  if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
+
+  // 2. Majority Electrons in N-Well (decoupled from Layers tab visibility)
+  bulkElecInstMesh.visible = true;
+  var wMinX = -8.4;
+  var wMaxX = 5.8 + 2.0 * Math.max(0, hL - 1.0);
+  var wMinZ = 0.90;
+  var wMaxZ = zcP + halfWp + 0.65;
+  var yMinW = Y.wellBot + 0.16;
+  var yMaxW = Y.wellTop - 0.12;
+  var pGatePush = isOff ? 0 : 0.42 * Math.min(1.0, Math.max(0, 1.0 - vInNum));
+  var pDrnDepl = 0.22 + (isOff ? 0 : 0.34 * Math.sqrt(Math.max(0, 1.0 - vOutNum)));
+
+  var eOut = 0;
+  for (var j = 0; j < MAX_CMOS_BULK_ELECS; j++) {
+    var es = bulkElecSeeds[j];
+    var ex = wMinX + es.nx * (wMaxX - wMinX) + 0.025 * Math.cos(t * 2.2 + es.phase);
+    var ez = wMinZ + es.nz * (wMaxZ - wMinZ) + 0.025 * Math.sin(t * 2.0 + es.phase * 0.81);
+    var ey = yMinW + es.ny * (yMaxW - yMinW) + 0.016 * Math.sin(t * 2.5 + es.phase * 1.13);
+
+    var inPmosZ = Math.abs(ez - zcP) < (halfWp + pDrnDepl);
+    if (inPmosZ && ey > Y.actBot - 0.30) {
+      if ((ex > -(hL + 3.2) && ex < -(hL - 0.25)) || (ex > (hL - 0.25) && ex < (hL + 3.2))) {
+        ey = yMinW + es.ny * Math.max(0.12, (Y.actBot - 0.32 - 0.2 * pDrnDepl) - yMinW);
+      } else if (Math.abs(ex) < hL + 0.2 && pGatePush > 0.02) {
+        ey = Math.min(ey, yMaxW - pGatePush);
+      }
+    }
+
+    _carrierDummy.position.set(ex, ey, ez);
+    _carrierDummy.rotation.set(0, 0, 0);
+    _carrierDummy.scale.set(1, 1, 1);
+    if (typeof _carrierDummy.updateMatrix === 'function') _carrierDummy.updateMatrix();
+    bulkElecInstMesh.setMatrixAt(eOut++, _carrierDummy.matrix);
+  }
+  bulkElecInstMesh.count = eOut;
+  if (bulkElecInstMesh.instanceMatrix) bulkElecInstMesh.instanceMatrix.needsUpdate = true;
 };
 
 // Apply initial Balanced (2:1) 3D dimensions (Wp=240nm, Wn=120nm, L=28nm)

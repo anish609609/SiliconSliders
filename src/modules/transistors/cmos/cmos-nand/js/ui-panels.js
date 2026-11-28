@@ -119,6 +119,7 @@ var showLabels3D = true;
 function applyLayerVisibility() {
   for (var i = 0; i < allMeshes.length; i++) {
     var m = allMeshes[i];
+    if (m.userData && (m.userData.decorative || m.userData.isFlowHelper)) continue;
     var vis = layerVisibility[m.userData.layer] !== false;
     m.visible = vis;
   }

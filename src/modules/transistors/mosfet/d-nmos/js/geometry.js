@@ -554,9 +554,15 @@ var Y = {
   m1Top: 5.338
 };
 
-// 1. P-SUBSTRATE BASE SLAB (Matching CMOS Inverter Palette)
-var subMesh = box(22, Y.subTop - Y.subBot, 20, '--c-substrate', { roughness: 0.85, metalness: 0.05 });
-subMesh.renderOrder = 1;
+// 1. P-SUBSTRATE BASE SLAB (Semi-translucent TCAD slab matching E-NMOS so bulk holes & junctions show cleanly)
+var subMesh = box(22, Y.subTop - Y.subBot, 20, '--c-substrate', {
+  roughness: 0.85,
+  metalness: 0.05,
+  transparent: true,
+  opacity: 0.86,
+  depthWrite: false
+});
+subMesh.renderOrder = 0;
 subMesh.position.set(0, (Y.subTop + Y.subBot) / 2, 0);
 reg(subMesh, 'psub', 'substrate');
 
@@ -1684,7 +1690,7 @@ function updateMaterialsTheme() {
   }
 
   if (typeof holeMat !== 'undefined' && holeMat && holeMat.color) {
-    holeMat.color.setHex(isLight ? 0x2563EB : 0x3B82F6);
+    holeMat.color.setHex(isLight ? 0x1D4ED8 : 0x60A5FA);
     holeMat.opacity = isLight ? 0.44 : 0.48;
   }
 
@@ -1972,6 +1978,10 @@ window.updateDeviceGeometry3D = function(L_nm, W_nm, tox_nm) {
   if (typeof deplCallout !== 'undefined' && deplCallout) {
     deplCallout.position.set(Math.abs(newSrcX) + actW / 2.0 + 0.25, Y.subTop + 0.002, newHalfD + 0.1);
   }
+  if (typeof window.updateSubGateCarriers === 'function' && window.showSubstrateHoles) {
+    _lastCarrierTick = -999;
+    window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -2014,13 +2024,13 @@ var MAX_BULK_HOLES = 480;
 
 var holeGeom = new THREE.SphereGeometry(0.055, 8, 8);
 var holeMat = new THREE.MeshBasicMaterial({
-  color: isInitLightDNMOS ? 0x2563EB : 0x3B82F6, // P-Substrate majority holes (Blue)
+  color: isInitLightDNMOS ? 0x1D4ED8 : 0x60A5FA, // P-Substrate majority holes (Blue, matching E-NMOS)
   transparent: true,
   opacity: isInitLightDNMOS ? 0.44 : 0.48,
   depthWrite: false
 });
 var holeInstMesh = createDecorativeInstanced(holeGeom, holeMat, MAX_BULK_HOLES);
-holeInstMesh.renderOrder = 2;
+holeInstMesh.renderOrder = 1;
 holeInstMesh.visible = false;
 groups['substrate'].add(holeInstMesh);
 
@@ -2030,7 +2040,7 @@ window.toggleSubstrateHoles = function(visible) {
   window.showSubstrateHoles = Boolean(visible);
   window.showBulkCarriers = window.showSubstrateHoles;
   if (holeInstMesh) {
-    holeInstMesh.visible = window.showSubstrateHoles && Boolean(groups['substrate'] && groups['substrate'].visible !== false);
+    holeInstMesh.visible = window.showSubstrateHoles;
     if (!window.showSubstrateHoles) {
       holeInstMesh.count = 0;
       if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
@@ -2098,7 +2108,7 @@ window.updateSubGateCarriers = function(elapsedTime) {
   if (t > 0 && Math.abs(t - _lastCarrierTick) < 0.008) return;
   _lastCarrierTick = t;
 
-  if (!window.showSubstrateHoles || !groups['substrate'] || groups['substrate'].visible === false) {
+  if (!window.showSubstrateHoles) {
     holeInstMesh.visible = false;
     holeInstMesh.count = 0;
     return;

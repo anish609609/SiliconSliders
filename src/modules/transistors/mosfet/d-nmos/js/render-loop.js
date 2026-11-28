@@ -22,6 +22,9 @@ function animate(){
   if (!isOffState){
     stepFlowMarkers(dt);
   }
+  if (typeof window.updateSubGateCarriers === 'function'){
+    window.updateSubGateCarriers(t);
+  }
 
   selectable.forEach(function(m){
     if (!m || !m.material || !m.material.emissive) return;

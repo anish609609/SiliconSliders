@@ -557,9 +557,15 @@ var Y = {
   m1Top: 5.339
 };
 
-// 1. P-SUBSTRATE BASE SLAB (Bottom seated at y=0, grid lines at y=-0.02 never clip)
-var subMesh = box(24, Y.subTop - Y.subBot, 22, '--c-substrate', { roughness: 0.85, metalness: 0.05 });
-subMesh.renderOrder = 1;
+// 1. P-SUBSTRATE BASE SLAB (Semi-translucent slab matching E-NMOS so N-Well & bulk electrons show clearly)
+var subMesh = box(24, Y.subTop - Y.subBot, 22, '--c-substrate', {
+  roughness: 0.85,
+  metalness: 0.05,
+  transparent: true,
+  opacity: 0.86,
+  depthWrite: false
+});
+subMesh.renderOrder = 0;
 subMesh.position.set(0, (Y.subTop + Y.subBot) / 2, 0);
 reg(subMesh, 'psub', 'substrate');
 
@@ -575,7 +581,7 @@ var wellMesh = gaussianDopingMesh(wellW, wellH, wellD, '--c-well', {
   opacity: 0.85,
   outlineColor: '#5fd9c4',
   depthWrite: false,
-  renderOrder: 2
+  renderOrder: 1
 });
 wellMesh.position.set(0, (Y.wellTop + Y.wellBot) / 2, 0);
 reg(wellMesh, 'nwell', 'well');
@@ -1707,7 +1713,7 @@ function updateMaterialsTheme() {
   }
 
   if (typeof holeMat !== 'undefined' && holeMat && holeMat.color) {
-    holeMat.color.setHex(isLight ? 0x15803D : 0x22C55E);
+    holeMat.color.setHex(isLight ? 0x15803D : 0x4ADE80);
     holeMat.opacity = isLight ? 0.44 : 0.48;
   }
 
@@ -1999,6 +2005,10 @@ window.updateDeviceGeometry3D = function(L_nm, W_nm, tox_nm) {
   if (typeof deplCallout !== 'undefined' && deplCallout) {
     deplCallout.position.set(Math.abs(newSrcX) + actW / 2.0 + 0.25, Y.wellTop + 0.001, newHalfD + 0.1);
   }
+  if (typeof window.updateSubGateCarriers === 'function' && window.showSubstrateHoles) {
+    _lastCarrierTick = -999;
+    window.updateSubGateCarriers(typeof performance !== 'undefined' ? performance.now() * 0.001 : 0);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -2041,7 +2051,7 @@ var MAX_BULK_HOLES = 460;
 
 var holeGeom = new THREE.SphereGeometry(0.052, 8, 8);
 var holeMat = new THREE.MeshBasicMaterial({
-  color: isInitLightDPMOS ? 0x15803D : 0x22C55E, // N-Well majority electrons (Green)
+  color: isInitLightDPMOS ? 0x15803D : 0x4ADE80, // N-Well majority electrons (Green)
   transparent: true,
   opacity: isInitLightDPMOS ? 0.44 : 0.48,
   depthWrite: false
@@ -2057,7 +2067,7 @@ window.toggleSubstrateHoles = function(visible) {
   window.showSubstrateHoles = Boolean(visible);
   window.showBulkCarriers = window.showSubstrateHoles;
   if (holeInstMesh) {
-    holeInstMesh.visible = window.showSubstrateHoles && Boolean(groups['well'] && groups['well'].visible !== false);
+    holeInstMesh.visible = window.showSubstrateHoles;
     if (!window.showSubstrateHoles) {
       holeInstMesh.count = 0;
       if (holeInstMesh.instanceMatrix) holeInstMesh.instanceMatrix.needsUpdate = true;
@@ -2125,7 +2135,7 @@ window.updateSubGateCarriers = function(elapsedTime) {
   if (t > 0 && Math.abs(t - _lastCarrierTick) < 0.008) return;
   _lastCarrierTick = t;
 
-  if (!window.showSubstrateHoles || !groups['well'] || groups['well'].visible === false) {
+  if (!window.showSubstrateHoles) {
     holeInstMesh.visible = false;
     holeInstMesh.count = 0;
     return;

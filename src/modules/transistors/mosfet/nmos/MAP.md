@@ -25,7 +25,7 @@
 
 ## Key Symbols
 
-- **Geometry & Materials:** `Y`, `LAYER_ORDER`, `gaussianDopingMesh`, `createWellShellGeometry`, `updateHalfWellShell`, `getChannelThicknessAtX`, `updateChannelGeometry`, `constrainHoleOutsideWell`, `updateSubGateCarriers`, `toggleSubstrateHoles`, `getDeviceGeomState`, `updateDeviceGeometry3D`, `buildSilicidePadMesh`, `updateMaterialsTheme`, `toggleLabels`.
+- **Geometry & Materials:** `Y`, `LAYER_ORDER`, `gaussianDopingMesh`, `createWellShellGeometry`, `updateHalfWellShell`, `getChannelThicknessAtX`, `updateChannelGeometry`, `constrainHoleOutsideWell`, `updateSubGateCarriers`, `showBulkCarriers`, `toggleSubstrateHoles`, `toggleBulkCarriers`, `getDeviceGeomState`, `updateDeviceGeometry3D`, `buildSilicidePadMesh`, `updateMaterialsTheme`, `toggleLabels`.
 - **Physics Engine:** `getMosfetPhysicsState` (returns `vgs`, `vds`, `vth`, `vov`, `vdsSat`, `ids`, `region`, `deltaL`, `leff`, `L`, `W`, `tox`, `wlRatio`), `setMosfetGeometry`, `GEOM_PRESETS`, `applyLogicState`, `initLogicStateControls`.
 - **I-V Graph & Modal:** `drawIdsVdsGraph`, `renderSingleGraph`, `toggleLockYAxis`, `openIvModal`, `closeIvModal`, `IV_GRAPH_PAD`.
 - **Parameter Modal:** `SiliconParamInfoModal` (`src/shared/js/param-info-modal.js`, `register`, `attachAll`, `open`, `close`).
